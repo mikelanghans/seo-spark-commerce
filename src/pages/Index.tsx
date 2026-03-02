@@ -3,8 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BusinessContextForm, BusinessContext } from "@/components/BusinessContextForm";
 import { ProductForm, ProductInfo } from "@/components/ProductForm";
 import { ListingOutput } from "@/components/ListingOutput";
-import { generateListings, MarketplaceListings } from "@/lib/listingGenerator";
+import { MarketplaceListings } from "@/lib/listingGenerator";
 import { Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
@@ -24,11 +26,23 @@ const Index = () => {
     setProduct(data);
     setIsGenerating(true);
     setStep(3);
-    const result = generateListings(business!, data);
-    // Simulate AI delay
-    await new Promise((r) => setTimeout(r, 1500));
-    setListings(result);
-    setIsGenerating(false);
+
+    try {
+      const { data: result, error } = await supabase.functions.invoke("generate-listings", {
+        body: { business: business!, product: data },
+      });
+
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
+
+      setListings(result);
+    } catch (err: any) {
+      console.error("Generation error:", err);
+      toast.error(err.message || "Failed to generate listings. Please try again.");
+      setStep(2);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleReset = () => {
@@ -40,7 +54,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
@@ -114,7 +127,7 @@ const Index = () => {
               <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
                 <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <p className="text-sm text-muted-foreground">
-                  Generating optimized listings…
+                  AI is crafting your optimized listings…
                 </p>
               </div>
             ) : (
