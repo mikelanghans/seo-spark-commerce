@@ -375,11 +375,6 @@ const Dashboard = () => {
                     className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
                     onClick={() => handleViewProduct(product)}
                   >
-                    {product.image_url && (
-                      <div className="h-32 overflow-hidden bg-secondary">
-                        <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
-                      </div>
-                    )}
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
