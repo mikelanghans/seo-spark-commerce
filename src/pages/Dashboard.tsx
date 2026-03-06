@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
+import { BulkUpload } from "@/components/BulkUpload";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,7 +46,7 @@ interface Listing {
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -344,9 +345,14 @@ const Dashboard = () => {
                 <h2 className="text-2xl font-bold">{selectedOrg.name}</h2>
                 <p className="text-sm text-muted-foreground">{selectedOrg.niche} • {products.length} products</p>
               </div>
-              <Button onClick={() => setView("product-form")} className="gap-2">
-                <Plus className="h-4 w-4" /> Add Product
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
+                  <Upload className="h-4 w-4" /> Bulk Upload
+                </Button>
+                <Button onClick={() => setView("product-form")} className="gap-2">
+                  <Plus className="h-4 w-4" /> Add Product
+                </Button>
+              </div>
             </div>
 
             {loading ? (
