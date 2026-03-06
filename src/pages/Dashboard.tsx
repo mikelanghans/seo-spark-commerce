@@ -547,6 +547,18 @@ const Dashboard = () => {
             )}
           </div>
         )}
+        {/* Bulk Upload */}
+        {view === "bulk-upload" && selectedOrg && (
+          <BulkUpload
+            organizationId={selectedOrg.id}
+            userId={user!.id}
+            onComplete={() => {
+              setView("products");
+              loadProducts(selectedOrg.id);
+            }}
+            onBack={() => setView("products")}
+          />
+        )}
       </main>
     </div>
   );
