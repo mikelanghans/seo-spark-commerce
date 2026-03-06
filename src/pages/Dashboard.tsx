@@ -82,7 +82,7 @@ const Dashboard = () => {
 
   const loadProducts = async (orgId: string) => {
     setLoading(true);
-    const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
+    const { data } = await supabase.from("products").select("id, organization_id, title, description, keywords, category, price, features, created_at, updated_at").eq("organization_id", orgId).order("created_at", { ascending: false });
     setProducts((data as Product[]) || []);
     setLoading(false);
   };
