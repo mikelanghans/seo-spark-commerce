@@ -373,6 +373,19 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Search */}
+            {products.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search products…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+
             {loading ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -387,12 +400,24 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
+                {products
+                  .filter((p) => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((product) => (
                   <div
                     key={product.id}
                     className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
                     onClick={() => handleViewProduct(product)}
                   >
+                    {product.image_url && (
+                      <div className="h-32 overflow-hidden bg-secondary">
+                        <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
+                      </div>
+                    )}
+                    {!product.image_url && (
+                      <div className="flex h-32 items-center justify-center bg-secondary">
+                        <Package className="h-8 w-8 text-muted-foreground/40" />
+                      </div>
+                    )}
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
