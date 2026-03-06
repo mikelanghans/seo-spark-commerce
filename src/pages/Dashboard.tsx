@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +60,8 @@ const Dashboard = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
@@ -82,8 +84,8 @@ const Dashboard = () => {
 
   const loadProducts = async (orgId: string) => {
     setLoading(true);
-    const { data } = await supabase.from("products").select("id, organization_id, title, description, keywords, category, price, features, created_at, updated_at").eq("organization_id", orgId).order("created_at", { ascending: false });
-    setProducts((data as unknown as Product[]) || []);
+    const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
+    setProducts((data as Product[]) || []);
     setLoading(false);
   };
 
@@ -118,6 +120,7 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
 
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -147,13 +150,27 @@ const Dashboard = () => {
     reader.readAsDataURL(file);
   };
 
+  const uploadImageToStorage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user!.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast.error("Image upload failed: " + error.message); return null; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    return urlData.publicUrl;
+  };
+
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrg) return;
 
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      imageUrl = await uploadImageToStorage(imageFile);
+    }
+
     const { data: product, error } = await supabase
       .from("products")
-      .insert({ ...productForm, organization_id: selectedOrg.id, user_id: user!.id, image_url: imagePreview })
+      .insert({ ...productForm, organization_id: selectedOrg.id, user_id: user!.id, image_url: imageUrl })
       .select()
       .single();
 
@@ -162,6 +179,7 @@ const Dashboard = () => {
     toast.success("Product saved! Generating listings…");
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
+    setImageFile(null);
 
     // Auto-generate listings
     setSelectedProduct(product as Product);
@@ -355,6 +373,19 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Search */}
+            {products.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search products…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            )}
+
             {loading ? (
               <div className="flex justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -369,12 +400,24 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => (
+                {products
+                  .filter((p) => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((product) => (
                   <div
                     key={product.id}
                     className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
                     onClick={() => handleViewProduct(product)}
                   >
+                    {product.image_url && (
+                      <div className="h-32 overflow-hidden bg-secondary">
+                        <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
+                      </div>
+                    )}
+                    {!product.image_url && (
+                      <div className="flex h-32 items-center justify-center bg-secondary">
+                        <Package className="h-8 w-8 text-muted-foreground/40" />
+                      </div>
+                    )}
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
