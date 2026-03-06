@@ -120,6 +120,7 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
 
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
@@ -147,6 +148,15 @@ const Dashboard = () => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const uploadImageToStorage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user!.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast.error("Image upload failed: " + error.message); return null; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    return urlData.publicUrl;
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
