@@ -90,6 +90,16 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
         if (error) throw error;
         if (data.error) throw new Error(data.error);
 
+        // Upload image to storage
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
+        let imageUrl: string | null = null;
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+          imageUrl = urlData.publicUrl;
+        }
+
         // Save product
         const { error: insertError } = await supabase.from("products").insert({
           title: data.title || file.name,
@@ -98,7 +108,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
           category: data.category || "",
           keywords: (data.keywords || []).join(", "),
           price: data.suggestedPrice || "",
-          image_url: base64,
+          image_url: imageUrl,
           organization_id: organizationId,
           user_id: userId,
         });
