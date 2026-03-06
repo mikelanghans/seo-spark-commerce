@@ -82,8 +82,8 @@ const Dashboard = () => {
 
   const loadProducts = async (orgId: string) => {
     setLoading(true);
-    const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
-    setProducts((data as Product[]) || []);
+    const { data } = await supabase.from("products").select("id, organization_id, title, description, keywords, category, price, features, created_at, updated_at").eq("organization_id", orgId).order("created_at", { ascending: false });
+    setProducts((data as unknown as Product[]) || []);
     setLoading(false);
   };
 
@@ -375,11 +375,6 @@ const Dashboard = () => {
                     className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
                     onClick={() => handleViewProduct(product)}
                   >
-                    {product.image_url && (
-                      <div className="h-32 overflow-hidden bg-secondary">
-                        <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
-                      </div>
-                    )}
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
