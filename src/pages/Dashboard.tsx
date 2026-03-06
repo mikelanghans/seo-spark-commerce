@@ -163,9 +163,14 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedOrg) return;
 
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      imageUrl = await uploadImageToStorage(imageFile);
+    }
+
     const { data: product, error } = await supabase
       .from("products")
-      .insert({ ...productForm, organization_id: selectedOrg.id, user_id: user!.id, image_url: imagePreview })
+      .insert({ ...productForm, organization_id: selectedOrg.id, user_id: user!.id, image_url: imageUrl })
       .select()
       .single();
 
@@ -174,6 +179,7 @@ const Dashboard = () => {
     toast.success("Product saved! Generating listings…");
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
+    setImageFile(null);
 
     // Auto-generate listings
     setSelectedProduct(product as Product);
