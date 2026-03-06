@@ -14,7 +14,136 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      listings: {
+        Row: {
+          bullet_points: Json
+          created_at: string
+          description: string
+          id: string
+          marketplace: string
+          product_id: string
+          tags: Json
+          title: string
+          user_id: string
+        }
+        Insert: {
+          bullet_points?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          marketplace: string
+          product_id: string
+          tags?: Json
+          title: string
+          user_id: string
+        }
+        Update: {
+          bullet_points?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          marketplace?: string
+          product_id?: string
+          tags?: Json
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          audience: string
+          created_at: string
+          id: string
+          name: string
+          niche: string
+          tone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          id?: string
+          name: string
+          niche?: string
+          tone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          id?: string
+          name?: string
+          niche?: string
+          tone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          features: string
+          id: string
+          image_url: string | null
+          keywords: string
+          organization_id: string
+          price: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          features?: string
+          id?: string
+          image_url?: string | null
+          keywords?: string
+          organization_id: string
+          price?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          features?: string
+          id?: string
+          image_url?: string | null
+          keywords?: string
+          organization_id?: string
+          price?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
