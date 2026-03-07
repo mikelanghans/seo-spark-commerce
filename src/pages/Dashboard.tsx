@@ -75,6 +75,7 @@ const Dashboard = () => {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAutoFill, setAiAutoFill] = useState(true);
 
   useEffect(() => {
     if (user) loadOrgs();
@@ -130,6 +131,9 @@ const Dashboard = () => {
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setImagePreview(base64);
+
+      if (!aiAutoFill) return;
+
       setIsAnalyzing(true);
       try {
         const { data, error } = await supabase.functions.invoke("analyze-product", {
@@ -463,6 +467,21 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* AI toggle */}
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+              <input
+                type="checkbox"
+                id="ai-auto-fill"
+                checked={aiAutoFill}
+                onChange={(e) => setAiAutoFill(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary"
+              />
+              <Sparkles className="h-4 w-4 text-primary" />
+              <label htmlFor="ai-auto-fill" className="text-sm">
+                AI auto-fill — analyze uploaded image and fill in product details automatically
+              </label>
+            </div>
+
             {/* Image Upload */}
             <div>
               <Label className="mb-2 block">Product Image</Label>
@@ -489,7 +508,9 @@ const Dashboard = () => {
                     <ImageIcon className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <p className="text-sm font-medium">Upload product image</p>
-                  <p className="text-xs text-muted-foreground">AI will auto-fill all fields</p>
+                  <p className="text-xs text-muted-foreground">
+                    {aiAutoFill ? "AI will auto-fill all fields" : "Image only — fill in details below"}
+                  </p>
                 </label>
               )}
             </div>
