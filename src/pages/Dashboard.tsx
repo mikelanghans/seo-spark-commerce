@@ -12,7 +12,7 @@ import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ProductMockups } from "@/components/ProductMockups";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,6 +68,7 @@ const Dashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
@@ -103,12 +104,25 @@ const Dashboard = () => {
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Organization created!");
+    if (editingOrg) {
+      const { error } = await supabase.from("organizations").update(orgForm).eq("id", editingOrg.id);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Organization updated!");
+      setEditingOrg(null);
+    } else {
+      const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
+      if (error) { toast.error(error.message); return; }
+      toast.success("Organization created!");
+    }
     setOrgForm({ name: "", niche: "", tone: "", audience: "" });
     setView("orgs");
     loadOrgs();
+  };
+
+  const handleEditOrg = (org: Organization) => {
+    setEditingOrg(org);
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setView("org-form");
   };
 
   const handleSelectOrg = (org: Organization) => {
@@ -312,6 +326,12 @@ const Dashboard = () => {
                         <p className="mt-1 text-xs text-muted-foreground">{org.niche}</p>
                       </div>
                       <button
+                        onClick={(e) => { e.stopPropagation(); handleEditOrg(org); }}
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id); }}
                         className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                       >
@@ -334,12 +354,12 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => setView("orgs")}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "" }); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">New Organization</h2>
-                <p className="text-sm text-muted-foreground">Set up your business context</p>
+                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Organization" : "New Organization"}</h2>
+                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your business context" : "Set up your business context"}</p>
               </div>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
@@ -361,7 +381,9 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button type="submit" className="gap-2"><Plus className="h-4 w-4" /> Create</Button>
+              <Button type="submit" className="gap-2">
+                {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
+              </Button>
             </div>
           </form>
         )}
