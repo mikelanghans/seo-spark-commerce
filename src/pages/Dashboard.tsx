@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
+import { ProductMockups } from "@/components/ProductMockups";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket,
 } from "lucide-react";
@@ -574,6 +575,11 @@ const Dashboard = () => {
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 Regenerate
               </Button>
+            </div>
+
+            {/* Mockup Images */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} />
             </div>
 
             {generating ? (
