@@ -60,32 +60,54 @@ const colorFromFilename = (filename: string): string => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-/** Parse selected folder files into design + mockups structure */
+/**
+ * Parse selected folder files into design + mockups structure.
+ * Supports both flat and nested layouts:
+ *
+ * Flat (select product folder directly):
+ *   my-product/design.png + my-product/mockups/black.png
+ *
+ * Nested (select parent folder with multiple products):
+ *   parent/product-a/design.png + parent/product-a/mockups/black.png
+ *   parent/product-b/design.png + parent/product-b/mockups/red.png
+ */
 const parseFolderFiles = (files: File[]): ParsedFolder[] => {
+  // First, detect if structure is flat or nested by checking if the
+  // root folder itself contains images (flat) or only subfolders (nested).
+  const rootFolder = files[0]?.webkitRelativePath?.split("/")[0];
+  if (!rootFolder) return [];
+
+  const hasRootImages = files.some((f) => {
+    const parts = f.webkitRelativePath.split("/");
+    return parts.length === 2 && parts[0] === rootFolder && f.type.startsWith("image/");
+  });
+
+  // Determine depth offset: flat = 0 (folder name is parts[0]), nested = 1 (folder name is parts[1])
+  const depthOffset = hasRootImages ? 0 : 1;
+
   const folderMap = new Map<string, { design: File | null; mockups: File[] }>();
 
   for (const file of files) {
     const path = file.webkitRelativePath;
-    if (!path) continue;
+    if (!path || !file.type.startsWith("image/")) continue;
 
     const parts = path.split("/");
-    if (parts.length < 2) continue;
+    if (parts.length < depthOffset + 2) continue;
 
-    const folderName = parts[0];
+    const folderName = parts[depthOffset];
     if (!folderMap.has(folderName)) {
       folderMap.set(folderName, { design: null, mockups: [] });
     }
     const entry = folderMap.get(folderName)!;
 
-    // Check if file is in a "mockups" subfolder (case-insensitive)
-    const isInMockups = parts.length >= 3 && parts[1].toLowerCase() === "mockups";
-
-    if (!file.type.startsWith("image/")) continue;
+    // Check if file is in a "mockups" subfolder relative to the product folder
+    const mockupsIdx = depthOffset + 1;
+    const isInMockups = parts.length >= mockupsIdx + 2 && parts[mockupsIdx].toLowerCase() === "mockups";
+    const isDirectChild = parts.length === depthOffset + 2;
 
     if (isInMockups) {
       entry.mockups.push(file);
-    } else if (parts.length === 2) {
-      // Root-level image in the folder = design file (take first one found)
+    } else if (isDirectChild) {
       if (!entry.design) entry.design = file;
     }
   }
@@ -93,11 +115,7 @@ const parseFolderFiles = (files: File[]): ParsedFolder[] => {
   const result: ParsedFolder[] = [];
   for (const [folderName, entry] of folderMap) {
     if (entry.design) {
-      result.push({
-        folderName,
-        designFile: entry.design,
-        mockupFiles: entry.mockups,
-      });
+      result.push({ folderName, designFile: entry.design, mockupFiles: entry.mockups });
     }
   }
   return result;
