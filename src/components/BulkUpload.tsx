@@ -196,7 +196,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold">Bulk Upload</h2>
+          <h2 className="text-2xl font-bold">Import Products</h2>
           <p className="text-sm text-muted-foreground">
             Import multiple products at once via images or CSV
           </p>
