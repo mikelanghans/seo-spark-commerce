@@ -381,7 +381,9 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button type="submit" className="gap-2"><Plus className="h-4 w-4" /> Create</Button>
+              <Button type="submit" className="gap-2">
+                {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
+              </Button>
             </div>
           </form>
         )}
