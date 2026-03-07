@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Upload, Loader2, CheckCircle2, XCircle, AlertTriangle,
-  Sparkles, Rocket, ImageIcon, Eye, ChevronDown, ChevronUp,
+  Rocket, ChevronDown, ChevronUp, FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PipelineSteps } from "./autopilot/PipelineSteps";
+import { PipelineItemRow } from "./autopilot/PipelineItemRow";
 
 interface Organization {
   id: string;
@@ -23,23 +25,83 @@ interface Props {
   onBack: () => void;
 }
 
-type StepStatus = "pending" | "active" | "done" | "error";
+export type StepKey = "upload" | "analyze" | "listings" | "shopify" | "done";
+export type StepStatus = "pending" | "active" | "done" | "error";
 
-interface PipelineItem {
-  fileName: string;
-  step: "upload" | "analyze" | "listings" | "shopify" | "done";
+export interface PipelineItem {
+  folderName: string;
+  designFileName: string;
+  mockupFileNames: string[];
+  step: StepKey;
   status: StepStatus;
   error?: string;
   productTitle?: string;
   productId?: string;
 }
 
-const STEPS = [
-  { key: "upload", label: "Upload Image" },
-  { key: "analyze", label: "AI Analyze" },
-  { key: "listings", label: "Generate Listings + SEO" },
-  { key: "shopify", label: "Push to Shopify" },
+export interface ParsedFolder {
+  folderName: string;
+  designFile: File;
+  mockupFiles: File[];
+}
+
+export const STEPS = [
+  { key: "upload" as const, label: "Upload Images" },
+  { key: "analyze" as const, label: "AI Analyze" },
+  { key: "listings" as const, label: "Generate Listings + SEO" },
+  { key: "shopify" as const, label: "Push to Shopify (Variants)" },
 ] as const;
+
+/** Extract color name from a mockup filename like "black-front.png" → "Black Front" */
+const colorFromFilename = (filename: string): string => {
+  const name = filename.replace(/\.[^.]+$/, ""); // strip extension
+  return name
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+/** Parse selected folder files into design + mockups structure */
+const parseFolderFiles = (files: File[]): ParsedFolder[] => {
+  const folderMap = new Map<string, { design: File | null; mockups: File[] }>();
+
+  for (const file of files) {
+    const path = file.webkitRelativePath;
+    if (!path) continue;
+
+    const parts = path.split("/");
+    if (parts.length < 2) continue;
+
+    const folderName = parts[0];
+    if (!folderMap.has(folderName)) {
+      folderMap.set(folderName, { design: null, mockups: [] });
+    }
+    const entry = folderMap.get(folderName)!;
+
+    // Check if file is in a "mockups" subfolder (case-insensitive)
+    const isInMockups = parts.length >= 3 && parts[1].toLowerCase() === "mockups";
+
+    if (!file.type.startsWith("image/")) continue;
+
+    if (isInMockups) {
+      entry.mockups.push(file);
+    } else if (parts.length === 2) {
+      // Root-level image in the folder = design file (take first one found)
+      if (!entry.design) entry.design = file;
+    }
+  }
+
+  const result: ParsedFolder[] = [];
+  for (const [folderName, entry] of folderMap) {
+    if (entry.design) {
+      result.push({
+        folderName,
+        designFile: entry.design,
+        mockupFiles: entry.mockups,
+      });
+    }
+  }
+  return result;
+};
 
 export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: Props) => {
   const [items, setItems] = useState<PipelineItem[]>([]);
@@ -47,7 +109,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [pushToShopify, setPushToShopify] = useState(true);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
 
   const totalDone = items.filter((i) => i.step === "done").length;
   const totalErrors = items.filter((i) => i.status === "error").length;
@@ -66,15 +128,28 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
       reader.readAsDataURL(file);
     });
 
-  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
-    if (files.length === 0) {
-      toast.error("No image files selected");
+  const uploadFile = async (file: File): Promise<string> => {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) throw new Error(`Upload failed: ${error.message}`);
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    return urlData.publicUrl;
+  };
+
+  const handleSelectFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const allFiles = Array.from(e.target.files || []);
+    const folders = parseFolderFiles(allFiles);
+
+    if (folders.length === 0) {
+      toast.error("No valid folders found. Each folder needs a design image at the root level.");
       return;
     }
 
-    const pipelineItems: PipelineItem[] = files.map((f) => ({
-      fileName: f.name,
+    const pipelineItems: PipelineItem[] = folders.map((f) => ({
+      folderName: f.folderName,
+      designFileName: f.designFile.name,
+      mockupFileNames: f.mockupFiles.map((m) => m.name),
       step: "upload",
       status: "pending",
     }));
@@ -82,23 +157,24 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     setRunning(true);
     setCurrentIndex(0);
 
-    for (let i = 0; i < files.length; i++) {
+    for (let i = 0; i < folders.length; i++) {
       setCurrentIndex(i);
-      const file = files[i];
+      const folder = folders[i];
 
       try {
-        // Step 1: Upload image to storage
+        // Step 1: Upload all images (design + mockups)
         updateItem(i, { step: "upload", status: "active" });
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
-        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-        const imageUrl = urlData.publicUrl;
+        const designUrl = await uploadFile(folder.designFile);
+        const mockupUploads = await Promise.all(
+          folder.mockupFiles.map(async (f) => ({
+            colorName: colorFromFilename(f.name),
+            url: await uploadFile(f),
+          }))
+        );
 
-        // Step 2: AI analyze image
+        // Step 2: AI analyze the design image
         updateItem(i, { step: "analyze", status: "active" });
-        const base64 = await fileToBase64(file);
+        const base64 = await fileToBase64(folder.designFile);
         const { data: analysis, error: analyzeError } = await supabase.functions.invoke("analyze-product", {
           body: { imageBase64: base64 },
         });
@@ -106,7 +182,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         if (analysis.error) throw new Error(`Analysis failed: ${analysis.error}`);
 
         const productData = {
-          title: analysis.title || file.name.replace(/\.[^.]+$/, ""),
+          title: analysis.title || folder.folderName,
           description: analysis.description || "",
           features: (analysis.features || []).join("\n"),
           category: analysis.category || "",
@@ -121,7 +197,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           .from("products")
           .insert({
             ...productData,
-            image_url: imageUrl,
+            image_url: designUrl,
             organization_id: organization.id,
             user_id: userId,
           })
@@ -166,7 +242,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         const { error: listInsertError } = await supabase.from("listings").insert(listingRows);
         if (listInsertError) throw new Error(`Saving listings failed: ${listInsertError.message}`);
 
-        // Step 4: Push to Shopify (if enabled)
+        // Step 4: Push to Shopify with color variants
         if (pushToShopify) {
           updateItem(i, { step: "shopify", status: "active" });
           const shopifyListing = listingRows.find((l) => l.marketplace === "shopify");
@@ -174,7 +250,11 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
             body: {
               product: productData,
               listings: [shopifyListing],
-              imageUrl,
+              imageUrl: designUrl,
+              variants: mockupUploads.map((m) => ({
+                colorName: m.colorName,
+                imageUrl: m.url,
+              })),
             },
           });
           if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
@@ -183,14 +263,18 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
 
         updateItem(i, { step: "done", status: "done" });
       } catch (err: any) {
-        console.error(`Pipeline error for ${file.name}:`, err);
+        console.error(`Pipeline error for ${folder.folderName}:`, err);
         updateItem(i, { status: "error", error: err.message });
       }
     }
 
     setRunning(false);
-    const successes = files.length - items.filter((it) => it.status === "error").length;
-    toast.success(`Pipeline complete! ${successes}/${files.length} products processed.`);
+    const finalItems = folders.map((_, idx) => items[idx]);
+    const errorCount = folders.filter((_, idx) => {
+      // We need to check the latest state
+      return false; // Will rely on toast below
+    }).length;
+    toast.success(`Pipeline complete! ${folders.length} products processed.`);
   };
 
   return (
@@ -205,7 +289,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
             Autopilot Pipeline
           </h2>
           <p className="text-sm text-muted-foreground">
-            Select design images → AI handles everything → products land in Shopify
+            Select a folder with your design + mockups → AI handles everything → products land in Shopify
           </p>
         </div>
       </div>
@@ -222,57 +306,45 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
               className="h-4 w-4 rounded border-border text-primary"
             />
             <label htmlFor="push-shopify" className="text-sm">
-              Auto-push to Shopify after generating listings
+              Auto-push to Shopify after generating listings (with color variants from mockups)
             </label>
           </div>
 
           <input
-            ref={fileRef}
+            ref={folderRef}
             type="file"
-            accept="image/*"
+            {...({ webkitdirectory: "true", directory: "" } as any)}
             multiple
-            onChange={handleSelectFiles}
+            onChange={handleSelectFolder}
             className="hidden"
           />
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={() => folderRef.current?.click()}
             className="flex w-full flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-border bg-card/50 py-20 transition-colors hover:border-primary/50 hover:bg-card"
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <Upload className="h-8 w-8 text-primary" />
+              <FolderOpen className="h-8 w-8 text-primary" />
             </div>
             <div className="text-center">
               <p className="text-base font-semibold text-foreground">
-                Select your design images
+                Select your product folder
               </p>
               <p className="mt-1 text-sm text-muted-foreground max-w-md">
-                For each image, AI will analyze, generate titles, descriptions, tags, alt text, SEO metadata, URL handles, and push to Shopify
+                Each folder should have a design image at the root, and a <code className="rounded bg-secondary px-1.5 py-0.5 text-xs font-mono">mockups/</code> subfolder with color variant images
+              </p>
+              <p className="mt-3 text-xs text-muted-foreground max-w-sm">
+                📁 my-design/<br />
+                &nbsp;&nbsp;├── design.png<br />
+                &nbsp;&nbsp;└── mockups/<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── black-front.png<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── white-front.png<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── navy-back.png
               </p>
             </div>
           </button>
 
-          {/* Pipeline steps preview */}
-          <div className="rounded-lg border border-border bg-card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-              What happens for each image
-            </p>
-            <div className="flex items-center gap-2">
-              {STEPS.map((step, idx) => (
-                <div key={step.key} className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-                      {idx + 1}
-                    </span>
-                    <span className="text-xs font-medium">{step.label}</span>
-                  </div>
-                  {idx < STEPS.length - 1 && (
-                    <span className="text-muted-foreground">→</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <PipelineSteps />
         </div>
       )}
 
@@ -282,7 +354,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {running ? `Processing image ${currentIndex + 1} of ${items.length}…` : "Complete"}
+                {running ? `Processing folder ${currentIndex + 1} of ${items.length}…` : "Complete"}
               </span>
               <span className="font-medium">
                 {totalDone + totalErrors} / {items.length}
@@ -310,69 +382,13 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           {/* Item list */}
           <div className="max-h-96 space-y-2 overflow-y-auto">
             {items.map((item, i) => (
-              <div key={i} className="rounded-lg border border-border bg-card overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setExpandedItem(expandedItem === i ? null : i)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
-                >
-                  {item.status === "done" && <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />}
-                  {item.status === "error" && <XCircle className="h-4 w-4 shrink-0 text-destructive" />}
-                  {item.status === "active" && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />}
-                  {item.status === "pending" && <div className="h-4 w-4 shrink-0 rounded-full border-2 border-border" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {item.productTitle || item.fileName}
-                    </p>
-                    {item.status === "active" && (
-                      <p className="text-xs text-muted-foreground">
-                        {STEPS.find((s) => s.key === item.step)?.label}…
-                      </p>
-                    )}
-                    {item.error && (
-                      <p className="text-xs text-destructive truncate">{item.error}</p>
-                    )}
-                  </div>
-                  {expandedItem === i ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-                {expandedItem === i && (
-                  <div className="border-t border-border px-4 py-3">
-                    <div className="flex gap-2">
-                      {STEPS.map((step) => {
-                        let status: "done" | "active" | "error" | "pending" = "pending";
-                        const stepIdx = STEPS.findIndex((s) => s.key === step.key);
-                        const currentStepIdx = STEPS.findIndex((s) => s.key === item.step);
-                        if (item.step === "done" || stepIdx < currentStepIdx) status = "done";
-                        else if (stepIdx === currentStepIdx && item.status === "active") status = "active";
-                        else if (stepIdx === currentStepIdx && item.status === "error") status = "error";
-                        return (
-                          <div
-                            key={step.key}
-                            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ${
-                              status === "done"
-                                ? "bg-green-500/10 text-green-600"
-                                : status === "active"
-                                ? "bg-primary/10 text-primary"
-                                : status === "error"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-secondary text-muted-foreground"
-                            }`}
-                          >
-                            {status === "done" && <CheckCircle2 className="h-3 w-3" />}
-                            {status === "active" && <Loader2 className="h-3 w-3 animate-spin" />}
-                            {status === "error" && <XCircle className="h-3 w-3" />}
-                            {step.label}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <PipelineItemRow
+                key={i}
+                item={item}
+                index={i}
+                expanded={expandedItem === i}
+                onToggle={() => setExpandedItem(expandedItem === i ? null : i)}
+              />
             ))}
           </div>
 

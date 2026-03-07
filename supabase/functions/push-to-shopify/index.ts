@@ -36,12 +36,15 @@ serve(async (req) => {
       });
     }
 
-    const { product, listings, imageUrl } = await req.json();
+    const { product, listings, imageUrl, variants } = await req.json();
 
-    // Find Shopify-specific listing data
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
 
-    // Build Shopify product payload with full SEO
+    // Build variant data from mockup color images
+    const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
+    const hasVariants = colorVariants.length > 0;
+
+    // Build Shopify product payload
     const shopifyProduct: Record<string, unknown> = {
       title: shopifyListing?.title || product.title,
       body_html: shopifyListing?.description
@@ -52,21 +55,45 @@ serve(async (req) => {
         ? shopifyListing.tags.join(", ")
         : product.keywords,
       handle: shopifyListing?.url_handle || undefined,
-      variants: [{ price: product.price?.replace(/[^0-9.]/g, "") || "0.00" }],
       metafields_global_title_tag: shopifyListing?.seo_title || undefined,
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Add image with alt text
+    // Build images array — design image first, then each mockup
+    const images: { src: string; alt?: string; position?: number }[] = [];
     if (imageUrl) {
-      shopifyProduct.images = [{
+      images.push({
         src: imageUrl,
         alt: shopifyListing?.alt_text || product.title,
-      }];
+        position: 1,
+      });
+    }
+    colorVariants.forEach((v, idx) => {
+      images.push({
+        src: v.imageUrl,
+        alt: `${product.title} - ${v.colorName}`,
+        position: idx + 2,
+      });
+    });
+    if (images.length > 0) {
+      shopifyProduct.images = images;
+    }
+
+    // Build variants
+    const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
+    if (hasVariants) {
+      shopifyProduct.options = [{ name: "Color" }];
+      shopifyProduct.variants = colorVariants.map((v) => ({
+        option1: v.colorName,
+        price,
+      }));
+    } else {
+      shopifyProduct.variants = [{ price }];
     }
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
+    // Create the product
     const shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products.json`, {
       method: "POST",
       headers: {
@@ -83,8 +110,34 @@ serve(async (req) => {
     }
 
     const shopifyData = await shopifyResponse.json();
+    const createdProduct = shopifyData.product;
 
-    return new Response(JSON.stringify({ success: true, shopifyProduct: shopifyData.product }), {
+    // Associate mockup images with their corresponding variants
+    if (hasVariants && createdProduct?.variants?.length && createdProduct?.images?.length) {
+      const productId = createdProduct.id;
+
+      for (let i = 0; i < colorVariants.length; i++) {
+        const variant = createdProduct.variants[i];
+        // Find the matching image (offset by 1 because design image is first)
+        const image = createdProduct.images[i + 1];
+        if (variant && image) {
+          try {
+            await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
+              method: "PUT",
+              headers: {
+                "X-Shopify-Access-Token": connection.access_token,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ variant: { id: variant.id, image_id: image.id } }),
+            });
+          } catch (e) {
+            console.error(`Failed to associate image with variant ${variant.id}:`, e);
+          }
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, shopifyProduct: createdProduct }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
