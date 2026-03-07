@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
+import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
 
 interface Organization {
@@ -124,9 +125,9 @@ const parseFolderFiles = (files: File[]): ParsedFolder[] => {
 export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: Props) => {
   const [items, setItems] = useState<PipelineItem[]>([]);
   const [running, setRunning] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [pushToShopify, setPushToShopify] = useState(true);
+  const [concurrency, setConcurrency] = useState(3);
   const folderRef = useRef<HTMLInputElement>(null);
 
   const totalDone = items.filter((i) => i.step === "done").length;
@@ -173,29 +174,26 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     }));
     setItems(pipelineItems);
     setRunning(true);
-    setCurrentIndex(0);
 
-    for (let i = 0; i < folders.length; i++) {
-      setCurrentIndex(i);
-      const folder = folders[i];
-
+    const processFolder = async (folder: ParsedFolder, i: number) => {
       try {
         // Step 1: Upload all images (design + mockups)
         updateItem(i, { step: "upload", status: "active" });
-        const designUrl = await uploadFile(folder.designFile);
+        const designUrl = await withRetry(() => uploadFile(folder.designFile), { label: `upload-design-${i}` });
         const mockupUploads = await Promise.all(
           folder.mockupFiles.map(async (f) => ({
             colorName: colorFromFilename(f.name),
-            url: await uploadFile(f),
+            url: await withRetry(() => uploadFile(f), { label: `upload-mockup-${i}` }),
           }))
         );
 
         // Step 2: AI analyze the design image
         updateItem(i, { step: "analyze", status: "active" });
         const base64 = await fileToBase64(folder.designFile);
-        const { data: analysis, error: analyzeError } = await supabase.functions.invoke("analyze-product", {
-          body: { imageBase64: base64 },
-        });
+        const { data: analysis, error: analyzeError } = await withRetry(
+          () => supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } }),
+          { label: `analyze-${i}` }
+        );
         if (analyzeError) throw new Error(`Analysis failed: ${analyzeError.message}`);
         if (analysis.error) throw new Error(`Analysis failed: ${analysis.error}`);
 
@@ -227,17 +225,20 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
 
         // Step 3: Generate listings + SEO
         updateItem(i, { step: "listings", status: "active" });
-        const { data: listings, error: listError } = await supabase.functions.invoke("generate-listings", {
-          body: {
-            business: {
-              name: organization.name,
-              niche: organization.niche,
-              tone: organization.tone,
-              audience: organization.audience,
+        const { data: listings, error: listError } = await withRetry(
+          () => supabase.functions.invoke("generate-listings", {
+            body: {
+              business: {
+                name: organization.name,
+                niche: organization.niche,
+                tone: organization.tone,
+                audience: organization.audience,
+              },
+              product: productData,
             },
-            product: productData,
-          },
-        });
+          }),
+          { label: `listings-${i}` }
+        );
         if (listError) throw new Error(`Listing generation failed: ${listError.message}`);
         if (listings.error) throw new Error(`Listing generation failed: ${listings.error}`);
 
@@ -264,17 +265,20 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         if (pushToShopify) {
           updateItem(i, { step: "shopify", status: "active" });
           const shopifyListing = listingRows.find((l) => l.marketplace === "shopify");
-          const { data: shopifyResult, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
-            body: {
-              product: productData,
-              listings: [shopifyListing],
-              imageUrl: designUrl,
-              variants: mockupUploads.map((m) => ({
-                colorName: m.colorName,
-                imageUrl: m.url,
-              })),
-            },
-          });
+          const { data: shopifyResult, error: shopifyError } = await withRetry(
+            () => supabase.functions.invoke("push-to-shopify", {
+              body: {
+                product: productData,
+                listings: [shopifyListing],
+                imageUrl: designUrl,
+                variants: mockupUploads.map((m) => ({
+                  colorName: m.colorName,
+                  imageUrl: m.url,
+                })),
+              },
+            }),
+            { label: `shopify-${i}` }
+          );
           if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
           if (shopifyResult?.error) throw new Error(`Shopify push failed: ${shopifyResult.error}`);
         }
@@ -284,14 +288,12 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         console.error(`Pipeline error for ${folder.folderName}:`, err);
         updateItem(i, { status: "error", error: err.message });
       }
-    }
+    };
+
+    // Process folders with controlled concurrency
+    await processWithConcurrency(folders, concurrency, processFolder);
 
     setRunning(false);
-    const finalItems = folders.map((_, idx) => items[idx]);
-    const errorCount = folders.filter((_, idx) => {
-      // We need to check the latest state
-      return false; // Will rely on toast below
-    }).length;
     toast.success(`Pipeline complete! ${folders.length} products processed.`);
   };
 
@@ -315,6 +317,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
       {/* Config */}
       {!running && items.length === 0 && (
         <div className="space-y-6">
+        <div className="space-y-3">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
             <input
               type="checkbox"
@@ -327,6 +330,27 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
               Auto-push to Shopify after generating listings (with color variants from mockups)
             </label>
           </div>
+
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+            <label htmlFor="concurrency" className="text-sm whitespace-nowrap">
+              Parallel processing:
+            </label>
+            <select
+              id="concurrency"
+              value={concurrency}
+              onChange={(e) => setConcurrency(Number(e.target.value))}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+            >
+              <option value={1}>1 at a time (safest)</option>
+              <option value={2}>2 parallel</option>
+              <option value={3}>3 parallel (recommended)</option>
+              <option value={5}>5 parallel</option>
+            </select>
+            <span className="text-xs text-muted-foreground">
+              Higher = faster but more likely to hit rate limits
+            </span>
+          </div>
+        </div>
 
           <input
             ref={folderRef}
@@ -372,7 +396,9 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {running ? `Processing folder ${currentIndex + 1} of ${items.length}…` : "Complete"}
+                {running
+                  ? `Processing ${items.filter((i) => i.status === "active").length} active, ${totalDone} done…`
+                  : "Complete"}
               </span>
               <span className="font-medium">
                 {totalDone + totalErrors} / {items.length}
