@@ -601,9 +601,23 @@ const Dashboard = () => {
                 disabled={generating}
                 className="gap-2"
               >
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 Regenerate
               </Button>
+              <PushToShopify
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
+                  seo_title: l.seo_title,
+                  seo_description: l.seo_description,
+                  url_handle: l.url_handle,
+                  alt_text: l.alt_text,
+                }))}
+                userId={user!.id}
+              />
             </div>
 
             {/* Mockup Images */}
@@ -669,7 +683,23 @@ const Dashboard = () => {
             onBack={() => setView("products")}
           />
         )}
-        {/* Autopilot Pipeline */}
+        {/* Settings */}
+        {view === "settings" && user && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setView("orgs")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold">Settings</h2>
+                <p className="text-sm text-muted-foreground">Manage your integrations</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <ShopifySettings userId={user.id} />
+            </div>
+          </div>
+        )}
         {view === "autopilot" && selectedOrg && (
           <AutopilotPipeline
             organization={selectedOrg}
