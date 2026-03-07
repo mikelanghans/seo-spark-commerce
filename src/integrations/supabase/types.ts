@@ -103,6 +103,47 @@ export type Database = {
         }
         Relationships: []
       }
+      product_images: {
+        Row: {
+          color_name: string
+          created_at: string
+          id: string
+          image_type: string
+          image_url: string
+          position: number
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          color_name?: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url: string
+          position?: number
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          color_name?: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url?: string
+          position?: number
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
