@@ -214,6 +214,10 @@ const Dashboard = () => {
         description: result[m].description,
         bullet_points: result[m].bulletPoints,
         tags: result[m].tags,
+        seo_title: result[m].seoTitle || "",
+        seo_description: result[m].seoDescription || "",
+        url_handle: result[m].urlHandle || "",
+        alt_text: result[m].altText || "",
       }));
 
       const { error: insertError } = await supabase.from("listings").insert(listingRows);
