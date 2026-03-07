@@ -12,7 +12,7 @@ import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ProductMockups } from "@/components/ProductMockups";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 
