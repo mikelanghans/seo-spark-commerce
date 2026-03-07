@@ -128,6 +128,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [pushToShopify, setPushToShopify] = useState(true);
+  const [concurrency, setConcurrency] = useState(3);
   const folderRef = useRef<HTMLInputElement>(null);
 
   const totalDone = items.filter((i) => i.step === "done").length;
