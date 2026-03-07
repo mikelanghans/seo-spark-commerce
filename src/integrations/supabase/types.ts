@@ -16,36 +16,48 @@ export type Database = {
     Tables: {
       listings: {
         Row: {
+          alt_text: string
           bullet_points: Json
           created_at: string
           description: string
           id: string
           marketplace: string
           product_id: string
+          seo_description: string
+          seo_title: string
           tags: Json
           title: string
+          url_handle: string
           user_id: string
         }
         Insert: {
+          alt_text?: string
           bullet_points?: Json
           created_at?: string
           description?: string
           id?: string
           marketplace: string
           product_id: string
+          seo_description?: string
+          seo_title?: string
           tags?: Json
           title: string
+          url_handle?: string
           user_id: string
         }
         Update: {
+          alt_text?: string
           bullet_points?: Json
           created_at?: string
           description?: string
           id?: string
           marketplace?: string
           product_id?: string
+          seo_description?: string
+          seo_title?: string
           tags?: Json
           title?: string
+          url_handle?: string
           user_id?: string
         }
         Relationships: [
