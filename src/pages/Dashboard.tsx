@@ -68,6 +68,7 @@ const Dashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
