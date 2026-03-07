@@ -12,7 +12,7 @@ import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ProductMockups } from "@/components/ProductMockups";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -103,12 +103,25 @@ const Dashboard = () => {
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Organization created!");
+    if (editingOrg) {
+      const { error } = await supabase.from("organizations").update(orgForm).eq("id", editingOrg.id);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Organization updated!");
+      setEditingOrg(null);
+    } else {
+      const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
+      if (error) { toast.error(error.message); return; }
+      toast.success("Organization created!");
+    }
     setOrgForm({ name: "", niche: "", tone: "", audience: "" });
     setView("orgs");
     loadOrgs();
+  };
+
+  const handleEditOrg = (org: Organization) => {
+    setEditingOrg(org);
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setView("org-form");
   };
 
   const handleSelectOrg = (org: Organization) => {
