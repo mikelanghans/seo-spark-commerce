@@ -11,8 +11,10 @@ import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ProductMockups } from "@/components/ProductMockups";
+import { ShopifySettings } from "@/components/ShopifySettings";
+import { PushToShopify } from "@/components/PushToShopify";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,7 +54,7 @@ interface Listing {
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "settings";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
