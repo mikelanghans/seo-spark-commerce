@@ -223,6 +223,20 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
 
         updateItem(i, { productId: product.id });
 
+        // Save mockup images to product_images table
+        if (mockupUploads.length > 0) {
+          const imageRows = mockupUploads.map((m, idx) => ({
+            product_id: product.id,
+            user_id: userId,
+            image_url: m.url,
+            image_type: "mockup",
+            color_name: m.colorName,
+            position: idx,
+          }));
+          const { error: imgInsertError } = await supabase.from("product_images").insert(imageRows);
+          if (imgInsertError) console.error("Failed to save mockup images:", imgInsertError.message);
+        }
+
         // Step 3: Generate listings + SEO
         updateItem(i, { step: "listings", status: "active" });
         const { data: listings, error: listError } = await withRetry(
