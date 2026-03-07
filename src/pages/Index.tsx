@@ -60,7 +60,7 @@ const Index = () => {
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight">ListingForge</h1>
+            <h1 className="text-lg font-bold tracking-tight">Brand Aura</h1>
             <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
           </div>
         </div>

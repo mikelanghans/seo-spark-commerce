@@ -46,7 +46,7 @@ const Auth = () => {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Sparkles className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">ListingForge</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Brand Aura</h1>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
