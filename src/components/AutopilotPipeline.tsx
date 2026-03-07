@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
+import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
 
 interface Organization {
