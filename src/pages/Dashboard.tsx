@@ -354,12 +354,12 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => setView("orgs")}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "" }); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">New Organization</h2>
-                <p className="text-sm text-muted-foreground">Set up your business context</p>
+                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Organization" : "New Organization"}</h2>
+                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your business context" : "Set up your business context"}</p>
               </div>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
