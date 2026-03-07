@@ -577,6 +577,11 @@ const Dashboard = () => {
               </Button>
             </div>
 
+            {/* Mockup Images */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} />
+            </div>
+
             {generating ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
                 <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
