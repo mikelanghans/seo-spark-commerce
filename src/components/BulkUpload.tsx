@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, ImageIcon, FileSpreadsheet, Loader2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Upload, ImageIcon, FileSpreadsheet, Loader2, CheckCircle2, XCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,6 +64,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
   const [results, setResults] = useState<UploadResult[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
+  const [aiEnhance, setAiEnhance] = useState(false);
 
   const handleMultiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -156,8 +157,38 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
         }
 
         try {
+          let finalProduct = product;
+
+          // AI enhance: fill in missing/empty fields
+          if (aiEnhance) {
+            const { data, error: aiError } = await supabase.functions.invoke("generate-listings", {
+              body: {
+                business: { name: "", niche: "", tone: "", audience: "" },
+                product: {
+                  title: product.title,
+                  description: product.description,
+                  keywords: product.keywords,
+                  category: product.category,
+                  price: product.price,
+                  features: product.features,
+                },
+                enhanceOnly: true,
+              },
+            });
+            if (!aiError && data && !data.error) {
+              // Use AI data only for fields that are empty/missing
+              finalProduct = {
+                ...product,
+                description: product.description || data.enhanced?.description || "",
+                keywords: product.keywords || data.enhanced?.keywords || "",
+                category: product.category || data.enhanced?.category || "",
+                features: product.features || data.enhanced?.features || "",
+              };
+            }
+          }
+
           const { error } = await supabase.from("products").insert({
-            ...product,
+            ...finalProduct,
             organization_id: organizationId,
             user_id: userId,
           });
@@ -255,6 +286,20 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
           />
           {!uploading && results.length === 0 && (
             <div className="space-y-4">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+                <input
+                  type="checkbox"
+                  id="ai-enhance"
+                  checked={aiEnhance}
+                  onChange={(e) => setAiEnhance(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary"
+                />
+                <Sparkles className="h-4 w-4 text-primary" />
+                <label htmlFor="ai-enhance" className="text-sm">
+                  AI enhance — automatically fill in missing descriptions, keywords, and features
+                </label>
+              </div>
+
               <button
                 type="button"
                 onClick={() => csvRef.current?.click()}
