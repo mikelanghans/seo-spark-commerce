@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Globe, Search } from "lucide-react";
 
 export interface ListingData {
   title: string;
   description: string;
   tags: string[];
   bulletPoints: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  urlHandle?: string;
+  altText?: string;
 }
 
 interface Props {
@@ -35,6 +39,8 @@ export const ListingOutput = ({ marketplace, listing }: Props) => {
       )}
     </button>
   );
+
+  const hasSeo = listing.seoTitle || listing.seoDescription || listing.urlHandle || listing.altText;
 
   return (
     <div className="mt-4 space-y-6 rounded-xl border border-border bg-card p-6">
@@ -107,12 +113,66 @@ export const ListingOutput = ({ marketplace, listing }: Props) => {
         </div>
       )}
 
+      {/* SEO Metadata */}
+      {hasSeo && (
+        <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-primary" />
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              SEO Metadata
+            </label>
+          </div>
+
+          {listing.seoTitle && (
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Meta Title</span>
+                <CopyBtn text={listing.seoTitle} field="seoTitle" />
+              </div>
+              <p className="text-sm font-medium">{listing.seoTitle}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{listing.seoTitle.length}/60 chars</p>
+            </div>
+          )}
+
+          {listing.seoDescription && (
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Meta Description</span>
+                <CopyBtn text={listing.seoDescription} field="seoDesc" />
+              </div>
+              <p className="text-sm text-secondary-foreground">{listing.seoDescription}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{listing.seoDescription.length}/160 chars</p>
+            </div>
+          )}
+
+          {listing.urlHandle && (
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">URL Handle</span>
+                <CopyBtn text={listing.urlHandle} field="urlHandle" />
+              </div>
+              <p className="text-sm font-mono text-secondary-foreground">/{listing.urlHandle}</p>
+            </div>
+          )}
+
+          {listing.altText && (
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Image Alt Text</span>
+                <CopyBtn text={listing.altText} field="altText" />
+              </div>
+              <p className="text-sm text-secondary-foreground">{listing.altText}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Copy All */}
       <div className="border-t border-border pt-4">
         <button
           onClick={() =>
             copy(
-              `Title: ${listing.title}\n\nDescription:\n${listing.description}\n\nBullet Points:\n${listing.bulletPoints.map((b) => `• ${b}`).join("\n")}\n\nTags: ${listing.tags.join(", ")}`,
+              `Title: ${listing.title}\n\nDescription:\n${listing.description}\n\nBullet Points:\n${listing.bulletPoints.map((b) => `• ${b}`).join("\n")}\n\nTags: ${listing.tags.join(", ")}${listing.seoTitle ? `\n\nSEO Title: ${listing.seoTitle}` : ""}${listing.seoDescription ? `\nSEO Description: ${listing.seoDescription}` : ""}${listing.urlHandle ? `\nURL: /${listing.urlHandle}` : ""}${listing.altText ? `\nAlt Text: ${listing.altText}` : ""}`,
               "all"
             )
           }

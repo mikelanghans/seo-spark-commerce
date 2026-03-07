@@ -43,6 +43,10 @@ interface Listing {
   description: string;
   bullet_points: string[];
   tags: string[];
+  seo_title: string;
+  seo_description: string;
+  url_handle: string;
+  alt_text: string;
 }
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
@@ -577,6 +581,10 @@ const Dashboard = () => {
                           description: listing.description,
                           bulletPoints: listing.bullet_points as string[],
                           tags: listing.tags as string[],
+                          seoTitle: listing.seo_title,
+                          seoDescription: listing.seo_description,
+                          urlHandle: listing.url_handle,
+                          altText: listing.alt_text,
                         }}
                       />
                     </TabsContent>
