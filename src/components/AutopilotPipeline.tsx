@@ -177,27 +177,25 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     setRunning(true);
     setCurrentIndex(0);
 
-    for (let i = 0; i < folders.length; i++) {
-      setCurrentIndex(i);
-      const folder = folders[i];
-
+    const processFolder = async (folder: ParsedFolder, i: number) => {
       try {
         // Step 1: Upload all images (design + mockups)
         updateItem(i, { step: "upload", status: "active" });
-        const designUrl = await uploadFile(folder.designFile);
+        const designUrl = await withRetry(() => uploadFile(folder.designFile), { label: `upload-design-${i}` });
         const mockupUploads = await Promise.all(
           folder.mockupFiles.map(async (f) => ({
             colorName: colorFromFilename(f.name),
-            url: await uploadFile(f),
+            url: await withRetry(() => uploadFile(f), { label: `upload-mockup-${i}` }),
           }))
         );
 
         // Step 2: AI analyze the design image
         updateItem(i, { step: "analyze", status: "active" });
         const base64 = await fileToBase64(folder.designFile);
-        const { data: analysis, error: analyzeError } = await supabase.functions.invoke("analyze-product", {
-          body: { imageBase64: base64 },
-        });
+        const { data: analysis, error: analyzeError } = await withRetry(
+          () => supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } }),
+          { label: `analyze-${i}` }
+        );
         if (analyzeError) throw new Error(`Analysis failed: ${analyzeError.message}`);
         if (analysis.error) throw new Error(`Analysis failed: ${analysis.error}`);
 
@@ -229,17 +227,20 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
 
         // Step 3: Generate listings + SEO
         updateItem(i, { step: "listings", status: "active" });
-        const { data: listings, error: listError } = await supabase.functions.invoke("generate-listings", {
-          body: {
-            business: {
-              name: organization.name,
-              niche: organization.niche,
-              tone: organization.tone,
-              audience: organization.audience,
+        const { data: listings, error: listError } = await withRetry(
+          () => supabase.functions.invoke("generate-listings", {
+            body: {
+              business: {
+                name: organization.name,
+                niche: organization.niche,
+                tone: organization.tone,
+                audience: organization.audience,
+              },
+              product: productData,
             },
-            product: productData,
-          },
-        });
+          }),
+          { label: `listings-${i}` }
+        );
         if (listError) throw new Error(`Listing generation failed: ${listError.message}`);
         if (listings.error) throw new Error(`Listing generation failed: ${listings.error}`);
 
@@ -266,17 +267,20 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         if (pushToShopify) {
           updateItem(i, { step: "shopify", status: "active" });
           const shopifyListing = listingRows.find((l) => l.marketplace === "shopify");
-          const { data: shopifyResult, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
-            body: {
-              product: productData,
-              listings: [shopifyListing],
-              imageUrl: designUrl,
-              variants: mockupUploads.map((m) => ({
-                colorName: m.colorName,
-                imageUrl: m.url,
-              })),
-            },
-          });
+          const { data: shopifyResult, error: shopifyError } = await withRetry(
+            () => supabase.functions.invoke("push-to-shopify", {
+              body: {
+                product: productData,
+                listings: [shopifyListing],
+                imageUrl: designUrl,
+                variants: mockupUploads.map((m) => ({
+                  colorName: m.colorName,
+                  imageUrl: m.url,
+                })),
+              },
+            }),
+            { label: `shopify-${i}` }
+          );
           if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
           if (shopifyResult?.error) throw new Error(`Shopify push failed: ${shopifyResult.error}`);
         }
@@ -286,14 +290,12 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         console.error(`Pipeline error for ${folder.folderName}:`, err);
         updateItem(i, { status: "error", error: err.message });
       }
-    }
+    };
+
+    // Process folders with controlled concurrency
+    await processWithConcurrency(folders, concurrency, processFolder);
 
     setRunning(false);
-    const finalItems = folders.map((_, idx) => items[idx]);
-    const errorCount = folders.filter((_, idx) => {
-      // We need to check the latest state
-      return false; // Will rely on toast below
-    }).length;
     toast.success(`Pipeline complete! ${folders.length} products processed.`);
   };
 
