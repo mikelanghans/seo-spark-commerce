@@ -282,9 +282,14 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Settings">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" /> Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
