@@ -319,6 +319,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
       {/* Config */}
       {!running && items.length === 0 && (
         <div className="space-y-6">
+        <div className="space-y-3">
           <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
             <input
               type="checkbox"
@@ -331,6 +332,27 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
               Auto-push to Shopify after generating listings (with color variants from mockups)
             </label>
           </div>
+
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+            <label htmlFor="concurrency" className="text-sm whitespace-nowrap">
+              Parallel processing:
+            </label>
+            <select
+              id="concurrency"
+              value={concurrency}
+              onChange={(e) => setConcurrency(Number(e.target.value))}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+            >
+              <option value={1}>1 at a time (safest)</option>
+              <option value={2}>2 parallel</option>
+              <option value={3}>3 parallel (recommended)</option>
+              <option value={5}>5 parallel</option>
+            </select>
+            <span className="text-xs text-muted-foreground">
+              Higher = faster but more likely to hit rate limits
+            </span>
+          </div>
+        </div>
 
           <input
             ref={folderRef}
