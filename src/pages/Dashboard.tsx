@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
+import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,11 +43,15 @@ interface Listing {
   description: string;
   bullet_points: string[];
   tags: string[];
+  seo_title: string;
+  seo_description: string;
+  url_handle: string;
+  alt_text: string;
 }
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -213,6 +218,10 @@ const Dashboard = () => {
         description: result[m].description,
         bullet_points: result[m].bulletPoints,
         tags: result[m].tags,
+        seo_title: result[m].seoTitle || "",
+        seo_description: result[m].seoDescription || "",
+        url_handle: result[m].urlHandle || "",
+        alt_text: result[m].altText || "",
       }));
 
       const { error: insertError } = await supabase.from("listings").insert(listingRows);
@@ -364,10 +373,13 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{selectedOrg.niche} • {products.length} products</p>
               </div>
               <div className="flex gap-2">
+                <Button onClick={() => setView("autopilot")} className="gap-2">
+                  <Rocket className="h-4 w-4" /> Autopilot
+                </Button>
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
                   <Upload className="h-4 w-4" /> Bulk Upload
                 </Button>
-                <Button onClick={() => setView("product-form")} className="gap-2">
+                <Button variant="outline" onClick={() => setView("product-form")} className="gap-2">
                   <Plus className="h-4 w-4" /> Add Product
                 </Button>
               </div>
@@ -569,6 +581,10 @@ const Dashboard = () => {
                           description: listing.description,
                           bulletPoints: listing.bullet_points as string[],
                           tags: listing.tags as string[],
+                          seoTitle: listing.seo_title,
+                          seoDescription: listing.seo_description,
+                          urlHandle: listing.url_handle,
+                          altText: listing.alt_text,
                         }}
                       />
                     </TabsContent>
@@ -589,6 +605,18 @@ const Dashboard = () => {
         {view === "bulk-upload" && selectedOrg && (
           <BulkUpload
             organizationId={selectedOrg.id}
+            userId={user!.id}
+            onComplete={() => {
+              setView("products");
+              loadProducts(selectedOrg.id);
+            }}
+            onBack={() => setView("products")}
+          />
+        )}
+        {/* Autopilot Pipeline */}
+        {view === "autopilot" && selectedOrg && (
+          <AutopilotPipeline
+            organization={selectedOrg}
             userId={user!.id}
             onComplete={() => {
               setView("products");

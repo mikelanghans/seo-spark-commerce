@@ -17,14 +17,12 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Get user from JWT
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    // Get user's Shopify credentials using service role (bypasses RLS for security)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
@@ -40,28 +38,31 @@ serve(async (req) => {
 
     const { product, listings, imageUrl } = await req.json();
 
-    // Build Shopify product payload
+    // Find Shopify-specific listing data
+    const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
+
+    // Build Shopify product payload with full SEO
     const shopifyProduct: Record<string, unknown> = {
-      title: product.title,
-      body_html: `<p>${product.description}</p>`,
+      title: shopifyListing?.title || product.title,
+      body_html: shopifyListing?.description
+        ? `<p>${shopifyListing.description}</p>`
+        : `<p>${product.description}</p>`,
       product_type: product.category,
-      tags: product.keywords,
+      tags: shopifyListing?.tags?.length
+        ? shopifyListing.tags.join(", ")
+        : product.keywords,
+      handle: shopifyListing?.url_handle || undefined,
       variants: [{ price: product.price?.replace(/[^0-9.]/g, "") || "0.00" }],
+      metafields_global_title_tag: shopifyListing?.seo_title || undefined,
+      metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Add image if available
+    // Add image with alt text
     if (imageUrl) {
-      shopifyProduct.images = [{ src: imageUrl }];
-    }
-
-    // Use Shopify listing data if available
-    const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
-    if (shopifyListing) {
-      shopifyProduct.title = shopifyListing.title;
-      shopifyProduct.body_html = shopifyListing.description;
-      if (shopifyListing.tags?.length) {
-        shopifyProduct.tags = shopifyListing.tags.join(", ");
-      }
+      shopifyProduct.images = [{
+        src: imageUrl,
+        alt: shopifyListing?.alt_text || product.title,
+      }];
     }
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");

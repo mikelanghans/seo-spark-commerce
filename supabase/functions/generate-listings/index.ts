@@ -35,7 +35,28 @@ Each listing must be tailored to that marketplace's style and SEO best practices
 - Amazon: keyword-rich title, benefit-driven bullet points, A+ description
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
-- Shopify: clean brand-forward copy, markdown-friendly, lifestyle-oriented`;
+- Shopify: clean brand-forward copy, markdown-friendly, lifestyle-oriented
+
+For EACH marketplace listing, also generate:
+- seoTitle: An SEO meta title (under 60 chars, with primary keyword)
+- seoDescription: An SEO meta description (under 160 chars, compelling with CTA)
+- urlHandle: A clean URL slug (lowercase, hyphens, no special chars, e.g. "lavender-soy-candle-8oz")
+- altText: Descriptive alt text for the product image (for accessibility and SEO)`;
+
+    const listingSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        bulletPoints: { type: "array", items: { type: "string" } },
+        tags: { type: "array", items: { type: "string" } },
+        seoTitle: { type: "string", description: "SEO meta title under 60 chars" },
+        seoDescription: { type: "string", description: "SEO meta description under 160 chars" },
+        urlHandle: { type: "string", description: "URL-safe slug like lavender-soy-candle" },
+        altText: { type: "string", description: "Image alt text for accessibility" },
+      },
+      required: ["title", "description", "bulletPoints", "tags", "seoTitle", "seoDescription", "urlHandle", "altText"],
+    };
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -54,58 +75,22 @@ Each listing must be tailored to that marketplace's style and SEO best practices
             type: "function",
             function: {
               name: "generate_listings",
-              description: "Generate marketplace-optimized product listings",
+              description: "Generate marketplace-optimized product listings with SEO metadata",
               parameters: {
                 type: "object",
                 properties: {
-                  amazon: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      bulletPoints: { type: "array", items: { type: "string" } },
-                      tags: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["title", "description", "bulletPoints", "tags"]
-                  },
-                  etsy: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      bulletPoints: { type: "array", items: { type: "string" } },
-                      tags: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["title", "description", "bulletPoints", "tags"]
-                  },
-                  ebay: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      bulletPoints: { type: "array", items: { type: "string" } },
-                      tags: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["title", "description", "bulletPoints", "tags"]
-                  },
-                  shopify: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      bulletPoints: { type: "array", items: { type: "string" } },
-                      tags: { type: "array", items: { type: "string" } }
-                    },
-                    required: ["title", "description", "bulletPoints", "tags"]
-                  }
+                  amazon: listingSchema,
+                  etsy: listingSchema,
+                  ebay: listingSchema,
+                  shopify: listingSchema,
                 },
                 required: ["amazon", "etsy", "ebay", "shopify"],
-                additionalProperties: false
-              }
-            }
-          }
+                additionalProperties: false,
+              },
+            },
+          },
         ],
-        tool_choice: { type: "function", function: { name: "generate_listings" } }
+        tool_choice: { type: "function", function: { name: "generate_listings" } },
       }),
     });
 

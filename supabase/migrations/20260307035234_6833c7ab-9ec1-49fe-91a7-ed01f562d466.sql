@@ -1,0 +1,5 @@
+ALTER TABLE public.listings 
+ADD COLUMN IF NOT EXISTS seo_title text NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS seo_description text NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS url_handle text NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS alt_text text NOT NULL DEFAULT '';
