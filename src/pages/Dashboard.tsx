@@ -377,7 +377,7 @@ const Dashboard = () => {
                   <Rocket className="h-4 w-4" /> Autopilot
                 </Button>
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
-                  <Upload className="h-4 w-4" /> Bulk Upload
+                  <Upload className="h-4 w-4" /> Import Products
                 </Button>
                 <Button variant="outline" onClick={() => setView("product-form")} className="gap-2">
                   <Plus className="h-4 w-4" /> Add Product
