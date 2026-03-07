@@ -398,7 +398,9 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {running ? `Processing folder ${currentIndex + 1} of ${items.length}…` : "Complete"}
+                {running
+                  ? `Processing ${items.filter((i) => i.status === "active").length} active, ${totalDone} done…`
+                  : "Complete"}
               </span>
               <span className="font-medium">
                 {totalDone + totalErrors} / {items.length}
