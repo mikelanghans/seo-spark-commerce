@@ -125,7 +125,6 @@ const parseFolderFiles = (files: File[]): ParsedFolder[] => {
 export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: Props) => {
   const [items, setItems] = useState<PipelineItem[]>([]);
   const [running, setRunning] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [pushToShopify, setPushToShopify] = useState(true);
   const [concurrency, setConcurrency] = useState(3);
@@ -175,7 +174,6 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     }));
     setItems(pipelineItems);
     setRunning(true);
-    setCurrentIndex(0);
 
     const processFolder = async (folder: ParsedFolder, i: number) => {
       try {
