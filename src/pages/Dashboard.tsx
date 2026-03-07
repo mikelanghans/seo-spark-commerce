@@ -11,8 +11,10 @@ import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ProductMockups } from "@/components/ProductMockups";
+import { ShopifySettings } from "@/components/ShopifySettings";
+import { PushToShopify } from "@/components/PushToShopify";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,7 +54,7 @@ interface Listing {
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "settings";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -280,9 +282,14 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Settings">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" /> Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -594,9 +601,23 @@ const Dashboard = () => {
                 disabled={generating}
                 className="gap-2"
               >
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 Regenerate
               </Button>
+              <PushToShopify
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
+                  seo_title: l.seo_title,
+                  seo_description: l.seo_description,
+                  url_handle: l.url_handle,
+                  alt_text: l.alt_text,
+                }))}
+                userId={user!.id}
+              />
             </div>
 
             {/* Mockup Images */}
@@ -662,7 +683,23 @@ const Dashboard = () => {
             onBack={() => setView("products")}
           />
         )}
-        {/* Autopilot Pipeline */}
+        {/* Settings */}
+        {view === "settings" && user && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setView("orgs")}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold">Settings</h2>
+                <p className="text-sm text-muted-foreground">Manage your integrations</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <ShopifySettings userId={user.id} />
+            </div>
+          </div>
+        )}
         {view === "autopilot" && selectedOrg && (
           <AutopilotPipeline
             organization={selectedOrg}
