@@ -206,10 +206,10 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
           <TabsTrigger value="images" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <ImageIcon className="h-4 w-4" /> Image to Product
+            <ImageIcon className="h-4 w-4" /> AI from Images
           </TabsTrigger>
           <TabsTrigger value="csv" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <FileSpreadsheet className="h-4 w-4" /> CSV File
+            <FileSpreadsheet className="h-4 w-4" /> From CSV
           </TabsTrigger>
         </TabsList>
 
