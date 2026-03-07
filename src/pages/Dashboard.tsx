@@ -326,6 +326,12 @@ const Dashboard = () => {
                         <p className="mt-1 text-xs text-muted-foreground">{org.niche}</p>
                       </div>
                       <button
+                        onClick={(e) => { e.stopPropagation(); handleEditOrg(org); }}
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id); }}
                         className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                       >
