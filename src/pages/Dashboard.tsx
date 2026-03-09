@@ -55,7 +55,7 @@ interface Listing {
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "settings";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
