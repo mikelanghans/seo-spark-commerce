@@ -113,7 +113,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
       try {
         const { data, error } = await supabase.functions.invoke("generate-color-variants", {
-          body: { imageBase64, colorName, productTitle },
+          body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
