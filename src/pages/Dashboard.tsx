@@ -77,6 +77,9 @@ const Dashboard = () => {
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
+  const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
+  const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
+  const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
   const [productForm, setProductForm] = useState({
     title: "", description: "", keywords: "", category: "", price: "", features: "",
   });
