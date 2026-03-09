@@ -13,8 +13,20 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  
+  // Preserve Shopify OAuth params before redirecting to auth
+  if (!loading && !user) {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const shop = params.get("shop");
+    if (code && shop) {
+      localStorage.setItem("shopify_oauth_code", code);
+      localStorage.setItem("shopify_oauth_shop", shop);
+    }
+    return <Navigate to="/auth" replace />;
+  }
+  
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
 

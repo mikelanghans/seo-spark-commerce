@@ -83,7 +83,28 @@ const Dashboard = () => {
   const [aiAutoFill, setAiAutoFill] = useState(true);
 
   useEffect(() => {
-    if (user) loadOrgs();
+    if (user) {
+      loadOrgs();
+      // Check for Shopify OAuth code in localStorage
+      const code = localStorage.getItem("shopify_oauth_code");
+      if (code) {
+        localStorage.removeItem("shopify_oauth_code");
+        localStorage.removeItem("shopify_oauth_shop");
+        toast.info("Exchanging Shopify authorization code...");
+        supabase.functions.invoke("shopify-exchange-token", {
+          body: { code },
+        }).then(({ data, error }) => {
+          if (error) {
+            toast.error("Failed to connect Shopify: " + error.message);
+          } else if (data?.error) {
+            toast.error(data.error);
+          } else {
+            toast.success("Shopify connected successfully!");
+            setView("settings");
+          }
+        });
+      }
+    }
   }, [user]);
 
   const loadOrgs = async () => {
