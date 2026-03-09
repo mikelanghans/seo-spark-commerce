@@ -70,6 +70,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
