@@ -141,8 +141,20 @@ export const ShopifySettings = ({ userId }: Props) => {
     }
   }, [existing]);
 
-  const handleCheckConnection = () => {
-    loadConnection();
+  const handleCheckConnection = async () => {
+    toast.info("Checking connection...");
+    await loadConnection();
+    // Re-check after load
+    const { data } = await supabase
+      .from("shopify_connections")
+      .select("access_token")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (data?.access_token && data.access_token.length > 0) {
+      toast.success("Shopify is connected!");
+    } else {
+      toast.error("No access token found yet. Make sure you completed the Shopify authorization.");
+    }
   };
 
   const handleDisconnect = async () => {
