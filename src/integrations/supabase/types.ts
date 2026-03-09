@@ -77,6 +77,7 @@ export type Database = {
           id: string
           name: string
           niche: string
+          template_image_url: string | null
           tone: string
           updated_at: string
           user_id: string
@@ -87,6 +88,7 @@ export type Database = {
           id?: string
           name: string
           niche?: string
+          template_image_url?: string | null
           tone?: string
           updated_at?: string
           user_id: string
@@ -97,6 +99,7 @@ export type Database = {
           id?: string
           name?: string
           niche?: string
+          template_image_url?: string | null
           tone?: string
           updated_at?: string
           user_id?: string
