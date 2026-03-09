@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
 import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
+import { handleAiError } from "@/lib/aiErrors";
 
 interface Organization {
   id: string;
