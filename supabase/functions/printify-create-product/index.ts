@@ -6,8 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Default blueprint: Gildan 64000 (widely available)
-const DEFAULT_BLUEPRINT_ID = 6;
+// Default blueprint: Comfort Colors 1717 Unisex Garment-Dyed T-shirt
+const DEFAULT_BLUEPRINT_ID = 706;
 // Default print provider: will be dynamically resolved if not provided
 
 serve(async (req) => {
