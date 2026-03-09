@@ -407,21 +407,16 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         </div>
       )}
 
-      {/* Design Preview Dialog */}
-      <Dialog open={!!previewUrl} onOpenChange={() => { setPreviewUrl(null); setPreviewMessage(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-medium">{previewMessage}</DialogTitle>
-          </DialogHeader>
-          {previewUrl && (
-            <img
-              src={previewUrl}
-              alt={previewMessage || "Design preview"}
-              className="w-full rounded-lg border border-border"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <DesignPreviewDialog
+        open={!!previewUrl}
+        onClose={() => { setPreviewUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
+        designUrl={previewUrl}
+        messageText={previewMessage}
+        messageId={previewMessageId}
+        organizationId={organization.id}
+        userId={userId}
+        onFeedbackSaved={() => {}}
+      />
     </div>
   );
 };
