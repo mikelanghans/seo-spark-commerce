@@ -10,34 +10,29 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing authorization header");
+    const url = new URL(req.url);
+    const code = url.searchParams.get("code");
+    const shop = url.searchParams.get("shop");
+
+    if (!code || !shop) {
+      throw new Error("Missing code or shop parameter from Shopify");
+    }
+
+    const domain = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) throw new Error("Unauthorized");
-
-    const { code, storeDomain } = await req.json();
-    if (!code || !storeDomain) throw new Error("Missing code or storeDomain");
-
-    const domain = storeDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-
-    // Get the connection to retrieve client_id and client_secret
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Find the connection by store domain to get client credentials
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
-      .select("id, client_id, client_secret")
-      .eq("user_id", user.id)
+      .select("id, client_id, client_secret, user_id")
+      .eq("store_domain", domain)
       .single();
 
     if (connError || !connection?.client_id || !connection?.client_secret) {
-      throw new Error("No Shopify connection with client credentials found. Please save your Client ID and Secret first.");
+      throw new Error("No matching Shopify connection found for this store domain.");
     }
 
     // Exchange the authorization code for an access token
@@ -72,14 +67,22 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Redirect back to the app with success
+    const appUrl = url.searchParams.get("state") || "https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app";
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `${appUrl}?shopify_oauth=success`,
+      },
     });
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const errorMsg = encodeURIComponent(e instanceof Error ? e.message : "Unknown error");
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app?shopify_oauth=error&error=${errorMsg}`,
+      },
     });
   }
 });
