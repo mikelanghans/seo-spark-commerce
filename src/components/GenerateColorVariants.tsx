@@ -90,9 +90,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
 
     let successCount = 0;
-    for (let i = 0; i < colors.length; i++) {
-      const colorName = colors[i];
-      setProgress({ done: i, total: colors.length, current: colorName });
+    for (let i = 0; i < newColors.length; i++) {
+      const colorName = newColors[i];
+      setProgress({ done: i, total: newColors.length, current: colorName });
 
       try {
         const { data, error } = await supabase.functions.invoke("generate-color-variants", {
