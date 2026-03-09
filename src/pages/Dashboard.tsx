@@ -70,6 +70,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
@@ -494,15 +495,35 @@ const Dashboard = () => {
 
             {/* Search */}
             {products.length > 0 && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search products…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Category Filters */}
+                <div className="flex flex-wrap gap-1.5">
+                  {["T-Shirts", "Long Sleeve", "Sweatshirts", "Mugs", "Totes", "Canvas", "Journals", "Notebooks"].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setActiveFilter(activeFilter === cat ? null : cat)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        activeFilter === cat
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
 
             {loading ? (
@@ -520,7 +541,13 @@ const Dashboard = () => {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {products
-                  .filter((p) => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter((p) => {
+                    const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesFilter = !activeFilter || 
+                      p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
+                      p.category.toLowerCase().includes(activeFilter.toLowerCase());
+                    return matchesSearch && matchesFilter;
+                  })
                   .map((product) => (
                   <div
                     key={product.id}
