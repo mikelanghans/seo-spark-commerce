@@ -508,7 +508,7 @@ const Dashboard = () => {
 
                 {/* Category Filters */}
                 <div className="flex flex-wrap gap-1.5">
-                  {["T-Shirts", "Long Sleeve", "Sweatshirts", "Mugs", "Totes", "Canvas", "Journals", "Notebooks"].map((cat) => (
+                  {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
                     <button
                       key={cat}
                       type="button"
