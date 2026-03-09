@@ -33,7 +33,21 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
 
   useEffect(() => {
     loadImages();
+    loadDesignImage();
   }, [productId]);
+
+  const [designImageUrl, setDesignImageUrl] = useState<string | null>(null);
+
+  const loadDesignImage = async () => {
+    const { data } = await supabase
+      .from("product_images")
+      .select("image_url")
+      .eq("product_id", productId)
+      .eq("image_type", "design")
+      .order("position", { ascending: true })
+      .limit(1);
+    setDesignImageUrl(data?.[0]?.image_url || null);
+  };
 
   const loadImages = async () => {
     setLoading(true);
@@ -135,6 +149,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         userId={userId}
         productTitle={productTitle}
         sourceImageUrl={sourceImageUrl || null}
+        designImageUrl={designImageUrl}
         onComplete={loadImages}
       />
 

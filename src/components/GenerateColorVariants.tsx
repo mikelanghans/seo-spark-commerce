@@ -11,6 +11,7 @@ interface Props {
   userId: string;
   productTitle: string;
   sourceImageUrl: string | null;
+  designImageUrl?: string | null;
   onComplete: () => void;
 }
 
@@ -19,7 +20,7 @@ const SUGGESTED_COLORS = [
   "Heather Gray", "Royal Blue", "Maroon", "Pink", "Sand",
 ];
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, onComplete }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [customColor, setCustomColor] = useState("");
@@ -89,6 +90,22 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
+    // Optionally fetch the design image as base64
+    let designBase64: string | undefined;
+    if (designImageUrl) {
+      try {
+        const resp = await fetch(designImageUrl);
+        const blob = await resp.blob();
+        designBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        console.warn("Could not load design image, proceeding without it");
+      }
+    }
     let successCount = 0;
     for (let i = 0; i < newColors.length; i++) {
       const colorName = newColors[i];
@@ -96,7 +113,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
       try {
         const { data, error } = await supabase.functions.invoke("generate-color-variants", {
-          body: { imageBase64, colorName, productTitle },
+          body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
         });
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
