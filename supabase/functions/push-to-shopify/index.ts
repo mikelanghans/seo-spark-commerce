@@ -44,6 +44,10 @@ serve(async (req) => {
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
     const hasVariants = colorVariants.length > 0;
 
+    // Check if product already exists on Shopify
+    const existingShopifyId = product.shopify_product_id;
+    const isUpdate = !!existingShopifyId;
+
     // Build Shopify product payload
     const shopifyProduct: Record<string, unknown> = {
       title: shopifyListing?.title || product.title,
@@ -93,15 +97,29 @@ serve(async (req) => {
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-    // Create the product
-    const shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products.json`, {
-      method: "POST",
-      headers: {
-        "X-Shopify-Access-Token": connection.access_token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ product: shopifyProduct }),
-    });
+    let shopifyResponse: Response;
+    
+    if (isUpdate) {
+      // Update existing product
+      shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`, {
+        method: "PUT",
+        headers: {
+          "X-Shopify-Access-Token": connection.access_token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ product: shopifyProduct }),
+      });
+    } else {
+      // Create new product
+      shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products.json`, {
+        method: "POST",
+        headers: {
+          "X-Shopify-Access-Token": connection.access_token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ product: shopifyProduct }),
+      });
+    }
 
     if (!shopifyResponse.ok) {
       const errorText = await shopifyResponse.text();
@@ -112,10 +130,16 @@ serve(async (req) => {
     const shopifyData = await shopifyResponse.json();
     const createdProduct = shopifyData.product;
 
+    // Save the Shopify product ID back to our database
+    if (createdProduct?.id && product.id) {
+      await adminClient
+        .from("products")
+        .update({ shopify_product_id: createdProduct.id })
+        .eq("id", product.id);
+    }
+
     // Associate mockup images with their corresponding variants
     if (hasVariants && createdProduct?.variants?.length && createdProduct?.images?.length) {
-      const productId = createdProduct.id;
-
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
         // Find the matching image (offset by 1 because design image is first)
@@ -137,7 +161,11 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, shopifyProduct: createdProduct }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      shopifyProduct: createdProduct,
+      updated: isUpdate,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
