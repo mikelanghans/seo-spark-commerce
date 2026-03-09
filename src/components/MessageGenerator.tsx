@@ -135,10 +135,10 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      toast.success("Design generated!");
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to generate design");
+        return;
+      }
       await loadMessages();
     } catch (err: any) {
       toast.error(err.message || "Failed to generate design");
