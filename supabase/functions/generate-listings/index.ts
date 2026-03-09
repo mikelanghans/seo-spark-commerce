@@ -81,13 +81,8 @@ For EACH marketplace listing, also generate:
               description: "Generate marketplace-optimized product listings with SEO metadata",
               parameters: {
                 type: "object",
-                properties: {
-                  amazon: listingSchema,
-                  etsy: listingSchema,
-                  ebay: listingSchema,
-                  shopify: listingSchema,
-                },
-                required: ["amazon", "etsy", "ebay", "shopify"],
+                properties: Object.fromEntries(marketplaces.map((m: string) => [m, listingSchema])),
+                required: marketplaces,
                 additionalProperties: false,
               },
             },
