@@ -90,6 +90,22 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
+    // Optionally fetch the design image as base64
+    let designBase64: string | undefined;
+    if (designImageUrl) {
+      try {
+        const resp = await fetch(designImageUrl);
+        const blob = await resp.blob();
+        designBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        console.warn("Could not load design image, proceeding without it");
+      }
+    }
     let successCount = 0;
     for (let i = 0; i < newColors.length; i++) {
       const colorName = newColors[i];
