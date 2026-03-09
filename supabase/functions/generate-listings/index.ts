@@ -33,7 +33,7 @@ Product:
 - Keywords: ${product.keywords}
 - Price: ${product.price}
 
-Generate SEO-optimized listings for: ${marketplaces.join(", ")}.
+Generate SEO-optimized listings for: ${marketplaces.join(", ")}. Only generate for these marketplaces.
 Each listing must be tailored to that marketplace's style and SEO best practices.
 - Amazon: keyword-rich title, benefit-driven bullet points, A+ description
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
