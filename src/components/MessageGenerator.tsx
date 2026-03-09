@@ -168,10 +168,11 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           },
         });
 
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-      } catch (err: any) {
-        toast.error(`Design failed for "${msg.message_text.slice(0, 30)}...": ${err.message}`);
+        if (error || data?.error) {
+          handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
+          if (data?.error?.includes("credits") || error?.message?.includes("credits")) break;
+          continue;
+        }
       }
 
       // Delay between requests to avoid rate limits
