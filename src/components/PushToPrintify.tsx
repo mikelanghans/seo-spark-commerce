@@ -210,7 +210,7 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              Create a Gildan 64000 t-shirt on Printify with your design auto-centered on the front.
+              Create a Comfort Colors 1717 garment-dyed t-shirt on Printify with your design auto-centered on the front.
             </DialogDescription>
           </DialogHeader>
 
