@@ -15,29 +15,54 @@ serve(async (req) => {
 
     const prompt = `Take this product image and change the product color to ${colorName}. Keep everything else the same — same product, same angle, same background, same lighting, same style. Only change the color/material to ${colorName}. Product: ${productTitle}. Output a high quality product photo.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: imageBase64 } },
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    const models = [
+      "google/gemini-3.1-flash-image-preview",
+      "google/gemini-3-pro-image-preview",
+    ];
 
-    if (!response.ok) {
-      const status = response.status;
+    let response: Response | null = null;
+    let lastError = "";
+
+    for (const model of models) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: imageBase64 } },
+                ],
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        if (response.ok) break;
+        if (response.status === 503 || response.status === 500) {
+          lastError = `${model} returned ${response.status}`;
+          console.error(`Attempt ${attempt + 1} with ${model}: ${response.status}`);
+          response = null;
+          continue;
+        }
+        // Non-retryable errors
+        break;
+      }
+      if (response?.ok) break;
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status;
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -48,9 +73,9 @@ serve(async (req) => {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
+      const t = response ? await response.text() : lastError;
       console.error("AI gateway error:", status, t);
-      throw new Error(`AI gateway error: ${status}`);
+      throw new Error(`AI gateway error: ${status || "all models unavailable"}`);
     }
 
     const data = await response.json();
