@@ -13,6 +13,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  shopify_product_id: number | null;
 }
 
 interface Listing {
