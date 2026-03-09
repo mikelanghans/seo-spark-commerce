@@ -159,6 +159,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             brandName: organization.name,
             brandTone: organization.tone,
             messageId: msg.id,
+            organizationId: organization.id,
           },
         });
 
