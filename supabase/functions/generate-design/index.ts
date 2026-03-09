@@ -166,9 +166,30 @@ Output a high-resolution design graphic ready for print.`;
       throw new Error("No image generated from AI response");
     }
 
-    // Upload to storage
+    // Remove white background to create true transparency
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    const rawBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    
+    let binaryData: Uint8Array;
+    try {
+      const png = PNG.sync.read(Buffer.from(rawBuffer));
+      const threshold = 240; // pixels with R,G,B all above this become transparent
+      for (let i = 0; i < png.data.length; i += 4) {
+        const r = png.data[i];
+        const g = png.data[i + 1];
+        const b = png.data[i + 2];
+        if (r >= threshold && g >= threshold && b >= threshold) {
+          png.data[i + 3] = 0; // set alpha to 0 (transparent)
+        }
+      }
+      const outputBuffer = PNG.sync.write(png);
+      binaryData = new Uint8Array(outputBuffer);
+      console.log("White background removed successfully");
+    } catch (e) {
+      console.error("Failed to remove background, using original:", e);
+      binaryData = rawBuffer;
+    }
+    
     const fileName = `${userId}/${crypto.randomUUID()}.png`;
 
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
