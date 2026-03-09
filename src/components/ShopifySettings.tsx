@@ -14,6 +14,8 @@ export const ShopifySettings = ({ userId }: Props) => {
   const [storeDomain, setStoreDomain] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [authCode, setAuthCode] = useState("");
+  const [exchanging, setExchanging] = useState(false);
   const [installUrl, setInstallUrl] = useState<string | null>(null);
   const [existing, setExisting] = useState<{
     id: string;
