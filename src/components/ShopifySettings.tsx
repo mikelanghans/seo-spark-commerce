@@ -106,7 +106,7 @@ export const ShopifySettings = ({ userId }: Props) => {
             store_domain: domain,
             client_id: clientId.trim(),
             client_secret: clientSecret.trim(),
-          })
+          } as any)
           .eq("id", existing.id);
         if (error) throw error;
       } else {
@@ -116,7 +116,7 @@ export const ShopifySettings = ({ userId }: Props) => {
           client_id: clientId.trim(),
           client_secret: clientSecret.trim(),
           access_token: "",
-        });
+        } as any);
         if (error) throw error;
       }
       setStoreDomain(domain);
