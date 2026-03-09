@@ -57,11 +57,13 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           product: {
+            id: product.id,
             title: product.title,
             description: product.description,
             category: product.category,
             price: product.price,
             keywords: product.keywords,
+            shopify_product_id: product.shopify_product_id,
           },
           listings,
           imageUrl: product.image_url,
