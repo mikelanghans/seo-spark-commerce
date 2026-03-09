@@ -25,6 +25,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  template_image_url?: string | null;
 }
 
 interface Product {
