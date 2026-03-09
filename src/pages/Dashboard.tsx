@@ -266,7 +266,7 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedOrg) return;
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | null = pendingDesignUrl || null;
     if (imageFile) {
       imageUrl = await uploadImageToStorage(imageFile);
     }
@@ -283,6 +283,7 @@ const Dashboard = () => {
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
     setImageFile(null);
+    setPendingDesignUrl(null);
 
     // Auto-generate listings
     setSelectedProduct(product as Product);
