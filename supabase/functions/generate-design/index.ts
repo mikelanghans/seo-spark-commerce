@@ -28,8 +28,33 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messageText, brandName, brandTone, messageId } = await req.json();
+    const { messageText, brandName, brandTone, messageId, organizationId } = await req.json();
     if (!messageText) throw new Error("messageText is required");
+
+    // Fetch recent design feedback to guide the AI
+    let feedbackContext = "";
+    if (organizationId) {
+      const serviceClient2 = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: feedback } = await serviceClient2
+        .from("design_feedback")
+        .select("rating, notes")
+        .eq("organization_id", organizationId)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (feedback && feedback.length > 0) {
+        const liked = feedback.filter((f: any) => f.rating === "up" && f.notes).map((f: any) => f.notes);
+        const disliked = feedback.filter((f: any) => f.rating === "down" && f.notes).map((f: any) => f.notes);
+
+        if (liked.length > 0) {
+          feedbackContext += `\n\nUSER PREFERENCES (things they liked in past designs):\n- ${liked.join("\n- ")}`;
+        }
+        if (disliked.length > 0) {
+          feedbackContext += `\n\nUSER DISLIKES (avoid these in the design):\n- ${disliked.join("\n- ")}`;
+        }
+      }
+    }
 
     const prompt = `Create a minimalist t-shirt design graphic for print-on-demand. The design should be:
 
@@ -48,6 +73,7 @@ DESIGN REQUIREMENTS:
 - Text should be crisp and legible
 - Include any attribution like "— the universe" as a smaller sub-text if it fits the message
 - NO mockups, NO t-shirt outlines — just the standalone graphic design on white
+${feedbackContext}
 
 Output a high-resolution design graphic ready for print.`;
 
