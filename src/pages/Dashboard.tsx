@@ -366,8 +366,8 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Organization" : "New Organization"}</h2>
-                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your business context" : "Set up your business context"}</p>
+                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Brand" : "New Brand"}</h2>
+                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your brand context — this affects how AI writes your content" : "Define your brand voice — AI uses this to tailor all generated content"}</p>
               </div>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
