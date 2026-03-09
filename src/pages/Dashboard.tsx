@@ -280,7 +280,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight">Brand Aura</h1>
-              <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
+              <p className="text-xs text-muted-foreground">AI-powered product listings & SEO</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
