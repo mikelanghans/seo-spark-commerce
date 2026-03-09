@@ -332,6 +332,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                         onClick={() => {
                           setPreviewUrl(msg.design_url);
                           setPreviewMessage(msg.message_text);
+                          setPreviewMessageId(msg.id);
                         }}
                       >
                         <Eye className="h-3.5 w-3.5" />
