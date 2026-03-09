@@ -76,6 +76,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
