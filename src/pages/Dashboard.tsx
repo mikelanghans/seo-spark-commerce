@@ -627,7 +627,9 @@ const Dashboard = () => {
               <MessageGenerator
                 organization={selectedOrg}
                 userId={user!.id}
-                onCreateProduct={(messageText) => {
+                onCreateProduct={(messageText, designUrl) => {
+                  setPendingDesignUrl(designUrl);
+                  setImagePreview(designUrl);
                   setProductForm({
                     title: messageText,
                     description: "",
