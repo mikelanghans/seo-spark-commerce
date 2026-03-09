@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Check, Trash2, ArrowRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Sparkles, Check, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -18,13 +24,14 @@ interface GeneratedMessage {
   message_text: string;
   is_selected: boolean;
   product_id: string | null;
+  design_url: string | null;
   created_at: string;
 }
 
 interface Props {
   organization: Organization;
   userId: string;
-  onCreateProduct?: (messageText: string) => void;
+  onCreateProduct?: (messageText: string, designUrl: string) => void;
 }
 
 export const MessageGenerator = ({ organization, userId, onCreateProduct }: Props) => {
@@ -32,6 +39,9 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadMessages();
@@ -46,7 +56,6 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setMessages((data as GeneratedMessage[]) || []);
-    // Pre-select already selected ones
     const selected = new Set((data || []).filter((m: any) => m.is_selected).map((m: any) => m.id));
     setSelectedIds(selected);
     setLoading(false);
@@ -76,7 +85,6 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         return;
       }
 
-      // Save to database
       const rows = newMessages.map((m: { text: string }) => ({
         user_id: userId,
         organization_id: organization.id,
@@ -115,6 +123,64 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       .eq("id", id);
   };
 
+  const handleGenerateDesign = async (msg: GeneratedMessage) => {
+    setGeneratingDesignId(msg.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-design", {
+        body: {
+          messageText: msg.message_text,
+          brandName: organization.name,
+          brandTone: organization.tone,
+          messageId: msg.id,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Design generated!");
+      await loadMessages();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate design");
+    } finally {
+      setGeneratingDesignId(null);
+    }
+  };
+
+  const handleGenerateSelectedDesigns = async () => {
+    const selected = messages.filter((m) => selectedIds.has(m.id) && !m.design_url);
+    if (selected.length === 0) {
+      toast.error("No selected messages without designs");
+      return;
+    }
+
+    for (const msg of selected) {
+      setGeneratingDesignId(msg.id);
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-design", {
+          body: {
+            messageText: msg.message_text,
+            brandName: organization.name,
+            brandTone: organization.tone,
+            messageId: msg.id,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      } catch (err: any) {
+        toast.error(`Design failed for "${msg.message_text.slice(0, 30)}...": ${err.message}`);
+      }
+
+      // Delay between requests to avoid rate limits
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+
+    setGeneratingDesignId(null);
+    toast.success(`Generated designs for ${selected.length} messages!`);
+    await loadMessages();
+  };
+
   const handleDeleteUnselected = async () => {
     const unselectedIds = messages
       .filter((m) => !selectedIds.has(m.id))
@@ -136,17 +202,22 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   };
 
   const handleCreateProducts = () => {
-    const selected = messages.filter((m) => selectedIds.has(m.id) && !m.product_id);
+    const selected = messages.filter(
+      (m) => selectedIds.has(m.id) && !m.product_id && m.design_url
+    );
     if (selected.length === 0) {
-      toast.error("No new selected messages to create products for");
+      toast.error("No selected messages with designs ready to create products");
       return;
     }
-    selected.forEach((m) => onCreateProduct?.(m.message_text));
+    selected.forEach((m) => onCreateProduct?.(m.message_text, m.design_url!));
   };
 
   const selectedCount = selectedIds.size;
-  const unlinkedSelectedCount = messages.filter(
-    (m) => selectedIds.has(m.id) && !m.product_id
+  const readyForProductCount = messages.filter(
+    (m) => selectedIds.has(m.id) && !m.product_id && m.design_url
+  ).length;
+  const needsDesignCount = messages.filter(
+    (m) => selectedIds.has(m.id) && !m.design_url
   ).length;
 
   if (loading) {
@@ -166,7 +237,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             Message Ideas
           </h3>
           <p className="text-sm text-muted-foreground">
-            AI-generated messages for {organization.name}. Select the ones you want to turn into products.
+            Generate → Select → Design → Create Products
           </p>
         </div>
         <Button
@@ -189,46 +260,128 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             <span>{selectedCount} selected</span>
             <span>·</span>
             <span>{messages.length} total</span>
+            {needsDesignCount > 0 && (
+              <>
+                <span>·</span>
+                <span>{needsDesignCount} need designs</span>
+              </>
+            )}
           </div>
 
           <div className="grid gap-2">
             {messages.map((msg) => {
               const isSelected = selectedIds.has(msg.id);
               const hasProduct = !!msg.product_id;
+              const hasDesign = !!msg.design_url;
+              const isGeneratingThis = generatingDesignId === msg.id;
 
               return (
                 <div
                   key={msg.id}
-                  className={`flex items-center gap-3 rounded-lg border p-3 transition-colors cursor-pointer ${
+                  className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
                     isSelected
                       ? "border-primary/50 bg-primary/5"
                       : "border-border bg-card hover:bg-muted/50"
                   } ${hasProduct ? "opacity-60" : ""}`}
-                  onClick={() => !hasProduct && toggleSelect(msg.id)}
                 >
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => !hasProduct && toggleSelect(msg.id)}
                     disabled={hasProduct}
                   />
-                  <span className="flex-1 text-sm font-medium">
+
+                  {/* Design thumbnail */}
+                  {hasDesign ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewUrl(msg.design_url);
+                        setPreviewMessage(msg.message_text);
+                      }}
+                      className="shrink-0 rounded-md border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+                    >
+                      <img
+                        src={msg.design_url!}
+                        alt={msg.message_text}
+                        className="h-12 w-12 object-cover"
+                      />
+                    </button>
+                  ) : (
+                    <div className="shrink-0 h-12 w-12 rounded-md border border-dashed border-border flex items-center justify-center">
+                      <Paintbrush className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  <span
+                    className="flex-1 text-sm font-medium cursor-pointer"
+                    onClick={() => !hasProduct && toggleSelect(msg.id)}
+                  >
                     {msg.message_text}
                   </span>
-                  {hasProduct && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      Has product
-                    </span>
-                  )}
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    {hasProduct && (
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                        Has product
+                      </span>
+                    )}
+                    {hasDesign && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setPreviewUrl(msg.design_url);
+                          setPreviewMessage(msg.message_text);
+                        }}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {!hasProduct && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={isGeneratingThis || !!generatingDesignId}
+                        onClick={() => handleGenerateDesign(msg)}
+                        title={hasDesign ? "Regenerate design" : "Generate design"}
+                      >
+                        {isGeneratingThis ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : hasDesign ? (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        ) : (
+                          <Paintbrush className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            {unlinkedSelectedCount > 0 && onCreateProduct && (
+            {needsDesignCount > 0 && (
+              <Button
+                onClick={handleGenerateSelectedDesigns}
+                disabled={!!generatingDesignId}
+                variant="secondary"
+                className="gap-2"
+              >
+                {generatingDesignId ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paintbrush className="h-4 w-4" />
+                )}
+                Generate {needsDesignCount} Design{needsDesignCount > 1 ? "s" : ""}
+              </Button>
+            )}
+            {readyForProductCount > 0 && onCreateProduct && (
               <Button onClick={handleCreateProducts} className="gap-2">
                 <ArrowRight className="h-4 w-4" />
-                Create {unlinkedSelectedCount} Product{unlinkedSelectedCount > 1 ? "s" : ""}
+                Create {readyForProductCount} Product{readyForProductCount > 1 ? "s" : ""}
               </Button>
             )}
             {messages.length - selectedCount > 0 && (
@@ -253,6 +406,22 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           </p>
         </div>
       )}
+
+      {/* Design Preview Dialog */}
+      <Dialog open={!!previewUrl} onOpenChange={() => { setPreviewUrl(null); setPreviewMessage(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-medium">{previewMessage}</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <img
+              src={previewUrl}
+              alt={previewMessage || "Design preview"}
+              className="w-full rounded-lg border border-border"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
