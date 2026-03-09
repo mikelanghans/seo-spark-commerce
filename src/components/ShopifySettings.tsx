@@ -121,7 +121,6 @@ export const ShopifySettings = ({ userId }: Props) => {
       return;
     }
 
-    // Load client_id from the database to build the OAuth URL
     supabase
       .from("shopify_connections")
       .select("client_id, store_domain")
@@ -137,7 +136,12 @@ export const ShopifySettings = ({ userId }: Props) => {
         const scopes = "read_products,write_products,read_files,write_files";
         const state = encodeURIComponent(window.location.origin);
         const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`;
-        window.location.href = installUrl;
+        
+        // Open in popup to bypass iframe restrictions
+        const popup = window.open(installUrl, "shopify_oauth", "width=600,height=700,scrollbars=yes");
+        if (!popup) {
+          toast.error("Popup was blocked. Please allow popups for this site and try again.");
+        }
       });
   };
 
