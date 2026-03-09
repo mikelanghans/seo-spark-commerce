@@ -135,8 +135,9 @@ export const ShopifySettings = ({ userId }: Props) => {
         const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
         const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
         const scopes = "read_products,write_products,read_files,write_files";
-        const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        window.open(installUrl, "_blank");
+        const state = encodeURIComponent(window.location.origin);
+        const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+        window.location.href = installUrl;
       });
   };
 
