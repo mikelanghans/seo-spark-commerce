@@ -20,7 +20,7 @@ const SUGGESTED_COLORS = [
   "Heather Gray", "Royal Blue", "Maroon", "Pink", "Sand",
 ];
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, onComplete }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [customColor, setCustomColor] = useState("");
