@@ -2,13 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Loader2, Sparkles, Check, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye } from "lucide-react";
+import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
