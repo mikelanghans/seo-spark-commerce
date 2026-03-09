@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.shopify-exchange-token]
 verify_jwt = false
+
+[functions.printify-get-shops]
+verify_jwt = false
+
+[functions.printify-upload-image]
+verify_jwt = false
+
+[functions.printify-create-product]
+verify_jwt = false

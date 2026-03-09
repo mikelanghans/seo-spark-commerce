@@ -14,6 +14,7 @@ import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
+import { PushToPrintify } from "@/components/PushToPrintify";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw, Store, Download,
 } from "lucide-react";
@@ -839,6 +840,16 @@ const Dashboard = () => {
                   seo_description: l.seo_description,
                   url_handle: l.url_handle,
                   alt_text: l.alt_text,
+                }))}
+                userId={user!.id}
+              />
+              <PushToPrintify
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
                 }))}
                 userId={user!.id}
               />
