@@ -85,11 +85,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       loadOrgs();
-      // Check for Shopify OAuth code in localStorage
-      const code = localStorage.getItem("shopify_oauth_code");
+      
+      // Check for Shopify OAuth code in URL params or localStorage
+      const params = new URLSearchParams(window.location.search);
+      let code = params.get("code");
+      
+      if (!code) {
+        code = localStorage.getItem("shopify_oauth_code");
+        if (code) {
+          localStorage.removeItem("shopify_oauth_code");
+          localStorage.removeItem("shopify_oauth_shop");
+        }
+      } else {
+        // Clean URL
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      
       if (code) {
-        localStorage.removeItem("shopify_oauth_code");
-        localStorage.removeItem("shopify_oauth_shop");
         toast.info("Exchanging Shopify authorization code...");
         supabase.functions.invoke("shopify-exchange-token", {
           body: { code },
