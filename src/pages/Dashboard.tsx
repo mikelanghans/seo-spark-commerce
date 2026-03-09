@@ -555,12 +555,12 @@ const Dashboard = () => {
                     onClick={() => handleViewProduct(product)}
                   >
                     {product.image_url && (
-                      <div className="h-32 overflow-hidden bg-secondary">
+                      <div className="h-48 overflow-hidden bg-secondary">
                         <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
                       </div>
                     )}
                     {!product.image_url && (
-                      <div className="flex h-32 items-center justify-center bg-secondary">
+                      <div className="flex h-48 items-center justify-center bg-secondary">
                         <Package className="h-8 w-8 text-muted-foreground/40" />
                       </div>
                     )}
