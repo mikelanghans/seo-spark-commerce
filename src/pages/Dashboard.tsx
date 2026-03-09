@@ -719,6 +719,17 @@ const Dashboard = () => {
             onBack={() => setView("products")}
           />
         )}
+        {view === "shopify-enrich" && selectedOrg && (
+          <ShopifyEnrich
+            organization={selectedOrg}
+            userId={user!.id}
+            onComplete={() => {
+              setView("products");
+              loadProducts(selectedOrg.id);
+            }}
+            onBack={() => setView("products")}
+          />
+        )}
       </main>
     </div>
   );
