@@ -914,7 +914,7 @@ const Dashboard = () => {
 
             {/* Mockup Images */}
             <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} />
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} />
             </div>
 
             {generating ? (
