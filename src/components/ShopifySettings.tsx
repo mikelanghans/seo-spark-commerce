@@ -161,7 +161,7 @@ export const ShopifySettings = ({ userId }: Props) => {
     const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
     const scopes = "read_products,write_products,read_files,write_files";
     const state = encodeURIComponent(window.location.origin);
-    setInstallUrl(`https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`);
+    setInstallUrl(`https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`);
   };
 
   // Generate install URL when credentials exist
