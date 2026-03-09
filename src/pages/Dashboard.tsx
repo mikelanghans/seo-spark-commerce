@@ -304,7 +304,7 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
               </div>
               <Button onClick={() => setView("org-form")} className="gap-2">
-                <Plus className="h-4 w-4" /> New Organization
+                <Plus className="h-4 w-4" /> New Brand
               </Button>
             </div>
 
