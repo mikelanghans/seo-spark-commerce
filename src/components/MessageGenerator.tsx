@@ -73,8 +73,10 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to generate messages");
+        return;
+      }
 
       const newMessages = data.messages || [];
       if (newMessages.length === 0) {
