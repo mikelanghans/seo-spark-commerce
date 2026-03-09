@@ -116,34 +116,33 @@ export const ShopifySettings = ({ userId }: Props) => {
     }
   };
 
-  const handleInstallApp = () => {
-    if (!existing || !storeDomain) {
-      toast.error("Please save your credentials first");
-      return;
-    }
-
-    supabase
+  const generateInstallUrl = async () => {
+    if (!existing) return;
+    const { data, error } = await supabase
       .from("shopify_connections")
       .select("client_id, store_domain")
       .eq("id", existing.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data?.client_id) {
-          toast.error("Could not load Client ID. Please save credentials first.");
-          return;
-        }
-        const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
-        const scopes = "read_products,write_products,read_files,write_files";
-        const state = encodeURIComponent(window.location.origin);
-        const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`;
-        
-        // Open in popup to bypass iframe restrictions
-        const popup = window.open(installUrl, "shopify_oauth", "width=600,height=700,scrollbars=yes");
-        if (!popup) {
-          toast.error("Popup was blocked. Please allow popups for this site and try again.");
-        }
-      });
+      .single();
+    if (error || !data?.client_id) {
+      toast.error("Could not load Client ID. Please save credentials first.");
+      return;
+    }
+    const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
+    const scopes = "read_products,write_products,read_files,write_files";
+    const state = encodeURIComponent(window.location.origin);
+    setInstallUrl(`https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`);
+  };
+
+  // Generate install URL when credentials exist
+  useEffect(() => {
+    if (existing?.has_credentials && !existing?.has_token) {
+      generateInstallUrl();
+    }
+  }, [existing]);
+
+  const handleCheckConnection = () => {
+    loadConnection();
   };
 
   const handleDisconnect = async () => {
