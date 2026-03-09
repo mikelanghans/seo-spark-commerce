@@ -55,10 +55,7 @@ Product: ${productTitle}. Output a high quality product photo.`;
             messages: [
               {
                 role: "user",
-                content: [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: imageBase64 } },
-                ],
+                content: imageContent,
               },
             ],
             modalities: ["image", "text"],
