@@ -539,7 +539,13 @@ const Dashboard = () => {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {products
-                  .filter((p) => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter((p) => {
+                    const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesFilter = !activeFilter || 
+                      p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
+                      p.category.toLowerCase().includes(activeFilter.toLowerCase());
+                    return matchesSearch && matchesFilter;
+                  })
                   .map((product) => (
                   <div
                     key={product.id}
