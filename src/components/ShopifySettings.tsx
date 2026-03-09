@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, KeyRound, ExternalLink, RefreshCw } from "lucide-react";
+import { Store, Loader2, Check, Trash2, KeyRound, ExternalLink, RefreshCw, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -182,9 +182,36 @@ export const ShopifySettings = ({ userId }: Props) => {
       )}
 
       {existing?.has_credentials && !existing?.has_token && (
-        <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600">
-          <KeyRound className="h-4 w-4" />
-          Credentials saved — click "Install App" to authorize
+        <div className="space-y-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-600">
+            <KeyRound className="h-4 w-4" />
+            Credentials saved — open the link below in a new browser tab to authorize:
+          </div>
+          {installUrl && (
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={installUrl}
+                className="text-xs font-mono"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(installUrl);
+                  toast.success("URL copied! Paste it in a new browser tab.");
+                }}
+                className="shrink-0 gap-1"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            After authorizing on Shopify, come back here and click "Check Connection".
+          </p>
         </div>
       )}
 
@@ -225,18 +252,6 @@ export const ShopifySettings = ({ userId }: Props) => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
             {existing?.has_credentials ? "Update Credentials" : "Save Credentials"}
           </Button>
-          {existing?.has_credentials && installUrl && !existing?.has_token && (
-            <a
-              href={installUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button type="button" variant="secondary" className="gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Install App on Shopify
-              </Button>
-            </a>
-          )}
           {existing?.has_credentials && !existing?.has_token && (
             <Button
               type="button"
