@@ -23,6 +23,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("shopify_oauth_code", code);
       localStorage.setItem("shopify_oauth_shop", shop);
     }
+    // Also preserve shop+hmac (Shopify app launch without code)
+    if (!code && shop) {
+      localStorage.setItem("shopify_pending_shop", shop);
+    }
     return <Navigate to="/auth" replace />;
   }
   

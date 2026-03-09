@@ -61,6 +61,33 @@ export const ShopifySettings = ({ userId }: Props) => {
       }
     }
 
+    // Handle Shopify app launch (shop+hmac but no code) — auto-redirect to OAuth
+    if (!code && !oauthStatus) {
+      const pendingShop = params.get("shop") || localStorage.getItem("shopify_pending_shop");
+      if (pendingShop) {
+        localStorage.removeItem("shopify_pending_shop");
+        window.history.replaceState({}, "", window.location.pathname);
+        // Auto-trigger OAuth by redirecting to the authorize URL
+        const domain = pendingShop.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        supabase
+          .from("shopify_connections")
+          .select("client_id")
+          .eq("user_id", userId)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.client_id) {
+              const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
+              const scopes = "read_products,write_products,read_files,write_files";
+              const state = encodeURIComponent(window.location.origin);
+              const authorizeUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+              toast.info("Redirecting to Shopify for authorization...");
+              window.location.href = authorizeUrl;
+            }
+          });
+        return;
+      }
+    }
+
     if (oauthStatus === "success") {
       toast.success("Shopify connected successfully!");
       loadConnection();
