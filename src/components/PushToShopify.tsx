@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Store, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
+import { Store, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { ShopifyPushPreview } from "./ShopifyPushPreview";
 
 interface Product {
   id: string;
@@ -25,6 +26,13 @@ interface Listing {
   alt_text: string;
 }
 
+interface MockupImage {
+  id: string;
+  image_url: string;
+  color_name: string;
+  position: number;
+}
+
 interface Props {
   product: Product;
   listings: Listing[];
@@ -32,23 +40,15 @@ interface Props {
 }
 
 export const PushToShopify = ({ product, listings, userId }: Props) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; url?: string } | null>(null);
+  const [result, setResult] = useState<{ success: boolean } | null>(null);
 
-  const handlePush = async () => {
+  const handleConfirm = async (selectedMockups: MockupImage[]) => {
     setPushing(true);
     setResult(null);
     try {
-      // Fetch mockup images for variants
-      const { data: mockups } = await supabase
-        .from("product_images")
-        .select("image_url, color_name")
-        .eq("product_id", product.id)
-        .eq("user_id", userId)
-        .eq("image_type", "mockup")
-        .order("position");
-
-      const variants = (mockups || []).map((m) => ({
+      const variants = selectedMockups.map((m) => ({
         colorName: m.color_name,
         imageUrl: m.image_url,
       }));
@@ -71,11 +71,8 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const shopifyProduct = data?.shopifyProduct;
-      const handle = shopifyProduct?.handle;
-      const domain = shopifyProduct ? undefined : undefined; // domain not returned
-
       setResult({ success: true });
+      setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Shopify");
@@ -86,23 +83,30 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       <Button
         variant="outline"
         size="sm"
-        onClick={handlePush}
-        disabled={pushing}
+        onClick={() => { setResult(null); setPreviewOpen(true); }}
         className="gap-2"
       >
-        {pushing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : result?.success ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        {result?.success ? (
+          <CheckCircle2 className="h-4 w-4 text-primary" />
         ) : (
           <Store className="h-4 w-4" />
         )}
-        {pushing ? "Pushing…" : result?.success ? "Pushed!" : "Push to Shopify"}
+        {result?.success ? "Pushed!" : "Push to Shopify"}
       </Button>
-    </div>
+
+      <ShopifyPushPreview
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        product={product}
+        listings={listings}
+        userId={userId}
+        onConfirm={handleConfirm}
+        pushing={pushing}
+      />
+    </>
   );
 };
