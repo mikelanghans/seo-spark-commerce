@@ -100,7 +100,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       toast.success(`Generated ${newMessages.length} new messages!`);
       await loadMessages();
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate messages");
+      handleAiError(err, null, "Failed to generate messages");
     } finally {
       setGenerating(false);
     }
