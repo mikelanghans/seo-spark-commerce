@@ -180,7 +180,24 @@ const Dashboard = () => {
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
     setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setOrgTemplatePreview(org.template_image_url || null);
+    setOrgTemplateFile(null);
     setView("org-form");
+  };
+
+  const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setOrgTemplateFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const toggleMarketplace = (m: string) => {
+    setSelectedMarketplaces((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
+    );
   };
 
   const handleSelectOrg = (org: Organization) => {
