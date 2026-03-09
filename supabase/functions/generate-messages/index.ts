@@ -29,12 +29,56 @@ serve(async (req) => {
     const { organization, count } = await req.json();
     const batchSize = count || 10;
 
-    const prompt = `You are a creative copywriter for "${organization.name}".
+    // Fetch past design feedback to inform message generation
+    const userId = claimsData.claims.sub as string;
+    let feedbackContext = "";
+    if (organization.id) {
+      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: feedback } = await serviceClient
+        .from("design_feedback")
+        .select("rating, notes")
+        .eq("organization_id", organization.id)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (feedback && feedback.length > 0) {
+        const liked = feedback.filter((f: any) => f.rating === "up" && f.notes).map((f: any) => f.notes);
+        const disliked = feedback.filter((f: any) => f.rating === "down" && f.notes).map((f: any) => f.notes);
+        if (liked.length > 0) feedbackContext += `\nThe user LIKED these past design elements: ${liked.join("; ")}`;
+        if (disliked.length > 0) feedbackContext += `\nThe user DISLIKED these past design elements: ${disliked.join("; ")}`;
+      }
+    }
+
+    const prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
 
 Brand context:
 - Niche: ${organization.niche}
 - Tone: ${organization.tone}
 - Target Audience: ${organization.audience}
+${feedbackContext}
+
+TREND & BEST-SELLING ANALYSIS:
+Before generating messages, apply your knowledge of what sells well in the print-on-demand (POD) industry:
+
+1. TOP-SELLING POD MESSAGE CATEGORIES (prioritize these):
+   - Self-deprecating humor about adulting, burnout, overthinking, anxiety
+   - Sarcastic motivational quotes that subvert toxic positivity
+   - Niche identity statements ("I'm not lazy, I'm on energy-saving mode")
+   - Minimalist one-word or two-word statements with strong typography potential ({SIGH}, {NOPE}, {CHAOS})
+   - Pop-culture-adjacent vibes without IP infringement
+   - "Seen on TikTok/Instagram" relatable humor
+
+2. DESIGN-FIRST THINKING:
+   - Messages that look GREAT as minimalist typography (bold + thin font combos)
+   - Short messages (2-5 words) consistently outsell longer ones
+   - Messages with natural visual hierarchy (a bold word + a smaller attribution)
+   - Bracket/brace format {LIKE THIS} performs extremely well in the minimalist POD space
+
+3. AUDIENCE PSYCHOLOGY:
+   - Gen Z/Millennial buyers want to feel "seen" — messages should feel like an inside joke
+   - Buyers purchase messages that express what they can't say out loud
+   - The best sellers make people screenshot and share before they even buy
 
 Generate exactly ${batchSize} short, punchy messages that could be printed on t-shirts, mugs, or stickers. Each message should be:
 - A cosmic/universe-themed message that is BOTH motivational AND sarcastic
@@ -42,13 +86,16 @@ Generate exactly ${batchSize} short, punchy messages that could be printed on t-
 - Memorable, quotable, and slightly irreverent
 - In the voice of "the universe" talking to a burned-out human
 - Mix of formats: some with {curly braces}, some with "— the universe" attribution, some standalone
+- Optimized for SELLING — think about what someone would actually pay $29 to wear
 
-Think: fortune cookie meets existential comedy. Examples of the vibe (do NOT repeat these):
+Think: fortune cookie meets existential comedy meets best-seller list.
+
+Examples of the vibe (do NOT repeat these):
 - "{SIGH} — the universe"
 - "You're doing great (cosmically speaking)"
 - "Stars don't align. You do."
 
-Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan.`;
+Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
