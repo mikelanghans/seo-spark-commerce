@@ -99,30 +99,7 @@ serve(async (req) => {
       throw new Error("No matching variants found for the selected colors/sizes. Try different selections.");
     }
 
-    // Step 2: Get print areas for placement
-    const printAreasRes = await fetch(
-      `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/printing.json`,
-      { headers: { Authorization: `Bearer ${printifyToken}` } }
-    );
-
-    if (!printAreasRes.ok) {
-      const text = await printAreasRes.text();
-      throw new Error(`Failed to get print areas (${printAreasRes.status}): ${text}`);
-    }
-
-    const printAreasData = await printAreasRes.json();
-    const printAreas = printAreasData.print_areas || [];
-    
-    // Find the front print area
-    const frontArea = printAreas.find((a: any) => 
-      a.variant_ids?.length > 0
-    );
-
-    if (!frontArea) {
-      throw new Error("Could not find print area for this product");
-    }
-
-    // Step 3: Build the product
+    // Step 2: Build the product
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
 
     const productPayload = {
