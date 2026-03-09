@@ -285,10 +285,9 @@ const Dashboard = () => {
     setImageFile(null);
     setPendingDesignUrl(null);
 
-    // Auto-generate listings
     setSelectedProduct(product as Product);
     setView("product-detail");
-    await generateListingsForProduct(product as Product);
+    await loadListings(product.id);
     loadProducts(selectedOrg.id);
   };
 
