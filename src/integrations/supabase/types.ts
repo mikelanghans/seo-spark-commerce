@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      generated_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_selected: boolean
+          message_text: string
+          organization_id: string
+          product_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          message_text: string
+          organization_id: string
+          product_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          message_text?: string
+          organization_id?: string
+          product_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_messages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           alt_text: string

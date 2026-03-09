@@ -15,6 +15,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
+import { MessageGenerator } from "@/components/MessageGenerator";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw, Store, Download,
 } from "lucide-react";
@@ -619,7 +620,25 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Search */}
+            {/* Message Generator */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <MessageGenerator
+                organization={selectedOrg}
+                userId={user!.id}
+                onCreateProduct={(messageText) => {
+                  setProductForm({
+                    title: messageText,
+                    description: "",
+                    keywords: "",
+                    category: "T-Shirt",
+                    price: "29.99",
+                    features: "",
+                  });
+                  setView("product-form");
+                }}
+              />
+            </div>
+
             {products.length > 0 && (
               <>
                 <div className="relative">
