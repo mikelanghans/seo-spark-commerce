@@ -500,8 +500,8 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">Add Product</h2>
-                <p className="text-sm text-muted-foreground">Upload an image or fill in manually</p>
+                <h2 className="text-2xl font-bold">Add New Product</h2>
+                <p className="text-sm text-muted-foreground">Upload a product image for AI analysis, or fill in details manually</p>
               </div>
             </div>
 
