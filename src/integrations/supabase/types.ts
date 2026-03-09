@@ -199,7 +199,9 @@ export type Database = {
       }
       shopify_connections: {
         Row: {
-          access_token: string
+          access_token: string | null
+          client_id: string | null
+          client_secret: string | null
           created_at: string
           id: string
           store_domain: string
@@ -207,7 +209,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          access_token: string
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
           created_at?: string
           id?: string
           store_domain: string
@@ -215,7 +219,9 @@ export type Database = {
           user_id: string
         }
         Update: {
-          access_token?: string
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
           created_at?: string
           id?: string
           store_domain?: string
