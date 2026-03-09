@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Gildan 64000 blueprint ID on Printify
-const GILDAN_64000_BLUEPRINT_ID = 145;
+const COMFORT_COLORS_1717_BLUEPRINT_ID = 706;
 
 // Map color names to Printify variant color names for Gildan 64000
 // Print provider ID 99 (Printify Choice) is commonly used
