@@ -76,16 +76,19 @@ export const ShopifySettings = ({ userId }: Props) => {
     setLoading(true);
     const { data } = await supabase
       .from("shopify_connections")
-      .select("id, store_domain, access_token")
+      .select("*")
       .eq("user_id", userId)
       .maybeSingle();
     if (data) {
+      const row = data as any;
       setExisting({
         id: data.id,
         store_domain: data.store_domain,
         has_token: !!data.access_token && data.access_token.length > 0,
       });
       setStoreDomain(data.store_domain);
+      if (row.client_id) setClientId(row.client_id);
+      if (row.client_secret) setClientSecret(row.client_secret);
     }
     setLoading(false);
   };
