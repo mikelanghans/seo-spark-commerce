@@ -128,7 +128,7 @@ serve(async (req) => {
     const productPayload = {
       title,
       description: description || "",
-      tags: tags || [],
+      tags: Array.from(new Set([...(tags || []), "T-shirts"])),
       blueprint_id: bpId,
       print_provider_id: ppId,
       variants: filteredVariants.map((v: any) => ({
