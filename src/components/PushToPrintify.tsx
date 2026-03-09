@@ -313,7 +313,7 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Blueprint:</strong> Comfort Colors 1717 Garment-Dyed Tee</p>
+              <p><strong>Blueprint:</strong> Gildan 64000 Unisex Tee</p>
               <p><strong>Colors:</strong> {selectedColors.join(", ") || "None"}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ") || "None"}</p>
               <p><strong>Variants:</strong> ~{selectedColors.length * selectedSizes.length}</p>
