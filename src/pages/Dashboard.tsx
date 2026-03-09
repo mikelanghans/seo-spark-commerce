@@ -843,6 +843,16 @@ const Dashboard = () => {
                 }))}
                 userId={user!.id}
               />
+              <PushToPrintify
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
+                }))}
+                userId={user!.id}
+              />
             </div>
 
             {/* Marketplace Selection */}
