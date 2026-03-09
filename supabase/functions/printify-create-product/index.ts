@@ -51,7 +51,7 @@ serve(async (req) => {
       throw new Error("shopId, title, and printifyImageId are required");
     }
 
-    const bpId = blueprintId || GILDAN_64000_BLUEPRINT_ID;
+    const bpId = blueprintId || COMFORT_COLORS_1717_BLUEPRINT_ID;
     const ppId = printProviderId || DEFAULT_PRINT_PROVIDER_ID;
 
     // Step 1: Get available variants for this blueprint + print provider
