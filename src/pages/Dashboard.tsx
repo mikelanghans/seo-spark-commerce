@@ -844,9 +844,39 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* Marketplace Selection */}
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm font-medium">Generate listings for:</Label>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {MARKETPLACES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMarketplace(m)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
+                      selectedMarketplaces.includes(m)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Mockup Images */}
             <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedProduct.image_url} />
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedProduct.image_url || selectedOrg?.template_image_url || null} />
             </div>
 
             {generating ? (
