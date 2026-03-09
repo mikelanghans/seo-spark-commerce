@@ -6,12 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Gildan 64000 blueprint ID on Printify
-const COMFORT_COLORS_1717_BLUEPRINT_ID = 706;
-
-// Map color names to Printify variant color names for Gildan 64000
-// Print provider ID 99 (Printify Choice) is commonly used
-const DEFAULT_PRINT_PROVIDER_ID = 99;
+// Default blueprint: Gildan 64000 (widely available)
+const DEFAULT_BLUEPRINT_ID = 6;
+// Default print provider: will be dynamically resolved if not provided
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -51,8 +48,25 @@ serve(async (req) => {
       throw new Error("shopId, title, and printifyImageId are required");
     }
 
-    const bpId = blueprintId || COMFORT_COLORS_1717_BLUEPRINT_ID;
-    const ppId = printProviderId || DEFAULT_PRINT_PROVIDER_ID;
+    const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
+    let ppId = printProviderId;
+
+    // If no print provider specified, fetch available ones for this blueprint
+    if (!ppId) {
+      const providersRes = await fetch(
+        `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      );
+      if (!providersRes.ok) {
+        const text = await providersRes.text();
+        throw new Error(`Failed to get print providers for blueprint ${bpId} (${providersRes.status}): ${text}`);
+      }
+      const providers = await providersRes.json();
+      if (!providers.length) throw new Error(`No print providers available for blueprint ${bpId}`);
+      // Prefer provider 99 if available, otherwise use first
+      ppId = providers.find((p: any) => p.id === 99)?.id || providers[0].id;
+      console.log(`Auto-selected print provider ${ppId} for blueprint ${bpId}`);
+    }
 
     // Step 1: Get available variants for this blueprint + print provider
     const variantsRes = await fetch(
