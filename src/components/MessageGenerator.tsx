@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
 import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
+import { handleAiError } from "@/lib/aiErrors";
 
 interface Organization {
   id: string;
@@ -72,8 +73,10 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to generate messages");
+        return;
+      }
 
       const newMessages = data.messages || [];
       if (newMessages.length === 0) {
@@ -97,7 +100,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       toast.success(`Generated ${newMessages.length} new messages!`);
       await loadMessages();
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate messages");
+      handleAiError(err, null, "Failed to generate messages");
     } finally {
       setGenerating(false);
     }
@@ -132,13 +135,14 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to generate design");
+        return;
+      }
       toast.success("Design generated!");
       await loadMessages();
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate design");
+      handleAiError(err, null, "Failed to generate design");
     } finally {
       setGeneratingDesignId(null);
     }
@@ -153,21 +157,20 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
 
     for (const msg of selected) {
       setGeneratingDesignId(msg.id);
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-design", {
-          body: {
-            messageText: msg.message_text,
-            brandName: organization.name,
-            brandTone: organization.tone,
-            messageId: msg.id,
-            organizationId: organization.id,
-          },
-        });
+      const { data, error } = await supabase.functions.invoke("generate-design", {
+        body: {
+          messageText: msg.message_text,
+          brandName: organization.name,
+          brandTone: organization.tone,
+          messageId: msg.id,
+          organizationId: organization.id,
+        },
+      });
 
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-      } catch (err: any) {
-        toast.error(`Design failed for "${msg.message_text.slice(0, 30)}...": ${err.message}`);
+      if (error || data?.error) {
+        const errorMsg = data?.error || error?.message || "";
+        handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
+        if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
       }
 
       // Delay between requests to avoid rate limits
