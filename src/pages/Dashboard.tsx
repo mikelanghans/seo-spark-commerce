@@ -479,6 +479,10 @@ const Dashboard = () => {
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Enrich Existing
                 </Button>
+                <Button variant="outline" onClick={handleImportFromShopify} disabled={importingShopify} className="gap-2">
+                  {importingShopify ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
+                  {importingShopify ? "Importing…" : "Import from Shopify"}
+                </Button>
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
                   <Upload className="h-4 w-4" /> Import Products
                 </Button>
