@@ -91,7 +91,7 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
         className="gap-2"
       >
         {result?.success ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <CheckCircle2 className="h-4 w-4 text-primary" />
         ) : (
           <Store className="h-4 w-4" />
         )}
