@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, KeyRound, ExternalLink } from "lucide-react";
+import { Store, Loader2, Check, Trash2, KeyRound, ExternalLink, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -14,6 +14,7 @@ export const ShopifySettings = ({ userId }: Props) => {
   const [storeDomain, setStoreDomain] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [installUrl, setInstallUrl] = useState<string | null>(null);
   const [existing, setExisting] = useState<{
     id: string;
     store_domain: string;
@@ -115,34 +116,33 @@ export const ShopifySettings = ({ userId }: Props) => {
     }
   };
 
-  const handleInstallApp = () => {
-    if (!existing || !storeDomain) {
-      toast.error("Please save your credentials first");
-      return;
-    }
-
-    supabase
+  const generateInstallUrl = async () => {
+    if (!existing) return;
+    const { data, error } = await supabase
       .from("shopify_connections")
       .select("client_id, store_domain")
       .eq("id", existing.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data?.client_id) {
-          toast.error("Could not load Client ID. Please save credentials first.");
-          return;
-        }
-        const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
-        const scopes = "read_products,write_products,read_files,write_files";
-        const state = encodeURIComponent(window.location.origin);
-        const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`;
-        
-        // Open in popup to bypass iframe restrictions
-        const popup = window.open(installUrl, "shopify_oauth", "width=600,height=700,scrollbars=yes");
-        if (!popup) {
-          toast.error("Popup was blocked. Please allow popups for this site and try again.");
-        }
-      });
+      .single();
+    if (error || !data?.client_id) {
+      toast.error("Could not load Client ID. Please save credentials first.");
+      return;
+    }
+    const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
+    const scopes = "read_products,write_products,read_files,write_files";
+    const state = encodeURIComponent(window.location.origin);
+    setInstallUrl(`https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&grant_options[]=per-user`);
+  };
+
+  // Generate install URL when credentials exist
+  useEffect(() => {
+    if (existing?.has_credentials && !existing?.has_token) {
+      generateInstallUrl();
+    }
+  }, [existing]);
+
+  const handleCheckConnection = () => {
+    loadConnection();
   };
 
   const handleDisconnect = async () => {
@@ -225,16 +225,40 @@ export const ShopifySettings = ({ userId }: Props) => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
             {existing?.has_credentials ? "Update Credentials" : "Save Credentials"}
           </Button>
-          {existing?.has_credentials && (
+          {existing?.has_credentials && installUrl && !existing?.has_token && (
+            <a
+              href={installUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button type="button" variant="secondary" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Install App on Shopify
+              </Button>
+            </a>
+          )}
+          {existing?.has_credentials && !existing?.has_token && (
             <Button
               type="button"
-              variant="secondary"
-              onClick={handleInstallApp}
+              variant="outline"
+              onClick={handleCheckConnection}
               className="gap-2"
             >
-              <ExternalLink className="h-4 w-4" />
-              {existing?.has_token ? "Re-authorize" : "Install App"}
+              <RefreshCw className="h-4 w-4" />
+              Check Connection
             </Button>
+          )}
+          {existing?.has_token && (
+            <a
+              href={installUrl || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button type="button" variant="secondary" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Re-authorize
+              </Button>
+            </a>
           )}
           {existing && (
             <Button
