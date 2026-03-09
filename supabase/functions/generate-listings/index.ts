@@ -38,7 +38,12 @@ Each listing must be tailored to that marketplace's style and SEO best practices
 - Amazon: keyword-rich title, benefit-driven bullet points, A+ description
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
-- Shopify: clean brand-forward copy, markdown-friendly, lifestyle-oriented
+- Shopify: clean brand-forward copy, lifestyle-oriented
+
+IMPORTANT FORMATTING RULES:
+- Descriptions must be PLAIN TEXT only — no markdown (no #, ##, ###, **, *, etc.)
+- Use natural paragraph breaks for readability
+- Bullet points go in the bulletPoints array, NOT in the description field
 
 For EACH marketplace listing, also generate:
 - seoTitle: An SEO meta title (under 60 chars, with primary keyword)
