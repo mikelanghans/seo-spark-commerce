@@ -157,22 +157,20 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
 
     for (const msg of selected) {
       setGeneratingDesignId(msg.id);
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-design", {
-          body: {
-            messageText: msg.message_text,
-            brandName: organization.name,
-            brandTone: organization.tone,
-            messageId: msg.id,
-            organizationId: organization.id,
-          },
-        });
+      const { data, error } = await supabase.functions.invoke("generate-design", {
+        body: {
+          messageText: msg.message_text,
+          brandName: organization.name,
+          brandTone: organization.tone,
+          messageId: msg.id,
+          organizationId: organization.id,
+        },
+      });
 
-        if (error || data?.error) {
-          handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
-          if (data?.error?.includes("credits") || error?.message?.includes("credits")) break;
-          continue;
-        }
+      if (error || data?.error) {
+        const errorMsg = data?.error || error?.message || "";
+        handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
+        if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
       }
 
       // Delay between requests to avoid rate limits

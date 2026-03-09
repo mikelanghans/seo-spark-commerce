@@ -116,8 +116,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         const { data, error } = await supabase.functions.invoke("generate-color-variants", {
           body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
         });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
+        if (error || data?.error) {
+          handleAiError(error, data, `Failed: ${colorName}`);
+          const errorMsg = data?.error || error?.message || "";
+          if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
+          continue;
+        }
 
         const generatedBase64 = data.imageBase64;
         if (!generatedBase64) throw new Error("No image returned");
@@ -148,7 +152,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         successCount++;
       } catch (err: any) {
         console.error(`Failed to generate ${colorName}:`, err);
-        toast.error(`Failed: ${colorName} — ${err.message}`);
+        handleAiError(err, null, `Failed: ${colorName}`);
       }
     }
 
