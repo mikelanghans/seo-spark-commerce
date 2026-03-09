@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, KeyRound } from "lucide-react";
+import { Store, Loader2, Check, Trash2, KeyRound, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -12,13 +12,48 @@ interface Props {
 
 export const ShopifySettings = ({ userId }: Props) => {
   const [storeDomain, setStoreDomain] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [existing, setExisting] = useState<{ id: string; store_domain: string; has_token: boolean } | null>(null);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [existing, setExisting] = useState<{
+    id: string;
+    store_domain: string;
+    has_token: boolean;
+    has_credentials: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadConnection();
+  }, []);
+
+  // Listen for OAuth callback messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "shopify-oauth-success") {
+        toast.success("Shopify connected successfully!");
+        loadConnection();
+      } else if (event.data?.type === "shopify-oauth-error") {
+        toast.error(event.data.error || "OAuth failed");
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Check URL for OAuth callback params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthStatus = params.get("shopify_oauth");
+    if (oauthStatus === "success") {
+      toast.success("Shopify connected successfully!");
+      loadConnection();
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (oauthStatus === "error") {
+      toast.error(params.get("error") || "OAuth failed");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const loadConnection = async () => {
@@ -33,15 +68,16 @@ export const ShopifySettings = ({ userId }: Props) => {
         id: data.id,
         store_domain: data.store_domain,
         has_token: !!data.access_token && data.access_token.length > 0,
+        has_credentials: !!data.client_id && !!data.client_secret,
       });
       setStoreDomain(data.store_domain);
     }
     setLoading(false);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!storeDomain.trim() || !accessToken.trim()) {
+    if (!storeDomain.trim() || !clientId.trim() || !clientSecret.trim()) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -53,7 +89,8 @@ export const ShopifySettings = ({ userId }: Props) => {
           .from("shopify_connections")
           .update({
             store_domain: domain,
-            access_token: accessToken.trim(),
+            client_id: clientId.trim(),
+            client_secret: clientSecret.trim(),
           })
           .eq("id", existing.id);
         if (error) throw error;
@@ -61,19 +98,46 @@ export const ShopifySettings = ({ userId }: Props) => {
         const { error } = await supabase.from("shopify_connections").insert({
           user_id: userId,
           store_domain: domain,
-          access_token: accessToken.trim(),
+          client_id: clientId.trim(),
+          client_secret: clientSecret.trim(),
         });
         if (error) throw error;
       }
       setStoreDomain(domain);
-      setAccessToken("");
-      toast.success("Shopify connected successfully!");
+      setClientId("");
+      setClientSecret("");
+      toast.success("Credentials saved! Now click 'Install App' to authorize.");
       await loadConnection();
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleInstallApp = () => {
+    if (!existing || !storeDomain) {
+      toast.error("Please save your credentials first");
+      return;
+    }
+
+    // Load client_id from the database to build the OAuth URL
+    supabase
+      .from("shopify_connections")
+      .select("client_id, store_domain")
+      .eq("id", existing.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data?.client_id) {
+          toast.error("Could not load Client ID. Please save credentials first.");
+          return;
+        }
+        const domain = data.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
+        const scopes = "read_products,write_products,read_files,write_files";
+        const installUrl = `https://${domain}/admin/oauth/authorize?client_id=${data.client_id}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        window.open(installUrl, "_blank");
+      });
   };
 
   const handleDisconnect = async () => {
@@ -85,7 +149,8 @@ export const ShopifySettings = ({ userId }: Props) => {
     }
     setExisting(null);
     setStoreDomain("");
-    setAccessToken("");
+    setClientId("");
+    setClientSecret("");
     toast.success("Shopify disconnected");
   };
 
@@ -111,7 +176,14 @@ export const ShopifySettings = ({ userId }: Props) => {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-4">
+      {existing?.has_credentials && !existing?.has_token && (
+        <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600">
+          <KeyRound className="h-4 w-4" />
+          Credentials saved — click "Install App" to authorize
+        </div>
+      )}
+
+      <form onSubmit={handleSaveCredentials} className="space-y-4">
         <div className="space-y-2">
           <Label>Store Domain</Label>
           <Input
@@ -122,23 +194,43 @@ export const ShopifySettings = ({ userId }: Props) => {
           />
         </div>
         <div className="space-y-2">
-          <Label>Admin API Access Token</Label>
+          <Label>Client ID</Label>
+          <Input
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder={existing?.has_credentials ? "••••••••  (saved)" : "Paste your Client ID"}
+            required={!existing?.has_credentials}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Client Secret</Label>
           <Input
             type="password"
-            value={accessToken}
-            onChange={(e) => setAccessToken(e.target.value)}
-            placeholder={existing?.has_token ? "••••••••  (token saved)" : "Paste your access token"}
-            required={!existing?.has_token}
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder={existing?.has_credentials ? "••••••••  (saved)" : "Paste your Client Secret"}
+            required={!existing?.has_credentials}
           />
           <p className="text-xs text-muted-foreground">
-            Go to your store admin → Settings → Apps and sales channels → Develop apps → Create an app → Configure Admin API scopes → Install → Copy the access token.
+            Find these in your Shopify Partners → Apps → your app → Client credentials.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button type="submit" disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            {existing?.has_token ? "Update Connection" : "Connect"}
+            {existing?.has_credentials ? "Update Credentials" : "Save Credentials"}
           </Button>
+          {existing?.has_credentials && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleInstallApp}
+              className="gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {existing?.has_token ? "Re-authorize" : "Install App"}
+            </Button>
+          )}
           {existing && (
             <Button
               type="button"
