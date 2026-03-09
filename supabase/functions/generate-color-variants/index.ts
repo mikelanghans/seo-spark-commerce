@@ -9,11 +9,28 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle } = await req.json();
+    const { imageBase64, colorName, productTitle, designImageBase64 } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const prompt = `Take this product image and change the product color to ${colorName}. Keep everything else the same — same product, same angle, same background, same lighting, same style. Only change the color/material to ${colorName}. Product: ${productTitle}. Output a high quality product photo.`;
+    const prompt = `Take this product image and change ONLY the fabric/material color to ${colorName}. 
+
+CRITICAL RULES:
+- ONLY change the shirt/product body color to ${colorName}
+- DO NOT change the color of any text, logos, graphics, or printed designs on the product
+- Keep all text, graphics, and printed designs EXACTLY as they appear in the original — same color, same size, same position
+- Keep the same background, lighting, angle, shadows, and styling
+- The printed design/text must remain identical to the source image
+${designImageBase64 ? '- A reference design image is provided — use it to ensure the printed graphics are preserved exactly' : ''}
+Product: ${productTitle}. Output a high quality product photo.`;
+
+    const imageContent: any[] = [
+      { type: "text", text: prompt },
+      { type: "image_url", image_url: { url: imageBase64 } },
+    ];
+    if (designImageBase64) {
+      imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
+    }
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
