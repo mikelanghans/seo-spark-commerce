@@ -76,6 +76,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
@@ -265,7 +266,7 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedOrg) return;
 
-    let imageUrl: string | null = null;
+    let imageUrl: string | null = pendingDesignUrl || null;
     if (imageFile) {
       imageUrl = await uploadImageToStorage(imageFile);
     }
@@ -282,6 +283,7 @@ const Dashboard = () => {
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
     setImageFile(null);
+    setPendingDesignUrl(null);
 
     // Auto-generate listings
     setSelectedProduct(product as Product);
@@ -625,7 +627,9 @@ const Dashboard = () => {
               <MessageGenerator
                 organization={selectedOrg}
                 userId={user!.id}
-                onCreateProduct={(messageText) => {
+                onCreateProduct={(messageText, designUrl) => {
+                  setPendingDesignUrl(designUrl);
+                  setImagePreview(designUrl);
                   setProductForm({
                     title: messageText,
                     description: "",
