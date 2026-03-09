@@ -64,16 +64,17 @@ BRAND: ${brandName || "lifestyle apparel"}
 TONE: ${brandTone || "sarcastic but motivational"}
 
 DESIGN REQUIREMENTS:
-- TRANSPARENT BACKGROUND — the design must have NO background at all, just the graphic/text floating on transparency
+- Place the design on a CLEAN SOLID WHITE background — pure white (#FFFFFF), no patterns, no gradients, no texture
+- DO NOT render any transparency pattern, checkered pattern, or grid pattern — the background must be solid white
 - Clean, print-ready graphic suitable for direct-to-garment or screen printing
 - Modern minimalist typography — the text should be the star
 - Use a mix of bold and thin fonts for visual hierarchy
 - Can include subtle decorative elements (small stars, lines, brackets, dashes)
 - Use BLACK ink/color for the design elements (so it prints well on light shirts)
-- The design should look great when printed small on a chest pocket area OR large across the front
+- The design should look great when printed across the front of a t-shirt
 - Text should be crisp and legible
 - Include any attribution like "— the universe" as a smaller sub-text if it fits the message
-- NO mockups, NO t-shirt outlines, NO backgrounds — just the standalone graphic design on a solid white background
+- NO mockups, NO t-shirt outlines — just the standalone graphic design centered on a solid white background
 ${feedbackContext}
 
 Output a high-resolution design graphic ready for print.`;
