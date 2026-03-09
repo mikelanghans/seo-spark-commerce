@@ -182,9 +182,36 @@ export const ShopifySettings = ({ userId }: Props) => {
       )}
 
       {existing?.has_credentials && !existing?.has_token && (
-        <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600">
-          <KeyRound className="h-4 w-4" />
-          Credentials saved — click "Install App" to authorize
+        <div className="space-y-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+          <div className="flex items-center gap-2 text-sm text-yellow-600">
+            <KeyRound className="h-4 w-4" />
+            Credentials saved — open the link below in a new browser tab to authorize:
+          </div>
+          {installUrl && (
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={installUrl}
+                className="text-xs font-mono"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(installUrl);
+                  toast.success("URL copied! Paste it in a new browser tab.");
+                }}
+                className="shrink-0 gap-1"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            After authorizing on Shopify, come back here and click "Check Connection".
+          </p>
         </div>
       )}
 
