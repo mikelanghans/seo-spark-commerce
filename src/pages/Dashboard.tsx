@@ -15,6 +15,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
+import { MessageGenerator } from "@/components/MessageGenerator";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw, Store, Download,
 } from "lucide-react";
