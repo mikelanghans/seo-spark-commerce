@@ -11,6 +11,7 @@ interface Props {
   userId: string;
   productTitle: string;
   sourceImageUrl: string | null;
+  designImageUrl?: string | null;
   onComplete: () => void;
 }
 
