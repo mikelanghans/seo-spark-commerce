@@ -55,6 +55,23 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     setGenerating(true);
     setProgress({ done: 0, total: colors.length, current: colors[0] });
 
+    // Check which colors already exist in DB to skip duplicates
+    const { data: existingImages } = await supabase
+      .from("product_images")
+      .select("color_name")
+      .eq("product_id", productId)
+      .eq("image_type", "mockup");
+    const existingColors = new Set((existingImages || []).map((img) => img.color_name.toLowerCase()));
+    const newColors = colors.filter((c) => !existingColors.has(c.toLowerCase()));
+
+    if (newColors.length === 0) {
+      toast.info("All selected colors already exist as variants.");
+      setGenerating(false);
+      return;
+    }
+
+    setProgress({ done: 0, total: newColors.length, current: newColors[0] });
+
     // Fetch the source image as base64
     let imageBase64: string;
     try {
