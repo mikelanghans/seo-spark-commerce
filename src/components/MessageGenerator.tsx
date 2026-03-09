@@ -2,13 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Loader2, Sparkles, Check, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye } from "lucide-react";
+import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -42,6 +37,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
+  const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMessages();
@@ -132,6 +128,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           brandName: organization.name,
           brandTone: organization.tone,
           messageId: msg.id,
+          organizationId: organization.id,
         },
       });
 
@@ -163,6 +160,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             brandName: organization.name,
             brandTone: organization.tone,
             messageId: msg.id,
+            organizationId: organization.id,
           },
         });
 
@@ -297,6 +295,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       onClick={() => {
                         setPreviewUrl(msg.design_url);
                         setPreviewMessage(msg.message_text);
+                        setPreviewMessageId(msg.id);
                       }}
                       className="shrink-0 rounded-md border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
                     >
@@ -333,6 +332,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                         onClick={() => {
                           setPreviewUrl(msg.design_url);
                           setPreviewMessage(msg.message_text);
+                          setPreviewMessageId(msg.id);
                         }}
                       >
                         <Eye className="h-3.5 w-3.5" />
@@ -407,21 +407,16 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         </div>
       )}
 
-      {/* Design Preview Dialog */}
-      <Dialog open={!!previewUrl} onOpenChange={() => { setPreviewUrl(null); setPreviewMessage(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-medium">{previewMessage}</DialogTitle>
-          </DialogHeader>
-          {previewUrl && (
-            <img
-              src={previewUrl}
-              alt={previewMessage || "Design preview"}
-              className="w-full rounded-lg border border-border"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <DesignPreviewDialog
+        open={!!previewUrl}
+        onClose={() => { setPreviewUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
+        designUrl={previewUrl}
+        messageText={previewMessage}
+        messageId={previewMessageId}
+        organizationId={organization.id}
+        userId={userId}
+        onFeedbackSaved={() => {}}
+      />
     </div>
   );
 };

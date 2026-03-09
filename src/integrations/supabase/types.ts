@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      design_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string | null
+          notes: string | null
+          organization_id: string
+          rating: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          organization_id: string
+          rating: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          notes?: string | null
+          organization_id?: string
+          rating?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "generated_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_messages: {
         Row: {
           created_at: string
