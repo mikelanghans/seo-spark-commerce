@@ -90,6 +90,10 @@ const Dashboard = () => {
       const params = new URLSearchParams(window.location.search);
       let code = params.get("code");
       
+      console.log("[Shopify OAuth] URL search:", window.location.search);
+      console.log("[Shopify OAuth] code from URL:", code);
+      console.log("[Shopify OAuth] code from localStorage:", localStorage.getItem("shopify_oauth_code"));
+      
       if (!code) {
         code = localStorage.getItem("shopify_oauth_code");
         if (code) {
@@ -102,10 +106,12 @@ const Dashboard = () => {
       }
       
       if (code) {
+        console.log("[Shopify OAuth] Exchanging code:", code.substring(0, 10) + "...");
         toast.info("Exchanging Shopify authorization code...");
         supabase.functions.invoke("shopify-exchange-token", {
           body: { code },
         }).then(({ data, error }) => {
+          console.log("[Shopify OAuth] Exchange result:", { data, error });
           if (error) {
             toast.error("Failed to connect Shopify: " + error.message);
           } else if (data?.error) {
