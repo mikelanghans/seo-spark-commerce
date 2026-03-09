@@ -155,6 +155,7 @@ export type Database = {
           keywords: string
           organization_id: string
           price: string
+          shopify_product_id: number | null
           title: string
           updated_at: string
           user_id: string
@@ -169,6 +170,7 @@ export type Database = {
           keywords?: string
           organization_id: string
           price?: string
+          shopify_product_id?: number | null
           title: string
           updated_at?: string
           user_id: string
@@ -183,6 +185,7 @@ export type Database = {
           keywords?: string
           organization_id?: string
           price?: string
+          shopify_product_id?: number | null
           title?: string
           updated_at?: string
           user_id?: string
