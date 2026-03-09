@@ -38,10 +38,6 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewMessage, setPreviewMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadMessages();
