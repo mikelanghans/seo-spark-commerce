@@ -21,9 +21,10 @@ interface Props {
   userId: string;
   productTitle: string;
   sourceImageUrl?: string | null;
+  designImageUrl?: string | null;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -33,21 +34,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
 
   useEffect(() => {
     loadImages();
-    loadDesignImage();
   }, [productId]);
-
-  const [designImageUrl, setDesignImageUrl] = useState<string | null>(null);
-
-  const loadDesignImage = async () => {
-    const { data } = await supabase
-      .from("product_images")
-      .select("image_url")
-      .eq("product_id", productId)
-      .eq("image_type", "design")
-      .order("position", { ascending: true })
-      .limit(1);
-    setDesignImageUrl(data?.[0]?.image_url || null);
-  };
 
   const loadImages = async () => {
     setLoading(true);
