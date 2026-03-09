@@ -21,9 +21,10 @@ interface Props {
   userId: string;
   productTitle: string;
   sourceImageUrl?: string | null;
+  designImageUrl?: string | null;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
