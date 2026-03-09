@@ -700,7 +700,7 @@ const Dashboard = () => {
               </Button>
               <div>
                 <h2 className="text-2xl font-bold">Settings</h2>
-                <p className="text-sm text-muted-foreground">Manage your integrations</p>
+                <p className="text-sm text-muted-foreground">Manage your Shopify connection and integrations</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
