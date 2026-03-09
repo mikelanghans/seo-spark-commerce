@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
+import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,7 +55,7 @@ interface Listing {
 
 const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
 
-type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "settings";
+type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -279,11 +280,11 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight">Brand Aura</h1>
-              <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
+              <p className="text-xs text-muted-foreground">AI-powered product listings & SEO</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Settings">
+            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
@@ -299,11 +300,11 @@ const Dashboard = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Organizations</h2>
-                <p className="text-sm text-muted-foreground">Manage your businesses and their products</p>
+                <h2 className="text-2xl font-bold">Your Brands</h2>
+                <p className="text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
               </div>
               <Button onClick={() => setView("org-form")} className="gap-2">
-                <Plus className="h-4 w-4" /> New Organization
+                <Plus className="h-4 w-4" /> New Brand
               </Button>
             </div>
 
@@ -314,9 +315,9 @@ const Dashboard = () => {
             ) : orgs.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                 <Building2 className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No organizations yet</p>
+                <p className="text-sm text-muted-foreground">No brands yet — create one to get started</p>
                 <Button variant="link" onClick={() => setView("org-form")} className="mt-2">
-                  Create your first one
+                  Create your first brand
                 </Button>
               </div>
             ) : (
@@ -365,26 +366,30 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Organization" : "New Organization"}</h2>
-                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your business context" : "Set up your business context"}</p>
+                <h2 className="text-2xl font-bold">{editingOrg ? "Edit Brand" : "New Brand"}</h2>
+                <p className="text-sm text-muted-foreground">{editingOrg ? "Update your brand context — this affects how AI writes your content" : "Define your brand voice — AI uses this to tailor all generated content"}</p>
               </div>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Business Name</Label>
+                <Label>Brand Name</Label>
                 <Input value={orgForm.name} onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })} required placeholder="e.g. Wildberry Crafts" />
+                <p className="text-xs text-muted-foreground">Your business or brand name</p>
               </div>
               <div className="space-y-2">
                 <Label>Niche / Industry</Label>
-                <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Handmade candles" />
+                <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" />
+                <p className="text-xs text-muted-foreground">What type of products you sell</p>
               </div>
               <div className="space-y-2">
-                <Label>Brand Tone</Label>
-                <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly" />
+                <Label>Brand Voice & Tone</Label>
+                <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" />
+                <p className="text-xs text-muted-foreground">How AI should write — e.g. casual, professional, playful</p>
               </div>
               <div className="space-y-2">
                 <Label>Target Audience</Label>
-                <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals" />
+                <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
+                <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
               </div>
             </div>
             <div className="flex justify-end">
@@ -409,6 +414,9 @@ const Dashboard = () => {
               <div className="flex gap-2">
                 <Button onClick={() => setView("autopilot")} className="gap-2">
                   <Rocket className="h-4 w-4" /> Launch to Shopify
+                </Button>
+                <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
+                  <RefreshCw className="h-4 w-4" /> Enrich Existing
                 </Button>
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
                   <Upload className="h-4 w-4" /> Import Products
@@ -492,8 +500,8 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">Add Product</h2>
-                <p className="text-sm text-muted-foreground">Upload an image or fill in manually</p>
+                <h2 className="text-2xl font-bold">Add New Product</h2>
+                <p className="text-sm text-muted-foreground">Upload a product image for AI analysis, or fill in details manually</p>
               </div>
             </div>
 
@@ -622,7 +630,7 @@ const Dashboard = () => {
 
             {/* Mockup Images */}
             <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} />
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedProduct.image_url} />
             </div>
 
             {generating ? (
@@ -692,7 +700,7 @@ const Dashboard = () => {
               </Button>
               <div>
                 <h2 className="text-2xl font-bold">Settings</h2>
-                <p className="text-sm text-muted-foreground">Manage your integrations</p>
+                <p className="text-sm text-muted-foreground">Manage your Shopify connection and integrations</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
@@ -702,6 +710,17 @@ const Dashboard = () => {
         )}
         {view === "autopilot" && selectedOrg && (
           <AutopilotPipeline
+            organization={selectedOrg}
+            userId={user!.id}
+            onComplete={() => {
+              setView("products");
+              loadProducts(selectedOrg.id);
+            }}
+            onBack={() => setView("products")}
+          />
+        )}
+        {view === "shopify-enrich" && selectedOrg && (
+          <ShopifyEnrich
             organization={selectedOrg}
             userId={user!.id}
             onComplete={() => {

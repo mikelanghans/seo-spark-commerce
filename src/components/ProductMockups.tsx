@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { GenerateColorVariants } from "./GenerateColorVariants";
 
 interface ProductImage {
   id: string;
@@ -19,9 +20,10 @@ interface Props {
   productId: string;
   userId: string;
   productTitle: string;
+  sourceImageUrl?: string | null;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -100,12 +102,12 @@ export const ProductMockups = ({ productId, userId, productTitle }: Props) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">Mockup Images</h3>
+          <h3 className="text-sm font-semibold">Color Variant Mockups</h3>
           <p className="text-xs text-muted-foreground">
-            Each mockup becomes a color variant when pushed to Shopify
+            Each mockup becomes a Shopify color variant · Upload manually or generate with AI
           </p>
         </div>
-        <div>
+        <div className="flex gap-2">
           <input
             ref={fileRef}
             type="file"
@@ -122,10 +124,19 @@ export const ProductMockups = ({ productId, userId, productTitle }: Props) => {
             className="gap-2"
           >
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Add Mockups
+            Upload
           </Button>
         </div>
       </div>
+
+      {/* AI Color Variant Generator */}
+      <GenerateColorVariants
+        productId={productId}
+        userId={userId}
+        productTitle={productTitle}
+        sourceImageUrl={sourceImageUrl || null}
+        onComplete={loadImages}
+      />
 
       {loading ? (
         <div className="flex justify-center py-8">
