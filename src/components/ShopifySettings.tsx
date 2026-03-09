@@ -252,18 +252,6 @@ export const ShopifySettings = ({ userId }: Props) => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
             {existing?.has_credentials ? "Update Credentials" : "Save Credentials"}
           </Button>
-          {existing?.has_credentials && installUrl && !existing?.has_token && (
-            <a
-              href={installUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button type="button" variant="secondary" className="gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Install App on Shopify
-              </Button>
-            </a>
-          )}
           {existing?.has_credentials && !existing?.has_token && (
             <Button
               type="button"
