@@ -139,9 +139,10 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         handleAiError(error, data, "Failed to generate design");
         return;
       }
+      toast.success("Design generated!");
       await loadMessages();
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate design");
+      handleAiError(err, null, "Failed to generate design");
     } finally {
       setGeneratingDesignId(null);
     }
