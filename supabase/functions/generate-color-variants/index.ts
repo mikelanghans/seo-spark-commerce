@@ -13,15 +13,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const prompt = `Take this product image and change ONLY the fabric/material color to ${colorName}. 
+    const prompt = `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}. 
 
-CRITICAL RULES:
-- ONLY change the shirt/product body color to ${colorName}
-- DO NOT change the color of any text, logos, graphics, or printed designs on the product
-- Keep all text, graphics, and printed designs EXACTLY as they appear in the original — same color, same size, same position
-- Keep the same background, lighting, angle, shadows, and styling
-- The printed design/text must remain identical to the source image
-${designImageBase64 ? '- A reference design image is provided — use it to ensure the printed graphics are preserved exactly' : ''}
+CRITICAL RULES — READ CAREFULLY:
+1. ONLY change the shirt/garment body color to ${colorName}
+2. The printed design on the shirt contains text and graphics. DO NOT alter ANY colors within the printed design.
+3. If the design has white text, it MUST stay white — even on a white shirt. If the design has black text, it MUST stay black — even on a black shirt.
+4. The printed design's colors are INDEPENDENT of the shirt color. Never blend, match, or adjust design colors to complement the shirt color.
+5. Keep exact same background, lighting, angle, shadows, props, and composition
+6. Keep the printed design at the exact same size, position, and proportions
+${designImageBase64 ? '7. A reference of the original design is provided as a second image — use it to verify you preserved every color in the print exactly' : ''}
 Product: ${productTitle}. Output a high quality product photo.`;
 
     const imageContent: any[] = [
