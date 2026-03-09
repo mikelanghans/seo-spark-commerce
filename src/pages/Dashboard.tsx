@@ -300,8 +300,8 @@ const Dashboard = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Organizations</h2>
-                <p className="text-sm text-muted-foreground">Manage your businesses and their products</p>
+                <h2 className="text-2xl font-bold">Your Brands</h2>
+                <p className="text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
               </div>
               <Button onClick={() => setView("org-form")} className="gap-2">
                 <Plus className="h-4 w-4" /> New Organization
