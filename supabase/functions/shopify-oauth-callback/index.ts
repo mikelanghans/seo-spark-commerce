@@ -1,18 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   try {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const shop = url.searchParams.get("shop");
+    const state = url.searchParams.get("state") || "";
 
     if (!code || !shop) {
       throw new Error("Missing code or shop parameter from Shopify");
@@ -24,7 +18,7 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find the connection by store domain to get client credentials
+    // Find the connection by store domain
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
       .select("id, client_id, client_secret, user_id")
@@ -67,22 +61,46 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Redirect back to the app with success
-    const appUrl = url.searchParams.get("state") || "https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app";
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: `${appUrl}?shopify_oauth=success`,
-      },
+    // Return an HTML page that posts a message to the opener and closes itself
+    const origin = decodeURIComponent(state);
+    const html = `<!DOCTYPE html>
+<html><head><title>Shopify Connected</title></head>
+<body>
+<h2>Shopify connected successfully!</h2>
+<p>This window will close automatically.</p>
+<script>
+  if (window.opener) {
+    window.opener.postMessage({ type: "shopify-oauth-success" }, "${origin || "*"}");
+    setTimeout(() => window.close(), 1500);
+  } else {
+    window.location.href = "${origin || "/"}?shopify_oauth=success";
+  }
+</script>
+</body></html>`;
+
+    return new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
-    const errorMsg = encodeURIComponent(e instanceof Error ? e.message : "Unknown error");
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: `https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app?shopify_oauth=error&error=${errorMsg}`,
-      },
+    const errorMsg = e instanceof Error ? e.message : "Unknown error";
+    const html = `<!DOCTYPE html>
+<html><head><title>Shopify Error</title></head>
+<body>
+<h2>Connection failed</h2>
+<p>${errorMsg}</p>
+<script>
+  if (window.opener) {
+    window.opener.postMessage({ type: "shopify-oauth-error", error: "${errorMsg.replace(/"/g, '\\"')}" }, "*");
+    setTimeout(() => window.close(), 3000);
+  }
+</script>
+</body></html>`;
+
+    return new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   }
 });
