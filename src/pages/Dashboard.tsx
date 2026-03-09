@@ -372,20 +372,24 @@ const Dashboard = () => {
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Business Name</Label>
+                <Label>Brand Name</Label>
                 <Input value={orgForm.name} onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })} required placeholder="e.g. Wildberry Crafts" />
+                <p className="text-xs text-muted-foreground">Your business or brand name</p>
               </div>
               <div className="space-y-2">
                 <Label>Niche / Industry</Label>
-                <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Handmade candles" />
+                <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" />
+                <p className="text-xs text-muted-foreground">What type of products you sell</p>
               </div>
               <div className="space-y-2">
-                <Label>Brand Tone</Label>
-                <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly" />
+                <Label>Brand Voice & Tone</Label>
+                <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" />
+                <p className="text-xs text-muted-foreground">How AI should write — e.g. casual, professional, playful</p>
               </div>
               <div className="space-y-2">
                 <Label>Target Audience</Label>
-                <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals" />
+                <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
+                <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
               </div>
             </div>
             <div className="flex justify-end">
