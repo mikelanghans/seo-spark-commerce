@@ -23,7 +23,7 @@ interface Props {
   sourceImageUrl?: string | null;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
