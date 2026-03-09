@@ -15,7 +15,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw, Store, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -309,6 +309,28 @@ const Dashboard = () => {
     if (selectedOrg) loadProducts(selectedOrg.id);
   };
 
+  const [importingShopify, setImportingShopify] = useState(false);
+
+  const handleImportFromShopify = async () => {
+    if (!selectedOrg) return;
+    setImportingShopify(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("import-shopify-catalog", {
+        body: { organizationId: selectedOrg.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      const { imported, updated, total } = data;
+      toast.success(`Imported ${imported} new, updated ${updated} existing — ${total} total from Shopify`);
+      await loadProducts(selectedOrg.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import from Shopify");
+    } finally {
+      setImportingShopify(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
@@ -456,6 +478,10 @@ const Dashboard = () => {
                 </Button>
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Enrich Existing
+                </Button>
+                <Button variant="outline" onClick={handleImportFromShopify} disabled={importingShopify} className="gap-2">
+                  {importingShopify ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
+                  {importingShopify ? "Importing…" : "Import from Shopify"}
                 </Button>
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
                   <Upload className="h-4 w-4" /> Import Products
