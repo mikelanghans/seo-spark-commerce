@@ -287,8 +287,13 @@ const Dashboard = () => {
     loadProducts(selectedOrg.id);
   };
 
-  const generateListingsForProduct = async (product: Product) => {
+  const generateListingsForProduct = async (product: Product, marketplaces?: string[]) => {
     if (!selectedOrg) return;
+    const targets = marketplaces || selectedMarketplaces;
+    if (targets.length === 0) {
+      toast.error("Select at least one marketplace");
+      return;
+    }
     setGenerating(true);
 
     try {
@@ -296,15 +301,18 @@ const Dashboard = () => {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
           product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
+          marketplaces: targets,
         },
       });
       if (error) throw error;
       if (result.error) throw new Error(result.error);
 
-      // Delete old listings then save new ones
-      await supabase.from("listings").delete().eq("product_id", product.id);
+      // Delete old listings for selected marketplaces only
+      for (const m of targets) {
+        await supabase.from("listings").delete().eq("product_id", product.id).eq("marketplace", m);
+      }
 
-      const listingRows = MARKETPLACES.map((m) => ({
+      const listingRows = targets.filter((m) => result[m]).map((m) => ({
         product_id: product.id,
         user_id: user!.id,
         marketplace: m,
@@ -322,7 +330,7 @@ const Dashboard = () => {
       if (insertError) throw insertError;
 
       await loadListings(product.id);
-      toast.success("Listings generated and saved!");
+      toast.success(`Listings generated for ${targets.join(", ")}!`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate listings");
     } finally {
