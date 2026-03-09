@@ -6,12 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Gildan 64000 blueprint ID on Printify
-const COMFORT_COLORS_1717_BLUEPRINT_ID = 706;
-
-// Map color names to Printify variant color names for Gildan 64000
-// Print provider ID 99 (Printify Choice) is commonly used
-const DEFAULT_PRINT_PROVIDER_ID = 99;
+// Default blueprint: Gildan 64000 (widely available)
+const DEFAULT_BLUEPRINT_ID = 6;
+// Default print provider: will be dynamically resolved if not provided
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
