@@ -295,6 +295,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       onClick={() => {
                         setPreviewUrl(msg.design_url);
                         setPreviewMessage(msg.message_text);
+                        setPreviewMessageId(msg.id);
                       }}
                       className="shrink-0 rounded-md border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
                     >
