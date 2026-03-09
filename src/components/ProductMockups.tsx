@@ -102,12 +102,12 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">Mockup Images</h3>
+          <h3 className="text-sm font-semibold">Color Variant Mockups</h3>
           <p className="text-xs text-muted-foreground">
-            Each mockup becomes a color variant when pushed to Shopify
+            Each mockup becomes a Shopify color variant · Upload manually or generate with AI
           </p>
         </div>
-        <div>
+        <div className="flex gap-2">
           <input
             ref={fileRef}
             type="file"
@@ -124,10 +124,19 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
             className="gap-2"
           >
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Add Mockups
+            Upload
           </Button>
         </div>
       </div>
+
+      {/* AI Color Variant Generator */}
+      <GenerateColorVariants
+        productId={productId}
+        userId={userId}
+        productTitle={productTitle}
+        sourceImageUrl={sourceImageUrl || null}
+        onComplete={loadImages}
+      />
 
       {loading ? (
         <div className="flex justify-center py-8">
