@@ -20,6 +20,7 @@ interface Props {
   productId: string;
   userId: string;
   productTitle: string;
+  sourceImageUrl?: string | null;
 }
 
 export const ProductMockups = ({ productId, userId, productTitle }: Props) => {
