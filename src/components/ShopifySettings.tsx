@@ -42,12 +42,22 @@ export const ShopifySettings = ({ userId }: Props) => {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  // Check URL for OAuth callback params (code from Shopify redirect)
+  // Check URL or localStorage for OAuth callback params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthStatus = params.get("shopify_oauth");
-    const code = params.get("code");
-    const shop = params.get("shop");
+    let code = params.get("code");
+    let shop = params.get("shop");
+
+    // Also check localStorage (saved when redirected to auth)
+    if (!code) {
+      code = localStorage.getItem("shopify_oauth_code");
+      shop = localStorage.getItem("shopify_oauth_shop");
+      if (code) {
+        localStorage.removeItem("shopify_oauth_code");
+        localStorage.removeItem("shopify_oauth_shop");
+      }
+    }
 
     if (oauthStatus === "success") {
       toast.success("Shopify connected successfully!");
@@ -56,8 +66,8 @@ export const ShopifySettings = ({ userId }: Props) => {
     } else if (oauthStatus === "error") {
       toast.error(params.get("error") || "OAuth failed");
       window.history.replaceState({}, "", window.location.pathname);
-    } else if (code && shop) {
-      // Shopify redirected here with a code — exchange it for an access token
+    } else if (code) {
+      // Exchange the code for an access token
       window.history.replaceState({}, "", window.location.pathname);
       toast.info("Exchanging authorization code...");
       supabase.functions.invoke("shopify-exchange-token", {
