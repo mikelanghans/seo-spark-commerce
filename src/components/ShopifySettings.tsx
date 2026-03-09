@@ -252,8 +252,48 @@ export const ShopifySettings = ({ userId }: Props) => {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            After authorizing on Shopify, come back here and click "Check Connection".
+            After clicking the link, Shopify will redirect you to a URL. Copy the <strong>code</strong> parameter from that URL and paste it below.
           </p>
+          <div className="mt-2 space-y-2">
+            <Label className="text-xs">Authorization Code</Label>
+            <div className="flex gap-2">
+              <Input
+                value={authCode}
+                onChange={(e) => setAuthCode(e.target.value)}
+                placeholder="Paste the code from the redirect URL"
+                className="text-xs font-mono"
+              />
+              <Button
+                type="button"
+                size="sm"
+                disabled={!authCode.trim() || exchanging}
+                onClick={async () => {
+                  setExchanging(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("shopify-exchange-token", {
+                      body: { code: authCode.trim() },
+                    });
+                    if (error) throw error;
+                    if (data?.error) throw new Error(data.error);
+                    toast.success("Shopify connected successfully!");
+                    setAuthCode("");
+                    await loadConnection();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to exchange code");
+                  } finally {
+                    setExchanging(false);
+                  }
+                }}
+                className="shrink-0 gap-1"
+              >
+                {exchanging ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Connect
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The redirect URL looks like: <code className="bg-muted px-1 rounded">https://...lovable.app/?code=<strong>THIS_VALUE</strong>&host=...&shop=...</code>
+            </p>
+          </div>
         </div>
       )}
 
