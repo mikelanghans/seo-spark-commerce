@@ -332,6 +332,62 @@ const Dashboard = () => {
     }
   };
 
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [genAllProgress, setGenAllProgress] = useState({ done: 0, total: 0 });
+
+  const handleGenerateAllListings = async () => {
+    if (!selectedOrg || products.length === 0) return;
+    setGeneratingAll(true);
+    setGenAllProgress({ done: 0, total: products.length });
+
+    let successCount = 0;
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      setGenAllProgress({ done: i, total: products.length });
+      try {
+        const { data: result, error } = await supabase.functions.invoke("generate-listings", {
+          body: {
+            business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
+            product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
+          },
+        });
+        if (error) throw error;
+        if (result?.error) throw new Error(result.error);
+
+        await supabase.from("listings").delete().eq("product_id", product.id);
+
+        const listingRows = (["amazon", "etsy", "ebay", "shopify"] as const).map((m) => ({
+          product_id: product.id,
+          user_id: user!.id,
+          marketplace: m,
+          title: result[m].title,
+          description: result[m].description,
+          bullet_points: result[m].bulletPoints,
+          tags: result[m].tags,
+          seo_title: result[m].seoTitle || "",
+          seo_description: result[m].seoDescription || "",
+          url_handle: result[m].urlHandle || "",
+          alt_text: result[m].altText || "",
+        }));
+
+        await supabase.from("listings").insert(listingRows);
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to generate listings for ${product.title}:`, err);
+        toast.error(`Failed: ${product.title}`);
+      }
+
+      // Small delay to avoid rate limits
+      if (i < products.length - 1) {
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+
+    setGenAllProgress({ done: products.length, total: products.length });
+    setGeneratingAll(false);
+    toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
