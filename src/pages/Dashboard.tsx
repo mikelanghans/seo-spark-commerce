@@ -504,6 +504,24 @@ const Dashboard = () => {
                   className="pl-9"
                 />
               </div>
+
+              {/* Category Filters */}
+              <div className="flex flex-wrap gap-1.5">
+                {["T-Shirts", "Long Sleeve", "Sweatshirts", "Mugs", "Totes", "Canvas", "Journals", "Notebooks"].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveFilter(activeFilter === cat ? null : cat)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      activeFilter === cat
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             )}
 
             {loading ? (
