@@ -62,7 +62,7 @@ serve(async (req) => {
     }
 
     if (!response || !response.ok) {
-      const status = response.status;
+      const status = response?.status;
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -73,9 +73,9 @@ serve(async (req) => {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
+      const t = response ? await response.text() : lastError;
       console.error("AI gateway error:", status, t);
-      throw new Error(`AI gateway error: ${status}`);
+      throw new Error(`AI gateway error: ${status || "all models unavailable"}`);
     }
 
     const data = await response.json();
