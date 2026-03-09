@@ -315,9 +315,9 @@ const Dashboard = () => {
             ) : orgs.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                 <Building2 className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No organizations yet</p>
+                <p className="text-sm text-muted-foreground">No brands yet — create one to get started</p>
                 <Button variant="link" onClick={() => setView("org-form")} className="mt-2">
-                  Create your first one
+                  Create your first brand
                 </Button>
               </div>
             ) : (
