@@ -309,6 +309,28 @@ const Dashboard = () => {
     if (selectedOrg) loadProducts(selectedOrg.id);
   };
 
+  const [importingShopify, setImportingShopify] = useState(false);
+
+  const handleImportFromShopify = async () => {
+    if (!selectedOrg) return;
+    setImportingShopify(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("import-shopify-catalog", {
+        body: { organizationId: selectedOrg.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      const { imported, updated, total } = data;
+      toast.success(`Imported ${imported} new, updated ${updated} existing — ${total} total from Shopify`);
+      await loadProducts(selectedOrg.id);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import from Shopify");
+    } finally {
+      setImportingShopify(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
