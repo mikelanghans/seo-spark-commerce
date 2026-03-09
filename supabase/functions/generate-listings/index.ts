@@ -9,11 +9,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { business, product } = await req.json();
+    const { business, product, marketplaces: requestedMarketplaces } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const marketplaces = ["amazon", "etsy", "ebay", "shopify"];
+    const allMarketplaces = ["amazon", "etsy", "ebay", "shopify"];
+    const marketplaces = (requestedMarketplaces && requestedMarketplaces.length > 0)
+      ? requestedMarketplaces.filter((m: string) => allMarketplaces.includes(m))
+      : allMarketplaces;
     const prompt = `You are an expert e-commerce copywriter and SEO specialist. Generate optimized product listings for each marketplace.
 
 Business Context:
@@ -30,7 +33,7 @@ Product:
 - Keywords: ${product.keywords}
 - Price: ${product.price}
 
-Generate SEO-optimized listings for: ${marketplaces.join(", ")}.
+Generate SEO-optimized listings for: ${marketplaces.join(", ")}. Only generate for these marketplaces.
 Each listing must be tailored to that marketplace's style and SEO best practices.
 - Amazon: keyword-rich title, benefit-driven bullet points, A+ description
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
@@ -78,13 +81,8 @@ For EACH marketplace listing, also generate:
               description: "Generate marketplace-optimized product listings with SEO metadata",
               parameters: {
                 type: "object",
-                properties: {
-                  amazon: listingSchema,
-                  etsy: listingSchema,
-                  ebay: listingSchema,
-                  shopify: listingSchema,
-                },
-                required: ["amazon", "etsy", "ebay", "shopify"],
+                properties: Object.fromEntries(marketplaces.map((m: string) => [m, listingSchema])),
+                required: marketplaces,
                 additionalProperties: false,
               },
             },

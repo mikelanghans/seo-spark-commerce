@@ -25,6 +25,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  template_image_url?: string | null;
 }
 
 interface Product {
@@ -76,6 +77,9 @@ const Dashboard = () => {
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
+  const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
+  const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
+  const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
   const [productForm, setProductForm] = useState({
     title: "", description: "", keywords: "", category: "", price: "", features: "",
   });
@@ -147,17 +151,28 @@ const Dashboard = () => {
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let templateUrl: string | null | undefined = undefined;
+    if (orgTemplateFile) {
+      templateUrl = await uploadImageToStorage(orgTemplateFile);
+    }
+
+    const payload: any = { ...orgForm };
+    if (templateUrl !== undefined) payload.template_image_url = templateUrl;
+
     if (editingOrg) {
-      const { error } = await supabase.from("organizations").update(orgForm).eq("id", editingOrg.id);
+      const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrg.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Organization updated!");
       setEditingOrg(null);
     } else {
-      const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
+      const { error } = await supabase.from("organizations").insert({ ...payload, user_id: user!.id });
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
     setOrgForm({ name: "", niche: "", tone: "", audience: "" });
+    setOrgTemplateFile(null);
+    setOrgTemplatePreview(null);
     setView("orgs");
     loadOrgs();
   };
@@ -165,7 +180,24 @@ const Dashboard = () => {
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
     setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setOrgTemplatePreview(org.template_image_url || null);
+    setOrgTemplateFile(null);
     setView("org-form");
+  };
+
+  const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setOrgTemplateFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const toggleMarketplace = (m: string) => {
+    setSelectedMarketplaces((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
+    );
   };
 
   const handleSelectOrg = (org: Organization) => {
@@ -255,8 +287,13 @@ const Dashboard = () => {
     loadProducts(selectedOrg.id);
   };
 
-  const generateListingsForProduct = async (product: Product) => {
+  const generateListingsForProduct = async (product: Product, marketplaces?: string[]) => {
     if (!selectedOrg) return;
+    const targets = marketplaces || selectedMarketplaces;
+    if (targets.length === 0) {
+      toast.error("Select at least one marketplace");
+      return;
+    }
     setGenerating(true);
 
     try {
@@ -264,15 +301,18 @@ const Dashboard = () => {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
           product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
+          marketplaces: targets,
         },
       });
       if (error) throw error;
       if (result.error) throw new Error(result.error);
 
-      // Delete old listings then save new ones
-      await supabase.from("listings").delete().eq("product_id", product.id);
+      // Delete old listings for selected marketplaces only
+      for (const m of targets) {
+        await supabase.from("listings").delete().eq("product_id", product.id).eq("marketplace", m);
+      }
 
-      const listingRows = MARKETPLACES.map((m) => ({
+      const listingRows = targets.filter((m) => result[m]).map((m) => ({
         product_id: product.id,
         user_id: user!.id,
         marketplace: m,
@@ -290,7 +330,7 @@ const Dashboard = () => {
       if (insertError) throw insertError;
 
       await loadListings(product.id);
-      toast.success("Listings generated and saved!");
+      toast.success(`Listings generated for ${targets.join(", ")}!`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate listings");
     } finally {
@@ -509,6 +549,30 @@ const Dashboard = () => {
                 <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
                 <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
               </div>
+            </div>
+
+            {/* Template Mockup Image */}
+            <div className="space-y-2">
+              <Label>Default Mockup Template (optional)</Label>
+              <p className="text-xs text-muted-foreground">Fallback image used for AI color variants when a product has no image</p>
+              <input type="file" accept="image/*" onChange={handleOrgTemplateUpload} className="hidden" id="org-template-image" />
+              {orgTemplatePreview ? (
+                <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+                  <img src={orgTemplatePreview} alt="Template" className="mx-auto max-h-48 object-contain p-4" />
+                  <label htmlFor="org-template-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground pb-2">
+                    Change template
+                  </label>
+                </div>
+              ) : (
+                <label
+                  htmlFor="org-template-image"
+                  className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-8 transition-colors hover:border-primary/50"
+                >
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  <p className="text-sm font-medium">Upload template image</p>
+                  <p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
+                </label>
+              )}
             </div>
             <div className="flex justify-end">
               <Button type="submit" className="gap-2">
@@ -780,9 +844,39 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* Marketplace Selection */}
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm font-medium">Generate listings for:</Label>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {MARKETPLACES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMarketplace(m)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
+                      selectedMarketplaces.includes(m)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Mockup Images */}
             <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedProduct.image_url} />
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedProduct.image_url || selectedOrg?.template_image_url || null} />
             </div>
 
             {generating ? (
