@@ -13,16 +13,29 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const prompt = `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}. 
+    const hasDesignRef = !!designImageBase64;
+    const prompt = hasDesignRef
+      ? `You are given two images:
+1. A product mockup photo of a t-shirt (may be blank or already have a design)
+2. The original design/graphic that should be printed on the shirt
 
-CRITICAL RULES — READ CAREFULLY:
+YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on the front center.
+
+CRITICAL RULES:
+1. The t-shirt fabric color MUST be ${colorName}
+2. Place the design from image 2 centered on the front of the shirt
+3. Preserve EVERY color in the printed design EXACTLY as shown in image 2 — do NOT alter any design colors to match the shirt
+4. If the design has white elements, they stay white. If it has black elements, they stay black. Design colors are INDEPENDENT of shirt color.
+5. Keep the same background style, lighting, angle, shadows, props, and composition as the mockup in image 1
+6. The design should be proportionally sized on the shirt front (not too large, not too small)
+Product: ${productTitle}. Output a high quality product photo.`
+      : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}. 
+
+CRITICAL RULES:
 1. ONLY change the shirt/garment body color to ${colorName}
-2. The printed design on the shirt contains text and graphics. DO NOT alter ANY colors within the printed design.
-3. If the design has white text, it MUST stay white — even on a white shirt. If the design has black text, it MUST stay black — even on a black shirt.
-4. The printed design's colors are INDEPENDENT of the shirt color. Never blend, match, or adjust design colors to complement the shirt color.
-5. Keep exact same background, lighting, angle, shadows, props, and composition
-6. Keep the printed design at the exact same size, position, and proportions
-${designImageBase64 ? '7. A reference of the original design is provided as a second image — use it to verify you preserved every color in the print exactly' : ''}
+2. If there is a printed design on the shirt, DO NOT alter ANY colors within it
+3. Keep exact same background, lighting, angle, shadows, props, and composition
+4. Keep any printed design at the exact same size, position, and proportions
 Product: ${productTitle}. Output a high quality product photo.`;
 
     const imageContent: any[] = [
