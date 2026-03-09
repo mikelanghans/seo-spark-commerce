@@ -55,6 +55,23 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     setGenerating(true);
     setProgress({ done: 0, total: colors.length, current: colors[0] });
 
+    // Check which colors already exist in DB to skip duplicates
+    const { data: existingImages } = await supabase
+      .from("product_images")
+      .select("color_name")
+      .eq("product_id", productId)
+      .eq("image_type", "mockup");
+    const existingColors = new Set((existingImages || []).map((img) => img.color_name.toLowerCase()));
+    const newColors = colors.filter((c) => !existingColors.has(c.toLowerCase()));
+
+    if (newColors.length === 0) {
+      toast.info("All selected colors already exist as variants.");
+      setGenerating(false);
+      return;
+    }
+
+    setProgress({ done: 0, total: newColors.length, current: newColors[0] });
+
     // Fetch the source image as base64
     let imageBase64: string;
     try {
@@ -73,9 +90,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
 
     let successCount = 0;
-    for (let i = 0; i < colors.length; i++) {
-      const colorName = colors[i];
-      setProgress({ done: i, total: colors.length, current: colorName });
+    for (let i = 0; i < newColors.length; i++) {
+      const colorName = newColors[i];
+      setProgress({ done: i, total: newColors.length, current: colorName });
 
       try {
         const { data, error } = await supabase.functions.invoke("generate-color-variants", {
@@ -117,9 +134,13 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       }
     }
 
-    setProgress({ done: colors.length, total: colors.length, current: "" });
+    setProgress({ done: newColors.length, total: newColors.length, current: "" });
     setGenerating(false);
-    toast.success(`Generated ${successCount}/${colors.length} color variants!`);
+    if (colors.length > newColors.length) {
+      toast.success(`Generated ${successCount}/${newColors.length} new variants (${colors.length - newColors.length} already existed)`);
+    } else {
+      toast.success(`Generated ${successCount}/${newColors.length} color variants!`);
+    }
     setColors([]);
     setOpen(false);
     onComplete();
