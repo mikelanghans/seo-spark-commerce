@@ -151,17 +151,28 @@ const Dashboard = () => {
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let templateUrl: string | null | undefined = undefined;
+    if (orgTemplateFile) {
+      templateUrl = await uploadImageToStorage(orgTemplateFile);
+    }
+
+    const payload: any = { ...orgForm };
+    if (templateUrl !== undefined) payload.template_image_url = templateUrl;
+
     if (editingOrg) {
-      const { error } = await supabase.from("organizations").update(orgForm).eq("id", editingOrg.id);
+      const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrg.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Organization updated!");
       setEditingOrg(null);
     } else {
-      const { error } = await supabase.from("organizations").insert({ ...orgForm, user_id: user!.id });
+      const { error } = await supabase.from("organizations").insert({ ...payload, user_id: user!.id });
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
     setOrgForm({ name: "", niche: "", tone: "", audience: "" });
+    setOrgTemplateFile(null);
+    setOrgTemplatePreview(null);
     setView("orgs");
     loadOrgs();
   };
