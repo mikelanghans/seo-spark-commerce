@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { GenerateColorVariants } from "./GenerateColorVariants";
 
 interface ProductImage {
   id: string;
