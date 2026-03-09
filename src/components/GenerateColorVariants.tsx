@@ -134,9 +134,13 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       }
     }
 
-    setProgress({ done: colors.length, total: colors.length, current: "" });
+    setProgress({ done: newColors.length, total: newColors.length, current: "" });
     setGenerating(false);
-    toast.success(`Generated ${successCount}/${colors.length} color variants!`);
+    if (colors.length > newColors.length) {
+      toast.success(`Generated ${successCount}/${newColors.length} new variants (${colors.length - newColors.length} already existed)`);
+    } else {
+      toast.success(`Generated ${successCount}/${newColors.length} color variants!`);
+    }
     setColors([]);
     setOpen(false);
     onComplete();
