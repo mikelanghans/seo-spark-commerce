@@ -147,7 +147,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
-${feedbackContext}`;
+${feedbackContext}${inspirationContext}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
