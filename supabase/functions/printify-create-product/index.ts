@@ -39,14 +39,18 @@ serve(async (req) => {
       selectedColors,
       selectedSizes,
       price,
-      mockupImages, // Array of { colorName, imageUrl } for replacing Printify mockups
+      mockupImages,
       blueprintId,
       printProviderId,
+      productId,         // Our internal product ID
+      printifyProductId, // Existing Printify product ID (for updates)
     } = await req.json();
 
     if (!shopId || !title || !printifyImageId) {
       throw new Error("shopId, title, and printifyImageId are required");
     }
+
+    const isUpdate = !!printifyProductId;
 
     const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
     let ppId = printProviderId;
