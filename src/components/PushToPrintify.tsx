@@ -361,12 +361,12 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
               {pushing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating product...
+                  {product.printify_product_id ? "Updating product..." : "Creating product..."}
                 </>
               ) : (
                 <>
                   <Printer className="h-4 w-4" />
-                  Create on Printify
+                  {product.printify_product_id ? "Update on Printify" : "Create on Printify"}
                 </>
               )}
             </Button>
