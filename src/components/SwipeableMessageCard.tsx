@@ -330,6 +330,7 @@ export const SwipeableMessageCard = ({
             <Button
               variant="ghost"
               size="sm"
+              disabled={isRefining}
               onClick={() => {
                 setShowRefine(false);
                 setRefineFeedback("");
@@ -342,13 +343,11 @@ export const SwipeableMessageCard = ({
               disabled={!refineFeedback.trim() || isRefining}
               onClick={() => {
                 onRefine(id, refineFeedback.trim());
-                setShowRefine(false);
-                setRefineFeedback("");
               }}
               className="gap-1"
             >
               {isRefining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-              Regenerate
+              {isRefining ? "Generating…" : "Regenerate"}
             </Button>
           </div>
         </div>
