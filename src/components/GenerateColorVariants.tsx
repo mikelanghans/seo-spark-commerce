@@ -187,7 +187,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+      <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
         <Palette className="h-3.5 w-3.5" /> AI Color Variants
       </Button>
     );
