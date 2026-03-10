@@ -529,9 +529,18 @@ const Dashboard = () => {
                     onClick={() => handleSelectOrg(org)}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold">{org.name}</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">{org.niche}</p>
+                      <div className="flex items-center gap-3">
+                        {org.logo_url ? (
+                          <img src={org.logo_url} alt={org.name} className="h-10 w-10 rounded-lg object-cover border border-border" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                            {org.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{org.name}</h3>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{org.niche}</p>
+                        </div>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditOrg(org); }}
