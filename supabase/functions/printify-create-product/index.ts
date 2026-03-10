@@ -249,9 +249,7 @@ serve(async (req) => {
           ],
         };
 
-        if (mockupImagePayload) {
-          updatePayload.images = mockupImagePayload;
-        }
+        // Don't set images here — they'll be set after via separate PUT with uploaded IDs
 
         console.log(`Sending PUT update (${existingVariantIds.length} variant_ids in print_areas)...`);
         const updateRes = await fetch(
