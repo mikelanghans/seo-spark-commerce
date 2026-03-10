@@ -751,6 +751,9 @@ const Dashboard = () => {
                 <TabsTrigger value="products" className="gap-2">
                   <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
+                <TabsTrigger value="social" className="gap-2">
+                  <Share2 className="h-4 w-4" /> Social Posts
+                </TabsTrigger>
                 <TabsTrigger value="team" className="gap-2">
                   <Users className="h-4 w-4" /> Team
                 </TabsTrigger>
