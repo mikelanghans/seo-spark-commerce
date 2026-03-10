@@ -168,9 +168,14 @@ const Dashboard = () => {
     if (orgTemplateFile) {
       templateUrl = await uploadImageToStorage(orgTemplateFile);
     }
+    let logoUrl: string | null | undefined = undefined;
+    if (orgLogoFile) {
+      logoUrl = await uploadImageToStorage(orgLogoFile);
+    }
 
     const payload: any = { ...orgForm };
     if (templateUrl !== undefined) payload.template_image_url = templateUrl;
+    if (logoUrl !== undefined) payload.logo_url = logoUrl;
 
     if (editingOrg) {
       const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrg.id);
