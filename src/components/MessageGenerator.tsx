@@ -77,6 +77,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             audience: organization.audience,
           },
           count: generateCount,
+          ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
       });
 
