@@ -22,9 +22,14 @@ interface Props {
   productTitle: string;
   sourceImageUrl?: string | null;
   designImageUrl?: string | null;
+  brandName?: string;
+  brandNiche?: string;
+  brandAudience?: string;
+  brandTone?: string;
+  productCategory?: string;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
