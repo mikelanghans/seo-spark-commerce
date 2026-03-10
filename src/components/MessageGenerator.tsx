@@ -227,7 +227,14 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       return;
     }
 
+    cancelDesignsRef.current = false;
+    let completed = 0;
+
     for (const msg of kept) {
+      if (cancelDesignsRef.current) {
+        toast.info(`Cancelled after ${completed} designs`);
+        break;
+      }
       setGeneratingDesignId(msg.id);
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
@@ -249,13 +256,17 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
         const errorMsg = data?.error || error?.message || "";
         if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
+      } else {
+        completed++;
       }
 
       await new Promise((r) => setTimeout(r, 2000));
     }
 
     setGeneratingDesignId(null);
-    toast.success(`Generated designs for ${kept.length} messages!`);
+    if (!cancelDesignsRef.current) {
+      toast.success(`Generated designs for ${completed} messages!`);
+    }
     await loadMessages();
   };
 
