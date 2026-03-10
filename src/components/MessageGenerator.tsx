@@ -41,6 +41,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
+  const cancelDesignsRef = useRef(false);
 
   useEffect(() => {
     loadMessages();
