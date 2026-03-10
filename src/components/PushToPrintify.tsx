@@ -180,8 +180,9 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
         )
         .map((m) => ({ colorName: m.color_name, imageUrl: m.image_url }));
 
-      // Step 3: Create product on Printify
-      toast.info("Creating product on Printify...");
+      // Step 3: Create or update product on Printify
+      const isUpdate = !!product.printify_product_id;
+      toast.info(isUpdate ? "Updating product on Printify..." : "Creating product on Printify...");
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
         body: {
@@ -194,6 +195,8 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
           selectedSizes,
           price: product.price,
           mockupImages,
+          productId: product.id,
+          printifyProductId: product.printify_product_id,
         },
       });
 
