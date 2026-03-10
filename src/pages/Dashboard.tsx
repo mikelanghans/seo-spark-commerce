@@ -215,6 +215,15 @@ const Dashboard = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setOrgLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setOrgLogoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const toggleMarketplace = (m: string) => {
     setSelectedMarketplaces((prev) =>
       prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
