@@ -261,6 +261,7 @@ serve(async (req) => {
       success: true, 
       product: createdProduct,
       variantCount: filteredVariants.length,
+      updated: isUpdate,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
