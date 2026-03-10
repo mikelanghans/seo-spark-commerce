@@ -89,6 +89,8 @@ const Dashboard = () => {
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
+  const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
+  const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
   const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
   const [productForm, setProductForm] = useState({
     title: "", description: "", keywords: "", category: "", price: "", features: "",
