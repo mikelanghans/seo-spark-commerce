@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -41,6 +42,8 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
+  const [customMessage, setCustomMessage] = useState("");
+  const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
 
   useEffect(() => {
@@ -106,6 +109,28 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       handleAiError(err, null, "Failed to generate messages");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleAddCustomMessage = async () => {
+    const text = customMessage.trim();
+    if (!text) return;
+    setAddingCustom(true);
+    try {
+      const { error } = await supabase.from("generated_messages").insert({
+        user_id: userId,
+        organization_id: organization.id,
+        message_text: text,
+        is_selected: false,
+      });
+      if (error) throw error;
+      setCustomMessage("");
+      toast.success("Message added!");
+      await loadMessages();
+    } catch (err: any) {
+      toast.error("Failed to add message");
+    } finally {
+      setAddingCustom(false);
     }
   };
 
@@ -335,6 +360,32 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           </Button>
         </div>
       </div>
+
+      {/* Custom message input */}
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAddCustomMessage();
+        }}
+      >
+        <Input
+          value={customMessage}
+          onChange={(e) => setCustomMessage(e.target.value)}
+          placeholder="Type your own message..."
+          className="flex-1"
+          disabled={addingCustom}
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!customMessage.trim() || addingCustom}
+          className="gap-1.5 shrink-0"
+        >
+          {addingCustom ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Add
+        </Button>
+      </form>
 
       {messages.length > 0 && (
         <>
