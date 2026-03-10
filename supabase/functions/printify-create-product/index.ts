@@ -146,12 +146,14 @@ serve(async (req) => {
       try {
         let page = 1;
         while (page <= 5) { // Check up to 5 pages
-          const listRes = await fetch(
-            `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=100`,
-            { headers: { Authorization: `Bearer ${printifyToken}` } }
-          );
+          const listUrl = `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=100`;
+          console.log(`Fetching Printify products: ${listUrl}`);
+          const listRes = await fetch(listUrl, {
+            headers: { Authorization: `Bearer ${printifyToken}` }
+          });
           if (!listRes.ok) {
-            await listRes.text();
+            const errText = await listRes.text();
+            console.error(`Printify list products failed (${listRes.status}): ${errText}`);
             return null;
           }
           const data = await listRes.json();
