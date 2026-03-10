@@ -367,7 +367,8 @@ serve(async (req) => {
       success: true, 
       product: createdProduct,
       variantCount: filteredVariants.length,
-      updated: isUpdate && !didCreate,
+      updated: !!resolvedPrintifyId && !didCreate,
+      printifyProductId: createdProduct.id,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
