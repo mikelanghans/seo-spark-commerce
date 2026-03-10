@@ -898,6 +898,11 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* Mockup Images */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} />
+            </div>
+
             {/* Marketplace Selection */}
             <div className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between mb-3">
@@ -926,11 +931,6 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Mockup Images */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} />
             </div>
 
             {generating ? (
