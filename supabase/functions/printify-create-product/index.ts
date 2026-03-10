@@ -227,10 +227,7 @@ serve(async (req) => {
       productPayload.images = uploadedMockups.map((m, idx) => ({
         src: m.printifyImageId,
         variant_ids: filteredVariants
-          .filter((v: any) =>
-            v.options?.color?.toLowerCase() === m.colorName.toLowerCase() ||
-            v.title?.toLowerCase().includes(m.colorName.toLowerCase())
-          )
+          .filter((v: any) => colorMatchesVariant(m.colorName, v))
           .map((v: any) => v.id),
         position: idx === 0 ? "default" : undefined,
         is_default: idx === 0,
