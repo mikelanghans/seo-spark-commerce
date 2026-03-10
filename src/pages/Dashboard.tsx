@@ -745,6 +745,8 @@ const Dashboard = () => {
                 )}
               </TabsContent>
             </Tabs>
+          </div>
+        )}
 
         {/* Product Form */}
         {view === "product-form" && selectedOrg && (
