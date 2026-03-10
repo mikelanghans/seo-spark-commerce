@@ -28,6 +28,10 @@ interface Organization {
   tone: string;
   audience: string;
   template_image_url?: string | null;
+  brand_font?: string;
+  brand_color?: string;
+  brand_font_size?: string;
+  brand_style_notes?: string;
 }
 
 interface Product {
@@ -80,7 +84,7 @@ const Dashboard = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "" });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
   const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
@@ -174,7 +178,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "" });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setView("orgs");
@@ -183,7 +187,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "" });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setView("org-form");
@@ -524,7 +528,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "" }); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" }); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -552,6 +556,50 @@ const Dashboard = () => {
                 <Label>Target Audience</Label>
                 <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
                 <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
+              </div>
+            </div>
+
+            {/* Brand Design Styling */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold">Design Styling</h3>
+                <p className="text-xs text-muted-foreground">These settings influence how AI generates your product designs</p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Preferred Font Style</Label>
+                  <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" />
+                  <p className="text-xs text-muted-foreground">The typeface style for your designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Brand Color</Label>
+                  <div className="flex gap-2">
+                    <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" className="flex-1" />
+                    {orgForm.brand_color && /^#[0-9A-Fa-f]{6}$/.test(orgForm.brand_color) && (
+                      <div className="h-10 w-10 rounded-md border border-border" style={{ backgroundColor: orgForm.brand_color }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Primary ink/text color for designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Text Size Preference</Label>
+                  <select
+                    value={orgForm.brand_font_size}
+                    onChange={(e) => setOrgForm({ ...orgForm, brand_font_size: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="small">Small — subtle, understated</option>
+                    <option value="medium">Medium — balanced</option>
+                    <option value="large">Large — bold, dominant</option>
+                    <option value="extra-large">Extra Large — maximum impact</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">How large text appears on designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Additional Style Notes</Label>
+                  <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
+                  <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
+                </div>
               </div>
             </div>
 
