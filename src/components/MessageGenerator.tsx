@@ -361,6 +361,32 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         </div>
       </div>
 
+      {/* Custom message input */}
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAddCustomMessage();
+        }}
+      >
+        <Input
+          value={customMessage}
+          onChange={(e) => setCustomMessage(e.target.value)}
+          placeholder="Type your own message..."
+          className="flex-1"
+          disabled={addingCustom}
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!customMessage.trim() || addingCustom}
+          className="gap-1.5 shrink-0"
+        >
+          {addingCustom ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Add
+        </Button>
+      </form>
+
       {messages.length > 0 && (
         <>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
