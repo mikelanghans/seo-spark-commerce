@@ -19,7 +19,7 @@ serve(async (req) => {
 1. A product mockup photo of a t-shirt — THIS IS YOUR STYLE REFERENCE
 2. The original design/graphic that should be printed on the shirt
 
-YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on the front center.
+YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on the UPPER CHEST area (not dead center — position it in the upper third of the shirt front, like a typical chest print).
 
 CRITICAL RULES — follow ALL of these precisely:
 1. The t-shirt fabric color MUST be ${colorName}
