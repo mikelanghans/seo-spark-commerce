@@ -1,4 +1,4 @@
-import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
+import { useState, useRef, useEffect, type TouchEvent, type MouseEvent } from "react";
 import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
