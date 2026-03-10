@@ -57,6 +57,16 @@ serve(async (req) => {
       }
     }
 
+    const fontDirection = brandFont || "bold sans-serif";
+    const colorDirection = brandColor || "#000000 (black)";
+    const sizeMap: Record<string, string> = {
+      "small": "Subtle, understated text size — elegant and refined",
+      "medium": "Medium text size — balanced and readable",
+      "large": "Large, bold, dominant text — confident and attention-grabbing",
+      "extra-large": "Extra large, maximum impact text — fills most of the canvas",
+    };
+    const sizeDirection = sizeMap[brandFontSize || "large"] || sizeMap["large"];
+
     const prompt = `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
 TEXT TO FEATURE: "${messageText}"
@@ -71,12 +81,14 @@ STRICT DESIGN RULES:
 
 BACKGROUND: Solid pure white (#FFFFFF). No patterns, no gradients, no checkered grids, no textures.
 
-TYPOGRAPHY IS EVERYTHING:
+TYPOGRAPHY:
+- Font style: ${fontDirection}
+- ${sizeDirection}
 - Use ONE typeface maximum — create hierarchy through weight, size, and spacing only
-- Large, bold, confident lettering — think Nike, Supreme, or high-end editorial
 - Generous letter-spacing and line-height for a premium feel
-- Text should be large and dominant — it IS the design
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
+
+COLOR: Use ${colorDirection} as the primary ink color on white background. No gradients in the text.
 
 KEEP IT ULTRA CLEAN:
 - NO decorative elements — no stars, no flourishes, no borders, no icons, no illustrations
@@ -84,12 +96,12 @@ KEEP IT ULTRA CLEAN:
 - Pure typography only — the power comes from the words and how they're set
 - Maximum 2-3 visual elements total (including the text lines)
 
-COLOR: Black ink only (#000000) on white background. No grays, no gradients in the text.
-
 COMPOSITION:
 - Center the design vertically and horizontally
 - Leave generous breathing room / negative space around the text
 - The design should feel like it belongs on a $45 streetwear tee, not a tourist shop
+
+${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
 ${feedbackContext}`;
