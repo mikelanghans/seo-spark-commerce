@@ -16,27 +16,33 @@ serve(async (req) => {
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
       ? `You are given two images:
-1. A product mockup photo of a t-shirt (may be blank or already have a design)
+1. A product mockup photo of a t-shirt — THIS IS YOUR STYLE REFERENCE
 2. The original design/graphic that should be printed on the shirt
 
 YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on the front center.
 
-CRITICAL RULES:
+CRITICAL RULES — follow ALL of these precisely:
 1. The t-shirt fabric color MUST be ${colorName}
 2. Place the design from image 2 centered on the front of the shirt
 3. Preserve EVERY color in the printed design EXACTLY as shown in image 2 — do NOT alter any design colors to match the shirt
 4. If the design has white elements, they stay white. If it has black elements, they stay black. Design colors are INDEPENDENT of shirt color.
-5. Keep the same background style, lighting, angle, shadows, props, and composition as the mockup in image 1
-6. The design should be proportionally sized on the shirt front (not too large, not too small)
-Product: ${productTitle}. Output a high quality product photo.`
-      : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}. 
+5. MATCH the EXACT same camera angle, distance, perspective, and framing as image 1
+6. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows as image 1
+7. MATCH the EXACT same t-shirt folding style, lay position, and any props visible in image 1
+8. The design should be proportionally sized on the shirt front — same size ratio as any design in image 1
+9. The output should look like it belongs in the SAME product photo set as image 1 — only the fabric color changes
+Product: ${productTitle}. Output a high quality product photo that is visually consistent with the reference.`
+      : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}.
 
-CRITICAL RULES:
+CRITICAL RULES — follow ALL of these precisely:
 1. ONLY change the shirt/garment body color to ${colorName}
-2. If there is a printed design on the shirt, DO NOT alter ANY colors within it
-3. Keep exact same background, lighting, angle, shadows, props, and composition
-4. Keep any printed design at the exact same size, position, and proportions
-Product: ${productTitle}. Output a high quality product photo.`;
+2. If there is a printed design on the shirt, DO NOT alter ANY colors within it — keep every design color exactly as-is
+3. MATCH the EXACT same camera angle, distance, perspective, and framing
+4. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows
+5. MATCH the EXACT same t-shirt folding style, lay position, and any props visible
+6. Keep any printed design at the exact same size, position, and proportions
+7. The output should look like it belongs in the SAME product photo set — only the fabric color changes
+Product: ${productTitle}. Output a high quality product photo that is visually consistent with the original.`;
 
     const imageContent: any[] = [
       { type: "text", text: prompt },
