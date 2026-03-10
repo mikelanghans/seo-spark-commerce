@@ -57,30 +57,42 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `Create a minimalist t-shirt design graphic for print-on-demand. The design should be:
+    const prompt = `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
-MESSAGE TEXT: "${messageText}"
+TEXT TO FEATURE: "${messageText}"
 
-BRAND: ${brandName || "lifestyle apparel"}
-TONE: ${brandTone || "sarcastic but motivational"}
-NICHE: ${brandNiche || "lifestyle"}
-TARGET AUDIENCE: ${brandAudience || "general"}
+BRAND CONTEXT:
+- Brand: ${brandName || "lifestyle apparel"}
+- Tone: ${brandTone || "sarcastic but motivational"}
+- Niche: ${brandNiche || "lifestyle"}
+- Target Audience: ${brandAudience || "general"}
 
-DESIGN REQUIREMENTS:
-- Place the design on a CLEAN SOLID WHITE background — pure white (#FFFFFF), no patterns, no gradients, no texture
-- DO NOT render any transparency pattern, checkered pattern, or grid pattern — the background must be solid white
-- Clean, print-ready graphic suitable for direct-to-garment or screen printing
-- Modern minimalist typography — the text should be the star
-- Use a mix of bold and thin fonts for visual hierarchy
-- Can include subtle decorative elements (small stars, lines, brackets, dashes)
-- Use BLACK ink/color for the design elements (so it prints well on light shirts)
-- The design should look great when printed across the front of a t-shirt
-- Text should be crisp and legible
-- Include any attribution like "— the universe" as a smaller sub-text if it fits the message
-- NO mockups, NO t-shirt outlines — just the standalone graphic design centered on a solid white background
-${feedbackContext}
+STRICT DESIGN RULES:
 
-Output a high-resolution design graphic ready for print.`;
+BACKGROUND: Solid pure white (#FFFFFF). No patterns, no gradients, no checkered grids, no textures.
+
+TYPOGRAPHY IS EVERYTHING:
+- Use ONE typeface maximum — create hierarchy through weight, size, and spacing only
+- Large, bold, confident lettering — think Nike, Supreme, or high-end editorial
+- Generous letter-spacing and line-height for a premium feel
+- Text should be large and dominant — it IS the design
+- If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
+
+KEEP IT ULTRA CLEAN:
+- NO decorative elements — no stars, no flourishes, no borders, no icons, no illustrations
+- NO background shapes or boxes behind text
+- Pure typography only — the power comes from the words and how they're set
+- Maximum 2-3 visual elements total (including the text lines)
+
+COLOR: Black ink only (#000000) on white background. No grays, no gradients in the text.
+
+COMPOSITION:
+- Center the design vertically and horizontally
+- Leave generous breathing room / negative space around the text
+- The design should feel like it belongs on a $45 streetwear tee, not a tourist shop
+
+OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
+${feedbackContext}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
