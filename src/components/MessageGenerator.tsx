@@ -338,6 +338,13 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Topic (e.g. Christmas, Summer, Dogs)..."
+            className="flex-1 h-10"
+            disabled={generating}
+          />
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}
