@@ -164,7 +164,8 @@ serve(async (req) => {
 
     // Calculate image placement — center the design, scale to 80% of print area width
     // This ensures the design sits nicely centered on the shirt chest area
-    const imageScale = 0.8;
+    const imageScale = 1.0;
+    const imageY = 0.38; // Higher on chest (0.5 = dead center, lower = higher on shirt)
 
     const productPayload: any = {
       title,
@@ -187,7 +188,7 @@ serve(async (req) => {
                 {
                   id: printifyImageId,
                   x: 0.5,
-                  y: 0.5,
+                  y: imageY,
                   scale: imageScale,
                   angle: 0,
                 },
@@ -250,7 +251,7 @@ serve(async (req) => {
                     {
                       id: printifyImageId,
                       x: 0.5,
-                      y: 0.5,
+                      y: imageY,
                       scale: imageScale,
                       angle: 0,
                     },
