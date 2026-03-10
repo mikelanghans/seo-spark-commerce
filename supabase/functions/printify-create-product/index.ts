@@ -29,7 +29,7 @@ serve(async (req) => {
 
     const {
       shopId, title, description, tags, printifyImageId,
-      selectedColors, selectedSizes, price, mockupImages,
+      selectedColors, selectedSizes, price,
       blueprintId, printProviderId, productId, printifyProductId,
     } = await req.json();
 
