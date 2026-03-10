@@ -827,6 +827,16 @@ const Dashboard = () => {
                   </div>
                 )}
               </TabsContent>
+
+              <TabsContent value="team" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <TeamManager
+                    organizationId={selectedOrg.id}
+                    organizationName={selectedOrg.name}
+                    userId={user!.id}
+                  />
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         )}
