@@ -100,21 +100,21 @@ serve(async (req) => {
       shopifyProduct.images = images;
     }
 
-    // Build variants with inventory tracking
+    // Build variants — no inventory tracking (print-on-demand via Printify)
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
     if (hasVariants) {
       shopifyProduct.options = [{ name: "Color" }];
       shopifyProduct.variants = colorVariants.map((v) => ({
         option1: v.colorName,
         price,
-        inventory_management: "shopify",
-        inventory_policy: "deny",
+        inventory_management: null,
+        inventory_policy: "continue",
       }));
     } else {
       shopifyProduct.variants = [{ 
         price,
-        inventory_management: "shopify",
-        inventory_policy: "deny",
+        inventory_management: null,
+        inventory_policy: "continue",
       }];
     }
 
