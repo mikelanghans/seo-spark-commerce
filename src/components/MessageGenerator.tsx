@@ -40,6 +40,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
+  const [generateCount, setGenerateCount] = useState(10);
 
   useEffect(() => {
     loadMessages();
@@ -70,7 +71,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             tone: organization.tone,
             audience: organization.audience,
           },
-          count: 10,
+          count: generateCount,
         },
       });
 
@@ -297,18 +298,30 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             Swipe right to keep · Swipe left to discard
           </p>
         </div>
-        <Button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="gap-2"
-        >
-          {generating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          Generate 10
-        </Button>
+        <div className="flex items-center gap-2">
+          <select
+            value={generateCount}
+            onChange={(e) => setGenerateCount(Number(e.target.value))}
+            disabled={generating}
+            className="h-10 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <Button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="gap-2"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            Generate
+          </Button>
+        </div>
       </div>
 
       {messages.length > 0 && (
@@ -413,7 +426,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
-            No messages yet. Click "Generate 10" to get started.
+            No messages yet. Click "Generate" to get started.
           </p>
         </div>
       )}
