@@ -89,7 +89,31 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
         .eq("product_id", product.id)
         .eq("image_type", "mockup")
         .order("position");
-      setMockups((data as MockupImage[]) || []);
+      const loaded = (data as MockupImage[]) || [];
+      setMockups(loaded);
+      
+      // Auto-select colors that have mockups
+      if (loaded.length > 0) {
+        const mockupColorNames = loaded.map((m) => m.color_name);
+        // Include existing mockup colors + keep any already-selected colors
+        setSelectedColors((prev) => {
+          const merged = new Set([...prev, ...mockupColorNames]);
+          // Also add matching AVAILABLE_COLORS by case-insensitive match
+          const result: string[] = [];
+          for (const ac of AVAILABLE_COLORS) {
+            if (merged.has(ac) || mockupColorNames.some((mc) => mc.toLowerCase() === ac.toLowerCase())) {
+              result.push(ac);
+            }
+          }
+          // Add any mockup colors not in AVAILABLE_COLORS
+          for (const mc of mockupColorNames) {
+            if (!result.some((r) => r.toLowerCase() === mc.toLowerCase())) {
+              result.push(mc);
+            }
+          }
+          return result;
+        });
+      }
     } catch {
       // silent
     } finally {
