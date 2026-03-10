@@ -29,7 +29,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messageText, brandName, brandTone, messageId, organizationId } = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, messageId, organizationId } = await req.json();
     if (!messageText) throw new Error("messageText is required");
 
     // Fetch recent design feedback to guide the AI
@@ -63,6 +63,8 @@ MESSAGE TEXT: "${messageText}"
 
 BRAND: ${brandName || "lifestyle apparel"}
 TONE: ${brandTone || "sarcastic but motivational"}
+NICHE: ${brandNiche || "lifestyle"}
+TARGET AUDIENCE: ${brandAudience || "general"}
 
 DESIGN REQUIREMENTS:
 - Place the design on a CLEAN SOLID WHITE background — pure white (#FFFFFF), no patterns, no gradients, no texture
