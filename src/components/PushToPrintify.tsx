@@ -70,7 +70,7 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setShops(data.shops || []);
-      if (data.shops?.length === 1) {
+      if (data.shops?.length >= 1) {
         setSelectedShop(data.shops[0].id);
       }
     } catch (err: any) {
