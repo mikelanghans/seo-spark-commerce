@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, RefreshCw, Eye, Download } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -34,7 +34,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
@@ -53,8 +53,8 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     setMessages((data as GeneratedMessage[]) || []);
-    const selected = new Set((data || []).filter((m: any) => m.is_selected).map((m: any) => m.id));
-    setSelectedIds(selected);
+    const kept = new Set((data || []).filter((m: any) => m.is_selected).map((m: any) => m.id));
+    setKeptIds(kept);
     setLoading(false);
   };
 
@@ -106,23 +106,23 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     }
   };
 
-  const toggleSelect = async (id: string) => {
-    const newSelected = new Set(selectedIds);
-    const isNowSelected = !newSelected.has(id);
-    if (isNowSelected) {
-      newSelected.add(id);
-    } else {
-      newSelected.delete(id);
-    }
-    setSelectedIds(newSelected);
-
-    await supabase
-      .from("generated_messages")
-      .update({ is_selected: isNowSelected })
-      .eq("id", id);
+  const handleKeep = async (id: string) => {
+    const newKept = new Set(keptIds);
+    newKept.add(id);
+    setKeptIds(newKept);
+    await supabase.from("generated_messages").update({ is_selected: true }).eq("id", id);
+    toast.success("Kept!", { duration: 1500 });
   };
 
-  const handleGenerateDesign = async (msg: GeneratedMessage) => {
+  const handleDiscard = async (id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+    await supabase.from("generated_messages").delete().eq("id", id);
+    toast("Discarded", { duration: 1500 });
+  };
+
+  const handleGenerateDesign = async (msgId: string) => {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg) return;
     setGeneratingDesignId(msg.id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-design", {
@@ -150,14 +150,22 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     }
   };
 
-  const handleGenerateSelectedDesigns = async () => {
-    const selected = messages.filter((m) => selectedIds.has(m.id) && !m.design_url);
-    if (selected.length === 0) {
-      toast.error("No selected messages without designs");
+  const handlePreviewDesign = (msgId: string) => {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg) return;
+    setPreviewUrl(msg.design_url);
+    setPreviewMessage(msg.message_text);
+    setPreviewMessageId(msg.id);
+  };
+
+  const handleGenerateKeptDesigns = async () => {
+    const kept = messages.filter((m) => keptIds.has(m.id) && !m.design_url);
+    if (kept.length === 0) {
+      toast.error("No kept messages without designs");
       return;
     }
 
-    for (const msg of selected) {
+    for (const msg of kept) {
       setGeneratingDesignId(msg.id);
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
@@ -172,57 +180,37 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       });
 
       if (error || data?.error) {
-        const errorMsg = data?.error || error?.message || "";
         handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
+        const errorMsg = data?.error || error?.message || "";
         if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
       }
 
-      // Delay between requests to avoid rate limits
       await new Promise((r) => setTimeout(r, 2000));
     }
 
     setGeneratingDesignId(null);
-    toast.success(`Generated designs for ${selected.length} messages!`);
-    await loadMessages();
-  };
-
-  const handleDeleteUnselected = async () => {
-    const unselectedIds = messages
-      .filter((m) => !selectedIds.has(m.id))
-      .map((m) => m.id);
-
-    if (unselectedIds.length === 0) return;
-
-    const { error } = await supabase
-      .from("generated_messages")
-      .delete()
-      .in("id", unselectedIds);
-
-    if (error) {
-      toast.error("Failed to delete messages");
-      return;
-    }
-    toast.success(`Removed ${unselectedIds.length} unselected messages`);
+    toast.success(`Generated designs for ${kept.length} messages!`);
     await loadMessages();
   };
 
   const handleCreateProducts = () => {
-    const selected = messages.filter(
-      (m) => selectedIds.has(m.id) && !m.product_id && m.design_url
+    const ready = messages.filter(
+      (m) => keptIds.has(m.id) && !m.product_id && m.design_url
     );
-    if (selected.length === 0) {
-      toast.error("No selected messages with designs ready to create products");
+    if (ready.length === 0) {
+      toast.error("No kept messages with designs ready to create products");
       return;
     }
-    selected.forEach((m) => onCreateProduct?.(m.message_text, m.design_url!));
+    ready.forEach((m) => onCreateProduct?.(m.message_text, m.design_url!));
   };
 
-  const selectedCount = selectedIds.size;
+  const keptCount = keptIds.size;
+  const unkeptMessages = messages.filter((m) => !keptIds.has(m.id) && !m.product_id);
   const readyForProductCount = messages.filter(
-    (m) => selectedIds.has(m.id) && !m.product_id && m.design_url
+    (m) => keptIds.has(m.id) && !m.product_id && m.design_url
   ).length;
   const needsDesignCount = messages.filter(
-    (m) => selectedIds.has(m.id) && !m.design_url
+    (m) => keptIds.has(m.id) && !m.design_url
   ).length;
 
   if (loading) {
@@ -242,7 +230,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             Message Ideas
           </h3>
           <p className="text-sm text-muted-foreground">
-            Generate → Select → Design → Create Products
+            Swipe right to keep · Swipe left to discard
           </p>
         </div>
         <Button
@@ -262,117 +250,73 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       {messages.length > 0 && (
         <>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{selectedCount} selected</span>
+            <span>{keptCount} kept</span>
+            <span>·</span>
+            <span>{unkeptMessages.length} to review</span>
             <span>·</span>
             <span>{messages.length} total</span>
-            {needsDesignCount > 0 && (
-              <>
-                <span>·</span>
-                <span>{needsDesignCount} need designs</span>
-              </>
-            )}
           </div>
 
-          <div className="grid gap-2">
-            {messages.map((msg) => {
-              const isSelected = selectedIds.has(msg.id);
-              const hasProduct = !!msg.product_id;
-              const hasDesign = !!msg.design_url;
-              const isGeneratingThis = generatingDesignId === msg.id;
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-center gap-3 rounded-lg border p-3 transition-colors ${
-                    isSelected
-                      ? "border-primary/50 bg-primary/5"
-                      : "border-border bg-card hover:bg-muted/50"
-                  } ${hasProduct ? "opacity-60" : ""}`}
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => !hasProduct && toggleSelect(msg.id)}
-                    disabled={hasProduct}
+          {/* Unkept messages to review */}
+          {unkeptMessages.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Swipe to triage
+              </p>
+              <div className="grid gap-2">
+                {unkeptMessages.map((msg) => (
+                  <SwipeableMessageCard
+                    key={msg.id}
+                    id={msg.id}
+                    messageText={msg.message_text}
+                    designUrl={msg.design_url}
+                    hasProduct={!!msg.product_id}
+                    isKept={false}
+                    isGeneratingDesign={generatingDesignId === msg.id}
+                    disableDesignActions={!!generatingDesignId}
+                    onKeep={handleKeep}
+                    onDiscard={handleDiscard}
+                    onGenerateDesign={handleGenerateDesign}
+                    onPreviewDesign={handlePreviewDesign}
                   />
+                ))}
+              </div>
+            </div>
+          )}
 
-                  {/* Design thumbnail */}
-                  {hasDesign ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewUrl(msg.design_url);
-                        setPreviewMessage(msg.message_text);
-                        setPreviewMessageId(msg.id);
-                      }}
-                      className="shrink-0 rounded-md border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
-                    >
-                      <img
-                        src={msg.design_url!}
-                        alt={msg.message_text}
-                        className="h-12 w-12 object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <div className="shrink-0 h-12 w-12 rounded-md border border-dashed border-border flex items-center justify-center">
-                      <Paintbrush className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-
-                  <span
-                    className="flex-1 text-sm font-medium cursor-pointer"
-                    onClick={() => !hasProduct && toggleSelect(msg.id)}
-                  >
-                    {msg.message_text}
-                  </span>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {hasProduct && (
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                        Has product
-                      </span>
-                    )}
-                    {hasDesign && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setPreviewUrl(msg.design_url);
-                          setPreviewMessage(msg.message_text);
-                          setPreviewMessageId(msg.id);
-                        }}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    {!hasProduct && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        disabled={isGeneratingThis || !!generatingDesignId}
-                        onClick={() => handleGenerateDesign(msg)}
-                        title={hasDesign ? "Regenerate design" : "Generate design"}
-                      >
-                        {isGeneratingThis ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : hasDesign ? (
-                          <RefreshCw className="h-3.5 w-3.5" />
-                        ) : (
-                          <Paintbrush className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Kept messages */}
+          {keptCount > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Kept
+              </p>
+              <div className="grid gap-2">
+                {messages
+                  .filter((m) => keptIds.has(m.id))
+                  .map((msg) => (
+                    <SwipeableMessageCard
+                      key={msg.id}
+                      id={msg.id}
+                      messageText={msg.message_text}
+                      designUrl={msg.design_url}
+                      hasProduct={!!msg.product_id}
+                      isKept={true}
+                      isGeneratingDesign={generatingDesignId === msg.id}
+                      disableDesignActions={!!generatingDesignId}
+                      onKeep={handleKeep}
+                      onDiscard={handleDiscard}
+                      onGenerateDesign={handleGenerateDesign}
+                      onPreviewDesign={handlePreviewDesign}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 flex-wrap">
             {needsDesignCount > 0 && (
               <Button
-                onClick={handleGenerateSelectedDesigns}
+                onClick={handleGenerateKeptDesigns}
                 disabled={!!generatingDesignId}
                 variant="secondary"
                 className="gap-2"
@@ -389,16 +333,6 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
               <Button onClick={handleCreateProducts} className="gap-2">
                 <ArrowRight className="h-4 w-4" />
                 Create {readyForProductCount} Product{readyForProductCount > 1 ? "s" : ""}
-              </Button>
-            )}
-            {messages.length - selectedCount > 0 && (
-              <Button
-                variant="outline"
-                onClick={handleDeleteUnselected}
-                className="gap-2 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear Unselected ({messages.length - selectedCount})
               </Button>
             )}
           </div>

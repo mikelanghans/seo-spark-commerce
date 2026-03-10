@@ -63,3 +63,25 @@
     font-family: var(--font-heading);
   }
 }
+
+@keyframes slide-out-left {
+  to {
+    transform: translateX(-120%) rotate(-5deg);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-out-right {
+  to {
+    transform: translateX(120%) rotate(5deg);
+    opacity: 0;
+  }
+}
+
+.animate-slide-out-left {
+  animation: slide-out-left 0.25s ease forwards;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.25s ease forwards;
+}
