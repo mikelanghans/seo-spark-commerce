@@ -230,7 +230,7 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
         ) : (
           <Printer className="h-4 w-4" />
         )}
-        {result?.success ? "Pushed!" : "Push to Printify"}
+        {result?.success ? "Pushed!" : product.printify_product_id ? "Update on Printify" : "Push to Printify"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
