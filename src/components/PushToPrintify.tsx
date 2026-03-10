@@ -43,6 +43,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
+  onProductUpdate?: (updates: Partial<Product>) => void;
 }
 
 const AVAILABLE_COLORS = [
@@ -52,7 +53,7 @@ const AVAILABLE_COLORS = [
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
-export const PushToPrintify = ({ product, listings, userId }: Props) => {
+export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
@@ -205,7 +206,11 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
 
       setResult({ success: true });
       setOpen(false);
-      toast.success(isUpdate 
+      // Update local state with the new printify_product_id
+      if (data.printifyProductId) {
+        onProductUpdate?.({ printify_product_id: data.printifyProductId });
+      }
+      toast.success(data.updated 
         ? `Product updated on Printify with ${data.variantCount} variants!`
         : `Product created on Printify with ${data.variantCount} variants!`
       );
