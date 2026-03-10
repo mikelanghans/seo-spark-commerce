@@ -285,28 +285,30 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
             {mockups.length > 0 && (
               <div className="space-y-2">
                 <Label className="font-medium">
-                  AI Mockups to use ({mockups.filter((m) =>
-                    selectedColors.some((c) => c.toLowerCase() === m.color_name.toLowerCase())
-                  ).length} matching)
+                  AI Mockups ({mockups.length} total)
                 </Label>
                 <div className="flex gap-2 overflow-x-auto pb-2">
-                  {mockups
-                    .filter((m) =>
-                      selectedColors.some((c) => c.toLowerCase() === m.color_name.toLowerCase())
-                    )
-                    .map((m) => (
+                  {mockups.map((m) => {
+                    const isMatched = selectedColors.some(
+                      (c) => c.toLowerCase() === m.color_name.toLowerCase()
+                    );
+                    return (
                       <div key={m.id} className="shrink-0">
                         <img
                           src={m.image_url}
                           alt={m.color_name}
-                          className="h-20 w-20 rounded-md object-cover border border-border"
+                          className={`h-20 w-20 rounded-md object-cover border ${isMatched ? "border-primary ring-2 ring-primary/30" : "border-border opacity-50"}`}
                         />
-                        <p className="text-xs text-center mt-1 text-muted-foreground">
+                        <p className={`text-xs text-center mt-1 ${isMatched ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                           {m.color_name}
                         </p>
                       </div>
-                    ))}
+                    );
+                  })}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Highlighted mockups match selected colors and will be included.
+                </p>
               </div>
             )}
 
