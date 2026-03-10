@@ -26,7 +26,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { organization, count, refineOriginal, refineFeedback } = await req.json();
+    const { organization, count, refineOriginal, refineFeedback, topic } = await req.json();
     const batchSize = count || 10;
     const isRefine = !!refineOriginal && !!refineFeedback;
 
@@ -76,6 +76,7 @@ Generate exactly 3 refined variations of this message based on the feedback. Eac
     } else {
       prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
 
+${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}
 Brand context:
 - Niche: ${organization.niche}
 - Tone: ${organization.tone}

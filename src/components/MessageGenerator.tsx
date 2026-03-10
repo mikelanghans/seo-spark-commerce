@@ -42,6 +42,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
+  const [topic, setTopic] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
@@ -76,6 +77,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             audience: organization.audience,
           },
           count: generateCount,
+          ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
       });
 
@@ -336,6 +338,13 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Topic (e.g. Christmas, Summer, Dogs)..."
+            className="flex-1 h-10"
+            disabled={generating}
+          />
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}
