@@ -280,11 +280,10 @@ serve(async (req) => {
 
         if (updateRes.ok) {
           createdProduct = await updateRes.json();
-          console.log(`Updated product: ${dbPrintifyProductId}`);
+          console.log(`Updated product: ${dbPrintifyProductId}, images in response: ${createdProduct.images?.length || 0}`);
         } else {
           const errText = await updateRes.text();
           console.error(`PUT failed (${updateRes.status}): ${errText}`);
-          // Don't fall back to POST — return the error so user can fix
           throw new Error(`Failed to update Printify product: ${errText}`);
         }
       } else {
@@ -318,11 +317,37 @@ serve(async (req) => {
 
       createdProduct = await createRes.json();
       didCreate = true;
-      console.log(`Created product: ${createdProduct.id}`);
+      console.log(`Created product: ${createdProduct.id}, images: ${createdProduct.images?.length || 0}`);
 
       if (createdProduct.id && productId) {
         await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
-        console.log(`Saved printify_product_id: ${createdProduct.id}`);
+      }
+    }
+
+    // Step 2: Set mockup images via SEPARATE PUT call (after product exists)
+    const finalProductId = createdProduct.id || dbPrintifyProductId;
+    if (mockupImagePayload && finalProductId) {
+      console.log(`Setting ${mockupImagePayload.length} mockup images on product ${finalProductId}...`);
+      console.log(`Image payload: ${JSON.stringify(mockupImagePayload.map((i: any) => ({ src: i.src?.substring(0, 80), variants: i.variant_ids?.length, is_default: i.is_default })))}`);
+      
+      const imgUpdateRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ images: mockupImagePayload }),
+        }
+      );
+
+      if (imgUpdateRes.ok) {
+        const imgResult = await imgUpdateRes.json();
+        console.log(`Images updated! Product now has ${imgResult.images?.length || 0} images`);
+      } else {
+        const errText = await imgUpdateRes.text();
+        console.error(`Image update failed (${imgUpdateRes.status}): ${errText}`);
       }
     }
 
