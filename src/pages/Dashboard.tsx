@@ -187,7 +187,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "" });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setView("org-form");
