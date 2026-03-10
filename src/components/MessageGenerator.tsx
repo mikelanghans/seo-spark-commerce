@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -41,6 +41,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
+  const cancelDesignsRef = useRef(false);
 
   useEffect(() => {
     loadMessages();
@@ -226,7 +227,14 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
       return;
     }
 
+    cancelDesignsRef.current = false;
+    let completed = 0;
+
     for (const msg of kept) {
+      if (cancelDesignsRef.current) {
+        toast.info(`Cancelled after ${completed} designs`);
+        break;
+      }
       setGeneratingDesignId(msg.id);
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
@@ -248,13 +256,17 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         handleAiError(error, data, `Design failed for "${msg.message_text.slice(0, 30)}..."`);
         const errorMsg = data?.error || error?.message || "";
         if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
+      } else {
+        completed++;
       }
 
       await new Promise((r) => setTimeout(r, 2000));
     }
 
     setGeneratingDesignId(null);
-    toast.success(`Generated designs for ${kept.length} messages!`);
+    if (!cancelDesignsRef.current) {
+      toast.success(`Generated designs for ${completed} messages!`);
+    }
     await loadMessages();
   };
 
@@ -398,19 +410,24 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
 
           <div className="flex gap-2 flex-wrap">
             {needsDesignCount > 0 && (
-              <Button
-                onClick={handleGenerateKeptDesigns}
-                disabled={!!generatingDesignId}
-                variant="secondary"
-                className="gap-2"
-              >
-                {generatingDesignId ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+              generatingDesignId ? (
+                <Button
+                  onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); }}
+                  variant="destructive"
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" /> Cancel Designs
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleGenerateKeptDesigns}
+                  variant="secondary"
+                  className="gap-2"
+                >
                   <Paintbrush className="h-4 w-4" />
-                )}
-                Generate {needsDesignCount} Design{needsDesignCount > 1 ? "s" : ""}
-              </Button>
+                  Generate {needsDesignCount} Design{needsDesignCount > 1 ? "s" : ""}
+                </Button>
+              )
             )}
             {readyForProductCount > 0 && onCreateProduct && (
               <Button onClick={handleCreateProducts} className="gap-2">

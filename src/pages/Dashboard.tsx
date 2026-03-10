@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,7 +17,7 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -359,14 +359,18 @@ const Dashboard = () => {
   };
 
   const [importingShopify, setImportingShopify] = useState(false);
+  const importAbortRef = useRef<AbortController | null>(null);
 
   const handleImportFromShopify = async () => {
     if (!selectedOrg) return;
+    const controller = new AbortController();
+    importAbortRef.current = controller;
     setImportingShopify(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-shopify-catalog", {
         body: { organizationId: selectedOrg.id },
       });
+      if (controller.signal.aborted) return;
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
@@ -374,22 +378,38 @@ const Dashboard = () => {
       toast.success(`Imported ${imported} new, updated ${updated} existing — ${total} total from Shopify`);
       await loadProducts(selectedOrg.id);
     } catch (err: any) {
+      if (controller.signal.aborted) {
+        toast.info("Import cancelled");
+        return;
+      }
       toast.error(err.message || "Failed to import from Shopify");
     } finally {
       setImportingShopify(false);
+      importAbortRef.current = null;
     }
+  };
+
+  const handleCancelImport = () => {
+    importAbortRef.current?.abort();
+    setImportingShopify(false);
   };
 
   const [generatingAll, setGeneratingAll] = useState(false);
   const [genAllProgress, setGenAllProgress] = useState({ done: 0, total: 0 });
+  const cancelGenAllRef = useRef(false);
 
   const handleGenerateAllListings = async () => {
     if (!selectedOrg || products.length === 0) return;
+    cancelGenAllRef.current = false;
     setGeneratingAll(true);
     setGenAllProgress({ done: 0, total: products.length });
 
     let successCount = 0;
     for (let i = 0; i < products.length; i++) {
+      if (cancelGenAllRef.current) {
+        toast.info(`Cancelled after ${successCount} products`);
+        break;
+      }
       const product = products[i];
       setGenAllProgress({ done: i, total: products.length });
       try {
@@ -425,7 +445,6 @@ const Dashboard = () => {
         toast.error(`Failed: ${product.title}`);
       }
 
-      // Small delay to avoid rate limits
       if (i < products.length - 1) {
         await new Promise((r) => setTimeout(r, 1500));
       }
@@ -433,7 +452,9 @@ const Dashboard = () => {
 
     setGenAllProgress({ done: products.length, total: products.length });
     setGeneratingAll(false);
-    toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    if (!cancelGenAllRef.current) {
+      toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    }
   };
 
   return (
@@ -649,10 +670,15 @@ const Dashboard = () => {
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Enrich Existing
                 </Button>
-                <Button variant="outline" onClick={handleImportFromShopify} disabled={importingShopify} className="gap-2">
-                  {importingShopify ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-                  {importingShopify ? "Importing…" : "Import from Shopify"}
-                </Button>
+                {importingShopify ? (
+                  <Button variant="destructive" onClick={handleCancelImport} className="gap-2">
+                    <X className="h-4 w-4" /> Cancel Import
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={handleImportFromShopify} className="gap-2">
+                    <Store className="h-4 w-4" /> Import from Shopify
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
                   <Upload className="h-4 w-4" /> Import Products
                 </Button>
@@ -710,10 +736,15 @@ const Dashboard = () => {
                           className="pl-9"
                         />
                       </div>
-                      <Button onClick={handleGenerateAllListings} disabled={generatingAll || products.length === 0} size="sm" className="gap-2">
-                        {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        {generatingAll ? `${genAllProgress.done}/${genAllProgress.total}…` : "Generate SEO Listings"}
-                      </Button>
+                      {generatingAll ? (
+                        <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                          <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
+                        </Button>
+                      ) : (
+                        <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
+                          <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                        </Button>
+                      )}
                     </div>
 
                     {/* Category Filters */}
