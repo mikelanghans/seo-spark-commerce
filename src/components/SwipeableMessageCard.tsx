@@ -48,6 +48,18 @@ export const SwipeableMessageCard = ({
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
+  const wasRefining = useRef(false);
+
+  // Auto-close refine panel when refining completes
+  useEffect(() => {
+    if (isRefining) {
+      wasRefining.current = true;
+    } else if (wasRefining.current) {
+      wasRefining.current = false;
+      setShowRefine(false);
+      setRefineFeedback("");
+    }
+  }, [isRefining]);
   const startX = useRef(0);
   const startY = useRef(0);
   const isHorizontal = useRef<boolean | null>(null);
