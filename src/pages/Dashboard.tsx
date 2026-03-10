@@ -566,6 +566,8 @@ const Dashboard = () => {
                           <span>{org.tone}</span>
                           <span>•</span>
                           <span className="truncate">{org.audience}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
