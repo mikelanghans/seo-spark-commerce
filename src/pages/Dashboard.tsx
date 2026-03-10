@@ -538,17 +538,17 @@ const Dashboard = () => {
                     onClick={() => handleSelectOrg(org)}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
+                       <div className="flex items-center gap-4">
                         {org.logo_url ? (
-                          <img src={org.logo_url} alt={org.name} className="h-10 w-10 rounded-lg object-cover border border-border" />
+                          <img src={org.logo_url} alt={org.name} className="h-16 w-16 rounded-xl object-cover border border-border shrink-0" />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xl shrink-0">
                             {org.name.charAt(0).toUpperCase()}
                           </div>
                         )}
                         <div>
-                          <h3 className="font-semibold">{org.name}</h3>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{org.niche}</p>
+                          <h3 className="font-semibold text-lg">{org.name}</h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{org.niche}</p>
                         </div>
                       </div>
                       <button
