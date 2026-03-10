@@ -261,8 +261,8 @@ serve(async (req) => {
           ],
         };
 
-        if (productPayload.images) {
-          updatePayload.images = productPayload.images;
+        if (mockupImagePayload) {
+          updatePayload.images = mockupImagePayload;
         }
 
         console.log(`Sending PUT update (${existingVariantIds.length} variant_ids in print_areas)...`);
