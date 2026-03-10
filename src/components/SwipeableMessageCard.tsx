@@ -1,0 +1,233 @@
+import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+interface SwipeableMessageCardProps {
+  id: string;
+  messageText: string;
+  designUrl: string | null;
+  hasProduct: boolean;
+  isKept: boolean;
+  isGeneratingDesign: boolean;
+  disableDesignActions: boolean;
+  onKeep: (id: string) => void;
+  onDiscard: (id: string) => void;
+  onGenerateDesign: (id: string) => void;
+  onPreviewDesign: (id: string) => void;
+}
+
+const SWIPE_THRESHOLD = 80;
+
+export const SwipeableMessageCard = ({
+  id,
+  messageText,
+  designUrl,
+  hasProduct,
+  isKept,
+  isGeneratingDesign,
+  disableDesignActions,
+  onKeep,
+  onDiscard,
+  onGenerateDesign,
+  onPreviewDesign,
+}: SwipeableMessageCardProps) => {
+  const [offsetX, setOffsetX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const isHorizontal = useRef<boolean | null>(null);
+
+  const handleStart = (clientX: number, clientY: number) => {
+    if (hasProduct) return;
+    startX.current = clientX;
+    startY.current = clientY;
+    isHorizontal.current = null;
+    setIsDragging(true);
+  };
+
+  const handleMove = (clientX: number, clientY: number) => {
+    if (!isDragging || hasProduct) return;
+
+    const dx = clientX - startX.current;
+    const dy = clientY - startY.current;
+
+    // Determine scroll direction on first significant move
+    if (isHorizontal.current === null) {
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        isHorizontal.current = Math.abs(dx) > Math.abs(dy);
+      }
+      return;
+    }
+
+    if (!isHorizontal.current) return;
+
+    setOffsetX(dx);
+  };
+
+  const handleEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    if (Math.abs(offsetX) > SWIPE_THRESHOLD) {
+      const direction = offsetX > 0 ? "right" : "left";
+      setIsExiting(direction);
+      setTimeout(() => {
+        if (direction === "right") {
+          onKeep(id);
+        } else {
+          onDiscard(id);
+        }
+        setOffsetX(0);
+        setIsExiting(null);
+      }, 250);
+    } else {
+      setOffsetX(0);
+    }
+  };
+
+  // Touch handlers
+  const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  const onTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  const onTouchEnd = () => handleEnd();
+
+  // Mouse handlers for desktop
+  const onMouseDown = (e: MouseEvent) => {
+    e.preventDefault();
+    handleStart(e.clientX, e.clientY);
+  };
+  const onMouseMove = (e: MouseEvent) => handleMove(e.clientX, e.clientY);
+  const onMouseUp = () => handleEnd();
+  const onMouseLeave = () => { if (isDragging) handleEnd(); };
+
+  const progress = Math.min(Math.abs(offsetX) / SWIPE_THRESHOLD, 1);
+  const isSwipingRight = offsetX > 0;
+  const isSwipingLeft = offsetX < 0;
+  const hasDesign = !!designUrl;
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Background indicators */}
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center rounded-lg transition-opacity",
+          isSwipingRight ? "justify-start pl-4 bg-emerald-500/20" : "opacity-0"
+        )}
+        style={{ opacity: isSwipingRight ? progress : 0 }}
+      >
+        <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+          <Check className="h-5 w-5" />
+          Keep
+        </div>
+      </div>
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center rounded-lg transition-opacity",
+          isSwipingLeft ? "justify-end pr-4 bg-destructive/20" : "opacity-0"
+        )}
+        style={{ opacity: isSwipingLeft ? progress : 0 }}
+      >
+        <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+          Discard
+          <X className="h-5 w-5" />
+        </div>
+      </div>
+
+      {/* Card content */}
+      <div
+        className={cn(
+          "relative flex items-center gap-3 rounded-lg border p-3 bg-card cursor-grab active:cursor-grabbing select-none",
+          isKept
+            ? "border-emerald-500/50 bg-emerald-500/5"
+            : "border-border hover:bg-muted/50",
+          hasProduct && "opacity-60 cursor-default",
+          isExiting === "left" && "animate-slide-out-left",
+          isExiting === "right" && "animate-slide-out-right"
+        )}
+        style={{
+          transform: isExiting
+            ? undefined
+            : `translateX(${offsetX}px) rotate(${offsetX * 0.02}deg)`,
+          transition: isDragging ? "none" : "transform 0.3s ease",
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseLeave}
+      >
+        {/* Status indicator */}
+        <div
+          className={cn(
+            "shrink-0 w-1.5 h-8 rounded-full transition-colors",
+            isKept ? "bg-emerald-500" : "bg-muted-foreground/20"
+          )}
+        />
+
+        {/* Design thumbnail */}
+        {hasDesign ? (
+          <button
+            type="button"
+            onClick={() => onPreviewDesign(id)}
+            className="shrink-0 rounded-md border border-border overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+          >
+            <img
+              src={designUrl!}
+              alt={messageText}
+              className="h-12 w-12 object-cover"
+            />
+          </button>
+        ) : (
+          <div className="shrink-0 h-12 w-12 rounded-md border border-dashed border-border flex items-center justify-center">
+            <Paintbrush className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Message text */}
+        <span className="flex-1 text-sm font-medium leading-snug">
+          {messageText}
+        </span>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          {hasProduct && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+              Has product
+            </span>
+          )}
+          {hasDesign && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onPreviewDesign(id)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {!hasProduct && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={isGeneratingDesign || disableDesignActions}
+              onClick={() => onGenerateDesign(id)}
+              title={hasDesign ? "Regenerate design" : "Generate design"}
+            >
+              {isGeneratingDesign ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : hasDesign ? (
+                <RefreshCw className="h-3.5 w-3.5" />
+              ) : (
+                <Paintbrush className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
