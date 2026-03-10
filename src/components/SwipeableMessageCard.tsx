@@ -192,10 +192,51 @@ export const SwipeableMessageCard = ({
           </div>
         )}
 
-        {/* Message text */}
-        <span className="flex-1 text-sm font-medium leading-snug">
-          {messageText}
-        </span>
+        {/* Message text / edit mode */}
+        {isEditing ? (
+          <form
+            className="flex-1 flex gap-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editText.trim() && editText !== messageText) {
+                onEdit(id, editText.trim());
+              }
+              setIsEditing(false);
+            }}
+          >
+            <Input
+              ref={inputRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+              onBlur={() => {
+                if (editText.trim() && editText !== messageText) {
+                  onEdit(id, editText.trim());
+                }
+                setIsEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setEditText(messageText);
+                  setIsEditing(false);
+                }
+              }}
+            />
+          </form>
+        ) : (
+          <span
+            className="flex-1 text-sm font-medium leading-snug"
+            onDoubleClick={() => {
+              if (!hasProduct) {
+                setEditText(messageText);
+                setIsEditing(true);
+              }
+            }}
+          >
+            {messageText}
+          </span>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
