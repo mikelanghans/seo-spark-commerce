@@ -201,6 +201,8 @@ const Dashboard = () => {
     setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "" });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
+    setOrgLogoPreview(org.logo_url || null);
+    setOrgLogoFile(null);
     setView("org-form");
   };
 
