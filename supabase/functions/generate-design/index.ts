@@ -63,6 +63,8 @@ MESSAGE TEXT: "${messageText}"
 
 BRAND: ${brandName || "lifestyle apparel"}
 TONE: ${brandTone || "sarcastic but motivational"}
+NICHE: ${brandNiche || "lifestyle"}
+TARGET AUDIENCE: ${brandAudience || "general"}
 
 DESIGN REQUIREMENTS:
 - Place the design on a CLEAN SOLID WHITE background — pure white (#FFFFFF), no patterns, no gradients, no texture
