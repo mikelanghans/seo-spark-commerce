@@ -199,20 +199,7 @@ serve(async (req) => {
       ],
     };
 
-    // Add mockup images as product listing images
-    // DON'T include in creation payload — set them AFTER via separate PUT
-    const mockupImagePayload = uploadedMockups.length > 0 ? uploadedMockups.map((m, idx) => {
-      const variantIds = filteredVariants
-        .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
-        .map((v: any) => v.id);
-      return {
-        src: m.previewUrl,
-        variant_ids: variantIds,
-        position: "front",
-        is_default: idx === 0,
-        is_selected_for_publishing: true,
-      };
-    }) : null;
+    // Mockup images will be set AFTER product creation using uploaded image IDs
 
     // --- CREATE or UPDATE ---
     let createdProduct: any;
@@ -262,9 +249,7 @@ serve(async (req) => {
           ],
         };
 
-        if (mockupImagePayload) {
-          updatePayload.images = mockupImagePayload;
-        }
+        // Don't set images here — they'll be set after via separate PUT with uploaded IDs
 
         console.log(`Sending PUT update (${existingVariantIds.length} variant_ids in print_areas)...`);
         const updateRes = await fetch(
@@ -326,11 +311,10 @@ serve(async (req) => {
     }
 
     // Step 2: Replace ALL product images with ONLY our AI mockups
-    // Printify auto-generates mockups from the design — we want to remove those
-    // and show only our high-quality AI-generated mockup photos
+    // Printify auto-generates mockups from the design — we need to replace them
     const finalProductId = createdProduct.id || dbPrintifyProductId;
-    if (mockupImagePayload && finalProductId) {
-      // First GET the product to see current images
+    if (uploadedMockups.length > 0 && finalProductId) {
+      // GET current product to find auto-generated image IDs we need to remove
       const getProductRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
         { headers: { Authorization: `Bearer ${printifyToken}` } }
@@ -339,16 +323,15 @@ serve(async (req) => {
       if (getProductRes.ok) {
         const currentProduct = await getProductRes.json();
         const currentImages = currentProduct.images || [];
-        console.log(`Product currently has ${currentImages.length} images (auto-generated). Replacing with ${mockupImagePayload.length} AI mockups...`);
+        console.log(`Product has ${currentImages.length} current images. Our uploads: ${uploadedMockups.length}`);
         
-        // PUT with ONLY our mockup images — this replaces the entire images array
-        // We need to use the uploaded image IDs, not src URLs
-        const replacementImages = uploadedMockups.map((m, idx) => {
+        // Build new images array using our uploaded Printify image IDs
+        const newImages = uploadedMockups.map((m, idx) => {
           const variantIds = filteredVariants
             .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
             .map((v: any) => v.id);
           return {
-            src: m.previewUrl,
+            id: m.printifyImageId,
             variant_ids: variantIds,
             position: "front",
             is_default: idx === 0,
@@ -356,8 +339,9 @@ serve(async (req) => {
           };
         });
 
-        console.log(`Replacement image payload: ${JSON.stringify(replacementImages.map((i: any) => ({ src: i.src?.substring(0, 80), variants: i.variant_ids?.length, is_default: i.is_default })))}`);
+        console.log(`Setting images with IDs: ${JSON.stringify(newImages.map(i => ({ id: i.id, variants: i.variant_ids.length, is_default: i.is_default })))}`);
         
+        // PUT with ONLY our images — using 'id' field (not 'src') to reference uploaded images
         const imgUpdateRes = await fetch(
           `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
           {
@@ -366,16 +350,17 @@ serve(async (req) => {
               Authorization: `Bearer ${printifyToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ images: replacementImages }),
+            body: JSON.stringify({ images: newImages }),
           }
         );
 
         if (imgUpdateRes.ok) {
           const imgResult = await imgUpdateRes.json();
-          console.log(`Images replaced! Product now has ${imgResult.images?.length || 0} images (was ${currentImages.length})`);
+          const resultImageIds = (imgResult.images || []).map((i: any) => i.id || i.src?.substring(0, 40));
+          console.log(`After update: ${imgResult.images?.length} images. IDs: ${JSON.stringify(resultImageIds.slice(0, 8))}`);
         } else {
           const errText = await imgUpdateRes.text();
-          console.error(`Image replacement failed (${imgUpdateRes.status}): ${errText}`);
+          console.error(`Image update failed (${imgUpdateRes.status}): ${errText}`);
         }
       }
     }
