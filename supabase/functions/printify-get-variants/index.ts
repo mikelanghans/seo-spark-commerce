@@ -40,14 +40,38 @@ serve(async (req) => {
     const ppId = providers.find((p: any) => p.id === 99)?.id || providers[0]?.id;
     if (!ppId) throw new Error("No print providers found");
 
-    // Get variants
-    const variantsRes = await fetch(
-      `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
-      { headers: { Authorization: `Bearer ${printifyToken}` } }
-    );
+    // Get variants and printing specs in parallel
+    const [variantsRes, printingRes] = await Promise.all([
+      fetch(
+        `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      ),
+      fetch(
+        `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/printing.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      ),
+    ]);
+
     if (!variantsRes.ok) throw new Error(`Failed to get variants (${variantsRes.status})`);
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
+
+    // Parse printing specs for print area dimensions
+    let printAreaSpecs: any = null;
+    if (printingRes.ok) {
+      const printingData = await printingRes.json();
+      console.log(`Printing data: ${JSON.stringify(printingData).substring(0, 500)}`);
+      // Find "front" placeholder
+      const placeholders = printingData.placeholders || [];
+      const frontPlaceholder = placeholders.find((p: any) => p.position === "front") || placeholders[0];
+      if (frontPlaceholder) {
+        printAreaSpecs = {
+          position: frontPlaceholder.position,
+          width: frontPlaceholder.width,
+          height: frontPlaceholder.height,
+        };
+      }
+    }
 
     // Extract unique colors and sizes
     const colorsSet = new Map<string, number>();
@@ -62,9 +86,9 @@ serve(async (req) => {
     const colors = Array.from(colorsSet.keys()).sort();
     const sizes = Array.from(sizesSet);
 
-    console.log(`Blueprint ${bpId}, provider ${ppId}: ${colors.length} colors, ${sizes.length} sizes`);
+    console.log(`Blueprint ${bpId}, provider ${ppId}: ${colors.length} colors, ${sizes.length} sizes, printArea: ${JSON.stringify(printAreaSpecs)}`);
 
-    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId }), {
+    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId, printAreaSpecs }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
