@@ -602,6 +602,29 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Brand Logo */}
+            <div className="space-y-2">
+              <Label>Brand Logo (optional)</Label>
+              <p className="text-xs text-muted-foreground">Displayed on your brand tile for quick identification</p>
+              <input type="file" accept="image/*" onChange={handleOrgLogoUpload} className="hidden" id="org-logo-image" />
+              {orgLogoPreview ? (
+                <div className="flex items-center gap-4">
+                  <img src={orgLogoPreview} alt="Logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                  <label htmlFor="org-logo-image" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+                    Change logo
+                  </label>
+                </div>
+              ) : (
+                <label
+                  htmlFor="org-logo-image"
+                  className="flex w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-card/50 py-4 transition-colors hover:border-primary/50"
+                >
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <p className="text-xs font-medium">Upload logo</p>
+                </label>
+              )}
+            </div>
+
             {/* Brand Design Styling */}
             <div className="space-y-4">
               <div>
