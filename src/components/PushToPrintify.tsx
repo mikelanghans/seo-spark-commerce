@@ -43,6 +43,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
+  onProductUpdate?: (updates: Partial<Product>) => void;
 }
 
 const AVAILABLE_COLORS = [
