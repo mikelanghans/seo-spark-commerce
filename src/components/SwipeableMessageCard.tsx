@@ -1,7 +1,8 @@
 import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
-import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil } from "lucide-react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface SwipeableMessageCardProps {
@@ -11,10 +12,12 @@ interface SwipeableMessageCardProps {
   hasProduct: boolean;
   isKept: boolean;
   isGeneratingDesign: boolean;
+  isRefining: boolean;
   disableDesignActions: boolean;
   onKeep: (id: string) => void;
   onDiscard: (id: string) => void;
   onEdit: (id: string, newText: string) => void;
+  onRefine: (id: string, feedback: string) => void;
   onGenerateDesign: (id: string) => void;
   onPreviewDesign: (id: string) => void;
 }
@@ -28,15 +31,19 @@ export const SwipeableMessageCard = ({
   hasProduct,
   isKept,
   isGeneratingDesign,
+  isRefining,
   disableDesignActions,
   onKeep,
   onDiscard,
   onEdit,
+  onRefine,
   onGenerateDesign,
   onPreviewDesign,
 }: SwipeableMessageCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(messageText);
+  const [showRefine, setShowRefine] = useState(false);
+  const [refineFeedback, setRefineFeedback] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -269,6 +276,22 @@ export const SwipeableMessageCard = ({
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
+          {!hasProduct && !isEditing && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={isRefining}
+              onClick={() => setShowRefine(!showRefine)}
+              title="Regenerate with feedback"
+            >
+              {isRefining ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageSquare className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
           {!hasProduct && (
             <Button
               variant="ghost"
@@ -289,6 +312,47 @@ export const SwipeableMessageCard = ({
           )}
         </div>
       </div>
+
+      {/* Refine feedback panel */}
+      {showRefine && (
+        <div className="mt-1 rounded-lg border border-border bg-card p-3 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            What should change? (e.g. "make it shorter", "more sarcastic", "less aggressive")
+          </p>
+          <Textarea
+            value={refineFeedback}
+            onChange={(e) => setRefineFeedback(e.target.value)}
+            placeholder="Your feedback..."
+            className="min-h-[60px] text-sm"
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowRefine(false);
+                setRefineFeedback("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!refineFeedback.trim() || isRefining}
+              onClick={() => {
+                onRefine(id, refineFeedback.trim());
+                setShowRefine(false);
+                setRefineFeedback("");
+              }}
+              className="gap-1"
+            >
+              {isRefining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Regenerate
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

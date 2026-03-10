@@ -39,6 +39,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
+  const [refiningId, setRefiningId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMessages();
@@ -126,6 +127,53 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     );
     await supabase.from("generated_messages").update({ message_text: newText }).eq("id", id);
     toast.success("Message updated", { duration: 1500 });
+  };
+
+  const handleRefine = async (id: string, feedback: string) => {
+    const msg = messages.find((m) => m.id === id);
+    if (!msg) return;
+    setRefiningId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-messages", {
+        body: {
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            niche: organization.niche,
+            tone: organization.tone,
+            audience: organization.audience,
+          },
+          refineOriginal: msg.message_text,
+          refineFeedback: feedback,
+        },
+      });
+
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to refine message");
+        return;
+      }
+
+      const variations = data.messages || [];
+      if (variations.length === 0) {
+        toast.error("No variations generated");
+        return;
+      }
+
+      const rows = variations.map((m: { text: string }) => ({
+        user_id: userId,
+        organization_id: organization.id,
+        message_text: m.text,
+        is_selected: false,
+      }));
+
+      await supabase.from("generated_messages").insert(rows);
+      toast.success(`Generated ${variations.length} variations!`);
+      await loadMessages();
+    } catch (err: any) {
+      handleAiError(err, null, "Failed to refine message");
+    } finally {
+      setRefiningId(null);
+    }
   };
 
   const handleGenerateDesign = async (msgId: string) => {
@@ -281,10 +329,12 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                     hasProduct={!!msg.product_id}
                     isKept={false}
                     isGeneratingDesign={generatingDesignId === msg.id}
+                    isRefining={refiningId === msg.id}
                     disableDesignActions={!!generatingDesignId}
                     onKeep={handleKeep}
                     onDiscard={handleDiscard}
                     onEdit={handleEdit}
+                    onRefine={handleRefine}
                     onGenerateDesign={handleGenerateDesign}
                     onPreviewDesign={handlePreviewDesign}
                   />
@@ -311,10 +361,12 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       hasProduct={!!msg.product_id}
                       isKept={true}
                       isGeneratingDesign={generatingDesignId === msg.id}
+                      isRefining={refiningId === msg.id}
                       disableDesignActions={!!generatingDesignId}
                       onKeep={handleKeep}
                       onDiscard={handleDiscard}
                       onEdit={handleEdit}
+                      onRefine={handleRefine}
                       onGenerateDesign={handleGenerateDesign}
                       onPreviewDesign={handlePreviewDesign}
                     />
