@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import AcceptInvite from "./pages/AcceptInvite";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -14,7 +15,6 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Preserve Shopify OAuth params before redirecting to auth
   if (!loading && !user) {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -23,7 +23,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("shopify_oauth_code", code);
       localStorage.setItem("shopify_oauth_shop", shop);
     }
-    // Also preserve shop+hmac (Shopify app launch without code)
     if (!code && shop) {
       localStorage.setItem("shopify_pending_shop", shop);
     }
@@ -37,7 +36,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    // Check for pending invite
+    const pendingToken = localStorage.getItem("pending_invite_token");
+    if (pendingToken) {
+      localStorage.removeItem("pending_invite_token");
+      return <Navigate to={`/invite/${pendingToken}`} replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -49,6 +56,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+          <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
