@@ -258,8 +258,8 @@ serve(async (req) => {
       return product;
     };
 
-    // Resolve the correct Printify product ID
-    let resolvedPrintifyId = printifyProductId || null;
+    // Resolve the correct Printify product ID (use DB value, not client value)
+    let resolvedPrintifyId = dbPrintifyProductId;
 
     // If we have a stored ID, verify it exists
     if (resolvedPrintifyId) {
