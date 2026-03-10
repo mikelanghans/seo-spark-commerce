@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type TouchEvent, type MouseEvent } from "react";
-import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare } from "lucide-react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -184,13 +184,35 @@ export const SwipeableMessageCard = ({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
       >
-        {/* Status indicator */}
-        <div
-          className={cn(
-            "shrink-0 w-1.5 h-8 rounded-full transition-colors",
-            isKept ? "bg-emerald-500" : "bg-muted-foreground/20"
-          )}
-        />
+        {/* Thumbs up / down */}
+        {!hasProduct && !isEditing && (
+          <div className="flex flex-col gap-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); if (!isKept) onKeep(id); }}
+              className={cn(
+                "rounded-md p-1.5 transition-colors",
+                isKept
+                  ? "text-emerald-500 bg-emerald-500/10"
+                  : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10"
+              )}
+              title="Keep"
+            >
+              <ThumbsUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDiscard(id); }}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
+              title="Discard"
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+        {hasProduct && (
+          <div className="shrink-0 w-1.5 h-8 rounded-full bg-muted-foreground/20" />
+        )}
 
         {/* Design thumbnail */}
         {hasDesign ? (
