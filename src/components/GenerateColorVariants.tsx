@@ -24,9 +24,26 @@ const SUGGESTED_COLORS = [
 export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
+  const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
   const [customColor, setCustomColor] = useState("");
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+
+  // Load existing colors when panel opens
+  const loadExistingColors = async () => {
+    const { data } = await supabase
+      .from("product_images")
+      .select("color_name")
+      .eq("product_id", productId)
+      .eq("image_type", "mockup");
+    const existing = (data || []).map((img) => img.color_name);
+    const existingLower = new Set(existing.map((c) => c.toLowerCase()));
+    setExistingColorSet(existingLower);
+    // Pre-select colors that already exist
+    const matched = SUGGESTED_COLORS.filter((c) => existingLower.has(c.toLowerCase()));
+    const custom = existing.filter((c) => !SUGGESTED_COLORS.some((s) => s.toLowerCase() === c.toLowerCase()));
+    setColors([...matched, ...custom]);
+  };
 
   const addColor = (color: string) => {
     if (!colors.includes(color)) setColors([...colors, color]);
@@ -170,7 +187,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+      <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
         <Palette className="h-3.5 w-3.5" /> AI Color Variants
       </Button>
     );
@@ -194,21 +211,28 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
       {/* Quick-pick colors */}
       <div className="flex flex-wrap gap-1.5">
-        {SUGGESTED_COLORS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            onClick={() => colors.includes(color) ? removeColor(color) : addColor(color)}
-            disabled={generating}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              colors.includes(color)
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            }`}
-          >
-            {color}
-          </button>
-        ))}
+        {SUGGESTED_COLORS.map((color) => {
+          const isExisting = existingColorSet.has(color.toLowerCase());
+          const isSelected = colors.includes(color);
+          return (
+            <button
+              key={color}
+              type="button"
+              onClick={() => isSelected ? removeColor(color) : addColor(color)}
+              disabled={generating}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                isSelected
+                  ? isExisting
+                    ? "bg-primary/70 text-primary-foreground"
+                    : "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1" />}
+              {color}
+            </button>
+          );
+        })}
       </div>
 
       {/* Custom color */}
