@@ -39,6 +39,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
+  const [refiningId, setRefiningId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMessages();
