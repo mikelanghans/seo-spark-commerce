@@ -192,13 +192,13 @@ serve(async (req) => {
           .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
           .map((v: any) => v.id);
         return {
-          src: m.printifyImageId, // Printify image ID as src
+          src: m.previewUrl, // Must be a URL, not an ID
           variant_ids: variantIds,
           position: "front",
           is_default: idx === 0,
         };
       });
-      console.log(`Product images: ${JSON.stringify(productPayload.images.map((i: any) => ({ src: i.src, variants: i.variant_ids.length })))}`);
+      console.log(`Product images: ${JSON.stringify(productPayload.images.map((i: any) => ({ src: i.src?.substring(0, 60), variants: i.variant_ids.length })))}`);
     }
 
     // Create or update
@@ -206,15 +206,55 @@ serve(async (req) => {
     let didCreate = false;
 
     if (dbPrintifyProductId) {
-      // Check if product still exists
-      console.log(`Checking product ${dbPrintifyProductId}...`);
-      const checkRes = await fetch(
+      // GET the existing product to learn its actual variant structure
+      console.log(`Fetching existing product ${dbPrintifyProductId}...`);
+      const getRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
         { headers: { Authorization: `Bearer ${printifyToken}` } }
       );
 
-      if (checkRes.ok) {
-        console.log(`Product exists, sending PUT update...`);
+      if (getRes.ok) {
+        const existingProduct = await getRes.json();
+        const existingVariantIds = (existingProduct.variants || []).map((v: any) => v.id);
+        console.log(`Existing product has ${existingVariantIds.length} variants`);
+
+        // Build update payload WITHOUT blueprint_id/print_provider_id (immutable)
+        // Use the EXISTING product's variant IDs for print_areas
+        const updatePayload: any = {
+          title,
+          description: description || "",
+          tags: productPayload.tags,
+          variants: existingVariantIds.map((vid: number) => ({
+            id: vid,
+            price: priceInCents,
+            is_enabled: filteredVariantIds.has(vid),
+          })),
+          print_areas: [
+            {
+              variant_ids: existingVariantIds,
+              placeholders: [
+                {
+                  position: "front",
+                  images: [
+                    {
+                      id: printifyImageId,
+                      x: 0.5,
+                      y: 0.5,
+                      scale: 1,
+                      angle: 0,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+
+        if (productPayload.images) {
+          updatePayload.images = productPayload.images;
+        }
+
+        console.log(`Sending PUT update...`);
         const updateRes = await fetch(
           `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
           {
@@ -223,7 +263,7 @@ serve(async (req) => {
               Authorization: `Bearer ${printifyToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify(productPayload),
+            body: JSON.stringify(updatePayload),
           }
         );
 
@@ -235,7 +275,7 @@ serve(async (req) => {
           console.error(`PUT failed (${updateRes.status}): ${errText}`);
         }
       } else {
-        console.log(`Product ${dbPrintifyProductId} gone (${checkRes.status}), clearing`);
+        console.log(`Product ${dbPrintifyProductId} gone (${getRes.status}), clearing`);
         if (productId) {
           await adminClient.from("products").update({ printify_product_id: null }).eq("id", productId);
         }
