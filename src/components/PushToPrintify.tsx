@@ -205,7 +205,10 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
 
       setResult({ success: true });
       setOpen(false);
-      toast.success(`Product created on Printify with ${data.variantCount} variants!`);
+      toast.success(isUpdate 
+        ? `Product updated on Printify with ${data.variantCount} variants!`
+        : `Product created on Printify with ${data.variantCount} variants!`
+      );
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Printify");
       setResult(null);
