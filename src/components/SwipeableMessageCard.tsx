@@ -132,35 +132,37 @@ export const SwipeableMessageCard = ({
   const hasDesign = !!designUrl;
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
-      {/* Background indicators */}
-      <div
-        className={cn(
-          "absolute inset-0 flex items-center rounded-lg transition-opacity",
-          isSwipingRight ? "justify-start pl-4 bg-emerald-500/20" : "opacity-0"
-        )}
-        style={{ opacity: isSwipingRight ? progress : 0 }}
-      >
-        <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
-          <Check className="h-5 w-5" />
-          Keep
+    <div className="relative rounded-lg">
+      {/* Swipeable card area */}
+      <div className="relative overflow-hidden rounded-lg">
+        {/* Background indicators */}
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center rounded-lg transition-opacity",
+            isSwipingRight ? "justify-start pl-4 bg-emerald-500/20" : "opacity-0"
+          )}
+          style={{ opacity: isSwipingRight ? progress : 0 }}
+        >
+          <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+            <Check className="h-5 w-5" />
+            Keep
+          </div>
         </div>
-      </div>
-      <div
-        className={cn(
-          "absolute inset-0 flex items-center rounded-lg transition-opacity",
-          isSwipingLeft ? "justify-end pr-4 bg-destructive/20" : "opacity-0"
-        )}
-        style={{ opacity: isSwipingLeft ? progress : 0 }}
-      >
-        <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
-          Discard
-          <X className="h-5 w-5" />
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center rounded-lg transition-opacity",
+            isSwipingLeft ? "justify-end pr-4 bg-destructive/20" : "opacity-0"
+          )}
+          style={{ opacity: isSwipingLeft ? progress : 0 }}
+        >
+          <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+            Discard
+            <X className="h-5 w-5" />
+          </div>
         </div>
-      </div>
 
-      {/* Card content */}
-      <div
+        {/* Card content */}
+        <div
         className={cn(
           "relative flex items-center gap-3 rounded-lg border p-3 bg-card cursor-grab active:cursor-grabbing select-none",
           isKept
@@ -345,6 +347,7 @@ export const SwipeableMessageCard = ({
             </Button>
           )}
         </div>
+      </div>
       </div>
 
       {/* Refine feedback panel - onMouseDown stopped to prevent swipe interference */}
