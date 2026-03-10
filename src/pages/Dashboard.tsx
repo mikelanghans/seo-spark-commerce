@@ -559,6 +559,50 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Brand Design Styling */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold">Design Styling</h3>
+                <p className="text-xs text-muted-foreground">These settings influence how AI generates your product designs</p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Preferred Font Style</Label>
+                  <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" />
+                  <p className="text-xs text-muted-foreground">The typeface style for your designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Brand Color</Label>
+                  <div className="flex gap-2">
+                    <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" className="flex-1" />
+                    {orgForm.brand_color && /^#[0-9A-Fa-f]{6}$/.test(orgForm.brand_color) && (
+                      <div className="h-10 w-10 rounded-md border border-border" style={{ backgroundColor: orgForm.brand_color }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Primary ink/text color for designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Text Size Preference</Label>
+                  <select
+                    value={orgForm.brand_font_size}
+                    onChange={(e) => setOrgForm({ ...orgForm, brand_font_size: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="small">Small — subtle, understated</option>
+                    <option value="medium">Medium — balanced</option>
+                    <option value="large">Large — bold, dominant</option>
+                    <option value="extra-large">Extra Large — maximum impact</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">How large text appears on designs</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Additional Style Notes</Label>
+                  <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
+                  <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
+                </div>
+              </div>
+            </div>
+
             {/* Template Mockup Image */}
             <div className="space-y-2">
               <Label>Default Mockup Template (optional)</Label>
