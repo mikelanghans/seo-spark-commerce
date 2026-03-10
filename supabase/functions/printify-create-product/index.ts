@@ -141,6 +141,58 @@ serve(async (req) => {
     let createdProduct: any;
     let didCreate = false;
 
+    // Helper: look up existing product on Printify by title
+    const findProductByTitle = async (): Promise<string | null> => {
+      try {
+        let page = 1;
+        while (page <= 5) { // Check up to 5 pages
+          const listRes = await fetch(
+            `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=100`,
+            { headers: { Authorization: `Bearer ${printifyToken}` } }
+          );
+          if (!listRes.ok) {
+            await listRes.text();
+            return null;
+          }
+          const data = await listRes.json();
+          const products = data.data || data;
+          if (!Array.isArray(products) || products.length === 0) return null;
+          
+          const match = products.find((p: any) => p.title === title);
+          if (match) {
+            console.log(`Found existing Printify product by title: ${match.id}`);
+            return match.id;
+          }
+          
+          // Check if there are more pages
+          if (products.length < 100) return null;
+          page++;
+        }
+      } catch (e) {
+        console.error("Error searching Printify products:", e);
+      }
+      return null;
+    };
+
+    const updateProduct = async (pId: string) => {
+      const updateRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${pId}.json`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
+        }
+      );
+      if (!updateRes.ok) {
+        const text = await updateRes.text();
+        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
+      }
+      return await updateRes.json();
+    };
+
     const createNewProduct = async () => {
       const createRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products.json`,
@@ -177,32 +229,45 @@ serve(async (req) => {
       return product;
     };
 
-    if (isUpdate) {
-      // Try to update existing product
-      const updateRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productPayload),
-        }
-      );
+    // Resolve the correct Printify product ID
+    let resolvedPrintifyId = printifyProductId || null;
 
-      if (updateRes.ok) {
-        createdProduct = await updateRes.json();
-      } else if (updateRes.status === 404) {
-        // Product no longer exists on Printify, fall back to create
-        console.log("Printify product not found, creating new one instead");
-        await updateRes.text(); // consume body
-        createdProduct = await createNewProduct();
+    // If we have a stored ID, verify it exists
+    if (resolvedPrintifyId) {
+      const checkRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${resolvedPrintifyId}.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      );
+      if (checkRes.status === 404) {
+        console.log(`Stored Printify ID ${resolvedPrintifyId} not found, searching by title...`);
+        await checkRes.text();
+        resolvedPrintifyId = await findProductByTitle();
       } else {
-        const text = await updateRes.text();
-        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
+        await checkRes.text(); // consume body
       }
     } else {
+      // No stored ID — try to find by title
+      resolvedPrintifyId = await findProductByTitle();
+    }
+
+    // Save the resolved ID if different from what we had
+    if (resolvedPrintifyId && resolvedPrintifyId !== printifyProductId && productId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await adminClient
+        .from("products")
+        .update({ printify_product_id: resolvedPrintifyId })
+        .eq("id", productId);
+      console.log(`Updated stored printify_product_id to ${resolvedPrintifyId}`);
+    }
+
+    if (resolvedPrintifyId) {
+      console.log(`Updating existing Printify product: ${resolvedPrintifyId}`);
+      createdProduct = await updateProduct(resolvedPrintifyId);
+    } else {
+      console.log("No existing product found, creating new one");
       createdProduct = await createNewProduct();
     }
 
