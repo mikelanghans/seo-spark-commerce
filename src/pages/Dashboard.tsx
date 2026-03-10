@@ -784,6 +784,16 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="social" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <SocialPostGenerator
+                    organization={selectedOrg}
+                    products={products}
+                    userId={user!.id}
+                  />
+                </div>
+              </TabsContent>
+
               <TabsContent value="products" className="mt-4 space-y-4">
                 {products.length > 0 && (
                   <>
