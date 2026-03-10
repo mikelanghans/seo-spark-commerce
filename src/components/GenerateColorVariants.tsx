@@ -24,9 +24,26 @@ const SUGGESTED_COLORS = [
 export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
+  const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
   const [customColor, setCustomColor] = useState("");
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+
+  // Load existing colors when panel opens
+  const loadExistingColors = async () => {
+    const { data } = await supabase
+      .from("product_images")
+      .select("color_name")
+      .eq("product_id", productId)
+      .eq("image_type", "mockup");
+    const existing = (data || []).map((img) => img.color_name);
+    const existingLower = new Set(existing.map((c) => c.toLowerCase()));
+    setExistingColorSet(existingLower);
+    // Pre-select colors that already exist
+    const matched = SUGGESTED_COLORS.filter((c) => existingLower.has(c.toLowerCase()));
+    const custom = existing.filter((c) => !SUGGESTED_COLORS.some((s) => s.toLowerCase() === c.toLowerCase()));
+    setColors([...matched, ...custom]);
+  };
 
   const addColor = (color: string) => {
     if (!colors.includes(color)) setColors([...colors, color]);
