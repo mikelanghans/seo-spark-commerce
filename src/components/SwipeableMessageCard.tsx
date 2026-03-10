@@ -347,9 +347,9 @@ export const SwipeableMessageCard = ({
         </div>
       </div>
 
-      {/* Refine feedback panel */}
+      {/* Refine feedback panel - onMouseDown stopped to prevent swipe interference */}
       {showRefine && (
-        <div className="mt-1 rounded-lg border border-border bg-card p-3 space-y-2">
+        <div className="mt-1 rounded-lg border border-border bg-card p-3 space-y-2" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
           <p className="text-xs text-muted-foreground">
             What should change? (e.g. "make it shorter", "more sarcastic", "less aggressive")
           </p>
