@@ -143,7 +143,7 @@ serve(async (req) => {
                 {
                   id: printifyImageId,
                   x: 0.5,
-                  y: 0.5,
+                  y: 0.45,
                   scale: 1,
                   angle: 0,
                 },
