@@ -324,30 +324,58 @@ serve(async (req) => {
       }
     }
 
-    // Step 2: Set mockup images via SEPARATE PUT call (after product exists)
+    // Step 2: Replace ALL product images with ONLY our AI mockups
+    // Printify auto-generates mockups from the design — we want to remove those
+    // and show only our high-quality AI-generated mockup photos
     const finalProductId = createdProduct.id || dbPrintifyProductId;
     if (mockupImagePayload && finalProductId) {
-      console.log(`Setting ${mockupImagePayload.length} mockup images on product ${finalProductId}...`);
-      console.log(`Image payload: ${JSON.stringify(mockupImagePayload.map((i: any) => ({ src: i.src?.substring(0, 80), variants: i.variant_ids?.length, is_default: i.is_default })))}`);
-      
-      const imgUpdateRes = await fetch(
+      // First GET the product to see current images
+      const getProductRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ images: mockupImagePayload }),
-        }
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
       );
+      
+      if (getProductRes.ok) {
+        const currentProduct = await getProductRes.json();
+        const currentImages = currentProduct.images || [];
+        console.log(`Product currently has ${currentImages.length} images (auto-generated). Replacing with ${mockupImagePayload.length} AI mockups...`);
+        
+        // PUT with ONLY our mockup images — this replaces the entire images array
+        // We need to use the uploaded image IDs, not src URLs
+        const replacementImages = uploadedMockups.map((m, idx) => {
+          const variantIds = filteredVariants
+            .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
+            .map((v: any) => v.id);
+          return {
+            src: m.previewUrl,
+            variant_ids: variantIds,
+            position: "front",
+            is_default: idx === 0,
+            is_selected_for_publishing: true,
+          };
+        });
 
-      if (imgUpdateRes.ok) {
-        const imgResult = await imgUpdateRes.json();
-        console.log(`Images updated! Product now has ${imgResult.images?.length || 0} images`);
-      } else {
-        const errText = await imgUpdateRes.text();
-        console.error(`Image update failed (${imgUpdateRes.status}): ${errText}`);
+        console.log(`Replacement image payload: ${JSON.stringify(replacementImages.map((i: any) => ({ src: i.src?.substring(0, 80), variants: i.variant_ids?.length, is_default: i.is_default })))}`);
+        
+        const imgUpdateRes = await fetch(
+          `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${printifyToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ images: replacementImages }),
+          }
+        );
+
+        if (imgUpdateRes.ok) {
+          const imgResult = await imgUpdateRes.json();
+          console.log(`Images replaced! Product now has ${imgResult.images?.length || 0} images (was ${currentImages.length})`);
+        } else {
+          const errText = await imgUpdateRes.text();
+          console.error(`Image replacement failed (${imgUpdateRes.status}): ${errText}`);
+        }
       }
     }
 
