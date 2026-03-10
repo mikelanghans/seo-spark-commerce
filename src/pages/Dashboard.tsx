@@ -382,14 +382,20 @@ const Dashboard = () => {
 
   const [generatingAll, setGeneratingAll] = useState(false);
   const [genAllProgress, setGenAllProgress] = useState({ done: 0, total: 0 });
+  const cancelGenAllRef = useRef(false);
 
   const handleGenerateAllListings = async () => {
     if (!selectedOrg || products.length === 0) return;
+    cancelGenAllRef.current = false;
     setGeneratingAll(true);
     setGenAllProgress({ done: 0, total: products.length });
 
     let successCount = 0;
     for (let i = 0; i < products.length; i++) {
+      if (cancelGenAllRef.current) {
+        toast.info(`Cancelled after ${successCount} products`);
+        break;
+      }
       const product = products[i];
       setGenAllProgress({ done: i, total: products.length });
       try {
@@ -425,7 +431,6 @@ const Dashboard = () => {
         toast.error(`Failed: ${product.title}`);
       }
 
-      // Small delay to avoid rate limits
       if (i < products.length - 1) {
         await new Promise((r) => setTimeout(r, 1500));
       }
@@ -433,7 +438,9 @@ const Dashboard = () => {
 
     setGenAllProgress({ done: products.length, total: products.length });
     setGeneratingAll(false);
-    toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    if (!cancelGenAllRef.current) {
+      toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    }
   };
 
   return (
