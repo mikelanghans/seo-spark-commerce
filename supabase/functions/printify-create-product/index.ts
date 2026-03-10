@@ -157,20 +157,25 @@ serve(async (req) => {
     // Step 3: Build the product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
 
+    // For Printify updates: ALL variants must be in print_areas.variant_ids
+    // Use is_enabled to control which are active
+    const allVariantIds = allVariants.map((v: any) => v.id);
+    const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
+
     const productPayload: any = {
       title,
       description: description || "",
       tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
       blueprint_id: bpId,
       print_provider_id: ppId,
-      variants: filteredVariants.map((v: any) => ({
+      variants: allVariants.map((v: any) => ({
         id: v.id,
         price: priceInCents,
-        is_enabled: true,
+        is_enabled: filteredVariantIds.has(v.id),
       })),
       print_areas: [
         {
-          variant_ids: filteredVariants.map((v: any) => v.id),
+          variant_ids: allVariantIds,
           placeholders: [
             {
               position: "front",
