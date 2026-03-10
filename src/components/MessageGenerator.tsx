@@ -71,7 +71,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             tone: organization.tone,
             audience: organization.audience,
           },
-          count: 10,
+          count: generateCount,
         },
       });
 
