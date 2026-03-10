@@ -22,6 +22,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  printify_product_id?: string | null;
 }
 
 interface Listing {
@@ -179,8 +180,9 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
         )
         .map((m) => ({ colorName: m.color_name, imageUrl: m.image_url }));
 
-      // Step 3: Create product on Printify
-      toast.info("Creating product on Printify...");
+      // Step 3: Create or update product on Printify
+      const isUpdate = !!product.printify_product_id;
+      toast.info(isUpdate ? "Updating product on Printify..." : "Creating product on Printify...");
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
         body: {
@@ -193,6 +195,8 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
           selectedSizes,
           price: product.price,
           mockupImages,
+          productId: product.id,
+          printifyProductId: product.printify_product_id,
         },
       });
 
@@ -201,7 +205,10 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
 
       setResult({ success: true });
       setOpen(false);
-      toast.success(`Product created on Printify with ${data.variantCount} variants!`);
+      toast.success(isUpdate 
+        ? `Product updated on Printify with ${data.variantCount} variants!`
+        : `Product created on Printify with ${data.variantCount} variants!`
+      );
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Printify");
       setResult(null);
@@ -223,7 +230,7 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
         ) : (
           <Printer className="h-4 w-4" />
         )}
-        {result?.success ? "Pushed!" : "Push to Printify"}
+        {result?.success ? "Pushed!" : product.printify_product_id ? "Update on Printify" : "Push to Printify"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -354,12 +361,12 @@ export const PushToPrintify = ({ product, listings, userId }: Props) => {
               {pushing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Creating product...
+                  {product.printify_product_id ? "Updating product..." : "Creating product..."}
                 </>
               ) : (
                 <>
                   <Printer className="h-4 w-4" />
-                  Create on Printify
+                  {product.printify_product_id ? "Update on Printify" : "Create on Printify"}
                 </>
               )}
             </Button>
