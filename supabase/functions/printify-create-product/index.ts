@@ -29,7 +29,7 @@ serve(async (req) => {
 
     const {
       shopId, title, description, tags, printifyImageId,
-      selectedColors, selectedSizes, price, mockupImages,
+      selectedColors, selectedSizes, price,
       blueprintId, printProviderId, productId, printifyProductId,
     } = await req.json();
 
@@ -121,41 +121,8 @@ serve(async (req) => {
       throw new Error("No matching variants. Available: " + availColors.slice(0, 15).join(", "));
     }
 
-    // Upload mockup images
-    const uploadedMockups: { colorName: string; printifyImageId: string; previewUrl: string }[] = [];
-    if (mockupImages?.length > 0) {
-      console.log(`Uploading ${mockupImages.length} mockup images...`);
-      for (const mockup of mockupImages) {
-        try {
-          const uploadRes = await fetch("https://api.printify.com/v1/uploads/images.json", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${printifyToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              file_name: `mockup-${mockup.printifyColorName}.png`,
-              url: mockup.imageUrl,
-            }),
-          });
-
-          if (uploadRes.ok) {
-            const uploaded = await uploadRes.json();
-            uploadedMockups.push({
-              colorName: mockup.printifyColorName,
-              printifyImageId: uploaded.id,
-              previewUrl: uploaded.preview_url || "",
-            });
-            console.log(`Uploaded mockup ${mockup.printifyColorName}: id=${uploaded.id}`);
-          } else {
-            const errText = await uploadRes.text();
-            console.error(`Mockup upload failed ${mockup.printifyColorName} (${uploadRes.status}): ${errText}`);
-          }
-        } catch (err) {
-          console.error(`Mockup upload error ${mockup.printifyColorName}:`, err);
-        }
-      }
-    }
+    // Note: Printify auto-generates mockups from print_areas design.
+    // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
     // Build product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
@@ -309,68 +276,15 @@ serve(async (req) => {
         await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
       }
     }
-
-    // Step 2: Replace ALL product images with ONLY our AI mockups
-    // Printify auto-generates mockups from the design — we need to replace them
-    const finalProductId = createdProduct.id || dbPrintifyProductId;
-    if (uploadedMockups.length > 0 && finalProductId) {
-      // GET current product to find auto-generated image IDs we need to remove
-      const getProductRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
-      );
-      
-      if (getProductRes.ok) {
-        const currentProduct = await getProductRes.json();
-        const currentImages = currentProduct.images || [];
-        console.log(`Product has ${currentImages.length} current images. Our uploads: ${uploadedMockups.length}`);
-        
-        // Build new images array using our uploaded Printify image IDs
-        const newImages = uploadedMockups.map((m, idx) => {
-          const variantIds = filteredVariants
-            .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
-            .map((v: any) => v.id);
-          return {
-            id: m.printifyImageId,
-            variant_ids: variantIds,
-            position: "front",
-            is_default: idx === 0,
-            is_selected_for_publishing: true,
-          };
-        });
-
-        console.log(`Setting images with IDs: ${JSON.stringify(newImages.map(i => ({ id: i.id, variants: i.variant_ids.length, is_default: i.is_default })))}`);
-        
-        // PUT with ONLY our images — using 'id' field (not 'src') to reference uploaded images
-        const imgUpdateRes = await fetch(
-          `https://api.printify.com/v1/shops/${shopId}/products/${finalProductId}.json`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${printifyToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ images: newImages }),
-          }
-        );
-
-        if (imgUpdateRes.ok) {
-          const imgResult = await imgUpdateRes.json();
-          const resultImageIds = (imgResult.images || []).map((i: any) => i.id || i.src?.substring(0, 40));
-          console.log(`After update: ${imgResult.images?.length} images. IDs: ${JSON.stringify(resultImageIds.slice(0, 8))}`);
-        } else {
-          const errText = await imgUpdateRes.text();
-          console.error(`Image update failed (${imgUpdateRes.status}): ${errText}`);
-        }
-      }
-    }
+    // Printify auto-generates mockups from print_areas — cannot be replaced via API.
+    // AI mockups are used on the Shopify storefront instead.
 
     return new Response(JSON.stringify({
       success: true,
       variantCount: filteredVariants.length,
       updated: !didCreate,
       printifyProductId: createdProduct.id,
-      mockupsUploaded: uploadedMockups.length,
+      mockupsUploaded: 0,
       matchedColors,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
