@@ -534,40 +534,38 @@ const Dashboard = () => {
                 {orgs.map((org) => (
                   <div
                     key={org.id}
-                    className="group relative cursor-pointer rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+                    className="group relative cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
                     onClick={() => handleSelectOrg(org)}
                   >
-                    <div className="flex items-start justify-between">
-                       <div className="flex items-center gap-4">
-                        {org.logo_url ? (
-                          <img src={org.logo_url} alt={org.name} className="h-16 w-16 rounded-xl object-cover border border-border shrink-0" />
-                        ) : (
-                          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xl shrink-0">
-                            {org.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <h3 className="font-semibold text-lg">{org.name}</h3>
-                          <p className="mt-0.5 text-sm text-muted-foreground">{org.niche}</p>
-                        </div>
-                      </div>
+                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditOrg(org); }}
-                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id); }}
-                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                    <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-                      <span>Tone: {org.tone}</span>
-                      <span>•</span>
-                      <span>Audience: {org.audience}</span>
+                    <div className="flex gap-4">
+                      {org.logo_url ? (
+                        <img src={org.logo_url} alt={org.name} className="h-20 w-20 rounded-xl object-cover border border-border shrink-0" />
+                      ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-2xl shrink-0">
+                          {org.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-lg leading-tight">{org.name}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{org.niche}</p>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>{org.tone}</span>
+                          <span>•</span>
+                          <span className="truncate">{org.audience}</span>
                     </div>
                   </div>
                 ))}
