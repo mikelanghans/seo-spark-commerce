@@ -276,6 +276,22 @@ export const SwipeableMessageCard = ({
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
+          {!hasProduct && !isEditing && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={isRefining}
+              onClick={() => setShowRefine(!showRefine)}
+              title="Regenerate with feedback"
+            >
+              {isRefining ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageSquare className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
           {!hasProduct && (
             <Button
               variant="ghost"
@@ -296,6 +312,47 @@ export const SwipeableMessageCard = ({
           )}
         </div>
       </div>
+
+      {/* Refine feedback panel */}
+      {showRefine && (
+        <div className="mt-1 rounded-lg border border-border bg-card p-3 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            What should change? (e.g. "make it shorter", "more sarcastic", "less aggressive")
+          </p>
+          <Textarea
+            value={refineFeedback}
+            onChange={(e) => setRefineFeedback(e.target.value)}
+            placeholder="Your feedback..."
+            className="min-h-[60px] text-sm"
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowRefine(false);
+                setRefineFeedback("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={!refineFeedback.trim() || isRefining}
+              onClick={() => {
+                onRefine(id, refineFeedback.trim());
+                setShowRefine(false);
+                setRefineFeedback("");
+              }}
+              className="gap-1"
+            >
+              {isRefining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Regenerate
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
