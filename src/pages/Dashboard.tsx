@@ -359,14 +359,18 @@ const Dashboard = () => {
   };
 
   const [importingShopify, setImportingShopify] = useState(false);
+  const importAbortRef = useRef<AbortController | null>(null);
 
   const handleImportFromShopify = async () => {
     if (!selectedOrg) return;
+    const controller = new AbortController();
+    importAbortRef.current = controller;
     setImportingShopify(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-shopify-catalog", {
         body: { organizationId: selectedOrg.id },
       });
+      if (controller.signal.aborted) return;
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
@@ -374,10 +378,20 @@ const Dashboard = () => {
       toast.success(`Imported ${imported} new, updated ${updated} existing — ${total} total from Shopify`);
       await loadProducts(selectedOrg.id);
     } catch (err: any) {
+      if (controller.signal.aborted) {
+        toast.info("Import cancelled");
+        return;
+      }
       toast.error(err.message || "Failed to import from Shopify");
     } finally {
       setImportingShopify(false);
+      importAbortRef.current = null;
     }
+  };
+
+  const handleCancelImport = () => {
+    importAbortRef.current?.abort();
+    setImportingShopify(false);
   };
 
   const [generatingAll, setGeneratingAll] = useState(false);
