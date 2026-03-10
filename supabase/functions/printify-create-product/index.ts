@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Default blueprint: Comfort Colors 1717 Unisex Garment-Dyed T-shirt
 const DEFAULT_BLUEPRINT_ID = 706;
 
 serve(async (req) => {
@@ -53,7 +52,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Always read the latest printify_product_id from DB
+    // Read latest printify_product_id from DB
     let dbPrintifyProductId = printifyProductId || null;
     if (productId) {
       const { data: dbProduct } = await adminClient
@@ -63,80 +62,59 @@ serve(async (req) => {
         .single();
       if (dbProduct?.printify_product_id) {
         dbPrintifyProductId = dbProduct.printify_product_id;
-        console.log(`DB has printify_product_id: ${dbPrintifyProductId}`);
+        console.log(`DB printify_product_id: ${dbPrintifyProductId}`);
       }
     }
 
     const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
     let ppId = printProviderId;
 
-    // If no print provider specified, fetch available ones
     if (!ppId) {
       const providersRes = await fetch(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
         { headers: { Authorization: `Bearer ${printifyToken}` } }
       );
-      if (!providersRes.ok) {
-        const text = await providersRes.text();
-        throw new Error(`Failed to get print providers (${providersRes.status}): ${text}`);
-      }
+      if (!providersRes.ok) throw new Error(`Failed to get providers (${providersRes.status})`);
       const providers = await providersRes.json();
-      if (!providers.length) throw new Error(`No print providers for blueprint ${bpId}`);
-      ppId = providers.find((p: any) => p.id === 99)?.id || providers[0].id;
-      console.log(`Auto-selected print provider ${ppId}`);
+      ppId = providers.find((p: any) => p.id === 99)?.id || providers[0]?.id;
+      if (!ppId) throw new Error("No print providers found");
     }
 
-    // Get available variants for this blueprint + print provider
+    // Get all available variants
     const variantsRes = await fetch(
       `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
       { headers: { Authorization: `Bearer ${printifyToken}` } }
     );
-    if (!variantsRes.ok) {
-      const text = await variantsRes.text();
-      throw new Error(`Failed to get variants (${variantsRes.status}): ${text}`);
-    }
-
+    if (!variantsRes.ok) throw new Error(`Failed to get variants (${variantsRes.status})`);
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
-    // STRICT color matching — exact match on Printify's color option only
-    const colorMatchesVariant = (colorName: string, variant: any): boolean => {
-      const c = colorName.toLowerCase().trim();
-      const vColor = (variant.options?.color || "").toLowerCase().trim();
-      return vColor === c;
-    };
-
-    // Filter variants by EXACT color name match and size
+    // STRICT exact color matching — selectedColors are already Printify's exact names
     const filteredVariants = allVariants.filter((v: any) => {
+      const vColor = (v.options?.color || "").trim();
+      const vSize = (v.options?.size || "").trim();
       const colorMatch = !selectedColors?.length || selectedColors.some(
-        (c: string) => colorMatchesVariant(c, v)
+        (c: string) => c.toLowerCase() === vColor.toLowerCase()
       );
       const sizeMatch = !selectedSizes?.length || selectedSizes.some(
-        (s: string) => {
-          const vSize = (v.options?.size || "").toLowerCase().trim();
-          return vSize === s.toLowerCase().trim();
-        }
+        (s: string) => s.toLowerCase() === vSize.toLowerCase()
       );
       return colorMatch && sizeMatch;
     });
 
-    console.log(`Color matching: selected=${JSON.stringify(selectedColors)}, matched ${filteredVariants.length} of ${allVariants.length} variants`);
-
-    // Log a sample of matched variant colors for debugging
     const matchedColors = [...new Set(filteredVariants.map((v: any) => v.options?.color))];
-    console.log(`Matched Printify colors: ${JSON.stringify(matchedColors)}`);
+    console.log(`Selected: ${JSON.stringify(selectedColors)}`);
+    console.log(`Matched ${filteredVariants.length} variants, colors: ${JSON.stringify(matchedColors)}`);
 
     if (filteredVariants.length === 0) {
-      // Log available colors to help debug
       const availColors = [...new Set(allVariants.map((v: any) => v.options?.color))];
-      console.log(`Available Printify colors: ${JSON.stringify(availColors)}`);
-      throw new Error("No matching variants found. Available colors: " + availColors.join(", "));
+      throw new Error("No matching variants. Available: " + availColors.slice(0, 20).join(", "));
     }
 
     // Upload mockup images to Printify
     const uploadedMockups: { colorName: string; printifyImageId: string; previewUrl: string }[] = [];
     if (mockupImages?.length > 0) {
-      console.log(`Uploading ${mockupImages.length} mockup images to Printify...`);
+      console.log(`Uploading ${mockupImages.length} mockup images...`);
       for (const mockup of mockupImages) {
         try {
           const uploadRes = await fetch("https://api.printify.com/v1/uploads/images.json", {
@@ -146,34 +124,32 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              file_name: `mockup-${mockup.colorName}.png`,
+              file_name: `mockup-${mockup.printifyColorName || mockup.colorName}.png`,
               url: mockup.imageUrl,
             }),
           });
 
           if (uploadRes.ok) {
-            const uploadedImage = await uploadRes.json();
+            const uploaded = await uploadRes.json();
             uploadedMockups.push({
-              colorName: mockup.colorName,
-              printifyImageId: uploadedImage.id,
-              previewUrl: uploadedImage.preview_url || mockup.imageUrl,
+              colorName: mockup.printifyColorName || mockup.colorName,
+              printifyImageId: uploaded.id,
+              previewUrl: uploaded.preview_url || "",
             });
-            console.log(`Uploaded mockup for ${mockup.colorName}: ${uploadedImage.id}`);
+            console.log(`Uploaded mockup for ${mockup.printifyColorName}: id=${uploaded.id}, preview=${uploaded.preview_url}`);
           } else {
             const errText = await uploadRes.text();
-            console.error(`Failed to upload mockup for ${mockup.colorName} (${uploadRes.status}): ${errText}`);
+            console.error(`Mockup upload failed for ${mockup.printifyColorName} (${uploadRes.status}): ${errText}`);
           }
         } catch (err) {
-          console.error(`Failed to upload mockup for ${mockup.colorName}:`, err);
+          console.error(`Mockup upload error for ${mockup.printifyColorName}:`, err);
         }
       }
-      console.log(`Successfully uploaded ${uploadedMockups.length}/${mockupImages.length} mockups`);
+      console.log(`Uploaded ${uploadedMockups.length}/${mockupImages.length} mockups`);
     }
 
-    // Build the product payload
+    // Build product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
-
-    // ALL variants must be in print_areas, use is_enabled to control which are active
     const allVariantIds = allVariants.map((v: any) => v.id);
     const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
 
@@ -209,33 +185,36 @@ serve(async (req) => {
       ],
     };
 
-    // Add mockup images to the product
+    // Add mockup images to product
     if (uploadedMockups.length > 0) {
-      productPayload.images = uploadedMockups.map((m, idx) => ({
-        src: m.previewUrl, // Use the preview URL, not the ID
-        variant_ids: filteredVariants
-          .filter((v: any) => colorMatchesVariant(m.colorName, v))
-          .map((v: any) => v.id),
-        position: "front",
-        is_default: idx === 0,
-      }));
+      productPayload.images = uploadedMockups.map((m, idx) => {
+        const variantIds = filteredVariants
+          .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
+          .map((v: any) => v.id);
+        return {
+          src: m.printifyImageId, // Printify image ID as src
+          variant_ids: variantIds,
+          position: "front",
+          is_default: idx === 0,
+        };
+      });
+      console.log(`Product images: ${JSON.stringify(productPayload.images.map((i: any) => ({ src: i.src, variants: i.variant_ids.length })))}`);
     }
 
-    // Try update first, then create
+    // Create or update
     let createdProduct: any;
     let didCreate = false;
 
     if (dbPrintifyProductId) {
-      // Verify the product still exists on Printify before trying to update
-      console.log(`Checking if Printify product ${dbPrintifyProductId} exists...`);
+      // Check if product still exists
+      console.log(`Checking product ${dbPrintifyProductId}...`);
       const checkRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
         { headers: { Authorization: `Bearer ${printifyToken}` } }
       );
 
       if (checkRes.ok) {
-        // Product exists — do a full PUT with all fields
-        console.log(`Product exists, attempting PUT update...`);
+        console.log(`Product exists, sending PUT update...`);
         const updateRes = await fetch(
           `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
           {
@@ -250,31 +229,22 @@ serve(async (req) => {
 
         if (updateRes.ok) {
           createdProduct = await updateRes.json();
-          console.log(`Successfully updated Printify product: ${dbPrintifyProductId}`);
+          console.log(`Updated product: ${dbPrintifyProductId}`);
         } else {
           const errText = await updateRes.text();
           console.error(`PUT failed (${updateRes.status}): ${errText}`);
-          // Clear stale ID so we don't keep trying
-          dbPrintifyProductId = null;
         }
       } else {
-        console.log(`Product ${dbPrintifyProductId} not found on Printify (${checkRes.status}), clearing stale ID`);
-        // Clear the stale printify_product_id from DB
+        console.log(`Product ${dbPrintifyProductId} gone (${checkRes.status}), clearing`);
         if (productId) {
-          await adminClient
-            .from("products")
-            .update({ printify_product_id: null })
-            .eq("id", productId);
+          await adminClient.from("products").update({ printify_product_id: null }).eq("id", productId);
         }
         dbPrintifyProductId = null;
       }
     }
 
-    // Create new if update didn't work
     if (!createdProduct) {
-      console.log("Creating new Printify product...");
-      console.log(`Payload variants: ${productPayload.variants.filter((v: any) => v.is_enabled).length} enabled of ${productPayload.variants.length} total`);
-      
+      console.log(`Creating new product (${filteredVariants.length} enabled variants)...`);
       const createRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products.json`,
         {
@@ -294,21 +264,16 @@ serve(async (req) => {
 
       createdProduct = await createRes.json();
       didCreate = true;
-      console.log(`Created new Printify product: ${createdProduct.id}`);
+      console.log(`Created product: ${createdProduct.id}`);
 
-      // Save printify_product_id back to our database
       if (createdProduct.id && productId) {
-        await adminClient
-          .from("products")
-          .update({ printify_product_id: createdProduct.id })
-          .eq("id", productId);
-        console.log(`Saved printify_product_id ${createdProduct.id} to DB`);
+        await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
+        console.log(`Saved printify_product_id: ${createdProduct.id}`);
       }
     }
 
     return new Response(JSON.stringify({
       success: true,
-      product: createdProduct,
       variantCount: filteredVariants.length,
       updated: !didCreate,
       printifyProductId: createdProduct.id,
