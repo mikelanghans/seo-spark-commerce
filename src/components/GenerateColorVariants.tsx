@@ -129,10 +129,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
             reader.readAsDataURL(blob);
           });
         } else {
-          console.warn("Design image URL returned non-image content, skipping");
+          toast.error("Design image URL is broken or expired. Please re-upload the design image, then try again.");
+          setGenerating(false);
+          return;
         }
       } catch {
-        console.warn("Could not load design image, proceeding without it");
+        toast.error("Failed to load design image. Please re-upload it, then try again.");
+        setGenerating(false);
+        return;
       }
     }
     let successCount = 0;
