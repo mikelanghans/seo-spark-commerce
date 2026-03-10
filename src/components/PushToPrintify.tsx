@@ -47,8 +47,9 @@ interface Props {
 }
 
 const AVAILABLE_COLORS = [
-  "Black", "White", "Navy", "Red", "Royal Blue", "Sport Grey",
-  "Dark Heather", "Charcoal", "Forest Green", "Maroon",
+  "Black", "White", "Navy", "True Navy", "Red", "Graphite",
+  "Moss", "Grass", "Blue Jean", "Royal Caribe",
+  "Pepper", "Crimson", "Midnight", "Denim",
 ];
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
@@ -60,7 +61,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
   const [shops, setShops] = useState<{ id: number; title: string }[]>([]);
   const [selectedShop, setSelectedShop] = useState<number | null>(null);
   const [loadingShops, setLoadingShops] = useState(false);
-  const [selectedColors, setSelectedColors] = useState<string[]>(["Black", "White"]);
+  const [selectedColors, setSelectedColors] = useState<string[]>(["Black"]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>(["S", "M", "L", "XL"]);
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [loadingMockups, setLoadingMockups] = useState(false);

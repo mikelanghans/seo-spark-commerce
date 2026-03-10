@@ -101,11 +101,39 @@ serve(async (req) => {
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
+    // Color name aliases for matching our names to Printify's Comfort Colors names
+    const COLOR_ALIASES: Record<string, string[]> = {
+      "navy blue": ["navy", "true navy"],
+      "forest green": ["moss", "grass", "blue spruce"],
+      "royal blue": ["royal caribe", "flo blue"],
+      "dark heather": ["graphite", "pepper"],
+      "charcoal": ["graphite", "pepper"],
+      "sport grey": ["grey"],
+      "maroon": ["chili", "vineyard", "berry"],
+    };
+
+    const colorMatchesVariant = (colorName: string, variant: any): boolean => {
+      const c = colorName.toLowerCase();
+      const vColor = (variant.options?.color || "").toLowerCase();
+      const vTitle = (variant.title || "").toLowerCase();
+      
+      // Direct match
+      if (vColor === c || vTitle.includes(c)) return true;
+      
+      // Alias match
+      const aliases = COLOR_ALIASES[c];
+      if (aliases) {
+        return aliases.some(alias => vColor === alias || vTitle.includes(alias));
+      }
+      
+      // Reverse: check if variant color matches any alias of our color
+      return vColor.includes(c) || c.includes(vColor);
+    };
+
     // Filter variants by selected colors and sizes
     const filteredVariants = allVariants.filter((v: any) => {
       const colorMatch = !selectedColors?.length || selectedColors.some(
-        (c: string) => v.options?.color?.toLowerCase() === c.toLowerCase() ||
-                       v.title?.toLowerCase().includes(c.toLowerCase())
+        (c: string) => colorMatchesVariant(c, v)
       );
       const sizeMatch = !selectedSizes?.length || selectedSizes.some(
         (s: string) => v.options?.size?.toLowerCase() === s.toLowerCase() ||
@@ -199,10 +227,7 @@ serve(async (req) => {
       productPayload.images = uploadedMockups.map((m, idx) => ({
         src: m.printifyImageId,
         variant_ids: filteredVariants
-          .filter((v: any) =>
-            v.options?.color?.toLowerCase() === m.colorName.toLowerCase() ||
-            v.title?.toLowerCase().includes(m.colorName.toLowerCase())
-          )
+          .filter((v: any) => colorMatchesVariant(m.colorName, v))
           .map((v: any) => v.id),
         position: idx === 0 ? "default" : undefined,
         is_default: idx === 0,
@@ -214,6 +239,17 @@ serve(async (req) => {
     let didCreate = false;
 
     if (dbPrintifyProductId) {
+      // For updates: only change metadata + images, don't touch variants/print_areas
+      // (Printify rejects variant changes on existing products)
+      const updatePayload: any = {
+        title,
+        description: description || "",
+        tags: productPayload.tags,
+      };
+      if (productPayload.images) {
+        updatePayload.images = productPayload.images;
+      }
+
       console.log(`Attempting PUT update for Printify product: ${dbPrintifyProductId}`);
       const updateRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
@@ -223,7 +259,7 @@ serve(async (req) => {
             Authorization: `Bearer ${printifyToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(productPayload),
+          body: JSON.stringify(updatePayload),
         }
       );
 
