@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
