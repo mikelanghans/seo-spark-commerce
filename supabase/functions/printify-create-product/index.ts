@@ -284,7 +284,7 @@ serve(async (req) => {
       variantCount: filteredVariants.length,
       updated: !didCreate,
       printifyProductId: createdProduct.id,
-      mockupsUploaded: uploadedMockups.length,
+      mockupsUploaded: 0,
       matchedColors,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
