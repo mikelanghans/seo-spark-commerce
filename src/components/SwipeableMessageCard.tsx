@@ -31,9 +31,13 @@ export const SwipeableMessageCard = ({
   disableDesignActions,
   onKeep,
   onDiscard,
+  onEdit,
   onGenerateDesign,
   onPreviewDesign,
 }: SwipeableMessageCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(messageText);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
