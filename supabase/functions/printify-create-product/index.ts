@@ -50,7 +50,23 @@ serve(async (req) => {
       throw new Error("shopId, title, and printifyImageId are required");
     }
 
-    const isUpdate = !!printifyProductId;
+    // Always read the latest printify_product_id from DB (client may have stale data)
+    let dbPrintifyProductId = printifyProductId || null;
+    if (productId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: dbProduct } = await adminClient
+        .from("products")
+        .select("printify_product_id")
+        .eq("id", productId)
+        .single();
+      if (dbProduct?.printify_product_id) {
+        dbPrintifyProductId = dbProduct.printify_product_id;
+        console.log(`DB has printify_product_id: ${dbPrintifyProductId}`);
+      }
+    }
 
     const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
     let ppId = printProviderId;
