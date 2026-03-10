@@ -410,19 +410,24 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
 
           <div className="flex gap-2 flex-wrap">
             {needsDesignCount > 0 && (
-              <Button
-                onClick={handleGenerateKeptDesigns}
-                disabled={!!generatingDesignId}
-                variant="secondary"
-                className="gap-2"
-              >
-                {generatingDesignId ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+              generatingDesignId ? (
+                <Button
+                  onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); }}
+                  variant="destructive"
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" /> Cancel Designs
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleGenerateKeptDesigns}
+                  variant="secondary"
+                  className="gap-2"
+                >
                   <Paintbrush className="h-4 w-4" />
-                )}
-                Generate {needsDesignCount} Design{needsDesignCount > 1 ? "s" : ""}
-              </Button>
+                  Generate {needsDesignCount} Design{needsDesignCount > 1 ? "s" : ""}
+                </Button>
+              )
             )}
             {readyForProductCount > 0 && onCreateProduct && (
               <Button onClick={handleCreateProducts} className="gap-2">
