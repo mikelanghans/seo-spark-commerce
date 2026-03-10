@@ -190,6 +190,8 @@ const Dashboard = () => {
     setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
+    setOrgLogoFile(null);
+    setOrgLogoPreview(null);
     setView("orgs");
     loadOrgs();
   };
