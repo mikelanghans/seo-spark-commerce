@@ -420,6 +420,54 @@ export type Database = {
         }
         Relationships: []
       }
+      social_posts: {
+        Row: {
+          caption: string
+          created_at: string
+          hashtags: Json
+          id: string
+          organization_id: string
+          platform: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          hashtags?: Json
+          id?: string
+          organization_id: string
+          platform: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          hashtags?: Json
+          id?: string
+          organization_id?: string
+          platform?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

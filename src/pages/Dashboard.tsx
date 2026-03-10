@@ -17,8 +17,9 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { TeamManager } from "@/components/TeamManager";
+import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -750,6 +751,9 @@ const Dashboard = () => {
                 <TabsTrigger value="products" className="gap-2">
                   <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
+                <TabsTrigger value="social" className="gap-2">
+                  <Share2 className="h-4 w-4" /> Social Posts
+                </TabsTrigger>
                 <TabsTrigger value="team" className="gap-2">
                   <Users className="h-4 w-4" /> Team
                 </TabsTrigger>
@@ -776,6 +780,16 @@ const Dashboard = () => {
                       });
                       setView("product-form");
                     }}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="social" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <SocialPostGenerator
+                    organization={selectedOrg}
+                    products={products}
+                    userId={user!.id}
                   />
                 </div>
               </TabsContent>
