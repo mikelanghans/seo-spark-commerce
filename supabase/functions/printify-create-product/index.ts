@@ -139,29 +139,9 @@ serve(async (req) => {
     };
 
     let createdProduct: any;
+    let didCreate = false;
 
-    if (isUpdate) {
-      // Update existing product
-      const updateRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productPayload),
-        }
-      );
-
-      if (!updateRes.ok) {
-        const text = await updateRes.text();
-        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
-      }
-
-      createdProduct = await updateRes.json();
-    } else {
-      // Create new product
+    const createNewProduct = async () => {
       const createRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products.json`,
         {
@@ -179,19 +159,51 @@ serve(async (req) => {
         throw new Error(`Failed to create product (${createRes.status}): ${text}`);
       }
 
-      createdProduct = await createRes.json();
+      const product = await createRes.json();
+      didCreate = true;
 
       // Save printify_product_id back to our database
-      if (createdProduct.id && productId) {
+      if (product.id && productId) {
         const adminClient = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
         await adminClient
           .from("products")
-          .update({ printify_product_id: createdProduct.id })
+          .update({ printify_product_id: product.id })
           .eq("id", productId);
       }
+
+      return product;
+    };
+
+    if (isUpdate) {
+      // Try to update existing product
+      const updateRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
+        }
+      );
+
+      if (updateRes.ok) {
+        createdProduct = await updateRes.json();
+      } else if (updateRes.status === 404) {
+        // Product no longer exists on Printify, fall back to create
+        console.log("Printify product not found, creating new one instead");
+        await updateRes.text(); // consume body
+        createdProduct = await createNewProduct();
+      } else {
+        const text = await updateRes.text();
+        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
+      }
+    } else {
+      createdProduct = await createNewProduct();
     }
 
     // Step 4: Replace mockup images if provided
@@ -261,7 +273,7 @@ serve(async (req) => {
       success: true, 
       product: createdProduct,
       variantCount: filteredVariants.length,
-      updated: isUpdate,
+      updated: isUpdate && !didCreate,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
