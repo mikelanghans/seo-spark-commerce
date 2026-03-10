@@ -255,6 +255,20 @@ export const SwipeableMessageCard = ({
               <Eye className="h-3.5 w-3.5" />
             </Button>
           )}
+          {!hasProduct && !isEditing && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setEditText(messageText);
+                setIsEditing(true);
+              }}
+              title="Edit message"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
           {!hasProduct && (
             <Button
               variant="ghost"
