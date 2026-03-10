@@ -314,10 +314,12 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       hasProduct={!!msg.product_id}
                       isKept={true}
                       isGeneratingDesign={generatingDesignId === msg.id}
+                      isRefining={refiningId === msg.id}
                       disableDesignActions={!!generatingDesignId}
                       onKeep={handleKeep}
                       onDiscard={handleDiscard}
                       onEdit={handleEdit}
+                      onRefine={handleRefine}
                       onGenerateDesign={handleGenerateDesign}
                       onPreviewDesign={handlePreviewDesign}
                     />
