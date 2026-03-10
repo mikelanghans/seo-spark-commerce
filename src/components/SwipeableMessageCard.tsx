@@ -348,6 +348,7 @@ export const SwipeableMessageCard = ({
           )}
         </div>
       </div>
+      </div>
 
       {/* Refine feedback panel - onMouseDown stopped to prevent swipe interference */}
       {showRefine && (
