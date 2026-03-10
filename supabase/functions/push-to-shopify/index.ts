@@ -49,11 +49,18 @@ serve(async (req) => {
     const isUpdate = !!existingShopifyId;
 
     // Build Shopify product payload
+    // Convert plain text to HTML paragraphs, preserving line breaks
+    const rawDesc = shopifyListing?.description || product.description || "";
+    const bodyHtml = rawDesc
+      .split(/\n\s*\n/) // split on double newlines (paragraph breaks)
+      .map((para: string) => para.trim())
+      .filter((para: string) => para.length > 0)
+      .map((para: string) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .join("\n");
+
     const shopifyProduct: Record<string, unknown> = {
       title: shopifyListing?.title || product.title,
-      body_html: shopifyListing?.description
-        ? `<p>${shopifyListing.description}</p>`
-        : `<p>${product.description}</p>`,
+      body_html: bodyHtml || `<p>${rawDesc}</p>`,
       product_type: product.category,
       tags: shopifyListing?.tags?.length
         ? shopifyListing.tags.join(", ")
