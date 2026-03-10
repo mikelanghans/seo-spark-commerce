@@ -121,41 +121,8 @@ serve(async (req) => {
       throw new Error("No matching variants. Available: " + availColors.slice(0, 15).join(", "));
     }
 
-    // Upload mockup images
-    const uploadedMockups: { colorName: string; printifyImageId: string; previewUrl: string }[] = [];
-    if (mockupImages?.length > 0) {
-      console.log(`Uploading ${mockupImages.length} mockup images...`);
-      for (const mockup of mockupImages) {
-        try {
-          const uploadRes = await fetch("https://api.printify.com/v1/uploads/images.json", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${printifyToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              file_name: `mockup-${mockup.printifyColorName}.png`,
-              url: mockup.imageUrl,
-            }),
-          });
-
-          if (uploadRes.ok) {
-            const uploaded = await uploadRes.json();
-            uploadedMockups.push({
-              colorName: mockup.printifyColorName,
-              printifyImageId: uploaded.id,
-              previewUrl: uploaded.preview_url || "",
-            });
-            console.log(`Uploaded mockup ${mockup.printifyColorName}: id=${uploaded.id}`);
-          } else {
-            const errText = await uploadRes.text();
-            console.error(`Mockup upload failed ${mockup.printifyColorName} (${uploadRes.status}): ${errText}`);
-          }
-        } catch (err) {
-          console.error(`Mockup upload error ${mockup.printifyColorName}:`, err);
-        }
-      }
-    }
+    // Note: Printify auto-generates mockups from print_areas design.
+    // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
     // Build product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
