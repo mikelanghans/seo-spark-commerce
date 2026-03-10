@@ -47,8 +47,9 @@ interface Props {
 }
 
 const AVAILABLE_COLORS = [
-  "Black", "White", "Navy", "Red", "Royal Blue", "Sport Grey",
-  "Dark Heather", "Charcoal", "Forest Green", "Maroon",
+  "Black", "White", "Navy", "True Navy", "Red", "Graphite",
+  "Moss", "Grass", "Blue Jean", "Royal Caribe",
+  "Pepper", "Crimson", "Midnight", "Denim",
 ];
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
