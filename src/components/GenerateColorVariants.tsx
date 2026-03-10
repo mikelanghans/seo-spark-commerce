@@ -16,10 +16,13 @@ interface Props {
   onComplete: () => void;
 }
 
+// Printify Comfort Colors 1717 exact color names
 const SUGGESTED_COLORS = [
-  "Black", "White", "Navy Blue", "Red", "Forest Green",
-  "Heather Gray", "Royal Blue", "Maroon", "Pink", "Sand",
+  "Black", "White", "True Navy", "Red", "Moss",
+  "Grey", "Blue Jean", "Pepper", "Island Green", "Ivory",
+  "Crimson", "Espresso", "Midnight", "Sage", "Chambray",
 ];
+
 
 export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
   const [open, setOpen] = useState(false);
