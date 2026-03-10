@@ -29,6 +29,7 @@ interface Organization {
   tone: string;
   audience: string;
   template_image_url?: string | null;
+  logo_url?: string | null;
   brand_font?: string;
   brand_color?: string;
   brand_font_size?: string;
@@ -88,6 +89,8 @@ const Dashboard = () => {
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
+  const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
+  const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
   const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
   const [productForm, setProductForm] = useState({
     title: "", description: "", keywords: "", category: "", price: "", features: "",
@@ -165,9 +168,14 @@ const Dashboard = () => {
     if (orgTemplateFile) {
       templateUrl = await uploadImageToStorage(orgTemplateFile);
     }
+    let logoUrl: string | null | undefined = undefined;
+    if (orgLogoFile) {
+      logoUrl = await uploadImageToStorage(orgLogoFile);
+    }
 
     const payload: any = { ...orgForm };
     if (templateUrl !== undefined) payload.template_image_url = templateUrl;
+    if (logoUrl !== undefined) payload.logo_url = logoUrl;
 
     if (editingOrg) {
       const { error } = await supabase.from("organizations").update(payload).eq("id", editingOrg.id);
@@ -182,6 +190,8 @@ const Dashboard = () => {
     setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
+    setOrgLogoFile(null);
+    setOrgLogoPreview(null);
     setView("orgs");
     loadOrgs();
   };
@@ -191,6 +201,8 @@ const Dashboard = () => {
     setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "" });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
+    setOrgLogoPreview(org.logo_url || null);
+    setOrgLogoFile(null);
     setView("org-form");
   };
 
@@ -200,6 +212,15 @@ const Dashboard = () => {
     setOrgTemplateFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setOrgLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setOrgLogoPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
@@ -517,9 +538,18 @@ const Dashboard = () => {
                     onClick={() => handleSelectOrg(org)}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold">{org.name}</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">{org.niche}</p>
+                      <div className="flex items-center gap-3">
+                        {org.logo_url ? (
+                          <img src={org.logo_url} alt={org.name} className="h-10 w-10 rounded-lg object-cover border border-border" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">
+                            {org.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{org.name}</h3>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{org.niche}</p>
+                        </div>
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditOrg(org); }}
@@ -550,7 +580,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" }); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -579,6 +609,29 @@ const Dashboard = () => {
                 <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
                 <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
               </div>
+            </div>
+
+            {/* Brand Logo */}
+            <div className="space-y-2">
+              <Label>Brand Logo (optional)</Label>
+              <p className="text-xs text-muted-foreground">Displayed on your brand tile for quick identification</p>
+              <input type="file" accept="image/*" onChange={handleOrgLogoUpload} className="hidden" id="org-logo-image" />
+              {orgLogoPreview ? (
+                <div className="flex items-center gap-4">
+                  <img src={orgLogoPreview} alt="Logo" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                  <label htmlFor="org-logo-image" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+                    Change logo
+                  </label>
+                </div>
+              ) : (
+                <label
+                  htmlFor="org-logo-image"
+                  className="flex w-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-card/50 py-4 transition-colors hover:border-primary/50"
+                >
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <p className="text-xs font-medium">Upload logo</p>
+                </label>
+              )}
             </div>
 
             {/* Brand Design Styling */}

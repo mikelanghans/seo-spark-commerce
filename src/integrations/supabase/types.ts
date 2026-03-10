@@ -245,6 +245,7 @@ export type Database = {
           brand_style_notes: string
           created_at: string
           id: string
+          logo_url: string | null
           name: string
           niche: string
           template_image_url: string | null
@@ -260,6 +261,7 @@ export type Database = {
           brand_style_notes?: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name: string
           niche?: string
           template_image_url?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           brand_style_notes?: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name?: string
           niche?: string
           template_image_url?: string | null
