@@ -273,7 +273,7 @@ serve(async (req) => {
       success: true, 
       product: createdProduct,
       variantCount: filteredVariants.length,
-      updated: isUpdate,
+      updated: isUpdate && !didCreate,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
