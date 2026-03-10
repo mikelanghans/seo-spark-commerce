@@ -160,6 +160,7 @@ export const SwipeableMessageCard = ({
       </div>
 
       {/* Card content */}
+      <div className="relative overflow-hidden rounded-lg">
       <div
         className={cn(
           "relative flex items-center gap-3 rounded-lg border p-3 bg-card cursor-grab active:cursor-grabbing select-none",
