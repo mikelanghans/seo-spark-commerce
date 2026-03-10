@@ -2,6 +2,7 @@ import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
 import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 interface SwipeableMessageCardProps {
@@ -11,10 +12,12 @@ interface SwipeableMessageCardProps {
   hasProduct: boolean;
   isKept: boolean;
   isGeneratingDesign: boolean;
+  isRefining: boolean;
   disableDesignActions: boolean;
   onKeep: (id: string) => void;
   onDiscard: (id: string) => void;
   onEdit: (id: string, newText: string) => void;
+  onRefine: (id: string, feedback: string) => void;
   onGenerateDesign: (id: string) => void;
   onPreviewDesign: (id: string) => void;
 }

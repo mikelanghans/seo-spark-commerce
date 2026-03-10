@@ -26,8 +26,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { organization, count } = await req.json();
+    const { organization, count, refineOriginal, refineFeedback } = await req.json();
     const batchSize = count || 10;
+    const isRefine = !!refineOriginal && !!refineFeedback;
 
     // Fetch past design feedback to inform message generation
     const userId = claimsData.claims.sub as string;
@@ -50,7 +51,30 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
+    let prompt: string;
+
+    if (isRefine) {
+      prompt = `You are a creative copywriter for "${organization.name}".
+
+Brand context:
+- Niche: ${organization.niche}
+- Tone: ${organization.tone}
+- Target Audience: ${organization.audience}
+${feedbackContext}
+
+The user has an existing t-shirt message that's close but needs refinement:
+
+ORIGINAL MESSAGE: "${refineOriginal}"
+
+USER FEEDBACK: "${refineFeedback}"
+
+Generate exactly 3 refined variations of this message based on the feedback. Each variation should:
+- Address the user's feedback while keeping the core idea
+- Stay short enough for a t-shirt (2-12 words)
+- Match the brand tone
+- Be distinct from each other — give meaningfully different takes`;
+    } else {
+      prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
 
 Brand context:
 - Niche: ${organization.niche}
@@ -96,6 +120,7 @@ Examples of the vibe (do NOT repeat these):
 - "Stars don't align. You do."
 
 Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends.`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
