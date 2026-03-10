@@ -314,6 +314,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       disableDesignActions={!!generatingDesignId}
                       onKeep={handleKeep}
                       onDiscard={handleDiscard}
+                      onEdit={handleEdit}
                       onGenerateDesign={handleGenerateDesign}
                       onPreviewDesign={handlePreviewDesign}
                     />
