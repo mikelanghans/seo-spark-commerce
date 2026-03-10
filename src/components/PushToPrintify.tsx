@@ -206,7 +206,11 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
 
       setResult({ success: true });
       setOpen(false);
-      toast.success(isUpdate 
+      // Update local state with the new printify_product_id
+      if (data.printifyProductId) {
+        onProductUpdate?.({ printify_product_id: data.printifyProductId });
+      }
+      toast.success(data.updated 
         ? `Product updated on Printify with ${data.variantCount} variants!`
         : `Product created on Printify with ${data.variantCount} variants!`
       );
