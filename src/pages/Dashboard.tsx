@@ -717,10 +717,15 @@ const Dashboard = () => {
                           className="pl-9"
                         />
                       </div>
-                      <Button onClick={handleGenerateAllListings} disabled={generatingAll || products.length === 0} size="sm" className="gap-2">
-                        {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        {generatingAll ? `${genAllProgress.done}/${genAllProgress.total}…` : "Generate SEO Listings"}
-                      </Button>
+                      {generatingAll ? (
+                        <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                          <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
+                        </Button>
+                      ) : (
+                        <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
+                          <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                        </Button>
+                      )}
                     </div>
 
                     {/* Category Filters */}
