@@ -49,13 +49,23 @@ serve(async (req) => {
     const isUpdate = !!existingShopifyId;
 
     // Build Shopify product payload
-    // Convert plain text to HTML paragraphs, preserving line breaks
+    // Convert plain text to HTML paragraphs
     const rawDesc = shopifyListing?.description || product.description || "";
-    const bodyHtml = rawDesc
-      .split(/\n\s*\n/) // split on double newlines (paragraph breaks)
-      .map((para: string) => para.trim())
-      .filter((para: string) => para.length > 0)
-      .map((para: string) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    // Split on double newlines if present, otherwise split long text into ~3-4 sentence paragraphs
+    let paragraphs: string[];
+    if (rawDesc.includes("\n\n")) {
+      paragraphs = rawDesc.split(/\n\s*\n/).map((p: string) => p.trim()).filter((p: string) => p);
+    } else {
+      // Split by sentences and group into paragraphs of ~3 sentences
+      const sentences = rawDesc.match(/[^.!?]+[.!?]+/g) || [rawDesc];
+      paragraphs = [];
+      for (let i = 0; i < sentences.length; i += 3) {
+        paragraphs.push(sentences.slice(i, i + 3).join("").trim());
+      }
+    }
+    const bodyHtml = paragraphs
+      .filter((p: string) => p.length > 0)
+      .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
       .join("\n");
 
     const shopifyProduct: Record<string, unknown> = {
