@@ -1,0 +1,1 @@
+UPDATE product_images SET image_url = 'https://qhlrjoytvowzsxulfnku.supabase.co/storage/v1/object/public/product-images/bbbba495-5c31-4c0d-9fd4-09e60f97f537/sigh-forest-green-v2.png' WHERE id = '0fd8946a-e5e9-4ec7-bec5-0d94dbcf56f5';
