@@ -95,6 +95,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     let imageBase64: string;
     try {
       const resp = await fetch(sourceImageUrl);
+      const contentType = resp.headers.get("content-type") || "";
+      if (!contentType.startsWith("image/")) {
+        toast.error("Source image URL is broken or expired. Please re-upload the product image.");
+        setGenerating(false);
+        return;
+      }
       const blob = await resp.blob();
       imageBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -113,13 +119,18 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     if (designImageUrl) {
       try {
         const resp = await fetch(designImageUrl);
-        const blob = await resp.blob();
-        designBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
+        const contentType = resp.headers.get("content-type") || "";
+        if (contentType.startsWith("image/")) {
+          const blob = await resp.blob();
+          designBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } else {
+          console.warn("Design image URL returned non-image content, skipping");
+        }
       } catch {
         console.warn("Could not load design image, proceeding without it");
       }
