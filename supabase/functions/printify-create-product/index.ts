@@ -214,6 +214,17 @@ serve(async (req) => {
     let didCreate = false;
 
     if (dbPrintifyProductId) {
+      // For updates: only change metadata + images, don't touch variants/print_areas
+      // (Printify rejects variant changes on existing products)
+      const updatePayload: any = {
+        title,
+        description: description || "",
+        tags: productPayload.tags,
+      };
+      if (productPayload.images) {
+        updatePayload.images = productPayload.images;
+      }
+
       console.log(`Attempting PUT update for Printify product: ${dbPrintifyProductId}`);
       const updateRes = await fetch(
         `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
@@ -223,7 +234,7 @@ serve(async (req) => {
             Authorization: `Bearer ${printifyToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(productPayload),
+          body: JSON.stringify(updatePayload),
         }
       );
 
