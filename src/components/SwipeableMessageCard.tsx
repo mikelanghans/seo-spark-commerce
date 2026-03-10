@@ -1,4 +1,4 @@
-import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
+import { useState, useRef, useEffect, type TouchEvent, type MouseEvent } from "react";
 import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,18 @@ export const SwipeableMessageCard = ({
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
+  const wasRefining = useRef(false);
+
+  // Auto-close refine panel when refining completes
+  useEffect(() => {
+    if (isRefining) {
+      wasRefining.current = true;
+    } else if (wasRefining.current) {
+      wasRefining.current = false;
+      setShowRefine(false);
+      setRefineFeedback("");
+    }
+  }, [isRefining]);
   const startX = useRef(0);
   const startY = useRef(0);
   const isHorizontal = useRef<boolean | null>(null);
@@ -330,6 +342,7 @@ export const SwipeableMessageCard = ({
             <Button
               variant="ghost"
               size="sm"
+              disabled={isRefining}
               onClick={() => {
                 setShowRefine(false);
                 setRefineFeedback("");
@@ -342,13 +355,11 @@ export const SwipeableMessageCard = ({
               disabled={!refineFeedback.trim() || isRefining}
               onClick={() => {
                 onRefine(id, refineFeedback.trim());
-                setShowRefine(false);
-                setRefineFeedback("");
               }}
               className="gap-1"
             >
               {isRefining ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-              Regenerate
+              {isRefining ? "Generating…" : "Regenerate"}
             </Button>
           </div>
         </div>
