@@ -977,6 +977,45 @@ const Dashboard = () => {
               />
             </div>
 
+            {/* Design File Download */}
+            {selectedProduct.image_url && (
+              <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center">
+                    <img src={selectedProduct.image_url} alt="Design file" className="h-full w-full object-contain" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Design File</p>
+                    <p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(selectedProduct.image_url!);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_design.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    } catch {
+                      toast.error("Failed to download design");
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            )}
+
             {/* Mockup Images */}
             <div className="rounded-xl border border-border bg-card p-5">
               <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} />
