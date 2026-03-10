@@ -156,12 +156,23 @@ serve(async (req) => {
           }
           const data = await listRes.json();
           const products = data.data || data;
+          console.log(`Printify products page ${page}: ${JSON.stringify(products?.map?.((p: any) => ({ id: p.id, title: p.title })) || 'not array')}`);
           if (!Array.isArray(products) || products.length === 0) return null;
           
-          const match = products.find((p: any) => p.title === title);
-          if (match) {
-            console.log(`Found existing Printify product by title: ${match.id}`);
-            return match.id;
+          // Try exact match first, then partial match
+          const exactMatch = products.find((p: any) => p.title === title);
+          if (exactMatch) {
+            console.log(`Found exact match: ${exactMatch.id}`);
+            return exactMatch.id;
+          }
+          
+          // Try partial/includes match (handles minor differences)
+          const partialMatch = products.find((p: any) => 
+            p.title?.includes(title) || title?.includes(p.title)
+          );
+          if (partialMatch) {
+            console.log(`Found partial match: ${partialMatch.id} (title: "${partialMatch.title}")`);
+            return partialMatch.id;
           }
           
           // Check if there are more pages
