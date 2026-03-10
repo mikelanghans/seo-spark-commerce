@@ -22,6 +22,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  printify_product_id?: string | null;
 }
 
 interface Listing {
