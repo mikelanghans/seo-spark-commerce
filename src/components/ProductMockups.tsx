@@ -143,6 +143,11 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         sourceImageUrl={sourceImageUrl || null}
         designImageUrl={designImageUrl}
         onComplete={loadImages}
+        brandName={brandName}
+        brandNiche={brandNiche}
+        brandAudience={brandAudience}
+        brandTone={brandTone}
+        productCategory={productCategory}
       />
 
       {loading ? (
