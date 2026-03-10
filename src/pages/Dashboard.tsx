@@ -598,13 +598,6 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{selectedOrg.niche} • {products.length} products</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleGenerateAllListings} disabled={generatingAll || products.length === 0} className="gap-2">
-                  {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generatingAll ? `Generating ${genAllProgress.done}/${genAllProgress.total}…` : "Generate All Listings"}
-                </Button>
-                <Button variant="outline" onClick={() => setView("autopilot")} className="gap-2">
-                  <Rocket className="h-4 w-4" /> Launch to Shopify
-                </Button>
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Enrich Existing
                 </Button>
