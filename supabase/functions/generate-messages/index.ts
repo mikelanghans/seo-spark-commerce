@@ -105,21 +105,14 @@ Before generating messages, apply your knowledge of what sells well in the print
    - The best sellers make people screenshot and share before they even buy
 
 Generate exactly ${batchSize} short, punchy messages that could be printed on t-shirts, mugs, or stickers. Each message should be:
-- A cosmic/universe-themed message that is BOTH motivational AND sarcastic
+- Perfectly aligned with the "${organization.name}" brand identity, niche ("${organization.niche}"), and target audience ("${organization.audience}")
+- Written in the brand's tone: "${organization.tone}"
 - Short enough for a t-shirt print (ideally 2-8 words, max 12 words)
 - Memorable, quotable, and slightly irreverent
-- In the voice of "the universe" talking to a burned-out human
-- Mix of formats: some with {curly braces}, some with "— the universe" attribution, some standalone
+- Mix of formats: some with {curly braces}, some with attributions, some standalone
 - Optimized for SELLING — think about what someone would actually pay $29 to wear
 
-Think: fortune cookie meets existential comedy meets best-seller list.
-
-Examples of the vibe (do NOT repeat these):
-- "{SIGH} — the universe"
-- "You're doing great (cosmically speaking)"
-- "Stars don't align. You do."
-
-Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends.`;
+Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends and that authentically represent the "${organization.name}" brand.`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
