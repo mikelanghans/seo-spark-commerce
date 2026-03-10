@@ -891,6 +891,10 @@ const Dashboard = () => {
                   tags: l.tags as string[],
                 }))}
                 userId={user!.id}
+                onProductUpdate={(updates) => {
+                  setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
+                  setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
+                }}
               />
             </div>
 
