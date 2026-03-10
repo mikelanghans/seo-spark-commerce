@@ -17,7 +17,7 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Rocket, Edit2, Check, Settings, RefreshCw, Store, Download,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -598,13 +598,6 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{selectedOrg.niche} • {products.length} products</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleGenerateAllListings} disabled={generatingAll || products.length === 0} className="gap-2">
-                  {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generatingAll ? `Generating ${genAllProgress.done}/${genAllProgress.total}…` : "Generate All Listings"}
-                </Button>
-                <Button variant="outline" onClick={() => setView("autopilot")} className="gap-2">
-                  <Rocket className="h-4 w-4" /> Launch to Shopify
-                </Button>
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
                   <RefreshCw className="h-4 w-4" /> Enrich Existing
                 </Button>
@@ -621,117 +614,137 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Message Generator */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <MessageGenerator
-                organization={selectedOrg}
-                userId={user!.id}
-                onCreateProduct={(messageText, designUrl) => {
-                  setPendingDesignUrl(designUrl);
-                  setImagePreview(designUrl);
-                  const autoDescription = `${messageText} — A premium print-on-demand ${selectedOrg.niche ? selectedOrg.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${selectedOrg.audience || "everyday wear"}. Part of the ${selectedOrg.name} collection.`;
-                  const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
-                  const autoKeywords = messageText.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
-                  setProductForm({
-                    title: messageText,
-                    description: autoDescription,
-                    keywords: autoKeywords,
-                    category: "T-Shirt",
-                    price: "29.99",
-                    features: autoFeatures,
-                  });
-                  setView("product-form");
-                }}
-              />
-            </div>
+            <Tabs defaultValue="messages" className="w-full">
+              <TabsList className="w-full justify-start">
+                <TabsTrigger value="messages" className="gap-2">
+                  <Sparkles className="h-4 w-4" /> Message Ideas
+                </TabsTrigger>
+                <TabsTrigger value="products" className="gap-2">
+                  <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
+                </TabsTrigger>
+              </TabsList>
 
-            {products.length > 0 && (
-              <>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search products…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+              <TabsContent value="messages" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <MessageGenerator
+                    organization={selectedOrg}
+                    userId={user!.id}
+                    onCreateProduct={(messageText, designUrl) => {
+                      setPendingDesignUrl(designUrl);
+                      setImagePreview(designUrl);
+                      const autoDescription = `${messageText} — A premium print-on-demand ${selectedOrg.niche ? selectedOrg.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${selectedOrg.audience || "everyday wear"}. Part of the ${selectedOrg.name} collection.`;
+                      const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
+                      const autoKeywords = messageText.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
+                      setProductForm({
+                        title: messageText,
+                        description: autoDescription,
+                        keywords: autoKeywords,
+                        category: "T-Shirt",
+                        price: "29.99",
+                        features: autoFeatures,
+                      });
+                      setView("product-form");
+                    }}
                   />
                 </div>
+              </TabsContent>
 
-                {/* Category Filters */}
-                <div className="flex flex-wrap gap-1.5">
-                  {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setActiveFilter(activeFilter === cat ? null : cat)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                        activeFilter === cat
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
-                <Package className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No products yet</p>
-                <Button variant="link" onClick={() => setView("product-form")} className="mt-2">
-                  Add your first product
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {products
-                  .filter((p) => {
-                    const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesFilter = !activeFilter || 
-                      p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
-                      p.category.toLowerCase().includes(activeFilter.toLowerCase());
-                    return matchesSearch && matchesFilter;
-                  })
-                  .map((product) => (
-                  <div
-                    key={product.id}
-                    className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
-                    onClick={() => handleViewProduct(product)}
-                  >
-                    {product.image_url && (
-                      <div className="h-48 overflow-hidden bg-secondary">
-                        <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
+              <TabsContent value="products" className="mt-4 space-y-4">
+                {products.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search products…"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
                       </div>
-                    )}
-                    {!product.image_url && (
-                      <div className="flex h-48 items-center justify-center bg-secondary">
-                        <Package className="h-8 w-8 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <div className="flex items-start justify-between">
-                        <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }}
-                          className="ml-2 shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
-                      {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
+                      <Button onClick={handleGenerateAllListings} disabled={generatingAll || products.length === 0} size="sm" className="gap-2">
+                        {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        {generatingAll ? `${genAllProgress.done}/${genAllProgress.total}…` : "Generate SEO Listings"}
+                      </Button>
                     </div>
+
+                    {/* Category Filters */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setActiveFilter(activeFilter === cat ? null : cat)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            activeFilter === cat
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {loading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                ))}
-              </div>
-            )}
+                ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
+                    <Package className="mb-3 h-10 w-10 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No products yet</p>
+                    <Button variant="link" onClick={() => setView("product-form")} className="mt-2">
+                      Add your first product
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {products
+                      .filter((p) => {
+                        const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+                        const matchesFilter = !activeFilter || 
+                          p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
+                          p.category.toLowerCase().includes(activeFilter.toLowerCase());
+                        return matchesSearch && matchesFilter;
+                      })
+                      .map((product) => (
+                      <div
+                        key={product.id}
+                        className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
+                        onClick={() => handleViewProduct(product)}
+                      >
+                        {product.image_url && (
+                          <div className="h-48 overflow-hidden bg-secondary">
+                            <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
+                          </div>
+                        )}
+                        {!product.image_url && (
+                          <div className="flex h-48 items-center justify-center bg-secondary">
+                            <Package className="h-8 w-8 text-muted-foreground/40" />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <div className="flex items-start justify-between">
+                            <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }}
+                              className="ml-2 shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                          {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
