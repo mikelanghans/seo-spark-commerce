@@ -1,6 +1,7 @@
 import { useState, useRef, type TouchEvent, type MouseEvent } from "react";
-import { Check, X, Paintbrush, Eye, RefreshCw, Loader2 } from "lucide-react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface SwipeableMessageCardProps {
@@ -13,6 +14,7 @@ interface SwipeableMessageCardProps {
   disableDesignActions: boolean;
   onKeep: (id: string) => void;
   onDiscard: (id: string) => void;
+  onEdit: (id: string, newText: string) => void;
   onGenerateDesign: (id: string) => void;
   onPreviewDesign: (id: string) => void;
 }
@@ -29,9 +31,13 @@ export const SwipeableMessageCard = ({
   disableDesignActions,
   onKeep,
   onDiscard,
+  onEdit,
   onGenerateDesign,
   onPreviewDesign,
 }: SwipeableMessageCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(messageText);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
@@ -186,10 +192,51 @@ export const SwipeableMessageCard = ({
           </div>
         )}
 
-        {/* Message text */}
-        <span className="flex-1 text-sm font-medium leading-snug">
-          {messageText}
-        </span>
+        {/* Message text / edit mode */}
+        {isEditing ? (
+          <form
+            className="flex-1 flex gap-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editText.trim() && editText !== messageText) {
+                onEdit(id, editText.trim());
+              }
+              setIsEditing(false);
+            }}
+          >
+            <Input
+              ref={inputRef}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+              onBlur={() => {
+                if (editText.trim() && editText !== messageText) {
+                  onEdit(id, editText.trim());
+                }
+                setIsEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setEditText(messageText);
+                  setIsEditing(false);
+                }
+              }}
+            />
+          </form>
+        ) : (
+          <span
+            className="flex-1 text-sm font-medium leading-snug"
+            onDoubleClick={() => {
+              if (!hasProduct) {
+                setEditText(messageText);
+                setIsEditing(true);
+              }
+            }}
+          >
+            {messageText}
+          </span>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
@@ -206,6 +253,20 @@ export const SwipeableMessageCard = ({
               onClick={() => onPreviewDesign(id)}
             >
               <Eye className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {!hasProduct && !isEditing && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setEditText(messageText);
+                setIsEditing(true);
+              }}
+              title="Edit message"
+            >
+              <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
           {!hasProduct && (

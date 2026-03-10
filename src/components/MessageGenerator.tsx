@@ -120,6 +120,14 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     toast("Discarded", { duration: 1500 });
   };
 
+  const handleEdit = async (id: string, newText: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, message_text: newText } : m))
+    );
+    await supabase.from("generated_messages").update({ message_text: newText }).eq("id", id);
+    toast.success("Message updated", { duration: 1500 });
+  };
+
   const handleGenerateDesign = async (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
@@ -276,6 +284,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                     disableDesignActions={!!generatingDesignId}
                     onKeep={handleKeep}
                     onDiscard={handleDiscard}
+                    onEdit={handleEdit}
                     onGenerateDesign={handleGenerateDesign}
                     onPreviewDesign={handlePreviewDesign}
                   />
@@ -305,6 +314,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
                       disableDesignActions={!!generatingDesignId}
                       onKeep={handleKeep}
                       onDiscard={handleDiscard}
+                      onEdit={handleEdit}
                       onGenerateDesign={handleGenerateDesign}
                       onPreviewDesign={handlePreviewDesign}
                     />
