@@ -28,6 +28,10 @@ interface Organization {
   tone: string;
   audience: string;
   template_image_url?: string | null;
+  brand_font?: string;
+  brand_color?: string;
+  brand_font_size?: string;
+  brand_style_notes?: string;
 }
 
 interface Product {
