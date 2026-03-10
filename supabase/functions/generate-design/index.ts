@@ -34,16 +34,37 @@ serve(async (req) => {
 
     // Fetch recent design feedback to guide the AI
     let feedbackContext = "";
+    let inspirationContext = "";
     if (organizationId) {
       const serviceClient2 = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { data: feedback } = await serviceClient2
-        .from("design_feedback")
-        .select("rating, notes")
-        .eq("organization_id", organizationId)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      
+      // Fetch feedback, existing products, and kept messages in parallel
+      const [feedbackResult, productsResult, messagesResult] = await Promise.all([
+        serviceClient2
+          .from("design_feedback")
+          .select("rating, notes")
+          .eq("organization_id", organizationId)
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        serviceClient2
+          .from("products")
+          .select("title, description, category, keywords, features")
+          .eq("organization_id", organizationId)
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        serviceClient2
+          .from("generated_messages")
+          .select("message_text")
+          .eq("organization_id", organizationId)
+          .eq("user_id", userId)
+          .eq("is_selected", true)
+          .order("created_at", { ascending: false })
+          .limit(15),
+      ]);
 
+      const feedback = feedbackResult.data;
       if (feedback && feedback.length > 0) {
         const liked = feedback.filter((f: any) => f.rating === "up" && f.notes).map((f: any) => f.notes);
         const disliked = feedback.filter((f: any) => f.rating === "down" && f.notes).map((f: any) => f.notes);
@@ -54,6 +75,28 @@ serve(async (req) => {
         if (disliked.length > 0) {
           feedbackContext += `\n\nUSER DISLIKES (avoid these in the design):\n- ${disliked.join("\n- ")}`;
         }
+      }
+
+      // Build inspiration context from existing catalog
+      const products = productsResult.data;
+      const keptMessages = messagesResult.data;
+
+      if ((products && products.length > 0) || (keptMessages && keptMessages.length > 0)) {
+        inspirationContext = "\n\nBRAND CATALOG INSPIRATION (use for stylistic consistency, NOT to copy):";
+        
+        if (products && products.length > 0) {
+          const productSummaries = products.map((p: any) => 
+            `"${p.title}" (${p.category || "uncategorized"}) — ${(p.keywords || "").slice(0, 80)}`
+          ).join("\n  • ");
+          inspirationContext += `\nExisting products:\n  • ${productSummaries}`;
+        }
+
+        if (keptMessages && keptMessages.length > 0) {
+          const msgList = keptMessages.map((m: any) => `"${m.message_text}"`).join(", ");
+          inspirationContext += `\nKept message themes the brand resonates with: ${msgList}`;
+        }
+
+        inspirationContext += "\nUse these as context for the brand's aesthetic and thematic direction. Maintain visual cohesion with the existing catalog while keeping this design fresh and unique.";
       }
     }
 
@@ -104,7 +147,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
-${feedbackContext}`;
+${feedbackContext}${inspirationContext}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
