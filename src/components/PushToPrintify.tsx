@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -45,19 +45,57 @@ interface Props {
   onProductUpdate?: (updates: Partial<Product>) => void;
 }
 
-// Printify's actual Comfort Colors 1717 color names
-const DEFAULT_PRINTIFY_COLORS = [
-  "Black", "Navy", "Red", "True Navy", "Moss",
-  "Blue Spruce", "Flo Blue", "Royal Caribe",
-  "Graphite", "Pepper", "Ivory", "Crimson",
-  "Berry", "Chalky Mint", "Butter", "Seafoam",
-  "Blue Jean", "Violet", "Orchid", "Watermelon",
-  "Yam", "Citrus", "Lagoon Blue", "Blossom",
-  "Bright Salmon", "Terracotta", "Neon Pink",
-  "Neon Green", "Neon Orange",
-];
-
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+
+// Maps our mockup color names → Printify's exact variant color names
+const MOCKUP_TO_PRINTIFY: Record<string, string> = {
+  "black": "Black",
+  "red": "Red",
+  "navy": "Navy",
+  "navy blue": "Navy",
+  "forest green": "Moss",
+  "royal blue": "Flo Blue",
+  "dark green": "Blue Spruce",
+  "olive": "Moss",
+  "charcoal": "Pepper",
+  "dark grey": "Graphite Heather",
+  "burgundy": "Berry",
+  "maroon": "Crimson",
+  "white": "White",
+  "cream": "Ivory",
+  "light blue": "Chalky Mint",
+  "pink": "Blossom",
+  "orange": "Yam",
+  "yellow": "Butter",
+  "purple": "Violet",
+  "teal": "Seafoam",
+  "moss": "Moss",
+  "true navy": "True Navy",
+  "blue spruce": "Blue Spruce",
+  "flo blue": "Flo Blue",
+  "royal caribe": "Royal Caribe",
+  "graphite": "Graphite Heather",
+  "pepper": "Pepper",
+  "berry": "Berry",
+  "crimson": "Crimson",
+  "ivory": "Ivory",
+  "chalky mint": "Chalky Mint",
+  "butter": "Butter",
+  "seafoam": "Seafoam",
+  "blossom": "Blossom",
+  "violet": "Violet",
+  "yam": "Yam",
+  "watermelon": "Watermelon",
+  "lagoon blue": "Lagoon Blue",
+  "orchid": "Orchid",
+  "terracotta": "Terracotta",
+  "bright salmon": "Bright Salmon",
+};
+
+function mapMockupToPrintifyColor(mockupColorName: string): string | null {
+  const key = mockupColorName.toLowerCase().trim();
+  return MOCKUP_TO_PRINTIFY[key] || null;
+}
 
 export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
   const [open, setOpen] = useState(false);
@@ -70,7 +108,22 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
   const [selectedSizes, setSelectedSizes] = useState<string[]>(["S", "M", "L", "XL"]);
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [loadingMockups, setLoadingMockups] = useState(false);
-  const [availableColors, setAvailableColors] = useState<string[]>(DEFAULT_PRINTIFY_COLORS);
+  const [printifyColors, setPrintifyColors] = useState<string[]>([]);
+  const [printProviderId, setPrintProviderId] = useState<number | null>(null);
+  const [loadingColors, setLoadingColors] = useState(false);
+
+  // Mapping: Printify color → mockup(s) for that color
+  const colorMockupMap = useMemo(() => {
+    const map: Record<string, MockupImage[]> = {};
+    for (const m of mockups) {
+      const printifyColor = mapMockupToPrintifyColor(m.color_name);
+      if (printifyColor) {
+        if (!map[printifyColor]) map[printifyColor] = [];
+        map[printifyColor].push(m);
+      }
+    }
+    return map;
+  }, [mockups]);
 
   const loadShops = async () => {
     setLoadingShops(true);
@@ -79,13 +132,28 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setShops(data.shops || []);
-      if (data.shops?.length >= 1) {
-        setSelectedShop(data.shops[0].id);
-      }
+      if (data.shops?.length >= 1) setSelectedShop(data.shops[0].id);
     } catch (err: any) {
       toast.error(err.message || "Failed to load Printify shops");
     } finally {
       setLoadingShops(false);
+    }
+  };
+
+  const loadPrintifyColors = async () => {
+    setLoadingColors(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("printify-get-variants", {
+        body: { blueprintId: 706 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPrintifyColors(data.colors || []);
+      if (data.printProviderId) setPrintProviderId(data.printProviderId);
+    } catch (err: any) {
+      console.error("Failed to load Printify colors:", err);
+    } finally {
+      setLoadingColors(false);
     }
   };
 
@@ -98,22 +166,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
         .eq("product_id", product.id)
         .eq("image_type", "mockup")
         .order("position");
-      const loaded = (data as MockupImage[]) || [];
-      setMockups(loaded);
-
-      // Build color list: mockup colors first, then defaults (deduped)
-      if (loaded.length > 0) {
-        const mockupColorNames = [...new Set(loaded.map((m) => m.color_name))];
-        const combined = [...mockupColorNames];
-        for (const dc of DEFAULT_PRINTIFY_COLORS) {
-          if (!combined.some((c) => c.toLowerCase() === dc.toLowerCase())) {
-            combined.push(dc);
-          }
-        }
-        setAvailableColors(combined);
-        // Auto-select ONLY the colors that have mockups
-        setSelectedColors(mockupColorNames);
-      }
+      setMockups((data as MockupImage[]) || []);
     } catch {
       // silent
     } finally {
@@ -121,9 +174,26 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
     }
   };
 
+  // Auto-select colors once both mockups and printify colors are loaded
+  useEffect(() => {
+    if (mockups.length > 0 && printifyColors.length > 0) {
+      const autoSelected: string[] = [];
+      for (const m of mockups) {
+        const printifyColor = mapMockupToPrintifyColor(m.color_name);
+        if (printifyColor && printifyColors.includes(printifyColor) && !autoSelected.includes(printifyColor)) {
+          autoSelected.push(printifyColor);
+        }
+      }
+      if (autoSelected.length > 0) {
+        setSelectedColors(autoSelected);
+      }
+    }
+  }, [mockups, printifyColors]);
+
   useEffect(() => {
     if (open) {
       loadShops();
+      loadPrintifyColors();
       loadMockups();
     }
   }, [open]);
@@ -139,6 +209,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
       prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
     );
   };
+
+  // Colors that have mockups — show first
+  const colorsWithMockups = printifyColors.filter((c) => colorMockupMap[c]?.length > 0);
+  const colorsWithoutMockups = printifyColors.filter((c) => !colorMockupMap[c]?.length);
 
   const handlePush = async () => {
     if (!selectedShop) {
@@ -158,7 +232,6 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
     setResult(null);
 
     try {
-      // Step 1: Upload design image to Printify
       toast.info("Uploading design to Printify...");
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
@@ -170,16 +243,18 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
       const printifyImageId = uploadData.image?.id;
       if (!printifyImageId) throw new Error("Failed to get uploaded image ID from Printify");
 
-      // Step 2: Build mockup images from product_images (only for selected colors)
-      const mockupImages = mockups
-        .filter((m) =>
-          selectedColors.some(
-            (c) => c.toLowerCase() === m.color_name.toLowerCase()
-          )
-        )
-        .map((m) => ({ colorName: m.color_name, imageUrl: m.image_url }));
+      // Build mockup images — use Printify color names
+      const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
+      for (const color of selectedColors) {
+        const matchedMockups = colorMockupMap[color];
+        if (matchedMockups?.length > 0) {
+          mockupImages.push({
+            printifyColorName: color,
+            imageUrl: matchedMockups[0].image_url,
+          });
+        }
+      }
 
-      // Step 3: Create or update product on Printify
       const isUpdate = !!product.printify_product_id;
       toast.info(isUpdate ? "Updating product on Printify..." : "Creating product on Printify...");
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
@@ -190,12 +265,13 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
           description: shopifyListing?.description || product.description,
           tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
           printifyImageId,
-          selectedColors,
+          selectedColors, // These are now Printify's exact color names
           selectedSizes,
           price: product.price,
           mockupImages,
           productId: product.id,
           printifyProductId: product.printify_product_id,
+          printProviderId,
         },
       });
 
@@ -218,6 +294,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
       setPushing(false);
     }
   };
+
+  const unmappedMockups = mockups.filter((m) => !mapMockupToPrintifyColor(m.color_name));
 
   return (
     <>
@@ -243,7 +321,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              Create a Comfort Colors 1717 garment-dyed t-shirt on Printify with your design auto-centered on the front.
+              Comfort Colors 1717 garment-dyed t-shirt. Colors shown are Printify's exact variant names.
             </DialogDescription>
           </DialogHeader>
 
@@ -256,9 +334,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading shops...
                 </div>
               ) : shops.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No shops found. Make sure you have a shop connected in your Printify account.
-                </p>
+                <p className="text-sm text-muted-foreground">No shops found.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {shops.map((shop) => (
@@ -276,26 +352,63 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               )}
             </div>
 
-            {/* Color selection */}
+            {/* Color selection — Printify's actual colors */}
             <div className="space-y-2">
-              <Label className="font-medium">Colors (Printify names)</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {availableColors.map((color) => (
-                  <label
-                    key={color}
-                    className="flex items-center gap-2 text-sm cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedColors.includes(color)}
-                      onCheckedChange={() => toggleColor(color)}
-                    />
-                    {color}
-                    {mockups.some((m) => m.color_name.toLowerCase() === color.toLowerCase()) && (
-                      <span className="text-xs text-primary">(mockup)</span>
-                    )}
-                  </label>
-                ))}
-              </div>
+              <Label className="font-medium">
+                Colors {loadingColors && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+              </Label>
+
+              {/* Colors with mockups first */}
+              {colorsWithMockups.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">With mockups:</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {colorsWithMockups.map((color) => (
+                      <label key={color} className="flex items-center gap-2 text-sm cursor-pointer p-1 rounded hover:bg-muted/50">
+                        <Checkbox
+                          checked={selectedColors.includes(color)}
+                          onCheckedChange={() => toggleColor(color)}
+                        />
+                        <span className="flex items-center gap-1.5">
+                          {color}
+                          {colorMockupMap[color] && (
+                            <img
+                              src={colorMockupMap[color][0].image_url}
+                              alt={color}
+                              className="h-5 w-5 rounded-sm object-cover border border-border"
+                            />
+                          )}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Other available colors */}
+              {colorsWithoutMockups.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Other available colors:</p>
+                  <div className="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+                    {colorsWithoutMockups.map((color) => (
+                      <label key={color} className="flex items-center gap-1.5 text-xs cursor-pointer p-1 rounded hover:bg-muted/50">
+                        <Checkbox
+                          checked={selectedColors.includes(color)}
+                          onCheckedChange={() => toggleColor(color)}
+                        />
+                        {color}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmapped mockup warnings */}
+              {unmappedMockups.length > 0 && (
+                <p className="text-xs text-destructive">
+                  ⚠ {unmappedMockups.length} mockup color(s) couldn't be mapped to Printify: {unmappedMockups.map(m => m.color_name).join(", ")}
+                </p>
+              )}
             </div>
 
             {/* Size selection */}
@@ -317,37 +430,6 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               </div>
             </div>
 
-            {/* Mockup preview */}
-            {mockups.length > 0 && (
-              <div className="space-y-2">
-                <Label className="font-medium">
-                  AI Mockups ({mockups.length} total)
-                </Label>
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {mockups.map((m) => {
-                    const isMatched = selectedColors.some(
-                      (c) => c.toLowerCase() === m.color_name.toLowerCase()
-                    );
-                    return (
-                      <div key={m.id} className="shrink-0">
-                        <img
-                          src={m.image_url}
-                          alt={m.color_name}
-                          className={`h-20 w-20 rounded-md object-cover border ${isMatched ? "border-primary ring-2 ring-primary/30" : "border-border opacity-50"}`}
-                        />
-                        <p className={`text-xs text-center mt-1 ${isMatched ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                          {m.color_name}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Highlighted mockups match selected colors and will be included.
-                </p>
-              </div>
-            )}
-
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
@@ -355,6 +437,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               <p><strong>Colors:</strong> {selectedColors.join(", ") || "None"}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ") || "None"}</p>
               <p><strong>Variants:</strong> ~{selectedColors.length * selectedSizes.length}</p>
+              <p><strong>Mockups to upload:</strong> {Object.keys(colorMockupMap).filter(c => selectedColors.includes(c)).length}</p>
               <p><strong>Price:</strong> {product.price || "$29.99"}</p>
             </div>
 
