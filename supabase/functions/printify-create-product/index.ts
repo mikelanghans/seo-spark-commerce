@@ -8,7 +8,6 @@ const corsHeaders = {
 
 // Default blueprint: Comfort Colors 1717 Unisex Garment-Dyed T-shirt
 const DEFAULT_BLUEPRINT_ID = 706;
-// Default print provider: will be dynamically resolved if not provided
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -42,21 +41,22 @@ serve(async (req) => {
       mockupImages,
       blueprintId,
       printProviderId,
-      productId,         // Our internal product ID
-      printifyProductId, // Existing Printify product ID (for updates)
+      productId,
+      printifyProductId,
     } = await req.json();
 
     if (!shopId || !title || !printifyImageId) {
       throw new Error("shopId, title, and printifyImageId are required");
     }
 
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     // Always read the latest printify_product_id from DB (client may have stale data)
     let dbPrintifyProductId = printifyProductId || null;
     if (productId) {
-      const adminClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
       const { data: dbProduct } = await adminClient
         .from("products")
         .select("printify_product_id")
@@ -83,7 +83,6 @@ serve(async (req) => {
       }
       const providers = await providersRes.json();
       if (!providers.length) throw new Error(`No print providers available for blueprint ${bpId}`);
-      // Prefer provider 99 if available, otherwise use first
       ppId = providers.find((p: any) => p.id === 99)?.id || providers[0].id;
       console.log(`Auto-selected print provider ${ppId} for blueprint ${bpId}`);
     }
@@ -119,192 +118,10 @@ serve(async (req) => {
       throw new Error("No matching variants found for the selected colors/sizes. Try different selections.");
     }
 
-    // Step 2: Build the product
-    const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
-
-    const productPayload = {
-      title,
-      description: description || "",
-      tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
-      blueprint_id: bpId,
-      print_provider_id: ppId,
-      variants: filteredVariants.map((v: any) => ({
-        id: v.id,
-        price: priceInCents,
-        is_enabled: true,
-      })),
-      print_areas: [
-        {
-          variant_ids: filteredVariants.map((v: any) => v.id),
-          placeholders: [
-            {
-              position: "front",
-              images: [
-                {
-                  id: printifyImageId,
-                  x: 0.5,
-                  y: 0.5,
-                  scale: 1,
-                  angle: 0,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-
-    let createdProduct: any;
-    let didCreate = false;
-
-    // Helper: look up existing product on Printify by title
-    const findProductByTitle = async (): Promise<string | null> => {
-      try {
-        let page = 1;
-        while (page <= 5) { // Check up to 5 pages
-          const listUrl = `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=100`;
-          console.log(`Fetching Printify products: ${listUrl}`);
-          const listRes = await fetch(listUrl, {
-            headers: { Authorization: `Bearer ${printifyToken}` }
-          });
-          if (!listRes.ok) {
-            const errText = await listRes.text();
-            console.error(`Printify list products failed (${listRes.status}): ${errText}`);
-            return null;
-          }
-          const data = await listRes.json();
-          const products = data.data || data;
-          console.log(`Printify products page ${page}: ${JSON.stringify(products?.map?.((p: any) => ({ id: p.id, title: p.title })) || 'not array')}`);
-          if (!Array.isArray(products) || products.length === 0) return null;
-          
-          // Try exact match first, then partial match
-          const exactMatch = products.find((p: any) => p.title === title);
-          if (exactMatch) {
-            console.log(`Found exact match: ${exactMatch.id}`);
-            return exactMatch.id;
-          }
-          
-          // Try partial/includes match (handles minor differences)
-          const partialMatch = products.find((p: any) => 
-            p.title?.includes(title) || title?.includes(p.title)
-          );
-          if (partialMatch) {
-            console.log(`Found partial match: ${partialMatch.id} (title: "${partialMatch.title}")`);
-            return partialMatch.id;
-          }
-          
-          // Check if there are more pages
-          if (products.length < 100) return null;
-          page++;
-        }
-      } catch (e) {
-        console.error("Error searching Printify products:", e);
-      }
-      return null;
-    };
-
-    const updateProduct = async (pId: string) => {
-      const updateRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products/${pId}.json`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productPayload),
-        }
-      );
-      if (!updateRes.ok) {
-        const text = await updateRes.text();
-        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
-      }
-      return await updateRes.json();
-    };
-
-    const createNewProduct = async () => {
-      const createRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productPayload),
-        }
-      );
-
-      if (!createRes.ok) {
-        const text = await createRes.text();
-        throw new Error(`Failed to create product (${createRes.status}): ${text}`);
-      }
-
-      const product = await createRes.json();
-      didCreate = true;
-
-      // Save printify_product_id back to our database
-      if (product.id && productId) {
-        const adminClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        await adminClient
-          .from("products")
-          .update({ printify_product_id: product.id })
-          .eq("id", productId);
-      }
-
-      return product;
-    };
-
-    // Resolve the correct Printify product ID (use DB value, not client value)
-    let resolvedPrintifyId = dbPrintifyProductId;
-
-    // If we have a stored ID, verify it exists
-    if (resolvedPrintifyId) {
-      const checkRes = await fetch(
-        `https://api.printify.com/v1/shops/${shopId}/products/${resolvedPrintifyId}.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
-      );
-      if (checkRes.status === 404) {
-        console.log(`Stored Printify ID ${resolvedPrintifyId} not found, searching by title...`);
-        await checkRes.text();
-        resolvedPrintifyId = await findProductByTitle();
-      } else {
-        await checkRes.text(); // consume body
-      }
-    } else {
-      // No stored ID — try to find by title
-      resolvedPrintifyId = await findProductByTitle();
-    }
-
-    // Save the resolved ID if different from what we had
-    if (resolvedPrintifyId && resolvedPrintifyId !== printifyProductId && productId) {
-      const adminClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-      await adminClient
-        .from("products")
-        .update({ printify_product_id: resolvedPrintifyId })
-        .eq("id", productId);
-      console.log(`Updated stored printify_product_id to ${resolvedPrintifyId}`);
-    }
-
-    if (resolvedPrintifyId) {
-      console.log(`Updating existing Printify product: ${resolvedPrintifyId}`);
-      createdProduct = await updateProduct(resolvedPrintifyId);
-    } else {
-      console.log("No existing product found, creating new one");
-      createdProduct = await createNewProduct();
-    }
-
-    // Step 4: Replace mockup images if provided
-    if (mockupImages?.length > 0 && createdProduct.id) {
-      // Upload each mockup image to Printify
-      const uploadedMockups: { colorName: string; printifyImageId: string }[] = [];
-      
+    // Step 2: Upload mockup images BEFORE building product payload
+    const uploadedMockups: { colorName: string; printifyImageId: string }[] = [];
+    if (mockupImages?.length > 0) {
+      console.log(`Uploading ${mockupImages.length} mockup images to Printify...`);
       for (const mockup of mockupImages) {
         try {
           const uploadRes = await fetch("https://api.printify.com/v1/uploads/images.json", {
@@ -325,41 +142,126 @@ serve(async (req) => {
               colorName: mockup.colorName,
               printifyImageId: uploadedImage.id,
             });
+            console.log(`Uploaded mockup for ${mockup.colorName}: ${uploadedImage.id}`);
+          } else {
+            const errText = await uploadRes.text();
+            console.error(`Failed to upload mockup for ${mockup.colorName} (${uploadRes.status}): ${errText}`);
           }
         } catch (err) {
           console.error(`Failed to upload mockup for ${mockup.colorName}:`, err);
         }
       }
+      console.log(`Successfully uploaded ${uploadedMockups.length}/${mockupImages.length} mockups`);
+    }
 
-      // Set product images using uploaded mockups
-      if (uploadedMockups.length > 0) {
-        const productImages = uploadedMockups.map((m, idx) => ({
-          src: m.printifyImageId,
-          variant_ids: filteredVariants
-            .filter((v: any) => 
-              v.options?.color?.toLowerCase() === m.colorName.toLowerCase() ||
-              v.title?.toLowerCase().includes(m.colorName.toLowerCase())
-            )
-            .map((v: any) => v.id),
-          position: idx === 0 ? "default" : undefined,
-          is_default: idx === 0,
-        }));
+    // Step 3: Build the product payload
+    const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
 
-        try {
-          await fetch(
-            `https://api.printify.com/v1/shops/${shopId}/products/${createdProduct.id}/images.json`,
+    const productPayload: any = {
+      title,
+      description: description || "",
+      tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
+      blueprint_id: bpId,
+      print_provider_id: ppId,
+      variants: filteredVariants.map((v: any) => ({
+        id: v.id,
+        price: priceInCents,
+        is_enabled: true,
+      })),
+      print_areas: [
+        {
+          variant_ids: filteredVariants.map((v: any) => v.id),
+          placeholders: [
             {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${printifyToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ images: productImages }),
-            }
-          );
-        } catch (err) {
-          console.error("Failed to set product images:", err);
+              position: "front",
+              images: [
+                {
+                  id: printifyImageId,
+                  x: 0.5,
+                  y: 0.45,
+                  scale: 1,
+                  angle: 0,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Include mockup images in the product payload
+    if (uploadedMockups.length > 0) {
+      productPayload.images = uploadedMockups.map((m, idx) => ({
+        src: m.printifyImageId,
+        variant_ids: filteredVariants
+          .filter((v: any) =>
+            v.options?.color?.toLowerCase() === m.colorName.toLowerCase() ||
+            v.title?.toLowerCase().includes(m.colorName.toLowerCase())
+          )
+          .map((v: any) => v.id),
+        position: idx === 0 ? "default" : undefined,
+        is_default: idx === 0,
+      }));
+    }
+
+    // Step 4: Create or update — try PUT first if we have an ID, fallback to POST on failure
+    let createdProduct: any;
+    let didCreate = false;
+
+    if (dbPrintifyProductId) {
+      console.log(`Attempting PUT update for Printify product: ${dbPrintifyProductId}`);
+      const updateRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${dbPrintifyProductId}.json`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
         }
+      );
+
+      if (updateRes.ok) {
+        createdProduct = await updateRes.json();
+        console.log(`Successfully updated Printify product: ${dbPrintifyProductId}`);
+      } else {
+        const errText = await updateRes.text();
+        console.log(`PUT failed for ${dbPrintifyProductId} (${updateRes.status}): ${errText}. Will create new.`);
+      }
+    }
+
+    // If update didn't work (or no ID), create new
+    if (!createdProduct) {
+      console.log("Creating new Printify product...");
+      const createRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
+        }
+      );
+
+      if (!createRes.ok) {
+        const text = await createRes.text();
+        throw new Error(`Failed to create product (${createRes.status}): ${text}`);
+      }
+
+      createdProduct = await createRes.json();
+      didCreate = true;
+      console.log(`Created new Printify product: ${createdProduct.id}`);
+
+      // Save printify_product_id back to our database
+      if (createdProduct.id && productId) {
+        await adminClient
+          .from("products")
+          .update({ printify_product_id: createdProduct.id })
+          .eq("id", productId);
+        console.log(`Saved printify_product_id ${createdProduct.id} to DB`);
       }
     }
 
@@ -367,8 +269,9 @@ serve(async (req) => {
       success: true, 
       product: createdProduct,
       variantCount: filteredVariants.length,
-      updated: !!resolvedPrintifyId && !didCreate,
+      updated: !didCreate,
       printifyProductId: createdProduct.id,
+      mockupsUploaded: uploadedMockups.length,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
