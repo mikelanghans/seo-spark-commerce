@@ -1,0 +1,1 @@
+UPDATE products SET image_url = 'https://qhlrjoytvowzsxulfnku.supabase.co/storage/v1/object/public/product-images/designs/batch-13/sigh-text-only-v2.png' WHERE id = '9b3a8a44-b87d-4230-8bed-e3cce176a626';
