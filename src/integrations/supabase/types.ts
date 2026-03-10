@@ -166,6 +166,10 @@ export type Database = {
       organizations: {
         Row: {
           audience: string
+          brand_color: string
+          brand_font: string
+          brand_font_size: string
+          brand_style_notes: string
           created_at: string
           id: string
           name: string
@@ -177,6 +181,10 @@ export type Database = {
         }
         Insert: {
           audience?: string
+          brand_color?: string
+          brand_font?: string
+          brand_font_size?: string
+          brand_style_notes?: string
           created_at?: string
           id?: string
           name: string
@@ -188,6 +196,10 @@ export type Database = {
         }
         Update: {
           audience?: string
+          brand_color?: string
+          brand_font?: string
+          brand_font_size?: string
+          brand_style_notes?: string
           created_at?: string
           id?: string
           name?: string
