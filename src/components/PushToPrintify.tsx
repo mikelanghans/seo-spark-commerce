@@ -53,7 +53,7 @@ const AVAILABLE_COLORS = [
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
-export const PushToPrintify = ({ product, listings, userId }: Props) => {
+export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
