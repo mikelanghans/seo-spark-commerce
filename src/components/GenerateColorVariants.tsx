@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2 } from "lucide-react";
+import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,25 +13,34 @@ interface Props {
   sourceImageUrl: string | null;
   designImageUrl?: string | null;
   onComplete: () => void;
+  brandName?: string;
+  brandNiche?: string;
+  brandAudience?: string;
+  brandTone?: string;
+  productCategory?: string;
 }
 
-// Printify Comfort Colors 1717 exact color names
 const SUGGESTED_COLORS = [
   "Black", "White", "True Navy", "Red", "Moss",
   "Grey", "Blue Jean", "Pepper", "Island Green", "Ivory",
   "Crimson", "Espresso", "Midnight", "Sage", "Chambray",
 ];
 
+interface ColorRecommendation {
+  color: string;
+  reason: string;
+}
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
   const [customColor, setCustomColor] = useState("");
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+  const [recommendations, setRecommendations] = useState<ColorRecommendation[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
 
-  // Load existing colors when panel opens
   const loadExistingColors = async () => {
     const { data } = await supabase
       .from("product_images")
@@ -42,10 +50,47 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const existing = (data || []).map((img) => img.color_name);
     const existingLower = new Set(existing.map((c) => c.toLowerCase()));
     setExistingColorSet(existingLower);
-    // Pre-select colors that already exist
     const matched = SUGGESTED_COLORS.filter((c) => existingLower.has(c.toLowerCase()));
     const custom = existing.filter((c) => !SUGGESTED_COLORS.some((s) => s.toLowerCase() === c.toLowerCase()));
     setColors([...matched, ...custom]);
+  };
+
+  const loadRecommendations = async () => {
+    setLoadingRecs(true);
+    try {
+      const existingList = Array.from(existingColorSet).map((c) =>
+        SUGGESTED_COLORS.find((s) => s.toLowerCase() === c) || c
+      );
+      const { data, error } = await supabase.functions.invoke("recommend-colors", {
+        body: {
+          productTitle,
+          productCategory: productCategory || "T-Shirt",
+          brandName,
+          brandNiche,
+          brandAudience,
+          brandTone,
+          existingColors: existingList,
+        },
+      });
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to get recommendations");
+        return;
+      }
+      const recs: ColorRecommendation[] = data.recommendations || [];
+      setRecommendations(recs);
+      const newColors = recs
+        .map((r) => r.color)
+        .filter((c) => !existingColorSet.has(c.toLowerCase()));
+      setColors((prev) => {
+        const all = new Set([...prev, ...newColors]);
+        return Array.from(all);
+      });
+      toast.success(`AI recommended ${recs.length} colors!`);
+    } catch (err: any) {
+      handleAiError(err, null, "Failed to get recommendations");
+    } finally {
+      setLoadingRecs(false);
+    }
   };
 
   const addColor = (color: string) => {
@@ -77,7 +122,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     setGenerating(true);
     setProgress({ done: 0, total: colors.length, current: colors[0] });
 
-    // Check which colors already exist in DB to skip duplicates
     const { data: existingImages } = await supabase
       .from("product_images")
       .select("color_name")
@@ -94,7 +138,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     setProgress({ done: 0, total: newColors.length, current: newColors[0] });
 
-    // Fetch the source image as base64
     let imageBase64: string;
     try {
       const resp = await fetch(sourceImageUrl);
@@ -117,7 +160,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
-    // Optionally fetch the design image as base64
     let designBase64: string | undefined;
     if (designImageUrl) {
       try {
@@ -132,16 +174,17 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
             reader.readAsDataURL(blob);
           });
         } else {
-          toast.error("Design image URL is broken or expired. Please re-upload the design image, then try again.");
+          toast.error("Design image URL is broken or expired.");
           setGenerating(false);
           return;
         }
       } catch {
-        toast.error("Failed to load design image. Please re-upload it, then try again.");
+        toast.error("Failed to load design image.");
         setGenerating(false);
         return;
       }
     }
+
     let successCount = 0;
     for (let i = 0; i < newColors.length; i++) {
       const colorName = newColors[i];
@@ -161,7 +204,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         const generatedBase64 = data.imageBase64;
         if (!generatedBase64) throw new Error("No image returned");
 
-        // Convert base64 to blob and upload to storage
         const base64Data = generatedBase64.split(",")[1] || generatedBase64;
         const byteChars = atob(base64Data);
         const byteArray = new Uint8Array(byteChars.length);
@@ -174,7 +216,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
-        // Save to product_images table
         await supabase.from("product_images").insert({
           product_id: productId,
           user_id: userId,
@@ -199,6 +240,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       toast.success(`Generated ${successCount}/${newColors.length} color variants!`);
     }
     setColors([]);
+    setRecommendations([]);
     setOpen(false);
     onComplete();
   };
@@ -211,6 +253,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     );
   }
 
+  const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
+
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -218,13 +262,72 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           <Palette className="h-4 w-4 text-primary" />
           <h4 className="text-sm font-semibold">Generate AI Color Variants</h4>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); setRecommendations([]); }}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
+      {/* AI Recommendations */}
+      {recommendations.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            <p className="text-sm font-medium">Get AI Color Recommendations</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            AI will analyze your product, brand, and audience to suggest the best-selling colors.
+          </p>
+          <Button
+            onClick={loadRecommendations}
+            disabled={loadingRecs}
+            size="sm"
+            className="gap-2"
+          >
+            {loadingRecs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {loadingRecs ? "Analyzing…" : "Recommend Colors"}
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <p className="text-xs font-semibold text-primary">AI Recommendations</p>
+          </div>
+          <div className="space-y-1">
+            {recommendations.map((rec) => {
+              const isExisting = existingColorSet.has(rec.color.toLowerCase());
+              const isSelected = colors.includes(rec.color);
+              return (
+                <button
+                  key={rec.color}
+                  type="button"
+                  onClick={() => isSelected ? removeColor(rec.color) : addColor(rec.color)}
+                  disabled={generating}
+                  className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-left transition-colors ${
+                    isSelected
+                      ? "bg-primary/15 border border-primary/30"
+                      : "bg-card border border-border hover:border-primary/30"
+                  }`}
+                >
+                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                  }`}>
+                    {isSelected && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
+                  </div>
+                  <span className="text-xs font-medium flex-1">
+                    {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1 text-muted-foreground" />}
+                    {rec.color}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">{rec.reason}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">
-        Select colors below — AI will re-render your product image in each color and save them as mockup variants.
+        Or pick manually from the palette below:
       </p>
 
       {/* Quick-pick colors */}
@@ -232,6 +335,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         {SUGGESTED_COLORS.map((color) => {
           const isExisting = existingColorSet.has(color.toLowerCase());
           const isSelected = colors.includes(color);
+          const isRecommended = recommendedColorNames.has(color.toLowerCase());
           return (
             <button
               key={color}
@@ -243,7 +347,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
                   ? isExisting
                     ? "bg-primary/70 text-primary-foreground"
                     : "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  : isRecommended
+                    ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
               {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1" />}
