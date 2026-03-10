@@ -95,6 +95,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     let imageBase64: string;
     try {
       const resp = await fetch(sourceImageUrl);
+      const contentType = resp.headers.get("content-type") || "";
+      if (!contentType.startsWith("image/")) {
+        toast.error("Source image URL is broken or expired. Please re-upload the product image.");
+        setGenerating(false);
+        return;
+      }
       const blob = await resp.blob();
       imageBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
