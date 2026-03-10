@@ -426,7 +426,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
-            No messages yet. Click "Generate 10" to get started.
+            No messages yet. Click "Generate" to get started.
           </p>
         </div>
       )}
