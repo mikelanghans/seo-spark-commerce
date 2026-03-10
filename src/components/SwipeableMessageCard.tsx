@@ -132,7 +132,7 @@ export const SwipeableMessageCard = ({
   const hasDesign = !!designUrl;
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className="relative rounded-lg">
       {/* Background indicators */}
       <div
         className={cn(
