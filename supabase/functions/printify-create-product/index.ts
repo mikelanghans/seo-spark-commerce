@@ -199,20 +199,7 @@ serve(async (req) => {
       ],
     };
 
-    // Add mockup images as product listing images
-    // DON'T include in creation payload — set them AFTER via separate PUT
-    const mockupImagePayload = uploadedMockups.length > 0 ? uploadedMockups.map((m, idx) => {
-      const variantIds = filteredVariants
-        .filter((v: any) => (v.options?.color || "").toLowerCase() === m.colorName.toLowerCase())
-        .map((v: any) => v.id);
-      return {
-        src: m.previewUrl,
-        variant_ids: variantIds,
-        position: "front",
-        is_default: idx === 0,
-        is_selected_for_publishing: true,
-      };
-    }) : null;
+    // Mockup images will be set AFTER product creation using uploaded image IDs
 
     // --- CREATE or UPDATE ---
     let createdProduct: any;
