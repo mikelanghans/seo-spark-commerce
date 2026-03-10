@@ -112,6 +112,28 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     }
   };
 
+  const handleAddCustomMessage = async () => {
+    const text = customMessage.trim();
+    if (!text) return;
+    setAddingCustom(true);
+    try {
+      const { error } = await supabase.from("generated_messages").insert({
+        user_id: userId,
+        organization_id: organization.id,
+        message_text: text,
+        is_selected: false,
+      });
+      if (error) throw error;
+      setCustomMessage("");
+      toast.success("Message added!");
+      await loadMessages();
+    } catch (err: any) {
+      toast.error("Failed to add message");
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
   const handleKeep = async (id: string) => {
     const newKept = new Set(keptIds);
     newKept.add(id);
