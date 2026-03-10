@@ -138,24 +138,61 @@ serve(async (req) => {
       ],
     };
 
-    const createRes = await fetch(
-      `https://api.printify.com/v1/shops/${shopId}/products.json`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${printifyToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(productPayload),
+    let createdProduct: any;
+
+    if (isUpdate) {
+      // Update existing product
+      const updateRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
+        }
+      );
+
+      if (!updateRes.ok) {
+        const text = await updateRes.text();
+        throw new Error(`Failed to update product (${updateRes.status}): ${text}`);
       }
-    );
 
-    if (!createRes.ok) {
-      const text = await createRes.text();
-      throw new Error(`Failed to create product (${createRes.status}): ${text}`);
+      createdProduct = await updateRes.json();
+    } else {
+      // Create new product
+      const createRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${printifyToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productPayload),
+        }
+      );
+
+      if (!createRes.ok) {
+        const text = await createRes.text();
+        throw new Error(`Failed to create product (${createRes.status}): ${text}`);
+      }
+
+      createdProduct = await createRes.json();
+
+      // Save printify_product_id back to our database
+      if (createdProduct.id && productId) {
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        await adminClient
+          .from("products")
+          .update({ printify_product_id: createdProduct.id })
+          .eq("id", productId);
+      }
     }
-
-    const createdProduct = await createRes.json();
 
     // Step 4: Replace mockup images if provided
     if (mockupImages?.length > 0 && createdProduct.id) {
