@@ -28,7 +28,12 @@ ${existingColors?.length ? `ALREADY GENERATED COLORS (do NOT recommend these): $
 AVAILABLE COLORS (Comfort Colors 1717 palette — ONLY recommend from this list):
 Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Crimson, Espresso, Midnight, Sage, Chambray
 
-Recommend the TOP 5-8 colors that would:
+IMPORTANT RULES:
+1. You MUST always include "Black" and "White" in your recommendations (unless they are in the already-generated list).
+2. Recommend a total of 6-8 colors (including Black and White).
+3. Black and White are mandatory because every design is produced in both light-ink and dark-ink versions.
+
+For each color beyond Black and White, recommend those that would:
 1. Sell best for this specific product and target audience
 2. Create strong visual contrast with the design text/graphics
 3. Cover the most popular color preferences for the niche
@@ -45,7 +50,7 @@ For each color, provide a brief reason why it's a good choice for this specific 
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a merchandising expert. You MUST call the recommend_colors function." },
+          { role: "system", content: "You are a merchandising expert. You MUST call the recommend_colors function. Always include Black and White. Return 6-8 total colors." },
           { role: "user", content: prompt },
         ],
         tools: [
@@ -53,7 +58,7 @@ For each color, provide a brief reason why it's a good choice for this specific 
             type: "function",
             function: {
               name: "recommend_colors",
-              description: "Return recommended colors with reasoning",
+              description: "Return recommended colors with reasoning. Must include Black and White. Return 6-8 total.",
               parameters: {
                 type: "object",
                 properties: {
@@ -102,8 +107,23 @@ For each color, provide a brief reason why it's a good choice for this specific 
     if (!toolCall) throw new Error("No tool call in response");
 
     const result = JSON.parse(toolCall.function.arguments);
+    let recs: { color: string; reason: string }[] = result.recommendations || [];
 
-    return new Response(JSON.stringify({ recommendations: result.recommendations }), {
+    // Ensure Black and White are always present
+    const existingSet = new Set((existingColors || []).map((c: string) => c.toLowerCase()));
+    const recColors = new Set(recs.map((r) => r.color.toLowerCase()));
+
+    if (!recColors.has("black") && !existingSet.has("black")) {
+      recs.unshift({ color: "Black", reason: "Essential base — every design needs a dark foundation" });
+    }
+    if (!recColors.has("white") && !existingSet.has("white")) {
+      recs.splice(1, 0, { color: "White", reason: "Essential base — clean contrast for dark-ink designs" });
+    }
+
+    // Cap at 8
+    recs = recs.slice(0, 8);
+
+    return new Response(JSON.stringify({ recommendations: recs }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
