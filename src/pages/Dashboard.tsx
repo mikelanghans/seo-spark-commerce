@@ -1165,16 +1165,6 @@ const Dashboard = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="team" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <TeamManager
-                    organizationId={selectedOrg.id}
-                    organizationName={selectedOrg.name}
-                    userId={user!.id}
-                    allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
-                  />
-                </div>
-              </TabsContent>
 
             </Tabs>
           </div>
