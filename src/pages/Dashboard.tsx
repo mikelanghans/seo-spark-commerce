@@ -1174,6 +1174,7 @@ const Dashboard = () => {
                     organizationId={selectedOrg.id}
                     organizationName={selectedOrg.name}
                     userId={user!.id}
+                    allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
                   />
                 </div>
               </TabsContent>
