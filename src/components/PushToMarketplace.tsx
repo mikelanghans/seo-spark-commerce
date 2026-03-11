@@ -118,6 +118,34 @@ export const PushToMarketplace = ({ product, listings, images, userId }: Props) 
     }
   };
 
+  const pushToMeta = async () => {
+    setPushingMeta(true);
+    setMetaResult(null);
+    try {
+      const listing = getListing("shopify") || listings[0];
+      if (!listing) { toast.error("No listing found. Generate one first."); return; }
+
+      const { data, error } = await supabase.functions.invoke("push-to-meta", {
+        body: {
+          productId: product.id,
+          listing: { ...listing, price: product.price },
+          images: images.map((img) => ({ image_url: img.image_url })),
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setMetaResult({ success: true, action: data.action });
+      toast.success(`Meta listing ${data.action || "pushed"}!`);
+    } catch (e: any) {
+      setMetaResult({ success: false, error: e.message });
+      toast.error(e.message || "Failed to push to Meta");
+    } finally {
+      setPushingMeta(false);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       <Button
