@@ -151,7 +151,7 @@ COMPOSITION:
 
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
 ${feedbackContext}${inspirationContext}`;
 
     const models = [
