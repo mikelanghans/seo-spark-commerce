@@ -17,6 +17,7 @@ interface Props {
   organizationId: string;
   organizationName: string;
   userId: string;
+  allOrganizations?: { id: string; name: string }[];
 }
 
 interface Member {
