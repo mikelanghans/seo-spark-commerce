@@ -28,10 +28,10 @@ interface GeneratedMessage {
 interface Props {
   organization: Organization;
   userId: string;
-  onCreateProduct?: (messageText: string, designUrl: string) => void;
+  onProductsCreated?: () => void;
 }
 
-export const MessageGenerator = ({ organization, userId, onCreateProduct }: Props) => {
+export const MessageGenerator = ({ organization, userId, onProductsCreated }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
