@@ -178,7 +178,7 @@ const Dashboard = () => {
     setRestoredNav(true);
     const savedOrgId = sessionStorage.getItem("dash_org_id");
     const savedProductId = sessionStorage.getItem("dash_product_id");
-    if (!savedOrgId) return;
+    if (!savedOrgId) { setView("orgs"); return; }
     const org = orgs.find(o => o.id === savedOrgId);
     if (!org) { setView("orgs"); return; }
     setSelectedOrg(org);
@@ -191,6 +191,8 @@ const Dashboard = () => {
         } else {
           setView("products");
         }
+      } else if (view !== "orgs" && view !== "org-form" && view !== "products" && view !== "product-detail" && view !== "settings" && view !== "autopilot" && view !== "bulk-upload" && view !== "shopify-enrich") {
+        setView("products");
       }
     });
   }, [orgs]);
