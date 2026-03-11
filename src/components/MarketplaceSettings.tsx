@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Trash2, ExternalLink, ShoppingBag, Package } from "lucide-react";
+import { Loader2, Check, Trash2, ExternalLink, ShoppingBag, Package, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -26,6 +26,13 @@ interface EbayConn {
   has_token: boolean;
 }
 
+interface MetaConn {
+  id: string;
+  catalog_id: string;
+  page_id: string;
+  has_token: boolean;
+}
+
 export const MarketplaceSettings = ({ userId }: Props) => {
   const [loading, setLoading] = useState(true);
 
@@ -43,14 +50,22 @@ export const MarketplaceSettings = ({ userId }: Props) => {
   const [ebayEnv, setEbayEnv] = useState("sandbox");
   const [savingEbay, setSavingEbay] = useState(false);
 
+  // Meta state
+  const [metaConn, setMetaConn] = useState<MetaConn | null>(null);
+  const [metaCatalogId, setMetaCatalogId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaPageId, setMetaPageId] = useState("");
+  const [savingMeta, setSavingMeta] = useState(false);
+
   useEffect(() => { loadConnections(); }, []);
 
   const loadConnections = async () => {
     setLoading(true);
     try {
-      const [etsyRes, ebayRes] = await Promise.all([
+      const [etsyRes, ebayRes, metaRes] = await Promise.all([
         supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("meta_connections").select("*").eq("user_id", userId).maybeSingle(),
       ]);
 
       if (etsyRes.data) {
@@ -70,6 +85,16 @@ export const MarketplaceSettings = ({ userId }: Props) => {
           id: d.id,
           client_id: d.client_id,
           environment: d.environment,
+          has_token: !!d.access_token,
+        });
+      }
+
+      if (metaRes.data) {
+        const d = metaRes.data as any;
+        setMetaConn({
+          id: d.id,
+          catalog_id: d.catalog_id,
+          page_id: d.page_id,
           has_token: !!d.access_token,
         });
       }
@@ -136,17 +161,46 @@ export const MarketplaceSettings = ({ userId }: Props) => {
     }
   };
 
-  const deleteConnection = async (platform: "etsy" | "ebay") => {
-    const table = platform === "etsy" ? "etsy_connections" : "ebay_connections";
-    const id = platform === "etsy" ? etsyConn?.id : ebayConn?.id;
+  const saveMeta = async () => {
+    if (!metaCatalogId.trim() || !metaAccessToken.trim()) {
+      toast.error("Catalog ID and Access Token are required");
+      return;
+    }
+    setSavingMeta(true);
+    try {
+      if (metaConn) {
+        const { error } = await supabase
+          .from("meta_connections")
+          .update({ catalog_id: metaCatalogId, access_token: metaAccessToken, page_id: metaPageId, updated_at: new Date().toISOString() } as any)
+          .eq("id", metaConn.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("meta_connections")
+          .insert({ user_id: userId, catalog_id: metaCatalogId, access_token: metaAccessToken, page_id: metaPageId } as any);
+        if (error) throw error;
+      }
+      toast.success("Meta connection saved!");
+      loadConnections();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSavingMeta(false);
+    }
+  };
+
+  const deleteConnection = async (platform: "etsy" | "ebay" | "meta") => {
+    const table = platform === "etsy" ? "etsy_connections" : platform === "ebay" ? "ebay_connections" : "meta_connections";
+    const id = platform === "etsy" ? etsyConn?.id : platform === "ebay" ? ebayConn?.id : metaConn?.id;
     if (!id) return;
 
     try {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
       if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
-      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
-      toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
+      else if (platform === "ebay") { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
+      else { setMetaConn(null); setMetaCatalogId(""); setMetaAccessToken(""); setMetaPageId(""); }
+      toast.success(`${platform === "etsy" ? "Etsy" : platform === "ebay" ? "eBay" : "Meta"} disconnected`);
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
     }
@@ -278,6 +332,62 @@ export const MarketplaceSettings = ({ userId }: Props) => {
             <Button onClick={saveEbay} disabled={savingEbay} className="gap-2">
               {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Connect eBay
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Meta */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Facebook className="h-5 w-5 text-blue-600" />
+            <span className="font-semibold">Meta (Facebook Shop)</span>
+          </div>
+          {metaConn ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
+                <Check className="h-3 w-3 mr-1" /> Connected
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={() => deleteConnection("meta")}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : (
+            <Badge variant="secondary">Not connected</Badge>
+          )}
+        </div>
+
+        {metaConn ? (
+          <div className="text-sm text-muted-foreground">
+            <p>Catalog ID: <span className="text-foreground font-mono text-xs">{metaConn.catalog_id.slice(0, 12)}…</span></p>
+            {metaConn.page_id && <p>Page ID: <span className="text-foreground font-mono text-xs">{metaConn.page_id.slice(0, 12)}…</span></p>}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Push products as drafts to your Facebook Shop catalog.
+              <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary ml-1">
+                Commerce Manager <ExternalLink className="h-3 w-3" />
+              </a>
+            </p>
+            <div className="grid gap-3">
+              <div>
+                <Label>Catalog ID</Label>
+                <Input value={metaCatalogId} onChange={(e) => setMetaCatalogId(e.target.value)} placeholder="Your Meta Commerce catalog ID" />
+              </div>
+              <div>
+                <Label>System User Access Token</Label>
+                <Input type="password" value={metaAccessToken} onChange={(e) => setMetaAccessToken(e.target.value)} placeholder="Your system user access token" />
+              </div>
+              <div>
+                <Label>Page ID (optional)</Label>
+                <Input value={metaPageId} onChange={(e) => setMetaPageId(e.target.value)} placeholder="Facebook Page ID" />
+              </div>
+            </div>
+            <Button onClick={saveMeta} disabled={savingMeta} className="gap-2">
+              {savingMeta ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Connect Meta
             </Button>
           </div>
         )}

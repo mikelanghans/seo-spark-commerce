@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -47,8 +47,10 @@ type PushResult = {
 export const PushToMarketplace = ({ product, listings, images, userId }: Props) => {
   const [pushingEtsy, setPushingEtsy] = useState(false);
   const [pushingEbay, setPushingEbay] = useState(false);
+  const [pushingMeta, setPushingMeta] = useState(false);
   const [etsyResult, setEtsyResult] = useState<PushResult | null>(null);
   const [ebayResult, setEbayResult] = useState<PushResult | null>(null);
+  const [metaResult, setMetaResult] = useState<PushResult | null>(null);
 
   const getListing = (marketplace: string) => {
     // Try marketplace-specific listing first, fall back to any available
@@ -116,6 +118,34 @@ export const PushToMarketplace = ({ product, listings, images, userId }: Props) 
     }
   };
 
+  const pushToMeta = async () => {
+    setPushingMeta(true);
+    setMetaResult(null);
+    try {
+      const listing = getListing("shopify") || listings[0];
+      if (!listing) { toast.error("No listing found. Generate one first."); return; }
+
+      const { data, error } = await supabase.functions.invoke("push-to-meta", {
+        body: {
+          productId: product.id,
+          listing: { ...listing, price: product.price },
+          images: images.map((img) => ({ image_url: img.image_url })),
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setMetaResult({ success: true, action: data.action });
+      toast.success(`Meta listing ${data.action || "pushed"}!`);
+    } catch (e: any) {
+      setMetaResult({ success: false, error: e.message });
+      toast.error(e.message || "Failed to push to Meta");
+    } finally {
+      setPushingMeta(false);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       <Button
@@ -154,6 +184,25 @@ export const PushToMarketplace = ({ product, listings, images, userId }: Props) 
           <Package className="h-4 w-4 text-blue-500" />
         )}
         {ebayResult?.success ? `eBay ${ebayResult.action}` : "Push to eBay"}
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={pushToMeta}
+        disabled={pushingMeta || listings.length === 0}
+        className="gap-2"
+      >
+        {pushingMeta ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : metaResult?.success ? (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        ) : metaResult && !metaResult.success ? (
+          <AlertCircle className="h-4 w-4 text-destructive" />
+        ) : (
+          <Facebook className="h-4 w-4 text-blue-600" />
+        )}
+        {metaResult?.success ? `Meta ${metaResult.action}` : "Push to Meta (Draft)"}
       </Button>
     </div>
   );

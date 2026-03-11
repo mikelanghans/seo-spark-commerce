@@ -241,6 +241,36 @@ export type Database = {
           },
         ]
       }
+      meta_connections: {
+        Row: {
+          access_token: string
+          catalog_id: string
+          created_at: string
+          id: string
+          page_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          page_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          page_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_invites: {
         Row: {
           accepted_at: string | null
@@ -417,6 +447,7 @@ export type Database = {
           id: string
           image_url: string | null
           keywords: string
+          meta_listing_id: string | null
           organization_id: string
           price: string
           printify_product_id: string | null
@@ -435,6 +466,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           keywords?: string
+          meta_listing_id?: string | null
           organization_id: string
           price?: string
           printify_product_id?: string | null
@@ -453,6 +485,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           keywords?: string
+          meta_listing_id?: string | null
           organization_id?: string
           price?: string
           printify_product_id?: string | null

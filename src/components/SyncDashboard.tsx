@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Store, ShoppingBag, Package, CheckCircle2, XCircle, Search, ArrowUpDown, ExternalLink } from "lucide-react";
+import { Store, ShoppingBag, Package, Facebook, CheckCircle2, XCircle, Search, ArrowUpDown, ExternalLink } from "lucide-react";
 
 interface Product {
   id: string;
@@ -11,6 +11,7 @@ interface Product {
   shopify_product_id: number | null;
   etsy_listing_id?: string | null;
   ebay_listing_id?: string | null;
+  meta_listing_id?: string | null;
   category: string;
   price: string;
 }
@@ -22,12 +23,14 @@ const MARKETPLACES = [
   { id: "shopify", label: "Shopify", icon: Store, color: "text-green-600 dark:text-green-400", bgColor: "bg-green-500/15" },
   { id: "etsy", label: "Etsy", icon: ShoppingBag, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-500/15" },
   { id: "ebay", label: "eBay", icon: Package, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/15" },
+  { id: "meta", label: "Meta", icon: Facebook, color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-600/15" },
 ] as const;
 
 function getListingId(product: Product, marketplace: string): string | null {
   if (marketplace === "shopify") return product.shopify_product_id?.toString() || null;
   if (marketplace === "etsy") return (product as any).etsy_listing_id || null;
   if (marketplace === "ebay") return (product as any).ebay_listing_id || null;
+  if (marketplace === "meta") return (product as any).meta_listing_id || null;
   return null;
 }
 
@@ -170,7 +173,7 @@ export function SyncDashboard({
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Header */}
-          <div className="hidden sm:grid grid-cols-[1fr_repeat(3,80px)] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
+          <div className="hidden sm:grid grid-cols-[1fr_repeat(4,80px)] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
             <button onClick={() => toggleSort("title")} className="text-left flex items-center gap-1">
               Product <ArrowUpDown className="h-3 w-3" />
             </button>
@@ -190,7 +193,7 @@ export function SyncDashboard({
             {filtered.map((product) => (
               <div
                 key={product.id}
-                className="grid grid-cols-[1fr] sm:grid-cols-[1fr_repeat(3,80px)] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[1fr] sm:grid-cols-[1fr_repeat(4,80px)] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {product.image_url ? (
