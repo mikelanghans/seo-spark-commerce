@@ -999,9 +999,6 @@ const Dashboard = () => {
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
                 </TabsTrigger>
-                <TabsTrigger value="team" className="gap-2">
-                  <Users className="h-4 w-4" /> Team
-                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -1168,16 +1165,6 @@ const Dashboard = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="team" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <TeamManager
-                    organizationId={selectedOrg.id}
-                    organizationName={selectedOrg.name}
-                    userId={user!.id}
-                    allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
-                  />
-                </div>
-              </TabsContent>
             </Tabs>
           </div>
         )}
@@ -1528,7 +1515,7 @@ const Dashboard = () => {
               </Button>
               <div>
                 <h2 className="text-2xl font-bold">Settings</h2>
-                <p className="text-sm text-muted-foreground">Manage your Shopify connection and integrations</p>
+                <p className="text-sm text-muted-foreground">Manage your connections, integrations and team</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
@@ -1536,6 +1523,14 @@ const Dashboard = () => {
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <TeamManager
+                organizationId={orgs[0]?.id || ""}
+                organizationName={orgs[0]?.name || ""}
+                userId={user.id}
+                allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
+              />
             </div>
           </div>
         )}
