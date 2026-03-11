@@ -133,7 +133,7 @@ export const DesignPreviewDialog = ({
       onOpenChange={() => {
         setRating(null);
         setNotes("");
-        setRegenFeedback("");
+        setNotes("");
         clearReferenceImage();
         onClose();
       }}
