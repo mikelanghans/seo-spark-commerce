@@ -23,6 +23,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   designUrl: string | null;
+  darkDesignUrl?: string | null;
   messageText: string | null;
   messageId: string | null;
   organizationId: string;
