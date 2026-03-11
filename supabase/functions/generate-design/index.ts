@@ -101,7 +101,11 @@ serve(async (req) => {
     }
 
     const fontDirection = brandFont || "bold sans-serif";
-    const colorDirection = brandColor || "#000000 (black)";
+    const isLightOnDark = designVariant === "light-on-dark";
+    const defaultColor = isLightOnDark ? "#FFFFFF (white)" : "#000000 (black)";
+    const colorDirection = isLightOnDark ? "#FFFFFF (white)" : (brandColor || defaultColor);
+    const bgColor = isLightOnDark ? "solid pure black (#000000)" : "solid pure white (#FFFFFF)";
+    const bgHex = isLightOnDark ? "#000000" : "#FFFFFF";
     const sizeMap: Record<string, string> = {
       "small": "Subtle, understated text size — elegant and refined",
       "medium": "Medium text size — balanced and readable",
@@ -122,7 +126,7 @@ BRAND CONTEXT:
 
 STRICT DESIGN RULES:
 
-BACKGROUND: Solid pure white (#FFFFFF). No patterns, no gradients, no checkered grids, no textures.
+BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
 
 TYPOGRAPHY:
 - Font style: ${fontDirection}
@@ -131,7 +135,8 @@ TYPOGRAPHY:
 - Generous letter-spacing and line-height for a premium feel
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
 
-COLOR: Use ${colorDirection} as the primary ink color on white background. No gradients in the text.
+COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
+${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only. The design will be printed on black, navy, charcoal, or similar dark fabrics." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors. The design will be printed on white, cream, light gray, or similar light fabrics."}
 
 KEEP IT ULTRA CLEAN:
 - NO decorative elements — no stars, no flourishes, no borders, no icons, no illustrations
