@@ -331,12 +331,29 @@ export const SwipeableMessageCard = ({
             </Button>
           )}
           {!hasProduct && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDesignVariant((v) => v === "dark-on-light" ? "light-on-dark" : "dark-on-light");
+              }}
+              className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 shrink-0"
+              title={designVariant === "dark-on-light" ? "Light garment (dark ink)" : "Dark garment (light ink)"}
+            >
+              {designVariant === "dark-on-light" ? (
+                <Sun className="h-3 w-3" />
+              ) : (
+                <Moon className="h-3 w-3" />
+              )}
+            </button>
+          )}
+          {!hasProduct && (
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               disabled={isGeneratingDesign || disableDesignActions}
-              onClick={() => onGenerateDesign(id)}
+              onClick={() => onGenerateDesign(id, designVariant)}
               title={hasDesign ? "Regenerate design" : "Generate design"}
             >
               {isGeneratingDesign ? (
