@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +30,8 @@ interface Props {
   userId: string;
   onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => Promise<void>;
   onDiscardDesign?: (messageId: string) => void;
+  onCreateProduct?: (messageId: string) => void;
+  hasProduct?: boolean;
 }
 
 export const DesignPreviewDialog = ({
@@ -43,6 +45,8 @@ export const DesignPreviewDialog = ({
   userId,
   onRegenerate,
   onDiscardDesign,
+  onCreateProduct,
+  hasProduct,
 }: Props) => {
   const [notes, setNotes] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
@@ -243,35 +247,40 @@ export const DesignPreviewDialog = ({
           </div>
         )}
 
-        {/* Design verdict */}
-        {messageId && onDiscardDesign && (
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <p className="text-sm font-medium text-muted-foreground">Keep this design?</p>
-            <div className="flex gap-1">
-              <button
-                type="button"
+        {/* Actions: Create product or discard design */}
+        {messageId && !hasProduct && (
+          <div className="flex gap-2">
+            {onCreateProduct && (
+              <Button
+                className="flex-1 gap-2"
                 onClick={() => {
-                  toast.success("Design kept!");
+                  onCreateProduct(messageId);
                   onClose();
                 }}
-                className="rounded-md p-2 text-muted-foreground transition-colors hover:text-emerald-500 hover:bg-emerald-500/10"
-                title="Keep design"
               >
-                <ThumbsUp className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
+                <ArrowRight className="h-4 w-4" />
+                Create Product
+              </Button>
+            )}
+            {onDiscardDesign && (
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => {
                   onDiscardDesign(messageId);
                   onClose();
                 }}
-                className="rounded-md p-2 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
                 title="Remove design, keep message"
+                className="shrink-0 text-muted-foreground hover:text-destructive hover:border-destructive/50"
               >
-                <ThumbsDown className="h-5 w-5" />
-              </button>
-            </div>
+                <ThumbsDown className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+        )}
+
+        {hasProduct && (
+          <p className="text-xs text-center text-muted-foreground">Product already created</p>
         )}
 
         {/* Regenerate with feedback - always available */}
