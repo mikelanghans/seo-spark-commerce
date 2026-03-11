@@ -755,6 +755,9 @@ const Dashboard = () => {
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
                 </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="h-4 w-4" /> Calendar
+                </TabsTrigger>
                 <TabsTrigger value="team" className="gap-2">
                   <Users className="h-4 w-4" /> Team
                 </TabsTrigger>
