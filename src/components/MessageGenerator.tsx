@@ -222,13 +222,12 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
   };
 
-  const handleGenerateDesign = async (msgId: string, variant: "dark-on-light" | "light-on-dark" | "both" = "light-on-dark") => {
+  const handleGenerateDesign = async (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setGeneratingDesignId(msg.id);
 
-    const variants: ("dark-on-light" | "light-on-dark")[] = 
-      variant === "both" ? ["light-on-dark", "dark-on-light"] : [variant];
+    const variants: ("light-on-dark")[] = ["light-on-dark"];
 
     try {
       for (const v of variants) {
@@ -255,7 +254,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           return;
         }
       }
-      toast.success(variant === "both" ? "Both designs generated!" : "Design generated!");
+      toast.success("Design generated!");
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate design");

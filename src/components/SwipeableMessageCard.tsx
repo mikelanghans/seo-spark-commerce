@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type TouchEvent, type MouseEvent } from "react";
-import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare, ThumbsUp, ThumbsDown, Sun, Moon, Layers } from "lucide-react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,7 @@ interface SwipeableMessageCardProps {
   onDiscard: (id: string) => void;
   onEdit: (id: string, newText: string) => void;
   onRefine: (id: string, feedback: string) => void;
-  onGenerateDesign: (id: string, variant: "dark-on-light" | "light-on-dark" | "both") => void;
+  onGenerateDesign: (id: string) => void;
   onPreviewDesign: (id: string) => void;
 }
 
@@ -44,7 +44,6 @@ export const SwipeableMessageCard = ({
   const [editText, setEditText] = useState(messageText);
   const [showRefine, setShowRefine] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState("");
-  const [designVariant, setDesignVariant] = useState<"dark-on-light" | "light-on-dark" | "both">("light-on-dark");
   const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -330,37 +329,12 @@ export const SwipeableMessageCard = ({
             </Button>
           )}
           {!hasProduct && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDesignVariant((v) => 
-                  v === "light-on-dark" ? "dark-on-light" : v === "dark-on-light" ? "both" : "light-on-dark"
-                );
-              }}
-              className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 shrink-0"
-              title={
-                designVariant === "dark-on-light" ? "Light garment (dark ink)" 
-                : designVariant === "light-on-dark" ? "Dark garment (light ink)" 
-                : "Both variants"
-              }
-            >
-              {designVariant === "dark-on-light" ? (
-                <Sun className="h-3 w-3" />
-              ) : designVariant === "light-on-dark" ? (
-                <Moon className="h-3 w-3" />
-              ) : (
-                <Layers className="h-3 w-3" />
-              )}
-            </button>
-          )}
-          {!hasProduct && (
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               disabled={isGeneratingDesign || disableDesignActions}
-              onClick={() => onGenerateDesign(id, designVariant)}
+              onClick={() => onGenerateDesign(id)}
               title={hasDesign ? "Regenerate design" : "Generate design"}
             >
               {isGeneratingDesign ? (
