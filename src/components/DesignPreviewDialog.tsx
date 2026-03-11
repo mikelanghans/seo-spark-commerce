@@ -27,7 +27,7 @@ interface Props {
   messageId: string | null;
   organizationId: string;
   userId: string;
-  onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
+  onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
@@ -270,10 +270,27 @@ export const DesignPreviewDialog = ({
               onClick={async () => {
                 setRegenerating(true);
                 try {
-                  await onRegenerate(messageId, notes.trim());
+                  // Upload reference image first if one is selected
+                  let refUrl: string | undefined;
+                  if (referenceImage) {
+                    const ext = referenceImage.name.split(".").pop() || "png";
+                    const path = `feedback-refs/${userId}/${Date.now()}.${ext}`;
+                    const { error: uploadErr } = await supabase.storage
+                      .from("product-images")
+                      .upload(path, referenceImage, { contentType: referenceImage.type });
+                    if (uploadErr) {
+                      toast.error("Failed to upload reference image");
+                      setRegenerating(false);
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                    refUrl = urlData.publicUrl;
+                  }
+                  await onRegenerate(messageId, notes.trim(), refUrl);
                   await refreshHistory();
                   setViewingUrl(null);
                   setNotes("");
+                  clearReferenceImage();
                 } finally {
                   setRegenerating(false);
                 }
