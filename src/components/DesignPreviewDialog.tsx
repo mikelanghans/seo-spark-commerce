@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,8 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, Loader2, ImagePlus, X, RefreshCw } from "lucide-react";
+import { Download, Loader2, ImagePlus, X, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+interface HistoryEntry {
+  id: string;
+  design_url: string;
+  feedback_notes: string;
+  created_at: string;
+}
 
 interface Props {
   open: boolean;
@@ -36,12 +44,47 @@ export const DesignPreviewDialog = ({
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [viewingUrl, setViewingUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch history when dialog opens
+  useEffect(() => {
+    if (open && messageId) {
+      supabase
+        .from("design_history" as any)
+        .select("id, design_url, feedback_notes, created_at")
+        .eq("message_id", messageId)
+        .order("created_at", { ascending: false })
+        .then(({ data }: any) => {
+          setHistory(data || []);
+        });
+    }
+    if (!open) {
+      setHistory([]);
+      setShowHistory(false);
+      setViewingUrl(null);
+    }
+  }, [open, messageId]);
+
+  // Refresh history after regeneration
+  const refreshHistory = async () => {
+    if (!messageId) return;
+    const { data } = await supabase
+      .from("design_history" as any)
+      .select("id, design_url, feedback_notes, created_at")
+      .eq("message_id", messageId)
+      .order("created_at", { ascending: false }) as any;
+    setHistory(data || []);
+  };
+
+  const activeUrl = viewingUrl || designUrl;
+
   const handleDownload = async () => {
-    if (!designUrl) return;
+    if (!activeUrl) return;
     try {
-      const response = await fetch(designUrl);
+      const response = await fetch(activeUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -92,18 +135,81 @@ export const DesignPreviewDialog = ({
           <DialogTitle className="text-sm font-medium">{messageText}</DialogTitle>
         </DialogHeader>
 
-        {designUrl && (
+        {activeUrl && (
           <img
-            src={designUrl}
+            src={activeUrl}
             alt={messageText || "Design preview"}
             className="w-full rounded-lg border border-border"
           />
         )}
 
+        {/* Version history strip */}
+        {history.length > 0 && (
+          <div className="space-y-2">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <History className="h-3.5 w-3.5" />
+              {showHistory ? "Hide" : "Show"} version history ({history.length} previous)
+            </button>
+
+            {showHistory && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {/* Current version */}
+                <button
+                  onClick={() => setViewingUrl(null)}
+                  className={cn(
+                    "relative flex-shrink-0 rounded-md border-2 overflow-hidden transition-all",
+                    !viewingUrl
+                      ? "border-primary ring-1 ring-primary/30"
+                      : "border-border hover:border-muted-foreground"
+                  )}
+                >
+                  {designUrl && (
+                    <img
+                      src={designUrl}
+                      alt="Current"
+                      className="h-16 w-16 object-cover"
+                    />
+                  )}
+                  <span className="absolute bottom-0 inset-x-0 bg-background/80 text-[9px] font-medium text-center py-0.5">
+                    Current
+                  </span>
+                </button>
+
+                {/* Past versions */}
+                {history.map((entry, i) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => setViewingUrl(entry.design_url)}
+                    title={entry.feedback_notes || `Version ${history.length - i}`}
+                    className={cn(
+                      "relative flex-shrink-0 rounded-md border-2 overflow-hidden transition-all",
+                      viewingUrl === entry.design_url
+                        ? "border-primary ring-1 ring-primary/30"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <img
+                      src={entry.design_url}
+                      alt={`v${history.length - i}`}
+                      className="h-16 w-16 object-cover"
+                    />
+                    <span className="absolute bottom-0 inset-x-0 bg-background/80 text-[9px] font-medium text-center py-0.5">
+                      v{history.length - i}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Download */}
         <Button variant="outline" className="w-full gap-2" onClick={handleDownload}>
           <Download className="h-4 w-4" />
-          Download Design
+          Download{viewingUrl ? " This Version" : " Design"}
         </Button>
 
         {/* Regenerate with feedback */}
@@ -165,6 +271,9 @@ export const DesignPreviewDialog = ({
                 setRegenerating(true);
                 try {
                   await onRegenerate(messageId, notes.trim());
+                  await refreshHistory();
+                  setViewingUrl(null);
+                  setNotes("");
                 } finally {
                   setRegenerating(false);
                 }
