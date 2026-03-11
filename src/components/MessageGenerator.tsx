@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -47,6 +47,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
+  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">("text-only");
 
   useEffect(() => {
     loadMessages();
@@ -78,6 +79,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
             audience: organization.audience,
           },
           count: generateCount,
+          designStyle,
           ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
       });
@@ -230,6 +232,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
             messageId: msg.id,
             organizationId: organization.id,
             designVariant: v,
+            designStyle,
           },
         });
 
@@ -285,6 +288,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
           messageId: msg.id,
           organizationId: organization.id,
           designVariant: "light-on-dark",
+          designStyle,
         },
       });
 
@@ -397,14 +401,44 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
             Swipe right to keep · Swipe left to discard
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Topic (e.g. Christmas, Summer, Dogs)..."
-            className="flex-1 h-10"
+            className="flex-1 min-w-[160px] h-10"
             disabled={generating}
           />
+          <div className="flex items-center rounded-md border border-input bg-background h-10 overflow-hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setDesignStyle("text-only")}
+              disabled={generating}
+              className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
+                designStyle === "text-only"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              }`}
+              title="Text-only typography designs"
+            >
+              <Type className="h-3.5 w-3.5" />
+              Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setDesignStyle("minimalist")}
+              disabled={generating}
+              className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
+                designStyle === "minimalist"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              }`}
+              title="Minimalist illustration designs"
+            >
+              <Image className="h-3.5 w-3.5" />
+              Art
+            </button>
+          </div>
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}
