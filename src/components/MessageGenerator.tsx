@@ -41,6 +41,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [loading, setLoading] = useState(true);
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewDarkUrl, setPreviewDarkUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
