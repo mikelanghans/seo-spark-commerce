@@ -18,8 +18,9 @@ import { PushToPrintify } from "@/components/PushToPrintify";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { TeamManager } from "@/components/TeamManager";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
+import { ContentCalendar } from "@/components/ContentCalendar";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -754,6 +755,9 @@ const Dashboard = () => {
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
                 </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="h-4 w-4" /> Calendar
+                </TabsTrigger>
                 <TabsTrigger value="team" className="gap-2">
                   <Users className="h-4 w-4" /> Team
                 </TabsTrigger>
@@ -790,6 +794,15 @@ const Dashboard = () => {
                     organization={selectedOrg}
                     products={products}
                     userId={user!.id}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="calendar" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ContentCalendar
+                    organizationId={selectedOrg.id}
+                    products={products}
                   />
                 </div>
               </TabsContent>

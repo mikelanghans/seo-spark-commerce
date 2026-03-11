@@ -426,9 +426,11 @@ export type Database = {
           created_at: string
           hashtags: Json
           id: string
+          image_url: string | null
           organization_id: string
           platform: string
           product_id: string
+          scheduled_date: string | null
           user_id: string
         }
         Insert: {
@@ -436,9 +438,11 @@ export type Database = {
           created_at?: string
           hashtags?: Json
           id?: string
+          image_url?: string | null
           organization_id: string
           platform: string
           product_id: string
+          scheduled_date?: string | null
           user_id: string
         }
         Update: {
@@ -446,9 +450,11 @@ export type Database = {
           created_at?: string
           hashtags?: Json
           id?: string
+          image_url?: string | null
           organization_id?: string
           platform?: string
           product_id?: string
+          scheduled_date?: string | null
           user_id?: string
         }
         Relationships: [
