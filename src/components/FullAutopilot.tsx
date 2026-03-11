@@ -20,6 +20,7 @@ interface Organization {
   brand_font_size?: string;
   brand_style_notes?: string;
   design_styles?: string[];
+  printify_shop_id?: number | null;
 }
 
 interface Props {
@@ -387,10 +388,13 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           log(`  🖨️ Pushing to Printify...`, "info");
 
           try {
-            // Get shops
-            const { data: shopsData } = await supabase.functions.invoke("printify-get-shops");
-            const shopId = shopsData?.shops?.[0]?.id;
-            if (!shopId) throw new Error("No Printify shop found");
+            // Get shop ID — prefer brand-level mapping, fallback to first shop
+            let shopId = organization.printify_shop_id;
+            if (!shopId) {
+              const { data: shopsData } = await supabase.functions.invoke("printify-get-shops");
+              shopId = shopsData?.shops?.[0]?.id;
+            }
+            if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
             // Upload design
             const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {

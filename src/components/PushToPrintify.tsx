@@ -42,6 +42,7 @@ interface Props {
   listings: Listing[];
   userId: string;
   onProductUpdate?: (updates: Partial<Product>) => void;
+  printifyShopId?: number | null;
 }
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
@@ -54,7 +55,7 @@ const LIGHT_COLORS = new Set([
   "light green", "bay", "sage",
 ]);
 
-export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
+export const PushToPrintify = ({ product, listings, userId, onProductUpdate, printifyShopId }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
@@ -74,7 +75,12 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setShops(data.shops || []);
-      if (data.shops?.length >= 1) setSelectedShop(data.shops[0].id);
+      // Prefer brand-level shop mapping, fallback to first
+      if (printifyShopId && data.shops?.some((s: any) => s.id === printifyShopId)) {
+        setSelectedShop(printifyShopId);
+      } else if (data.shops?.length >= 1) {
+        setSelectedShop(data.shops[0].id);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to load Printify shops");
     } finally {

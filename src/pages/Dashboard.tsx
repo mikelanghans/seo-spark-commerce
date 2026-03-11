@@ -42,6 +42,7 @@ interface Organization {
   brand_font_size?: string;
   brand_style_notes?: string;
   design_styles?: string[];
+  printify_shop_id?: number | null;
 }
 
 interface Product {
@@ -101,7 +102,9 @@ const Dashboard = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[] });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null });
+  const [printifyShops, setPrintifyShops] = useState<{ id: number; title: string }[]>([]);
+  const [loadingPrintifyShops, setLoadingPrintifyShops] = useState(false);
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
   const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
@@ -239,7 +242,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setOrgLogoFile(null);
@@ -248,14 +251,24 @@ const Dashboard = () => {
     loadOrgs();
   };
 
+  const loadPrintifyShops = async () => {
+    setLoadingPrintifyShops(true);
+    try {
+      const { data } = await supabase.functions.invoke("printify-get-shops");
+      setPrintifyShops(data?.shops || []);
+    } catch { /* silent */ }
+    setLoadingPrintifyShops(false);
+  };
+
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"] });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
     setOrgLogoFile(null);
     setView("org-form");
+    loadPrintifyShops();
   };
 
   const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -724,7 +737,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -859,7 +872,42 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Template Mockup Image */}
+            {/* Printify Shop Mapping */}
+            <div className="space-y-2">
+              <Label>Printify Shop</Label>
+              <p className="text-xs text-muted-foreground">Which Printify shop this brand pushes to</p>
+              {loadingPrintifyShops ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading shops...
+                </div>
+              ) : printifyShops.length === 0 ? (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">No Printify shops found</p>
+                  <Button type="button" variant="outline" size="sm" onClick={async () => {
+                    setLoadingPrintifyShops(true);
+                    try {
+                      const { data } = await supabase.functions.invoke("printify-get-shops");
+                      setPrintifyShops(data?.shops || []);
+                    } catch { /* silent */ }
+                    setLoadingPrintifyShops(false);
+                  }}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Load shops
+                  </Button>
+                </div>
+              ) : (
+                <select
+                  value={orgForm.printify_shop_id ?? ""}
+                  onChange={(e) => setOrgForm({ ...orgForm, printify_shop_id: e.target.value ? Number(e.target.value) : null })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">Auto (first shop)</option>
+                  {printifyShops.map((shop) => (
+                    <option key={shop.id} value={shop.id}>{shop.title}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Default Mockup Template (optional)</Label>
               <p className="text-xs text-muted-foreground">Fallback image used for AI color variants when a product has no image</p>
@@ -1433,6 +1481,7 @@ const Dashboard = () => {
                         setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
                         setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
                       }}
+                      printifyShopId={selectedOrg?.printify_shop_id}
                     />
                     <PushToMarketplace
                       product={selectedProduct}
