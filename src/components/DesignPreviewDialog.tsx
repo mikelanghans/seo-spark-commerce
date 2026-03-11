@@ -85,7 +85,7 @@ export const DesignPreviewDialog = ({
     setHistory(data || []);
   };
 
-  const activeUrl = viewingUrl || designUrl;
+  const activeUrl = viewingUrl || (activeVariant === "dark" && darkDesignUrl ? darkDesignUrl : designUrl);
 
   const handleDownload = async () => {
     if (!activeUrl) return;
