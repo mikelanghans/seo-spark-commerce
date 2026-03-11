@@ -13,6 +13,27 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Detect if this is a light-colored shirt where white/light ink won't be visible
+    const LIGHT_COLORS = new Set([
+      "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+      "island reef", "chambray", "white", "flo blue", "watermelon",
+      "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+      "light green", "bay", "sage",
+    ]);
+    const isLightShirt = LIGHT_COLORS.has((colorName || "").toLowerCase().trim());
+
+    const printColorRule = isLightShirt
+      ? `⚠️ PRINT COLOR RULE — CRITICAL FOR LIGHT SHIRTS:
+- The original design uses white/light colored ink which would be INVISIBLE on a ${colorName} shirt.
+- You MUST change the design's ink color to DARK BLACK/CHARCOAL so it is clearly visible on the light ${colorName} fabric.
+- Keep everything else about the design identical: same text, same fonts, same graphics, same layout, same size, same position.
+- ONLY the ink/print color changes from white/light to dark black. The design content stays exactly the same.
+- The dark design must be crisp, bold, and fully legible against the ${colorName} fabric.`
+      : `⚠️ PRINT COLOR RULE — MOST IMPORTANT:
+- Keep the EXACT SAME ink colors as the original design. Do NOT change or recolor any part of the print.
+- The design is opaque screen-printed ink sitting ON TOP of the fabric — never blended, faded, or translucent.
+- The design must remain fully visible and crisp on the ${colorName} fabric.`;
+
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
       ? `You are given two images:
@@ -35,12 +56,9 @@ CRITICAL — WHAT MUST BE IDENTICAL TO IMAGE 1:
 
 WHAT CHANGES:
 - ONLY the t-shirt fabric color → ${colorName}
+${isLightShirt ? "- The design ink color changes from white/light to DARK BLACK (see print color rule below)" : ""}
 
-⚠️ PRINT COLOR RULE — THIS IS THE MOST IMPORTANT RULE:
-- The printed design (text, graphics, illustrations) must keep the EXACT SAME ink colors as in image 1.
-- Do NOT change, invert, or recolor any part of the printed design. The ink colors are LOCKED.
-- The design is opaque screen-printed ink — it sits ON TOP of the fabric and never blends, fades, or becomes translucent.
-- The design must remain fully visible and crisp on the ${colorName} fabric.
+${printColorRule}
 
 Product: ${productTitle}. The output must be a near-identical clone of image 1 with only the fabric color changed.`
       : `Create an IDENTICAL copy of this product mockup photo but change ONLY the t-shirt fabric color to ${colorName}.
@@ -57,11 +75,9 @@ CRITICAL — WHAT MUST STAY IDENTICAL:
 
 WHAT CHANGES:
 - ONLY the fabric color → ${colorName}
+${isLightShirt ? "- The design ink color changes from white/light to DARK BLACK (see print color rule below)" : ""}
 
-⚠️ PRINT COLOR RULE — MOST IMPORTANT:
-- Keep the EXACT SAME ink colors as the original design. Do NOT change or recolor any part of the print.
-- The design is opaque screen-printed ink sitting ON TOP of the fabric — never blended, faded, or translucent.
-- The design must remain fully visible and crisp on the ${colorName} fabric.
+${printColorRule}
 
 Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
 
