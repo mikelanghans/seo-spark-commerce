@@ -41,6 +41,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [loading, setLoading] = useState(true);
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewDarkUrl, setPreviewDarkUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
@@ -366,6 +367,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
     cancelDesignsRef.current = false;
     let completed = 0;
+    setBatchProgress({ done: 0, total: kept.length });
 
     for (const msg of kept) {
       if (cancelDesignsRef.current) {
@@ -397,12 +399,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
       } else {
         completed++;
+        setBatchProgress({ done: completed, total: kept.length });
       }
 
       await new Promise((r) => setTimeout(r, 2000));
     }
 
     setGeneratingDesignId(null);
+    setBatchProgress(null);
     if (!cancelDesignsRef.current) {
       toast.success(`Generated designs for ${completed} messages!`);
     }
@@ -712,13 +716,20 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             
             {needsDesignCount > 0 && (
               generatingDesignId ? (
-                <Button
-                  onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); }}
-                  variant="destructive"
-                  className="gap-2"
-                >
-                  <X className="h-4 w-4" /> Cancel Designs
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); setBatchProgress(null); }}
+                    variant="destructive"
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" /> Cancel
+                  </Button>
+                  {batchProgress && (
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {batchProgress.done} of {batchProgress.total} designs complete
+                    </span>
+                  )}
+                </div>
               ) : (
                 <Button
                   onClick={handleGenerateKeptDesigns}
