@@ -49,6 +49,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
   const [products, setProducts] = useState<ProductProgress[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const cancelRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const log = useCallback((message: string, type: LogEntry["type"] = "info") => {
