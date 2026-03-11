@@ -514,7 +514,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               <h3 className="font-semibold">Autopilot Running</h3>
             </div>
             {running && (
-              <Button variant="destructive" size="sm" onClick={() => { cancelRef.current = true; }} className="gap-1.5">
+              <Button variant="destructive" size="sm" onClick={() => { cancelRef.current = true; abortRef.current?.abort(); }} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
                 Cancel
               </Button>
