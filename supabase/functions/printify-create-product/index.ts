@@ -147,11 +147,11 @@ serve(async (req) => {
 
     let printAreas: any[];
     if (hasDarkDesign) {
-      // Separate variant IDs by light vs dark shirt color
-      const darkVariantIds = allVariants
+      // Separate enabled variant IDs by light vs dark shirt color
+      const darkVariantIds = enabledVariants
         .filter((v: any) => !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
         .map((v: any) => v.id);
-      const lightVariantIds = allVariants
+      const lightVariantIds = enabledVariants
         .filter((v: any) => lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
         .map((v: any) => v.id);
 
@@ -178,7 +178,7 @@ serve(async (req) => {
       }
     } else {
       printAreas = [{
-        variant_ids: allVariantIds,
+        variant_ids: enabledVariants.map((v: any) => v.id),
         placeholders: [{
           position: "front",
           images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
@@ -192,10 +192,10 @@ serve(async (req) => {
       tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
       blueprint_id: bpId,
       print_provider_id: ppId,
-      variants: allVariants.map((v: any) => ({
+      variants: enabledVariants.map((v: any) => ({
         id: v.id,
         price: priceInCents,
-        is_enabled: filteredVariantIds.has(v.id),
+        is_enabled: true,
       })),
       print_areas: printAreas,
     };
