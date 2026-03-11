@@ -29,6 +29,7 @@ serve(async (req) => {
 
     const {
       shopId, title, description, tags, printifyImageId,
+      darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price,
       blueprintId, printProviderId, productId, printifyProductId,
     } = await req.json();
