@@ -79,11 +79,18 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [view, setView] = useState<View>("orgs");
+  const [view, _setView] = useState<View>(() => {
+    return (sessionStorage.getItem("dash_view") as View) || "orgs";
+  });
+  const setView = (v: View) => {
+    sessionStorage.setItem("dash_view", v);
+    _setView(v);
+  };
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [_restoredNav, setRestoredNav] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
