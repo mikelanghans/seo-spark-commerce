@@ -716,13 +716,20 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             
             {needsDesignCount > 0 && (
               generatingDesignId ? (
-                <Button
-                  onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); }}
-                  variant="destructive"
-                  className="gap-2"
-                >
-                  <X className="h-4 w-4" /> Cancel Designs
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => { cancelDesignsRef.current = true; setGeneratingDesignId(null); setBatchProgress(null); }}
+                    variant="destructive"
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" /> Cancel
+                  </Button>
+                  {batchProgress && (
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {batchProgress.done} of {batchProgress.total} designs complete
+                    </span>
+                  )}
+                </div>
               ) : (
                 <Button
                   onClick={handleGenerateKeptDesigns}
