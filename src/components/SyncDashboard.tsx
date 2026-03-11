@@ -173,7 +173,7 @@ export function SyncDashboard({
       ) : (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Header */}
-          <div className="hidden sm:grid grid-cols-[1fr_repeat(3,80px)] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
+          <div className="hidden sm:grid grid-cols-[1fr_repeat(4,80px)] gap-2 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
             <button onClick={() => toggleSort("title")} className="text-left flex items-center gap-1">
               Product <ArrowUpDown className="h-3 w-3" />
             </button>
