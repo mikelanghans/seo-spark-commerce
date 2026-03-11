@@ -16,50 +16,52 @@ serve(async (req) => {
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
       ? `You are given two images:
-1. A product mockup photo of a t-shirt — THIS IS YOUR STYLE REFERENCE for camera angle, lighting, background, and print SIZE
-2. The original design/graphic that should be printed on the shirt
+1. A REFERENCE product mockup photo — you must CLONE this photo exactly, only changing the shirt color
+2. The original design/graphic printed on the shirt
 
-YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on it.
+YOUR TASK: Create an IDENTICAL copy of image 1 but with the t-shirt fabric color changed to ${colorName}.
 
-ABSOLUTE NON-NEGOTIABLE RULES:
+THIS IS A RECOLORING TASK, NOT A REDESIGN TASK.
 
-PRINT COLORS:
-- Look at image 2 carefully. Whatever colors the design uses (white ink, white text, white graphics) — those EXACT colors must appear on EVERY shirt color, including ${colorName}.
-- DO NOT invert, swap, or "adapt" the design colors based on the shirt color. If the original design is white ink, it stays WHITE INK on a white shirt, on a black shirt, on every shirt.
-- DO NOT use black ink/text if the original design (image 2) uses white ink/text. The design colors are LOCKED.
-- The print is OPAQUE SCREEN-PRINTED INK — it sits on top of the fabric with full opacity. It never blends, fades, or becomes translucent.
+CRITICAL — WHAT MUST BE IDENTICAL TO IMAGE 1:
+- The EXACT same text, letter-for-letter, word-for-word — read image 1 carefully and reproduce every word exactly
+- The EXACT same font, font size, font weight, letter spacing, and text layout
+- The EXACT same graphic/illustration elements in the same positions
+- The EXACT same design size relative to the shirt — same coverage area, same proportions
+- The EXACT same design position on the shirt
+- The EXACT same camera angle, distance, perspective, framing
+- The EXACT same background scene, surface texture, lighting direction, shadows
+- The EXACT same t-shirt folding style, lay position, wrinkles, and props
 
-PRINT SIZE AND POSITION:
-- The printed design must be the EXACT SAME SIZE relative to the shirt as shown in image 1. Measure it visually — the design should cover the same percentage of the shirt front.
-- DO NOT shrink the design. DO NOT enlarge the design. Match the proportions EXACTLY from image 1.
-- Position: upper chest area, centered horizontally, matching image 1's placement precisely.
+WHAT CHANGES:
+- ONLY the t-shirt fabric color → ${colorName}
 
-PHOTO CONSISTENCY:
-- MATCH image 1's camera angle, distance, perspective, framing EXACTLY
-- MATCH image 1's background scene, surface texture, lighting, shadows EXACTLY
-- MATCH image 1's t-shirt folding style, lay position, and props EXACTLY
-- The ONLY difference from image 1 should be the fabric color (now ${colorName})
+PRINT RULES:
+- The design ink colors stay EXACTLY as in image 1. If text is white, it stays white. If graphics are white, they stay white.
+- DO NOT invert colors. DO NOT swap white for black or vice versa. Ink colors are LOCKED.
+- The print is opaque screen-printed ink — it never blends, fades, or becomes translucent against the fabric.
 
-Product: ${productTitle}. The output must look like it belongs in the same product photo set as image 1.`
-      : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}.
+Product: ${productTitle}. The output must be a near-identical clone of image 1 with only the fabric color changed.`
+      : `Create an IDENTICAL copy of this product mockup photo but change ONLY the t-shirt fabric color to ${colorName}.
 
-ABSOLUTE NON-NEGOTIABLE RULES:
+THIS IS A RECOLORING TASK, NOT A REDESIGN TASK.
 
-PRINT COLORS:
-- Whatever colors the printed design currently uses — keep them EXACTLY the same. If the text is white, it stays WHITE on ${colorName}. If graphics are white, they stay WHITE.
-- DO NOT invert or swap design colors. DO NOT change white text to black text or vice versa. The ink colors are LOCKED regardless of shirt color.
-- The print is OPAQUE SCREEN-PRINTED INK — full opacity, sitting on top of the fabric, never blending or becoming translucent.
+CRITICAL — WHAT MUST STAY IDENTICAL:
+- The EXACT same text on the shirt, letter-for-letter, word-for-word
+- The EXACT same font, size, weight, spacing, and layout
+- The EXACT same graphic elements in the same positions
+- The EXACT same design size and position on the shirt
+- The EXACT same camera angle, perspective, framing, background, lighting, shadows
+- The EXACT same t-shirt fold, lay position, wrinkles, and props
 
-PRINT SIZE:
-- The printed design must remain the EXACT SAME SIZE — same proportions, same coverage area on the shirt. Do not shrink or enlarge it at all.
+WHAT CHANGES:
+- ONLY the fabric color → ${colorName}
 
-PHOTO CONSISTENCY:
-- MATCH the exact same camera angle, distance, perspective, framing
-- MATCH the exact same background, surface, lighting, shadows
-- MATCH the exact same t-shirt fold, lay position, and props
-- ONLY the fabric color changes to ${colorName}
+PRINT RULES:
+- Ink colors stay LOCKED. White stays white, dark stays dark. Never invert or swap.
+- Opaque screen-printed ink — full opacity, never blending with fabric.
 
-Product: ${productTitle}. Output must look like it belongs in the same product photo set.`;
+Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
 
     const imageContent: any[] = [
       { type: "text", text: prompt },
