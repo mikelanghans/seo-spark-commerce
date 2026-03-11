@@ -61,11 +61,10 @@ CRITICAL — WHAT MUST STAY IDENTICAL:
 WHAT CHANGES:
 - ONLY the fabric color → ${colorName}
 
-⚠️ ABSOLUTE PRINT COLOR RULE — THIS IS THE MOST IMPORTANT RULE:
-- ALL text and graphics are printed with PURE WHITE (#FFFFFF) ink. They MUST remain PURE BRIGHT WHITE.
-- DO NOT make text gray, cream, off-white, or tinted. PURE WHITE (#FFFFFF) only.
-- On ANY shirt color (including light ones like Ivory, Chambray), white ink stays BRIGHT WHITE — fully opaque, sitting on top of the fabric.
-- Screen-printed white ink never blends, fades, or becomes translucent.
+⚠️ PRINT COLOR RULE — MOST IMPORTANT:
+- Text/graphics MUST be clearly visible with HIGH CONTRAST against ${colorName} fabric.
+- DARK shirts → use BRIGHT WHITE (#FFFFFF) ink. LIGHT shirts → use BLACK (#000000) ink.
+- Ink must be BOLD, OPAQUE, and FULLY VISIBLE — like real screen print. Never faded or blended.
 
 Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
 
