@@ -166,8 +166,7 @@ serve(async (req) => {
     if (hasVariants && createdProduct?.variants?.length && createdProduct?.images?.length) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
-        // Find the matching image (offset by 1 because design image is first)
-        const image = createdProduct.images[i + 1];
+        const image = createdProduct.images[i];
         if (variant && image) {
           try {
             await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
