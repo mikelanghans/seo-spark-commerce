@@ -35,6 +35,7 @@ export const DesignPreviewDialog = ({
   open,
   onClose,
   designUrl,
+  darkDesignUrl,
   messageText,
   messageId,
   organizationId,
