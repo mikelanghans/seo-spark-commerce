@@ -106,6 +106,7 @@ const Dashboard = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [msgRefreshKey, setMsgRefreshKey] = useState(0);
 
   useEffect(() => {
     if (user) {
