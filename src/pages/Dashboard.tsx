@@ -19,7 +19,7 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { MessageGenerator } from "@/components/MessageGenerator";
-import { TeamManager } from "@/components/TeamManager";
+import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
