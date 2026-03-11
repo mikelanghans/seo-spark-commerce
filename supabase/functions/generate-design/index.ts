@@ -161,7 +161,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`
 
       : `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
