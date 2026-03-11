@@ -240,25 +240,33 @@ ${feedbackContext}${inspirationContext}`;
       throw new Error("No image generated from AI response");
     }
 
-    // Remove white background to create true transparency
+    // Remove background to create true transparency
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const rawBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     
     let binaryData: Uint8Array;
     try {
       const png = PNG.sync.read(Buffer.from(rawBuffer));
-      const threshold = 240; // pixels with R,G,B all above this become transparent
+      const threshold = 15; // how close to pure black/white to count as bg
       for (let i = 0; i < png.data.length; i += 4) {
         const r = png.data[i];
         const g = png.data[i + 1];
         const b = png.data[i + 2];
-        if (r >= threshold && g >= threshold && b >= threshold) {
-          png.data[i + 3] = 0; // set alpha to 0 (transparent)
+        if (isLightOnDark) {
+          // Remove black background
+          if (r <= threshold && g <= threshold && b <= threshold) {
+            png.data[i + 3] = 0;
+          }
+        } else {
+          // Remove white background
+          if (r >= (255 - threshold) && g >= (255 - threshold) && b >= (255 - threshold)) {
+            png.data[i + 3] = 0;
+          }
         }
       }
       const outputBuffer = PNG.sync.write(png);
       binaryData = new Uint8Array(outputBuffer);
-      console.log("White background removed successfully");
+      console.log(`${isLightOnDark ? "Black" : "White"} background removed successfully`);
     } catch (e) {
       console.error("Failed to remove background, using original:", e);
       binaryData = rawBuffer;
