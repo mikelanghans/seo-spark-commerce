@@ -42,6 +42,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewDarkUrl, setPreviewDarkUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
