@@ -339,7 +339,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (listingError || listingData?.error) throw new Error(listingData?.error || listingError?.message);
           
-          const shopifyListing = (listingData.listings || []).find((l: any) => l.marketplace === "shopify");
+          // generate-listings returns { shopify: { title, description, ... } }
+          const shopifyListing = listingData?.shopify;
           if (shopifyListing) {
             await supabase.from("listings").insert({
               product_id: productId,
