@@ -126,16 +126,6 @@ export const DesignPreviewDialog = ({
     }
   };
 
-  const handleRegenerate = async () => {
-    if (!messageId || !onRegenerate) return;
-    setRegenerating(true);
-    try {
-      await onRegenerate(messageId, regenFeedback.trim());
-      setRegenFeedback("");
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   return (
     <Dialog
