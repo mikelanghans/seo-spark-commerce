@@ -13,8 +13,10 @@ import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
+import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
+import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { TeamManager } from "@/components/TeamManager";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
@@ -1069,6 +1071,21 @@ const Dashboard = () => {
                   setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
                 }}
               />
+              <PushToMarketplace
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
+                  seo_title: l.seo_title,
+                  seo_description: l.seo_description,
+                  url_handle: l.url_handle,
+                  alt_text: l.alt_text,
+                }))}
+                images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
+                userId={user!.id}
+              />
             </div>
 
             {/* Design File Download */}
@@ -1217,6 +1234,9 @@ const Dashboard = () => {
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <ShopifySettings userId={user.id} />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <MarketplaceSettings userId={user.id} />
             </div>
           </div>
         )}
