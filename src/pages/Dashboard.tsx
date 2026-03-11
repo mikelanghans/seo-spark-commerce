@@ -391,6 +391,19 @@ const Dashboard = () => {
 
   const handleImportFromShopify = async () => {
     if (!selectedOrg) return;
+
+    // Validate Shopify connection exists
+    const { data: shopifyConn } = await supabase
+      .from("shopify_connections")
+      .select("id")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+
+    if (!shopifyConn) {
+      toast.error("No Shopify store connected. Go to Settings to connect your store first.");
+      return;
+    }
+
     const controller = new AbortController();
     importAbortRef.current = controller;
     setImportingShopify(true);
