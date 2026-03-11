@@ -40,6 +40,7 @@ interface Organization {
   brand_color?: string;
   brand_font_size?: string;
   brand_style_notes?: string;
+  design_styles?: string[];
 }
 
 interface Product {
