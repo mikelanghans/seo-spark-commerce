@@ -62,6 +62,36 @@ export type Database = {
           },
         ]
       }
+      design_history: {
+        Row: {
+          created_at: string
+          design_url: string
+          feedback_notes: string | null
+          id: string
+          message_id: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          design_url: string
+          feedback_notes?: string | null
+          id?: string
+          message_id: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          design_url?: string
+          feedback_notes?: string | null
+          id?: string
+          message_id?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ebay_connections: {
         Row: {
           access_token: string | null
