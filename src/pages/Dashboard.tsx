@@ -885,7 +885,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="messages" className="w-full">
+            <Tabs defaultValue="messages" className="w-full" onValueChange={(v) => { if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }}>
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="messages" className="gap-2">
                   <Sparkles className="h-4 w-4" /> Message Ideas

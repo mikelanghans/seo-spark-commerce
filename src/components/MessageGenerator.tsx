@@ -30,6 +30,7 @@ interface Props {
   organization: Organization;
   userId: string;
   onProductsCreated?: () => void;
+  refreshKey?: number;
 }
 
 export const MessageGenerator = ({ organization, userId, onProductsCreated }: Props) => {
