@@ -1149,14 +1149,19 @@ const Dashboard = () => {
         {/* Product Detail with Listings */}
         {view === "product-detail" && selectedProduct && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => { setView("products"); setSelectedProduct(null); }}>
+            {/* Header */}
+            <div className="flex items-start gap-3">
+              <Button variant="ghost" size="icon" className="mt-1" onClick={() => { setView("products"); setSelectedProduct(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold">{selectedProduct.title}</h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-2xl font-bold truncate">{selectedProduct.title}</h2>
                 <p className="text-sm text-muted-foreground">{selectedProduct.category} {selectedProduct.price && `• ${selectedProduct.price}`}</p>
               </div>
+            </div>
+
+            {/* Actions bar */}
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -1164,9 +1169,12 @@ const Dashboard = () => {
                 disabled={generating}
                 className="gap-2"
               >
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Regenerate
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Regenerate Listings
               </Button>
+
+              <div className="h-5 w-px bg-border mx-1 hidden sm:block" />
+
               <PushToShopify
                 product={selectedProduct}
                 listings={listings.map((l) => ({
