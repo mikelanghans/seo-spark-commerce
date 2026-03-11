@@ -79,6 +79,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
             audience: organization.audience,
           },
           count: generateCount,
+          designStyle,
           ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
       });
