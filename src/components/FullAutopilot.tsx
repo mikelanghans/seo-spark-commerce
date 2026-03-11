@@ -307,6 +307,12 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           const { data: listingData, error: listingError } = await withRetry(() =>
             supabase.functions.invoke("generate-listings", {
               body: {
+                business: {
+                  name: organization.name,
+                  niche: organization.niche,
+                  tone: organization.tone,
+                  audience: organization.audience,
+                },
                 product: {
                   title: productTitle,
                   description: messageText,
@@ -315,7 +321,6 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                   keywords: organization.niche,
                 },
                 marketplaces: ["shopify"],
-                organizationId: organization.id,
               },
             }),
             { label: `listing-${i}` }
