@@ -215,143 +215,142 @@ export const DesignPreviewDialog = ({
         </Button>
 
         {/* Thumbs up / down rating */}
+        {messageId && (
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <p className="text-sm font-medium text-muted-foreground">Rate this design</p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={async () => {
+                  setFeedbackState("up");
+                  await supabase.from("design_feedback").insert({
+                    message_id: messageId,
+                    organization_id: organizationId,
+                    user_id: userId,
+                    rating: "up",
+                  });
+                  toast.success("Thanks for the feedback!");
+                }}
+                className={cn(
+                  "rounded-md p-2 transition-colors",
+                  feedbackState === "up"
+                    ? "text-emerald-500 bg-emerald-500/10"
+                    : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10"
+                )}
+              >
+                <ThumbsUp className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setFeedbackState("down");
+                  await supabase.from("design_feedback").insert({
+                    message_id: messageId,
+                    organization_id: organizationId,
+                    user_id: userId,
+                    rating: "down",
+                  });
+                }}
+                className={cn(
+                  "rounded-md p-2 transition-colors",
+                  feedbackState === "down"
+                    ? "text-destructive bg-destructive/10"
+                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                )}
+              >
+                <ThumbsDown className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Regenerate with feedback - always available */}
         {onRegenerate && messageId && (
           <div className="space-y-3 border-t border-border pt-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">Rate this design</p>
-              <div className="flex gap-1">
-                <button
+            <p className="text-sm font-medium text-muted-foreground">Regenerate design</p>
+
+            <Textarea
+              placeholder="What should change? (e.g. 'bigger font', 'different colors', 'use attached reference')"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="text-sm"
+              disabled={regenerating}
+            />
+
+            {/* Reference image upload */}
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              {referencePreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={referencePreview}
+                    alt="Reference"
+                    className="h-20 w-20 rounded-md border border-border object-cover"
+                  />
+                  <button
+                    onClick={clearReferenceImage}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
                   type="button"
-                  onClick={async () => {
-                    setFeedbackState("up");
-                    await supabase.from("design_feedback").insert({
-                      message_id: messageId,
-                      organization_id: organizationId,
-                      user_id: userId,
-                      rating: "up",
-                    });
-                    toast.success("Thanks for the feedback!");
-                  }}
-                  className={cn(
-                    "rounded-md p-2 transition-colors",
-                    feedbackState === "up"
-                      ? "text-emerald-500 bg-emerald-500/10"
-                      : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10"
-                  )}
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <ThumbsUp className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setFeedbackState("down");
-                    await supabase.from("design_feedback").insert({
-                      message_id: messageId,
-                      organization_id: organizationId,
-                      user_id: userId,
-                      rating: "down",
-                    });
-                  }}
-                  className={cn(
-                    "rounded-md p-2 transition-colors",
-                    feedbackState === "down"
-                      ? "text-destructive bg-destructive/10"
-                      : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                  )}
-                >
-                  <ThumbsDown className="h-5 w-5" />
-                </button>
-              </div>
+                  <ImagePlus className="h-4 w-4" />
+                  Add reference image
+                </Button>
+              )}
             </div>
 
-            {/* Feedback + regenerate panel shown on thumbs down */}
-            {feedbackState === "down" && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                <Textarea
-                  placeholder="What should change? (e.g. 'bigger font', 'different colors', 'use attached reference')"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  className="text-sm"
-                  disabled={regenerating}
-                  autoFocus
-                />
-
-                {/* Reference image upload */}
-                <div className="space-y-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  {referencePreview ? (
-                    <div className="relative inline-block">
-                      <img
-                        src={referencePreview}
-                        alt="Reference"
-                        className="h-20 w-20 rounded-md border border-border object-cover"
-                      />
-                      <button
-                        onClick={clearReferenceImage}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-muted-foreground"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <ImagePlus className="h-4 w-4" />
-                      Add reference image
-                    </Button>
-                  )}
-                </div>
-
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={regenerating || !notes.trim()}
-                  onClick={async () => {
-                    setRegenerating(true);
-                    try {
-                      let refUrl: string | undefined;
-                      if (referenceImage) {
-                        const ext = referenceImage.name.split(".").pop() || "png";
-                        const path = `${userId}/feedback-refs/${Date.now()}.${ext}`;
-                        const { error: uploadErr } = await supabase.storage
-                          .from("product-images")
-                          .upload(path, referenceImage, { contentType: referenceImage.type });
-                        if (uploadErr) {
-                          toast.error("Failed to upload reference image");
-                          setRegenerating(false);
-                          return;
-                        }
-                        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                        refUrl = urlData.publicUrl;
-                      }
-                      await onRegenerate(messageId, notes.trim(), refUrl);
-                      await refreshHistory();
-                      setViewingUrl(null);
-                      setNotes("");
-                      clearReferenceImage();
-                      setFeedbackState("none");
-                    } finally {
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={regenerating}
+              onClick={async () => {
+                setRegenerating(true);
+                try {
+                  let refUrl: string | undefined;
+                  if (referenceImage) {
+                    const ext = referenceImage.name.split(".").pop() || "png";
+                    const path = `${userId}/feedback-refs/${Date.now()}.${ext}`;
+                    const { error: uploadErr } = await supabase.storage
+                      .from("product-images")
+                      .upload(path, referenceImage, { contentType: referenceImage.type });
+                    if (uploadErr) {
+                      toast.error("Failed to upload reference image");
                       setRegenerating(false);
+                      return;
                     }
-                  }}
-                >
-                  {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  {regenerating ? "Regenerating…" : "Regenerate"}
-                </Button>
-              </div>
-            )}
+                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                    refUrl = urlData.publicUrl;
+                  }
+                  await onRegenerate(messageId, notes.trim(), refUrl);
+                  await refreshHistory();
+                  setViewingUrl(null);
+                  setNotes("");
+                  clearReferenceImage();
+                  setFeedbackState("none");
+                } finally {
+                  setRegenerating(false);
+                }
+              }}
+            >
+              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {regenerating ? "Regenerating…" : "Regenerate"}
+            </Button>
           </div>
         )}
       </DialogContent>
