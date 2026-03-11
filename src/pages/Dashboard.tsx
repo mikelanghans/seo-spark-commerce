@@ -251,6 +251,15 @@ const Dashboard = () => {
     loadOrgs();
   };
 
+  const loadPrintifyShops = async () => {
+    setLoadingPrintifyShops(true);
+    try {
+      const { data } = await supabase.functions.invoke("printify-get-shops");
+      setPrintifyShops(data?.shops || []);
+    } catch { /* silent */ }
+    setLoadingPrintifyShops(false);
+  };
+
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
     setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null });
@@ -259,6 +268,7 @@ const Dashboard = () => {
     setOrgLogoPreview(org.logo_url || null);
     setOrgLogoFile(null);
     setView("org-form");
+    loadPrintifyShops();
   };
 
   const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
