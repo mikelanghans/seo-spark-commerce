@@ -129,10 +129,11 @@ serve(async (req) => {
     const allVariantIds = allVariants.map((v: any) => v.id);
     const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
 
-    // Calculate image placement — center the design, scale to 80% of print area width
-    // This ensures the design sits nicely centered on the shirt chest area
-    const imageScale = 1.4;
-    const imageY = 0.35;
+    // Design placement specs (from Printify editor reference):
+    // Width/Height: 18.52in, Scale: 111.12%, Position left: -11.82%, Position top: -7.54%
+    const imageX = 0.3818;
+    const imageY = 0.4246;
+    const imageScale = 1.1112;
 
     const productPayload: any = {
       title,
@@ -154,7 +155,7 @@ serve(async (req) => {
               images: [
                 {
                   id: printifyImageId,
-                  x: 0.5,
+                  x: imageX,
                   y: imageY,
                   scale: imageScale,
                   angle: 0,
@@ -204,7 +205,7 @@ serve(async (req) => {
                   images: [
                     {
                       id: printifyImageId,
-                      x: 0.5,
+                      x: imageX,
                       y: imageY,
                       scale: imageScale,
                       angle: 0,
