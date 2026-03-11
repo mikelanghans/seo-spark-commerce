@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send, ImagePlus, X, RefreshCw } from "lucide-react";
+import { Download, Loader2, ImagePlus, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -19,7 +19,6 @@ interface Props {
   messageId: string | null;
   organizationId: string;
   userId: string;
-  onFeedbackSaved?: () => void;
   onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
 }
 
@@ -31,15 +30,11 @@ export const DesignPreviewDialog = ({
   messageId,
   organizationId,
   userId,
-  onFeedbackSaved,
   onRegenerate,
 }: Props) => {
-  const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,57 +78,10 @@ export const DesignPreviewDialog = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSubmitFeedback = async () => {
-    if (!rating) {
-      toast.error("Please select thumbs up or down");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      let referenceImageUrl: string | null = null;
-
-      if (referenceImage) {
-        setUploadingImage(true);
-        const ext = referenceImage.name.split(".").pop() || "png";
-        const path = `feedback-refs/${userId}/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("product-images")
-          .upload(path, referenceImage, { contentType: referenceImage.type });
-        if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-        referenceImageUrl = urlData.publicUrl;
-        setUploadingImage(false);
-      }
-
-      const { error } = await supabase.from("design_feedback").insert({
-        user_id: userId,
-        organization_id: organizationId,
-        message_id: messageId,
-        rating,
-        notes: notes.trim(),
-        reference_image_url: referenceImageUrl,
-      } as any);
-      if (error) throw error;
-      toast.success("Feedback saved — future designs will reflect your preferences!");
-      setRating(null);
-      setNotes("");
-      clearReferenceImage();
-      onFeedbackSaved?.();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save feedback");
-    } finally {
-      setSubmitting(false);
-      setUploadingImage(false);
-    }
-  };
-
-
   return (
     <Dialog
       open={open}
       onOpenChange={() => {
-        setRating(null);
-        setNotes("");
         setNotes("");
         clearReferenceImage();
         onClose();
@@ -158,107 +106,75 @@ export const DesignPreviewDialog = ({
           Download Design
         </Button>
 
-        {/* Feedback */}
-        <div className="space-y-3 border-t border-border pt-3">
-          <p className="text-sm font-medium text-muted-foreground">Rate this design</p>
-          <div className="flex gap-2">
-            <Button
-              variant={rating === "up" ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setRating("up")}
-            >
-              <ThumbsUp className="h-4 w-4" />
-              Like
-            </Button>
-            <Button
-              variant={rating === "down" ? "destructive" : "outline"}
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setRating("down")}
-            >
-              <ThumbsDown className="h-4 w-4" />
-              Dislike
-            </Button>
-          </div>
+        {/* Regenerate with feedback */}
+        {onRegenerate && messageId && (
+          <div className="space-y-3 border-t border-border pt-3">
+            <p className="text-sm font-medium text-muted-foreground">Regenerate design</p>
 
-          <Textarea
-            placeholder="Optional: what did you like or dislike? (e.g. 'font too thin', 'love the layout')"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className="text-sm"
-          />
-
-          {/* Reference image upload */}
-          <div className="space-y-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileSelect}
+            <Textarea
+              placeholder="What should change? (e.g. 'bigger font', 'use attached reference image style')"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="text-sm"
+              disabled={regenerating}
             />
-            {referencePreview ? (
-              <div className="relative inline-block">
-                <img
-                  src={referencePreview}
-                  alt="Reference"
-                  className="h-20 w-20 rounded-md border border-border object-cover"
-                />
-                <button
-                  onClick={clearReferenceImage}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-muted-foreground"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <ImagePlus className="h-4 w-4" />
-                Add reference image
-              </Button>
-            )}
-          </div>
 
-          <div className="flex gap-2">
+            {/* Reference image upload */}
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              {referencePreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={referencePreview}
+                    alt="Reference"
+                    className="h-20 w-20 rounded-md border border-border object-cover"
+                  />
+                  <button
+                    onClick={clearReferenceImage}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Add reference image
+                </Button>
+              )}
+            </div>
+
             <Button
-              onClick={handleSubmitFeedback}
-              disabled={!rating || submitting}
               size="sm"
               className="gap-1.5"
+              disabled={regenerating}
+              onClick={async () => {
+                setRegenerating(true);
+                try {
+                  await onRegenerate(messageId, notes.trim());
+                } finally {
+                  setRegenerating(false);
+                }
+              }}
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {uploadingImage ? "Uploading…" : "Submit Feedback"}
+              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {regenerating ? "Regenerating…" : "Regenerate"}
             </Button>
-
-            {onRegenerate && messageId && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={regenerating}
-                onClick={async () => {
-                  setRegenerating(true);
-                  try {
-                    await onRegenerate(messageId, notes.trim());
-                  } finally {
-                    setRegenerating(false);
-                  }
-                }}
-              >
-                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                {regenerating ? "Regenerating…" : "Regenerate"}
-              </Button>
-            )}
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
