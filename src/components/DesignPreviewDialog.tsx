@@ -20,7 +20,6 @@ interface Props {
   organizationId: string;
   userId: string;
   onFeedbackSaved?: () => void;
-  }
 }
 
 export const DesignPreviewDialog = ({
