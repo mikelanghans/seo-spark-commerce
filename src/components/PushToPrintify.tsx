@@ -46,6 +46,14 @@ interface Props {
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
+// Comfort Colors 1717 light colors where white/light designs won't show well
+const LIGHT_COLORS = new Set([
+  "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+  "island reef", "chambray", "white", "flo blue", "watermelon",
+  "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+  "light green", "bay", "sage",
+]);
+
 export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
