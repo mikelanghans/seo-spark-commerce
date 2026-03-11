@@ -391,6 +391,19 @@ const Dashboard = () => {
 
   const handleImportFromShopify = async () => {
     if (!selectedOrg) return;
+
+    // Validate Shopify connection exists
+    const { data: shopifyConn } = await supabase
+      .from("shopify_connections")
+      .select("id")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+
+    if (!shopifyConn) {
+      toast.error("No Shopify store connected. Go to Settings to connect your store first.");
+      return;
+    }
+
     const controller = new AbortController();
     importAbortRef.current = controller;
     setImportingShopify(true);
@@ -482,6 +495,85 @@ const Dashboard = () => {
     setGeneratingAll(false);
     if (!cancelGenAllRef.current) {
       toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    }
+  };
+
+  const [pushingAllShopify, setPushingAllShopify] = useState(false);
+  const [pushAllProgress, setPushAllProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllRef = useRef(false);
+
+  const handlePushAllToShopify = async () => {
+    if (!selectedOrg || products.length === 0) return;
+
+    const { data: shopifyConn } = await supabase
+      .from("shopify_connections")
+      .select("id")
+      .eq("user_id", user!.id)
+      .maybeSingle();
+
+    if (!shopifyConn) {
+      toast.error("No Shopify store connected. Go to Settings to connect first.");
+      return;
+    }
+
+    cancelPushAllRef.current = false;
+    setPushingAllShopify(true);
+    setPushAllProgress({ done: 0, total: products.length });
+
+    let successCount = 0;
+    for (let i = 0; i < products.length; i++) {
+      if (cancelPushAllRef.current) {
+        toast.info(`Cancelled after ${successCount} products`);
+        break;
+      }
+      const product = products[i];
+      setPushAllProgress({ done: i, total: products.length });
+
+      try {
+        const { data: productListings } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("product_id", product.id);
+
+        if (!productListings || productListings.length === 0) continue;
+
+        const shopifyListing = productListings.find((l) => l.marketplace === "shopify") || productListings[0];
+
+        const { data, error } = await supabase.functions.invoke("push-to-shopify", {
+          body: {
+            userId: user!.id,
+            productId: product.id,
+            listing: {
+              title: shopifyListing.title,
+              description: shopifyListing.description,
+              tags: shopifyListing.tags,
+              seo_title: shopifyListing.seo_title,
+              seo_description: shopifyListing.seo_description,
+              url_handle: shopifyListing.url_handle,
+              alt_text: shopifyListing.alt_text,
+              price: product.price,
+            },
+            images: product.image_url ? [{ image_url: product.image_url }] : [],
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to push ${product.title} to Shopify:`, err);
+      }
+
+      if (i < products.length - 1) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    setPushAllProgress({ done: products.length, total: products.length });
+    setPushingAllShopify(false);
+    if (!cancelPushAllRef.current) {
+      toast.success(`Pushed ${successCount}/${products.length} products to Shopify!`);
+      if (selectedOrg) loadProducts(selectedOrg.id);
     }
   };
 
@@ -748,9 +840,6 @@ const Dashboard = () => {
                       <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setView("shopify-enrich")} className="gap-2">
-                        <Zap className="h-4 w-4" /> SEO Boost
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -855,6 +944,15 @@ const Dashboard = () => {
                       ) : (
                         <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
                           <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                        </Button>
+                      )}
+                      {pushingAllShopify ? (
+                        <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                          <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
+                        </Button>
+                      ) : (
+                        <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
+                          <Store className="h-4 w-4" /> Push All to Shopify
                         </Button>
                       )}
                     </div>
