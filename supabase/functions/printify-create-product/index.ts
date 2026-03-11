@@ -130,11 +130,10 @@ serve(async (req) => {
     const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
 
     // Design placement for standardized 4500x5400 design files
-    // The design file is already pre-positioned (centered, upper chest) at the exact print area dimensions
-    // so we use 1:1 mapping with minimal offset
+    // Scale up to fill print area and position in upper chest region
     const imageX = 0.5;
-    const imageY = 0.5;
-    const imageScale = 1.0;
+    const imageY = 0.35;
+    const imageScale = 1.8;
 
     const productPayload: any = {
       title,
