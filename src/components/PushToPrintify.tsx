@@ -42,6 +42,7 @@ interface Props {
   listings: Listing[];
   userId: string;
   onProductUpdate?: (updates: Partial<Product>) => void;
+  printifyShopId?: number | null;
 }
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
