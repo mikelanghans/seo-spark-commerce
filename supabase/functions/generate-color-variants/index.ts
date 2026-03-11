@@ -59,9 +59,9 @@ WHAT CHANGES:
 - ONLY the fabric color → ${colorName}
 
 ⚠️ PRINT COLOR RULE — MOST IMPORTANT:
-- Text/graphics MUST be clearly visible with HIGH CONTRAST against ${colorName} fabric.
-- DARK shirts → use BRIGHT WHITE (#FFFFFF) ink. LIGHT shirts → use BLACK (#000000) ink.
-- Ink must be BOLD, OPAQUE, and FULLY VISIBLE — like real screen print. Never faded or blended.
+- Keep the EXACT SAME ink colors as the original design. Do NOT change or recolor any part of the print.
+- The design is opaque screen-printed ink sitting ON TOP of the fabric — never blended, faded, or translucent.
+- The design must remain fully visible and crisp on the ${colorName} fabric.
 
 Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
 
