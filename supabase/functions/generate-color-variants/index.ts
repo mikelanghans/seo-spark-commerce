@@ -36,10 +36,13 @@ CRITICAL — WHAT MUST BE IDENTICAL TO IMAGE 1:
 WHAT CHANGES:
 - ONLY the t-shirt fabric color → ${colorName}
 
-PRINT RULES:
-- The design ink colors stay EXACTLY as in image 1. If text is white, it stays white. If graphics are white, they stay white.
-- DO NOT invert colors. DO NOT swap white for black or vice versa. Ink colors are LOCKED.
-- The print is opaque screen-printed ink — it never blends, fades, or becomes translucent against the fabric.
+⚠️ ABSOLUTE PRINT COLOR RULE — THIS IS THE MOST IMPORTANT RULE:
+- ALL text and graphics on the shirt are printed with PURE WHITE (#FFFFFF) ink. They MUST remain PURE BRIGHT WHITE in the output.
+- DO NOT make the text gray, cream, off-white, or any other shade. It must be PURE WHITE (#FFFFFF).
+- DO NOT tint, fade, or blend the white ink with the fabric color. Screen-printed white ink is fully opaque.
+- DO NOT invert colors. DO NOT swap white for black or vice versa.
+- On light-colored shirts (like Ivory, Chambray, Sage), white ink is STILL BRIGHT WHITE — it does NOT blend into the fabric.
+- Think of it like a real screen print: thick, opaque white ink sitting ON TOP of the fabric. It never becomes transparent or tinted.
 
 Product: ${productTitle}. The output must be a near-identical clone of image 1 with only the fabric color changed.`
       : `Create an IDENTICAL copy of this product mockup photo but change ONLY the t-shirt fabric color to ${colorName}.
@@ -57,9 +60,11 @@ CRITICAL — WHAT MUST STAY IDENTICAL:
 WHAT CHANGES:
 - ONLY the fabric color → ${colorName}
 
-PRINT RULES:
-- Ink colors stay LOCKED. White stays white, dark stays dark. Never invert or swap.
-- Opaque screen-printed ink — full opacity, never blending with fabric.
+⚠️ ABSOLUTE PRINT COLOR RULE — THIS IS THE MOST IMPORTANT RULE:
+- ALL text and graphics are printed with PURE WHITE (#FFFFFF) ink. They MUST remain PURE BRIGHT WHITE.
+- DO NOT make text gray, cream, off-white, or tinted. PURE WHITE (#FFFFFF) only.
+- On ANY shirt color (including light ones like Ivory, Chambray), white ink stays BRIGHT WHITE — fully opaque, sitting on top of the fabric.
+- Screen-printed white ink never blends, fades, or becomes translucent.
 
 Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
 
