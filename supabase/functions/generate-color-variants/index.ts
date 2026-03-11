@@ -30,9 +30,11 @@ serve(async (req) => {
 - ONLY the ink/print color changes from white/light to dark black. The design content stays exactly the same.
 - The dark design must be crisp, bold, and fully legible against the ${colorName} fabric.`
       : `⚠️ PRINT COLOR RULE — MOST IMPORTANT:
-- Keep the EXACT SAME ink colors as the original design. Do NOT change or recolor any part of the print.
+- The original design uses BRIGHT WHITE ink. On dark shirts, the printed text and graphics MUST be PURE WHITE (#FFFFFF), not gray, cream, beige, or muted.
+- Do NOT dull, dim, or desaturate the white ink. It must be crisp, bright, pure white — like real screen-printed white ink on a dark garment.
 - The design is opaque screen-printed ink sitting ON TOP of the fabric — never blended, faded, or translucent.
-- The design must remain fully visible and crisp on the ${colorName} fabric.`;
+- If the original design has any colored elements (like a teal/cyan accent), those must also stay the EXACT same vivid color.
+- The design must remain fully visible and high-contrast on the ${colorName} fabric.`;
 
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
