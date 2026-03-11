@@ -255,7 +255,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           }
 
           let mockupCount = 0;
-          let referenceBase64 = imageBase64; // Will be updated after first successful mockup
+          const referenceBase64 = imageBase64; // Always use brand template for consistency
           for (const colorName of recommendedColors) {
             if (cancelRef.current) break;
             log(`  🖌️ Generating mockup: ${colorName}...`, "info");
