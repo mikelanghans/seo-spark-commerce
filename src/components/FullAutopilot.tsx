@@ -49,6 +49,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
   const [products, setProducts] = useState<ProductProgress[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const cancelRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const log = useCallback((message: string, type: LogEntry["type"] = "info") => {
@@ -62,7 +63,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
   }, []);
 
   const fetchImageAsBase64 = async (url: string): Promise<string> => {
-    const resp = await fetch(url);
+    const resp = await fetch(url, { signal: abortRef.current?.signal });
     const blob = await resp.blob();
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -72,9 +73,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     });
   };
 
+  const checkCancelled = () => {
+    if (cancelRef.current) throw new Error("__CANCELLED__");
+  };
+
   const runAutopilot = async () => {
     const count = parseInt(batchSize);
     cancelRef.current = false;
+    abortRef.current = new AbortController();
     setRunning(true);
     setLogs([]);
     setProducts([]);
@@ -444,8 +450,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           log(`✅ Product ${i + 1} complete!`, "success");
 
         } catch (err: any) {
-          updateProduct(i, { status: "error", step: "Failed", error: err.message });
-          log(`❌ Product ${i + 1} failed: ${err.message}`, "error");
+          const msg = err?.message || "";
+          if (msg.includes("__CANCELLED__") || msg.includes("abort") || cancelRef.current) {
+            updateProduct(i, { status: "error", step: "Cancelled" });
+            log(`⚠️ Product ${i + 1} cancelled`, "error");
+            break;
+          }
+          updateProduct(i, { status: "error", step: "Failed", error: msg });
+          log(`❌ Product ${i + 1} failed: ${msg}`, "error");
           tick(); tick(); tick(); tick(); tick(); // Skip remaining steps in progress
         }
       }
@@ -453,9 +465,15 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       log(`🏁 Autopilot complete!`, "step");
       onProductsCreated();
     } catch (err: any) {
-      log(`❌ Autopilot error: ${err.message}`, "error");
+      const msg = err?.message || "";
+      if (msg.includes("__CANCELLED__") || msg.includes("abort") || msg.includes("AbortError") || cancelRef.current) {
+        log("⚠️ Cancelled by user", "error");
+      } else {
+        log(`❌ Autopilot error: ${msg}`, "error");
+      }
     } finally {
       setRunning(false);
+      abortRef.current = null;
     }
   };
 
@@ -508,7 +526,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               <h3 className="font-semibold">Autopilot Running</h3>
             </div>
             {running && (
-              <Button variant="destructive" size="sm" onClick={() => { cancelRef.current = true; }} className="gap-1.5">
+              <Button variant="destructive" size="sm" onClick={() => { cancelRef.current = true; abortRef.current?.abort(); }} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
                 Cancel
               </Button>
