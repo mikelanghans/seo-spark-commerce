@@ -75,6 +75,7 @@ Generate exactly 3 refined variations of this message based on the feedback. Eac
 - Be distinct from each other — give meaningfully different takes`;
     } else {
       const isMinimalist = designStyle === "minimalist";
+      const isYouniverses = organization.name?.toLowerCase().includes("youniverse");
       const styleDirective = isMinimalist
         ? `\n🎨 DESIGN STYLE: MINIMALIST ILLUSTRATION
 These messages will be paired with minimalist artwork/illustrations. Generate messages that:
@@ -88,7 +89,11 @@ These messages will be pure typography designs — no illustrations. Generate me
 - Stand on their own visually as bold text
 - Have natural typographic hierarchy (big word + small attribution works great)
 - Sound powerful when read aloud — the words ARE the design
-- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements
+${isYouniverses
+  ? `- IMPORTANT: Every message MUST end with "— the universe" as an attribution. The message reads as a direct quote FROM the universe to the wearer.
+- Keep the main message SHORT (2-6 words) since the attribution adds length. Examples: "you got this — the universe", "plot twist — the universe", "trust the timing — the universe"
+- The format is always: "[short message] — the universe"`
+  : `- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
 - Think: the kind of text you'd see on a premium streetwear tee\n`;
 
       prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
