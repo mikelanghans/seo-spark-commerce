@@ -278,8 +278,25 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
       {canManage && (
         <div className="space-y-3 rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-medium">Invite a collaborator</p>
-          <div className="flex items-end gap-2">
-            <div className="flex-1 space-y-1">
+          <div className="flex items-end gap-2 flex-wrap">
+            {allOrganizations && allOrganizations.length > 1 && (
+              <div className="w-44 space-y-1">
+                <Label className="text-xs">Brand</Label>
+                <Select value={inviteOrgId} onValueChange={setInviteOrgId}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allOrganizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex-1 min-w-[180px] space-y-1">
               <Label className="text-xs">Email (optional)</Label>
               <Input
                 value={inviteEmail}
