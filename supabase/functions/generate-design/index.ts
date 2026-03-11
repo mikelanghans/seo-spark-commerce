@@ -29,7 +29,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId } = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant } = await req.json();
     if (!messageText) throw new Error("messageText is required");
 
     // Fetch recent design feedback to guide the AI
@@ -101,7 +101,11 @@ serve(async (req) => {
     }
 
     const fontDirection = brandFont || "bold sans-serif";
-    const colorDirection = brandColor || "#000000 (black)";
+    const isLightOnDark = designVariant === "light-on-dark";
+    const defaultColor = isLightOnDark ? "#FFFFFF (white)" : "#000000 (black)";
+    const colorDirection = isLightOnDark ? "#FFFFFF (white)" : (brandColor || defaultColor);
+    const bgColor = isLightOnDark ? "solid pure black (#000000)" : "solid pure white (#FFFFFF)";
+    const bgHex = isLightOnDark ? "#000000" : "#FFFFFF";
     const sizeMap: Record<string, string> = {
       "small": "Subtle, understated text size — elegant and refined",
       "medium": "Medium text size — balanced and readable",
@@ -122,7 +126,7 @@ BRAND CONTEXT:
 
 STRICT DESIGN RULES:
 
-BACKGROUND: Solid pure white (#FFFFFF). No patterns, no gradients, no checkered grids, no textures.
+BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
 
 TYPOGRAPHY:
 - Font style: ${fontDirection}
@@ -131,7 +135,8 @@ TYPOGRAPHY:
 - Generous letter-spacing and line-height for a premium feel
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
 
-COLOR: Use ${colorDirection} as the primary ink color on white background. No gradients in the text.
+COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
+${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only. The design will be printed on black, navy, charcoal, or similar dark fabrics." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors. The design will be printed on white, cream, light gray, or similar light fabrics."}
 
 KEEP IT ULTRA CLEAN:
 - NO decorative elements — no stars, no flourishes, no borders, no icons, no illustrations
@@ -146,7 +151,7 @@ COMPOSITION:
 
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on solid white background. No mockups, no t-shirt outlines.
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
 ${feedbackContext}${inspirationContext}`;
 
     const models = [
@@ -235,25 +240,33 @@ ${feedbackContext}${inspirationContext}`;
       throw new Error("No image generated from AI response");
     }
 
-    // Remove white background to create true transparency
+    // Remove background to create true transparency
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const rawBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     
     let binaryData: Uint8Array;
     try {
       const png = PNG.sync.read(Buffer.from(rawBuffer));
-      const threshold = 240; // pixels with R,G,B all above this become transparent
+      const threshold = 15; // how close to pure black/white to count as bg
       for (let i = 0; i < png.data.length; i += 4) {
         const r = png.data[i];
         const g = png.data[i + 1];
         const b = png.data[i + 2];
-        if (r >= threshold && g >= threshold && b >= threshold) {
-          png.data[i + 3] = 0; // set alpha to 0 (transparent)
+        if (isLightOnDark) {
+          // Remove black background
+          if (r <= threshold && g <= threshold && b <= threshold) {
+            png.data[i + 3] = 0;
+          }
+        } else {
+          // Remove white background
+          if (r >= (255 - threshold) && g >= (255 - threshold) && b >= (255 - threshold)) {
+            png.data[i + 3] = 0;
+          }
         }
       }
       const outputBuffer = PNG.sync.write(png);
       binaryData = new Uint8Array(outputBuffer);
-      console.log("White background removed successfully");
+      console.log(`${isLightOnDark ? "Black" : "White"} background removed successfully`);
     } catch (e) {
       console.error("Failed to remove background, using original:", e);
       binaryData = rawBuffer;

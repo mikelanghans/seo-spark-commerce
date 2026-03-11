@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";
 import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus } from "lucide-react";
+import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -46,6 +46,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
+  const [designVariant, setDesignVariant] = useState<"dark-on-light" | "light-on-dark">("dark-on-light");
 
   useEffect(() => {
     loadMessages();
@@ -223,6 +224,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           brandStyleNotes: (organization as any).brand_style_notes || "",
           messageId: msg.id,
           organizationId: organization.id,
+          designVariant,
         },
       });
 
@@ -276,6 +278,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           brandStyleNotes: (organization as any).brand_style_notes || "",
           messageId: msg.id,
           organizationId: organization.id,
+          designVariant,
         },
       });
 
@@ -468,7 +471,20 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             </div>
           )}
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {needsDesignCount > 0 && !generatingDesignId && (
+              <button
+                onClick={() => setDesignVariant((v) => v === "dark-on-light" ? "light-on-dark" : "dark-on-light")}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent/50"
+                title={designVariant === "dark-on-light" ? "Dark ink for light garments" : "Light ink for dark garments"}
+              >
+                {designVariant === "dark-on-light" ? (
+                  <><Sun className="h-3.5 w-3.5" /> Light Garment</>
+                ) : (
+                  <><Moon className="h-3.5 w-3.5" /> Dark Garment</>
+                )}
+              </button>
+            )}
             {needsDesignCount > 0 && (
               generatingDesignId ? (
                 <Button
