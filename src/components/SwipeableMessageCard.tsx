@@ -330,31 +330,6 @@ export const SwipeableMessageCard = ({
             </Button>
           )}
           {!hasProduct && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDesignVariant((v) => 
-                  v === "light-on-dark" ? "dark-on-light" : v === "dark-on-light" ? "both" : "light-on-dark"
-                );
-              }}
-              className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/50 shrink-0"
-              title={
-                designVariant === "dark-on-light" ? "Light garment (dark ink)" 
-                : designVariant === "light-on-dark" ? "Dark garment (light ink)" 
-                : "Both variants"
-              }
-            >
-              {designVariant === "dark-on-light" ? (
-                <Sun className="h-3 w-3" />
-              ) : designVariant === "light-on-dark" ? (
-                <Moon className="h-3 w-3" />
-              ) : (
-                <Layers className="h-3 w-3" />
-              )}
-            </button>
-          )}
-          {!hasProduct && (
             <Button
               variant="ghost"
               size="icon"
