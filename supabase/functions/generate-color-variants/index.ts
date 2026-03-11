@@ -16,36 +16,50 @@ serve(async (req) => {
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
       ? `You are given two images:
-1. A product mockup photo of a t-shirt — THIS IS YOUR STYLE REFERENCE
+1. A product mockup photo of a t-shirt — THIS IS YOUR STYLE REFERENCE for camera angle, lighting, background, and print SIZE
 2. The original design/graphic that should be printed on the shirt
 
-YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on the UPPER CHEST area (not dead center — position it in the upper third of the shirt front, like a typical chest print).
+YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt with the design from image 2 printed on it.
 
-CRITICAL RULES — follow ALL of these precisely:
-1. The t-shirt fabric color MUST be ${colorName}
-2. Place the design from image 2 centered on the front of the shirt
-3. ***PRESERVE ALL DESIGN COLORS EXACTLY*** — the printed design's colors must remain IDENTICAL to image 2. WHITE TEXT MUST STAY BRIGHT WHITE. Black elements stay black. No color in the design should shift, tint, or blend with the shirt color.
-4. The printed design must have STRONG CONTRAST against the shirt fabric. The design sits ON TOP of the fabric — it does not blend into it, it does not become translucent, and its colors do NOT adapt to the shirt color.
-5. Think of the design as a SCREEN-PRINTED ink layer — opaque, crisp, and color-accurate regardless of the fabric beneath it.
-6. MATCH the EXACT same camera angle, distance, perspective, and framing as image 1
-7. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows as image 1
-8. MATCH the EXACT same t-shirt folding style, lay position, and any props visible in image 1
-9. The design should be proportionally sized on the shirt front — EXACTLY the same size ratio as any design in image 1. DO NOT make the text or graphic larger or smaller than in the reference photo.
-10. The output should look like it belongs in the SAME product photo set as image 1 — only the fabric color changes
-11. TEXT SIZE CONSISTENCY IS CRITICAL: If image 1 shows text at a certain size relative to the shirt, your output MUST match that exact proportion.
-Product: ${productTitle}. Output a high quality product photo that is visually consistent with the reference.`
+ABSOLUTE NON-NEGOTIABLE RULES:
+
+PRINT COLORS:
+- Look at image 2 carefully. Whatever colors the design uses (white ink, white text, white graphics) — those EXACT colors must appear on EVERY shirt color, including ${colorName}.
+- DO NOT invert, swap, or "adapt" the design colors based on the shirt color. If the original design is white ink, it stays WHITE INK on a white shirt, on a black shirt, on every shirt.
+- DO NOT use black ink/text if the original design (image 2) uses white ink/text. The design colors are LOCKED.
+- The print is OPAQUE SCREEN-PRINTED INK — it sits on top of the fabric with full opacity. It never blends, fades, or becomes translucent.
+
+PRINT SIZE AND POSITION:
+- The printed design must be the EXACT SAME SIZE relative to the shirt as shown in image 1. Measure it visually — the design should cover the same percentage of the shirt front.
+- DO NOT shrink the design. DO NOT enlarge the design. Match the proportions EXACTLY from image 1.
+- Position: upper chest area, centered horizontally, matching image 1's placement precisely.
+
+PHOTO CONSISTENCY:
+- MATCH image 1's camera angle, distance, perspective, framing EXACTLY
+- MATCH image 1's background scene, surface texture, lighting, shadows EXACTLY
+- MATCH image 1's t-shirt folding style, lay position, and props EXACTLY
+- The ONLY difference from image 1 should be the fabric color (now ${colorName})
+
+Product: ${productTitle}. The output must look like it belongs in the same product photo set as image 1.`
       : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}.
 
-CRITICAL RULES — follow ALL of these precisely:
-1. ONLY change the shirt/garment body color to ${colorName}
-2. ***PRESERVE ALL DESIGN COLORS EXACTLY*** — if there is a printed design on the shirt, keep every color in it EXACTLY as-is. WHITE TEXT MUST STAY BRIGHT WHITE. The print colors are INDEPENDENT of the shirt color.
-3. The printed design is an opaque SCREEN-PRINTED ink layer — it must NOT blend into, tint toward, or become translucent against the new shirt color. It sits ON TOP with full opacity and strong contrast.
-4. MATCH the EXACT same camera angle, distance, perspective, and framing
-5. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows
-6. MATCH the EXACT same t-shirt folding style, lay position, and any props visible
-7. Keep any printed design at the exact same size, position, and proportions
-8. The output should look like it belongs in the SAME product photo set — only the fabric color changes
-Product: ${productTitle}. Output a high quality product photo that is visually consistent with the original.`;
+ABSOLUTE NON-NEGOTIABLE RULES:
+
+PRINT COLORS:
+- Whatever colors the printed design currently uses — keep them EXACTLY the same. If the text is white, it stays WHITE on ${colorName}. If graphics are white, they stay WHITE.
+- DO NOT invert or swap design colors. DO NOT change white text to black text or vice versa. The ink colors are LOCKED regardless of shirt color.
+- The print is OPAQUE SCREEN-PRINTED INK — full opacity, sitting on top of the fabric, never blending or becoming translucent.
+
+PRINT SIZE:
+- The printed design must remain the EXACT SAME SIZE — same proportions, same coverage area on the shirt. Do not shrink or enlarge it at all.
+
+PHOTO CONSISTENCY:
+- MATCH the exact same camera angle, distance, perspective, framing
+- MATCH the exact same background, surface, lighting, shadows
+- MATCH the exact same t-shirt fold, lay position, and props
+- ONLY the fabric color changes to ${colorName}
+
+Product: ${productTitle}. Output must look like it belongs in the same product photo set.`;
 
     const imageContent: any[] = [
       { type: "text", text: prompt },
