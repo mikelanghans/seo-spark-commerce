@@ -70,6 +70,7 @@ export const DesignPreviewDialog = ({
       setShowHistory(false);
       setViewingUrl(null);
       setFeedbackState("none");
+      setActiveVariant("light");
     }
   }, [open, messageId]);
 
