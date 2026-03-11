@@ -910,7 +910,7 @@ const Dashboard = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="messages" className="mt-4">
+              <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
                 <div className="rounded-xl border border-border bg-card p-5">
                   <MessageGenerator
                     organization={selectedOrg}
@@ -922,7 +922,7 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="autopilot" className="mt-4">
+              <TabsContent value="autopilot" forceMount className="mt-4 data-[state=inactive]:hidden">
                 <FullAutopilot
                   organization={selectedOrg}
                   userId={user!.id}
