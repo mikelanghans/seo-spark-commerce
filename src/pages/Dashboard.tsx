@@ -1185,66 +1185,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Actions bar */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generateListingsForProduct(selectedProduct)}
-                disabled={generating}
-                className="gap-2"
-              >
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Regenerate Listings
-              </Button>
-
-              <div className="h-5 w-px bg-border mx-1 hidden sm:block" />
-
-              <PushToShopify
-                product={selectedProduct}
-                listings={listings.map((l) => ({
-                  marketplace: l.marketplace,
-                  title: l.title,
-                  description: l.description,
-                  tags: l.tags as string[],
-                  seo_title: l.seo_title,
-                  seo_description: l.seo_description,
-                  url_handle: l.url_handle,
-                  alt_text: l.alt_text,
-                }))}
-                userId={user!.id}
-              />
-              <PushToPrintify
-                product={selectedProduct}
-                listings={listings.map((l) => ({
-                  marketplace: l.marketplace,
-                  title: l.title,
-                  description: l.description,
-                  tags: l.tags as string[],
-                }))}
-                userId={user!.id}
-                onProductUpdate={(updates) => {
-                  setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
-                  setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
-                }}
-              />
-              <PushToMarketplace
-                product={selectedProduct}
-                listings={listings.map((l) => ({
-                  marketplace: l.marketplace,
-                  title: l.title,
-                  description: l.description,
-                  tags: l.tags as string[],
-                  seo_title: l.seo_title,
-                  seo_description: l.seo_description,
-                  url_handle: l.url_handle,
-                  alt_text: l.alt_text,
-                }))}
-                images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
-                userId={user!.id}
-              />
-            </div>
-
             {/* Design File Download */}
             {selectedProduct.image_url && (
               <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
@@ -1284,85 +1224,175 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Mockup Images */}
-            <div className="rounded-xl border border-border bg-card p-5">
-              <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={selectedProduct.category} />
-            </div>
+            {/* Tabbed sections: Mockups | Listings | Push */}
+            <Tabs defaultValue="mockups" className="space-y-4">
+              <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
+                <TabsTrigger value="mockups" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Mockups
+                </TabsTrigger>
+                <TabsTrigger value="listings" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Package className="h-3.5 w-3.5" />
+                  Listings
+                </TabsTrigger>
+                <TabsTrigger value="push" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <Store className="h-3.5 w-3.5" />
+                  Push
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Marketplace Selection */}
-            <div className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-sm font-medium">Generate listings for:</Label>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {MARKETPLACES.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => toggleMarketplace(m)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
-                      selectedMarketplaces.includes(m)
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
+              {/* Mockups Tab */}
+              <TabsContent value="mockups">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={selectedProduct.category} />
+                </div>
+              </TabsContent>
 
-            {generating ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
-                <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
-              </div>
-            ) : listings.length > 0 ? (
-              <Tabs defaultValue="amazon">
-                <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
-                  {MARKETPLACES.map((m) => (
-                    <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                      {m}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {MARKETPLACES.map((m) => {
-                  const listing = listings.find((l) => l.marketplace === m);
-                  if (!listing) return null;
-                  return (
-                    <TabsContent key={m} value={m}>
-                      <ListingOutput
-                        marketplace={m}
-                        listing={{
-                          title: listing.title,
-                          description: listing.description,
-                          bulletPoints: listing.bullet_points as string[],
-                          tags: listing.tags as string[],
-                          seoTitle: listing.seo_title,
-                          seoDescription: listing.seo_description,
-                          urlHandle: listing.url_handle,
-                          altText: listing.alt_text,
-                        }}
-                      />
-                    </TabsContent>
-                  );
-                })}
-              </Tabs>
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
-                <p className="text-sm text-muted-foreground">No listings generated yet</p>
-                <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
-                  Generate now
-                </Button>
-              </div>
-            )}
+              {/* Listings Tab */}
+              <TabsContent value="listings" className="space-y-4">
+                {/* Marketplace Selection */}
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm font-medium">Generate listings for:</Label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateListingsForProduct(selectedProduct)}
+                        disabled={generating}
+                        className="gap-2"
+                      >
+                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                        {listings.length > 0 ? "Regenerate" : "Generate"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {MARKETPLACES.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => toggleMarketplace(m)}
+                        className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
+                          selectedMarketplaces.includes(m)
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {generating ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
+                    <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
+                  </div>
+                ) : listings.length > 0 ? (
+                  <Tabs defaultValue="amazon">
+                    <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
+                      {MARKETPLACES.map((m) => (
+                        <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          {m}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {MARKETPLACES.map((m) => {
+                      const listing = listings.find((l) => l.marketplace === m);
+                      if (!listing) return null;
+                      return (
+                        <TabsContent key={m} value={m}>
+                          <ListingOutput
+                            marketplace={m}
+                            listing={{
+                              title: listing.title,
+                              description: listing.description,
+                              bulletPoints: listing.bullet_points as string[],
+                              tags: listing.tags as string[],
+                              seoTitle: listing.seo_title,
+                              seoDescription: listing.seo_description,
+                              urlHandle: listing.url_handle,
+                              altText: listing.alt_text,
+                            }}
+                          />
+                        </TabsContent>
+                      );
+                    })}
+                  </Tabs>
+                ) : (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
+                    <p className="text-sm text-muted-foreground">No listings generated yet</p>
+                    <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
+                      Generate now
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Push Tab */}
+              <TabsContent value="push" className="space-y-3">
+                {listings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
+                    <p className="text-sm text-muted-foreground">Generate listings first before pushing to marketplaces</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PushToShopify
+                      product={selectedProduct}
+                      listings={listings.map((l) => ({
+                        marketplace: l.marketplace,
+                        title: l.title,
+                        description: l.description,
+                        tags: l.tags as string[],
+                        seo_title: l.seo_title,
+                        seo_description: l.seo_description,
+                        url_handle: l.url_handle,
+                        alt_text: l.alt_text,
+                      }))}
+                      userId={user!.id}
+                    />
+                    <PushToPrintify
+                      product={selectedProduct}
+                      listings={listings.map((l) => ({
+                        marketplace: l.marketplace,
+                        title: l.title,
+                        description: l.description,
+                        tags: l.tags as string[],
+                      }))}
+                      userId={user!.id}
+                      onProductUpdate={(updates) => {
+                        setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
+                        setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
+                      }}
+                    />
+                    <PushToMarketplace
+                      product={selectedProduct}
+                      listings={listings.map((l) => ({
+                        marketplace: l.marketplace,
+                        title: l.title,
+                        description: l.description,
+                        tags: l.tags as string[],
+                        seo_title: l.seo_title,
+                        seo_description: l.seo_description,
+                        url_handle: l.url_handle,
+                        alt_text: l.alt_text,
+                      }))}
+                      images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
+                      userId={user!.id}
+                    />
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
         {/* Bulk Upload */}
