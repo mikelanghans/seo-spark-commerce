@@ -752,13 +752,13 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
       <DesignPreviewDialog
         open={!!previewUrl}
-        onClose={() => { setPreviewUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
+        onClose={() => { setPreviewUrl(null); setPreviewDarkUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
         designUrl={previewUrl}
+        darkDesignUrl={previewDarkUrl}
         messageText={previewMessage}
         messageId={previewMessageId}
         organizationId={organization.id}
         userId={userId}
-        
         onRegenerate={handleRegenerateDesign}
       />
     </div>
