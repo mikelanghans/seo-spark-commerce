@@ -224,6 +224,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           brandStyleNotes: (organization as any).brand_style_notes || "",
           messageId: msg.id,
           organizationId: organization.id,
+          designVariant,
         },
       });
 
