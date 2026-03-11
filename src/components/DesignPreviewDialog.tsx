@@ -226,6 +226,43 @@ export const DesignPreviewDialog = ({
             className="text-sm"
           />
 
+          {/* Reference image upload */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            {referencePreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={referencePreview}
+                  alt="Reference"
+                  className="h-20 w-20 rounded-md border border-border object-cover"
+                />
+                <button
+                  onClick={clearReferenceImage}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-muted-foreground"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" />
+                Add reference image
+              </Button>
+            )}
+          </div>
+
           <Button
             onClick={handleSubmitFeedback}
             disabled={!rating || submitting}
@@ -233,7 +270,7 @@ export const DesignPreviewDialog = ({
             className="gap-1.5"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Submit Feedback
+            {uploadingImage ? "Uploading…" : "Submit Feedback"}
           </Button>
         </div>
       </DialogContent>
