@@ -20,6 +20,7 @@ interface Organization {
   brand_font_size?: string;
   brand_style_notes?: string;
   design_styles?: string[];
+  printify_shop_id?: number | null;
 }
 
 interface Props {
