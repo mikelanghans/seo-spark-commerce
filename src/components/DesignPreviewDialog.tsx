@@ -66,6 +66,7 @@ export const DesignPreviewDialog = ({
       setHistory([]);
       setShowHistory(false);
       setViewingUrl(null);
+      setFeedbackState("none");
     }
   }, [open, messageId]);
 
