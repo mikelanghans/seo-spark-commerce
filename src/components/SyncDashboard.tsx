@@ -193,7 +193,7 @@ export function SyncDashboard({
             {filtered.map((product) => (
               <div
                 key={product.id}
-                className="grid grid-cols-[1fr] sm:grid-cols-[1fr_repeat(3,80px)] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[1fr] sm:grid-cols-[1fr_repeat(4,80px)] gap-2 px-4 py-3 hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {product.image_url ? (
