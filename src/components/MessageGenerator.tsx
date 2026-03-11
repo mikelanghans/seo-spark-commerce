@@ -471,7 +471,20 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
             </div>
           )}
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {needsDesignCount > 0 && !generatingDesignId && (
+              <button
+                onClick={() => setDesignVariant((v) => v === "dark-on-light" ? "light-on-dark" : "dark-on-light")}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent/50"
+                title={designVariant === "dark-on-light" ? "Dark ink for light garments" : "Light ink for dark garments"}
+              >
+                {designVariant === "dark-on-light" ? (
+                  <><Sun className="h-3.5 w-3.5" /> Light Garment</>
+                ) : (
+                  <><Moon className="h-3.5 w-3.5" /> Dark Garment</>
+                )}
+              </button>
+            )}
             {needsDesignCount > 0 && (
               generatingDesignId ? (
                 <Button
