@@ -50,6 +50,13 @@ export const MarketplaceSettings = ({ userId }: Props) => {
   const [ebayEnv, setEbayEnv] = useState("sandbox");
   const [savingEbay, setSavingEbay] = useState(false);
 
+  // Meta state
+  const [metaConn, setMetaConn] = useState<MetaConn | null>(null);
+  const [metaCatalogId, setMetaCatalogId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaPageId, setMetaPageId] = useState("");
+  const [savingMeta, setSavingMeta] = useState(false);
+
   useEffect(() => { loadConnections(); }, []);
 
   const loadConnections = async () => {
