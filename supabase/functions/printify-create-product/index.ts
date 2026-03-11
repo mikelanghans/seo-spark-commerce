@@ -122,6 +122,13 @@ serve(async (req) => {
       throw new Error("No matching variants. Available: " + availColors.slice(0, 15).join(", "));
     }
 
+    // Cap enabled variants at 100 (Printify limit)
+    let enabledVariants = filteredVariants;
+    if (enabledVariants.length > 100) {
+      console.log(`Capping variants from ${enabledVariants.length} to 100`);
+      enabledVariants = enabledVariants.slice(0, 100);
+    }
+
     // Note: Printify auto-generates mockups from print_areas design.
     // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
