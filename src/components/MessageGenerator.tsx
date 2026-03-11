@@ -33,7 +33,7 @@ interface Props {
   refreshKey?: number;
 }
 
-export const MessageGenerator = ({ organization, userId, onProductsCreated }: Props) => {
+export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [creatingProducts, setCreatingProducts] = useState(false);
   const [generating, setGenerating] = useState(false);
