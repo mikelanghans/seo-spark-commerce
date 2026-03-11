@@ -157,6 +157,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
     toast("Discarded", { duration: 1500 });
   };
 
+  const handleClearAll = async () => {
+    const idsToRemove = messages.filter((m) => !keptIds.has(m.id)).map((m) => m.id);
+    if (idsToRemove.length === 0) return;
+    setMessages((prev) => prev.filter((m) => keptIds.has(m.id)));
+    await supabase.from("generated_messages").delete().in("id", idsToRemove);
+    toast(`Cleared ${idsToRemove.length} messages`, { duration: 1500 });
+  };
+
   const handleEdit = async (id: string, newText: string) => {
     setMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, message_text: newText } : m))
@@ -502,12 +510,25 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
 
       {messages.length > 0 && (
         <>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{keptCount} kept</span>
-            <span>·</span>
-            <span>{unkeptMessages.length} to review</span>
-            <span>·</span>
-            <span>{messages.length} total</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{keptCount} kept</span>
+              <span>·</span>
+              <span>{unkeptMessages.length} to review</span>
+              <span>·</span>
+              <span>{messages.length} total</span>
+            </div>
+            {unkeptMessages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Clear all
+              </Button>
+            )}
           </div>
 
           {/* Unkept messages to review */}
