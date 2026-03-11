@@ -103,6 +103,7 @@ serve(async (req) => {
 
     const fontDirection = brandFont || "bold sans-serif";
     const isLightOnDark = designVariant === "light-on-dark";
+    const isMinimalist = designStyle === "minimalist";
     const defaultColor = isLightOnDark ? "#FFFFFF (white)" : "#000000 (black)";
     const colorDirection = isLightOnDark ? "#FFFFFF (white)" : (brandColor || defaultColor);
     const bgColor = isLightOnDark ? "solid pure black (#000000)" : "solid pure white (#FFFFFF)";
@@ -115,7 +116,49 @@ serve(async (req) => {
     };
     const sizeDirection = sizeMap[brandFontSize || "large"] || sizeMap["large"];
 
-    const prompt = `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
+    const prompt = isMinimalist
+      ? `Design a premium, print-ready t-shirt graphic with MINIMALIST ILLUSTRATION + TEXT. Think high-end streetwear brand quality.
+
+TEXT TO FEATURE: "${messageText}"
+
+BRAND CONTEXT:
+- Brand: ${brandName || "lifestyle apparel"}
+- Tone: ${brandTone || "sarcastic but motivational"}
+- Niche: ${brandNiche || "lifestyle"}
+- Target Audience: ${brandAudience || "general"}
+
+STRICT DESIGN RULES:
+
+BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
+
+STYLE: MINIMALIST ILLUSTRATION
+- Create a simple, clean illustration or icon that pairs with the text message
+- Think: line art, silhouettes, minimal shapes — NOT detailed or realistic
+- The illustration should be conceptually connected to the message
+- Examples: a wilting flower for "still growing", a sleeping cat for "nope", a cracked crown for "barely royal"
+- Use clean lines, minimal detail — like a premium tattoo-style or indie brand illustration
+
+TYPOGRAPHY:
+- Font style: ${fontDirection}
+- Text should be ${sizeDirection.toLowerCase()} but balanced with the illustration
+- The illustration should be the primary visual, text secondary but readable
+- If the message has a sub-attribution, set it small and elegant
+
+COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. Monochromatic only.
+${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors."}
+
+COMPOSITION:
+- Illustration centered, text below or integrated naturally
+- Leave generous negative space
+- The design should feel like it belongs on a $45 streetwear tee
+- Maximum 3 visual elements: illustration + 1-2 text lines
+
+${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
+
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
+${feedbackContext}${inspirationContext}`
+
+      : `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
 TEXT TO FEATURE: "${messageText}"
 
