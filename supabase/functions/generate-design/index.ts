@@ -225,10 +225,11 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
             model,
             messages: [{
               role: "user",
-              content: referenceImageUrl
+              content: (baseDesignUrl || referenceImageUrl)
                 ? [
                     { type: "text", text: prompt },
-                    { type: "image_url", image_url: { url: referenceImageUrl } },
+                    ...(baseDesignUrl ? [{ type: "image_url", image_url: { url: baseDesignUrl } }] : []),
+                    ...(referenceImageUrl && referenceImageUrl !== baseDesignUrl ? [{ type: "image_url", image_url: { url: referenceImageUrl } }] : []),
                   ]
                 : prompt,
             }],
