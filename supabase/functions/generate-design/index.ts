@@ -310,8 +310,24 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
 
     const designUrl = publicUrl.publicUrl;
 
-    // Update the message with the design URL if messageId provided
+    // Save old design to history before overwriting
     if (messageId) {
+      const { data: existingMsg } = await serviceClient
+        .from("generated_messages")
+        .select("design_url, organization_id")
+        .eq("id", messageId)
+        .single();
+
+      if (existingMsg?.design_url) {
+        await serviceClient.from("design_history").insert({
+          message_id: messageId,
+          design_url: existingMsg.design_url,
+          feedback_notes: regenerateFeedback || "",
+          user_id: userId,
+          organization_id: existingMsg.organization_id || organizationId,
+        });
+      }
+
       await serviceClient
         .from("generated_messages")
         .update({ design_url: designUrl })
