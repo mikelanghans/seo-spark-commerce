@@ -450,8 +450,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           log(`✅ Product ${i + 1} complete!`, "success");
 
         } catch (err: any) {
-          updateProduct(i, { status: "error", step: "Failed", error: err.message });
-          log(`❌ Product ${i + 1} failed: ${err.message}`, "error");
+          const msg = err?.message || "";
+          if (msg.includes("__CANCELLED__") || msg.includes("abort") || cancelRef.current) {
+            updateProduct(i, { status: "error", step: "Cancelled" });
+            log(`⚠️ Product ${i + 1} cancelled`, "error");
+            break;
+          }
+          updateProduct(i, { status: "error", step: "Failed", error: msg });
+          log(`❌ Product ${i + 1} failed: ${msg}`, "error");
           tick(); tick(); tick(); tick(); tick(); // Skip remaining steps in progress
         }
       }
