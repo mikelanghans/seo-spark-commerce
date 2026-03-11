@@ -50,7 +50,6 @@ export const SwipeableMessageCard = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
   const wasRefining = useRef(false);
-  const wasRefining = useRef(false);
 
   // Auto-close refine panel when refining completes
   useEffect(() => {

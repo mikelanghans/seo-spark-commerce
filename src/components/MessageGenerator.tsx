@@ -206,7 +206,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     }
   };
 
-  const handleGenerateDesign = async (msgId: string) => {
+  const handleGenerateDesign = async (msgId: string, variant: "dark-on-light" | "light-on-dark" = "light-on-dark") => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setGeneratingDesignId(msg.id);
@@ -224,7 +224,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
           brandStyleNotes: (organization as any).brand_style_notes || "",
           messageId: msg.id,
           organizationId: organization.id,
-          designVariant,
+          designVariant: variant,
         },
       });
 
