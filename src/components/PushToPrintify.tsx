@@ -55,7 +55,7 @@ const LIGHT_COLORS = new Set([
   "light green", "bay", "sage",
 ]);
 
-export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
+export const PushToPrintify = ({ product, listings, userId, onProductUpdate, printifyShopId }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
