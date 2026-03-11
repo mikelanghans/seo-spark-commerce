@@ -213,7 +213,38 @@ serve(async (req) => {
         console.log(`Existing product has ${existingVariantIds.length} variants`);
 
         // Build UPDATE payload — omit blueprint_id and print_provider_id (immutable)
-        // Use the existing product's variant IDs for print_areas
+        // Build print_areas for update using existing variant IDs, with dual design support
+        let updatePrintAreas: any[];
+        if (hasDarkDesign) {
+          // Match existing variants to light/dark by cross-referencing with allVariants
+          const existingVariantSet = new Set(existingVariantIds);
+          const darkExistingIds = allVariants
+            .filter((v: any) => existingVariantSet.has(v.id) && !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+            .map((v: any) => v.id);
+          const lightExistingIds = allVariants
+            .filter((v: any) => existingVariantSet.has(v.id) && lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+            .map((v: any) => v.id);
+
+          updatePrintAreas = [];
+          if (darkExistingIds.length > 0) {
+            updatePrintAreas.push({
+              variant_ids: darkExistingIds,
+              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+            });
+          }
+          if (lightExistingIds.length > 0) {
+            updatePrintAreas.push({
+              variant_ids: lightExistingIds,
+              placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+            });
+          }
+        } else {
+          updatePrintAreas = [{
+            variant_ids: existingVariantIds,
+            placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+          }];
+        }
+
         const updatePayload: any = {
           title,
           description: description || "",
@@ -223,25 +254,7 @@ serve(async (req) => {
             price: priceInCents,
             is_enabled: filteredVariantIds.has(vid),
           })),
-          print_areas: [
-            {
-              variant_ids: existingVariantIds,
-              placeholders: [
-                {
-                  position: "front",
-                  images: [
-                    {
-                      id: printifyImageId,
-                      x: imageX,
-                      y: imageY,
-                      scale: imageScale,
-                      angle: 0,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
+          print_areas: updatePrintAreas,
         };
 
         // Don't set images here — they'll be set after via separate PUT with uploaded IDs
