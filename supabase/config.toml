@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.generate-social-image]
 verify_jwt = false
+
+[functions.push-to-etsy]
+verify_jwt = false
+
+[functions.push-to-ebay]
+verify_jwt = false
