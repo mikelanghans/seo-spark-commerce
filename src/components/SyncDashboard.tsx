@@ -23,6 +23,7 @@ const MARKETPLACES = [
   { id: "shopify", label: "Shopify", icon: Store, color: "text-green-600 dark:text-green-400", bgColor: "bg-green-500/15" },
   { id: "etsy", label: "Etsy", icon: ShoppingBag, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-500/15" },
   { id: "ebay", label: "eBay", icon: Package, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/15" },
+  { id: "meta", label: "Meta", icon: Facebook, color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-600/15" },
 ] as const;
 
 function getListingId(product: Product, marketplace: string): string | null {
