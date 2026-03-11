@@ -30,13 +30,26 @@ serve(async (req) => {
 - ONLY the ink/print color changes from white/light to dark black. The design content stays exactly the same.
 - The dark design must be crisp, bold, and fully legible against the ${colorName} fabric.`
       : `⚠️ PRINT COLOR RULE — THE SINGLE MOST IMPORTANT RULE IN THIS ENTIRE PROMPT:
-- Look at image 2 (the design file). It has WHITE text and graphics on a transparent background.
-- In your output mockup, the text and graphics MUST be rendered as PURE BRIGHT WHITE (#FFFFFF) — maximum brightness, maximum contrast against the dark ${colorName} fabric.
-- This is screen-printed DTG white ink. It is FULLY OPAQUE. It does NOT blend with the fabric. It does NOT become gray, cream, beige, tan, or any muted tone.
-- Think of it like painting pure white paint on a dark wall — the white stays white.
-- If the design has colored elements (like teal, cyan, orange accents), those must also stay VIVID and SATURATED — do not mute or desaturate any print colors.
-- COMMON MISTAKE TO AVOID: Making the white text look "natural" or "blended" — that is WRONG. The ink must look bold, crisp, and unnaturally bright white against the fabric.
-- The design must POP off the shirt with strong contrast.`;
+
+THINK OF THIS AS TWO SEPARATE LAYERS:
+LAYER 1 (bottom): The plain ${colorName} t-shirt fabric with NO design — just blank fabric.
+LAYER 2 (top): The design printed ON TOP using thick, opaque screen-print ink that completely covers the fabric beneath it.
+
+The ink is a PHYSICAL LAYER sitting ON TOP of the fabric:
+- ALL white elements = thick opaque white ink = PURE #FFFFFF, as bright as a sheet of white printer paper
+- ALL colored elements (teal, cyan, orange, etc.) = thick opaque colored ink = FULLY SATURATED vivid colors
+- The ink does NOT absorb into the fabric. It does NOT become transparent. It does NOT take on the fabric color.
+- Imagine white paint splashed on a dark wall — the white stays pure white.
+
+CRITICAL MISTAKES TO AVOID:
+❌ Making white text look gray, cream, beige, or muted — WRONG
+❌ Making the design look like it's dyed into the fabric — WRONG
+❌ Reducing opacity or blending the design with the shirt color — WRONG
+❌ Making colored accents look washed out or desaturated — WRONG
+
+✅ The design must look like a bright, crisp sticker placed on top of the fabric
+✅ Maximum contrast between bright white ink and dark ${colorName} fabric
+✅ The white must be eye-catchingly bright — unnaturally so if needed`;
 
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
