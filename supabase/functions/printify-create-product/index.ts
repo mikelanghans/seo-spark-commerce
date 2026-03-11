@@ -258,7 +258,7 @@ serve(async (req) => {
           variants: existingVariantIds.map((vid: number) => ({
             id: vid,
             price: priceInCents,
-            is_enabled: filteredVariantIds.has(vid),
+            is_enabled: enabledVariantIds.has(vid),
           })),
           print_areas: updatePrintAreas,
         };
