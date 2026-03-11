@@ -21,6 +21,7 @@ interface Listing {
   marketplace: string;
   title: string;
   description: string;
+  bulletPoints?: string[];
   tags: string[];
   seo_title: string;
   seo_description: string;
