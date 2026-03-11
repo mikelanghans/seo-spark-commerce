@@ -297,9 +297,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               </Label>
 
               {uniqueMockupColors.length > 0 ? (
-                <div className="space-y-2">
+              <div className="space-y-2">
                   {uniqueMockupColors.map((colorName) => {
                     const mockup = mockups.find((m) => m.color_name === colorName);
+                    const isLight = LIGHT_COLORS.has(colorName.toLowerCase());
                     return (
                       <div key={colorName} className="flex items-center gap-3 p-2 rounded-md border border-border bg-muted/30">
                         {mockup && (
@@ -309,7 +310,12 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
                             className="h-10 w-10 rounded object-cover border border-border shrink-0"
                           />
                         )}
-                        <p className="text-sm font-medium">{colorName}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{colorName}</p>
+                          {isLight && (
+                            <p className="text-xs text-muted-foreground">Dark design will be applied</p>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
