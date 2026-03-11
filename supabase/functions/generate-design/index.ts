@@ -131,7 +131,7 @@ STRICT DESIGN RULES:
 
 BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
 
-STYLE: MINIMALIST ILLUSTRATION
+STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 - Create a simple, clean illustration or icon that pairs with the text message
 - Think: line art, silhouettes, minimal shapes — NOT detailed or realistic
 - The illustration should be conceptually connected to the message
@@ -143,9 +143,16 @@ TYPOGRAPHY:
 - Text should be ${sizeDirection.toLowerCase()} but balanced with the illustration
 - The illustration should be the primary visual, text secondary but readable
 - If the message has a sub-attribution, set it small and elegant
+- TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"}) — do NOT color the text
 
-COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. Monochromatic only.
-${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors."}
+COLOR PALETTE:
+- Text/typography: ${colorDirection} (monochrome, single color)
+- Illustration elements: Add 1-2 SUBTLE accent colors to the graphic/illustration parts ONLY
+  - Choose muted, tasteful tones that complement the ${isLightOnDark ? "dark" : "light"} garment (e.g., dusty teal, warm amber, muted coral, sage green, soft gold)
+  - The accents should feel intentional and premium — NOT neon, NOT saturated, NOT cartoonish
+  - Keep most of the illustration in the primary ink color, with accents on 1-2 key elements (e.g., a planet's surface, a flower petal, a small detail)
+- Background: ${bgColor}
+${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Text stays white. Illustration accents should be light/pastel tones that read well on dark fabric." : "IMPORTANT: This design is for LIGHT-colored garments. Text stays dark. Illustration accents should be deeper muted tones."}
 
 COMPOSITION:
 - Illustration centered, text below or integrated naturally
