@@ -337,29 +337,36 @@ serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Generate BOTH variants in parallel
-    console.log("Generating both light-on-dark and dark-on-light designs...");
-
+    // Step 1: Generate the light-on-dark design (white ink on black bg)
+    console.log("Generating light-on-dark design...");
     const lightPrompt = buildPrompt(messageText, "light-on-dark", promptOpts);
-    const darkPrompt = buildPrompt(messageText, "dark-on-light", {
-      ...promptOpts,
-      // Don't pass baseDesignUrl/referenceImageUrl to dark variant — it should be an independent generation
-      baseDesignUrl: undefined,
-      referenceImageUrl: undefined,
-      regenerateFeedback: regenerateFeedback
-        ? `${regenerateFeedback} (NOTE: This is the DARK INK version for light-colored shirts. Use dark/black ink on a white background.)`
-        : undefined,
-    });
+    const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+    const lightDesignUrl = await uploadImage(lightBase64, userId, serviceClient);
+    console.log("Light design:", lightDesignUrl);
 
-    const [lightBase64, darkBase64] = await Promise.all([
-      generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl),
-      generateImage(darkPrompt, LOVABLE_API_KEY),
-    ]);
+    // Step 2: Derive dark-on-light by color-inverting the generated design
+    console.log("Deriving dark-on-light variant from light design...");
+    const invertPrompt = `You are given a t-shirt design image with WHITE/LIGHT colored text and graphics on a BLACK background.
 
-    // Upload both
-    const [lightDesignUrl, darkDesignUrl] = await Promise.all([
-      uploadImage(lightBase64, userId, serviceClient),
-      uploadImage(darkBase64, userId, serviceClient),
-    ]);
+Create an IDENTICAL version of this EXACT same design, but:
+1. Change the background from black to pure white (#FFFFFF)
+2. Change ALL white/light colored elements (text, graphics, lines, illustrations) to dark black/charcoal (#1A1A1A)
+3. If there are any colored accent elements, keep them but adjust their brightness so they remain visible on the white background
+
+CRITICAL RULES:
+- The design must be PIXEL-PERFECT identical in layout, fonts, sizing, positioning, and graphic elements
+- ONLY the colors change — nothing else
+- Same text (letter-for-letter), same graphics, same composition
+- Think of this as a simple color inversion / negative of the original
+- Output ONLY the modified design image`;
+
+    const darkBase64 = await generateImage(
+      invertPrompt,
+      LOVABLE_API_KEY,
+      lightBase64, // Pass the generated light design as the base image to invert
+    );
+    const darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
+    console.log("Dark design:", darkDesignUrl);
 
     console.log("Light design:", lightDesignUrl);
     console.log("Dark design:", darkDesignUrl);
