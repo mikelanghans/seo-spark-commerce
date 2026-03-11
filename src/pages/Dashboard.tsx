@@ -873,21 +873,8 @@ const Dashboard = () => {
                   <MessageGenerator
                     organization={selectedOrg}
                     userId={user!.id}
-                    onCreateProduct={(messageText, designUrl) => {
-                      setPendingDesignUrl(designUrl);
-                      setImagePreview(designUrl);
-                      const autoDescription = `${messageText} — A premium print-on-demand ${selectedOrg.niche ? selectedOrg.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${selectedOrg.audience || "everyday wear"}. Part of the ${selectedOrg.name} collection.`;
-                      const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
-                      const autoKeywords = messageText.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
-                      setProductForm({
-                        title: messageText,
-                        description: autoDescription,
-                        keywords: autoKeywords,
-                        category: "T-Shirt",
-                        price: "29.99",
-                        features: autoFeatures,
-                      });
-                      setView("product-form");
+                    onProductsCreated={() => {
+                      if (selectedOrg) loadProducts(selectedOrg.id);
                     }}
                   />
                 </div>
