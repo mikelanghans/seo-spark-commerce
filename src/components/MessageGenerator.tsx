@@ -780,20 +780,65 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         messageId={previewMessageId}
         organizationId={organization.id}
         userId={userId}
+        hasProduct={!!messages.find((m) => m.id === previewMessageId)?.product_id}
         onRegenerate={handleRegenerateDesign}
         onDiscardDesign={async (msgId) => {
-          // Clear design from DB
           await supabase
             .from("generated_messages")
             .update({ design_url: null, dark_design_url: null })
             .eq("id", msgId);
-          // Clear design from local state
           setMessages((prev) =>
             prev.map((m) =>
               m.id === msgId ? { ...m, design_url: null, dark_design_url: null } : m
             )
           );
           toast.success("Design removed — message kept for a fresh start");
+        }}
+        onCreateProduct={async (msgId) => {
+          const msg = messages.find((m) => m.id === msgId);
+          if (!msg || !msg.design_url) return;
+
+          const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
+          const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
+          const autoKeywords = msg.message_text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
+
+          const { data: product, error } = await supabase
+            .from("products")
+            .insert({
+              title: msg.message_text,
+              description: autoDescription,
+              keywords: autoKeywords,
+              category: "T-Shirt",
+              price: "29.99",
+              features: autoFeatures,
+              organization_id: organization.id,
+              user_id: userId,
+              image_url: msg.design_url,
+            })
+            .select("id")
+            .single();
+
+          if (error) {
+            toast.error("Failed to create product");
+            return;
+          }
+
+          await supabase.from("generated_messages").update({ product_id: product.id }).eq("id", msgId);
+
+          const designEntries: any[] = [];
+          if (msg.design_url) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.design_url, image_type: "design", color_name: "light-on-dark", position: 0 });
+          }
+          if (msg.dark_design_url) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
+          }
+          if (designEntries.length > 0) {
+            await supabase.from("product_images").insert(designEntries);
+          }
+
+          toast.success("Product created!");
+          await loadMessages();
+          onProductsCreated?.();
         }}
       />
     </div>
