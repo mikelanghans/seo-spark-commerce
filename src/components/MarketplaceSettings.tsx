@@ -62,9 +62,10 @@ export const MarketplaceSettings = ({ userId }: Props) => {
   const loadConnections = async () => {
     setLoading(true);
     try {
-      const [etsyRes, ebayRes] = await Promise.all([
+      const [etsyRes, ebayRes, metaRes] = await Promise.all([
         supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("meta_connections").select("*").eq("user_id", userId).maybeSingle(),
       ]);
 
       if (etsyRes.data) {
@@ -84,6 +85,16 @@ export const MarketplaceSettings = ({ userId }: Props) => {
           id: d.id,
           client_id: d.client_id,
           environment: d.environment,
+          has_token: !!d.access_token,
+        });
+      }
+
+      if (metaRes.data) {
+        const d = metaRes.data as any;
+        setMetaConn({
+          id: d.id,
+          catalog_id: d.catalog_id,
+          page_id: d.page_id,
           has_token: !!d.access_token,
         });
       }
