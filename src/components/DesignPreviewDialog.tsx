@@ -47,6 +47,7 @@ export const DesignPreviewDialog = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+  const [feedbackState, setFeedbackState] = useState<"none" | "up" | "down">("none");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch history when dialog opens
