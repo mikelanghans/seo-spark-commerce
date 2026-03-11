@@ -186,8 +186,8 @@ export const SwipeableMessageCard = ({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
       >
-        {/* Thumbs up / down */}
-        {!hasProduct && !isEditing && (
+        {/* Thumbs up / down — hidden once a design exists to avoid confusion with design feedback */}
+        {!hasProduct && !isEditing && !hasDesign && (
           <div className="flex flex-col gap-0.5 shrink-0">
             <button
               type="button"
@@ -198,7 +198,7 @@ export const SwipeableMessageCard = ({
                   ? "text-emerald-500 bg-emerald-500/10"
                   : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10"
               )}
-              title="Keep"
+              title="Keep message"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
             </button>
@@ -206,7 +206,7 @@ export const SwipeableMessageCard = ({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDiscard(id); }}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
-              title="Discard"
+              title="Discard message"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
             </button>

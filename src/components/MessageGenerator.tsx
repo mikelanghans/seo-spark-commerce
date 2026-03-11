@@ -293,6 +293,13 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         }
       }
       toast.success("Design generated!");
+      // Auto-keep the message when a design is generated
+      if (!keptIds.has(msg.id)) {
+        const newKept = new Set(keptIds);
+        newKept.add(msg.id);
+        setKeptIds(newKept);
+        await supabase.from("generated_messages").update({ is_selected: true }).eq("id", msg.id);
+      }
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate design");
