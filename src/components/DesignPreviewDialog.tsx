@@ -27,7 +27,7 @@ interface Props {
   messageId: string | null;
   organizationId: string;
   userId: string;
-  onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
+  onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
