@@ -29,12 +29,14 @@ serve(async (req) => {
 - Keep everything else about the design identical: same text, same fonts, same graphics, same layout, same size, same position.
 - ONLY the ink/print color changes from white/light to dark black. The design content stays exactly the same.
 - The dark design must be crisp, bold, and fully legible against the ${colorName} fabric.`
-      : `⚠️ PRINT COLOR RULE — MOST IMPORTANT:
-- The original design uses BRIGHT WHITE ink. On dark shirts, the printed text and graphics MUST be PURE WHITE (#FFFFFF), not gray, cream, beige, or muted.
-- Do NOT dull, dim, or desaturate the white ink. It must be crisp, bright, pure white — like real screen-printed white ink on a dark garment.
-- The design is opaque screen-printed ink sitting ON TOP of the fabric — never blended, faded, or translucent.
-- If the original design has any colored elements (like a teal/cyan accent), those must also stay the EXACT same vivid color.
-- The design must remain fully visible and high-contrast on the ${colorName} fabric.`;
+      : `⚠️ PRINT COLOR RULE — THE SINGLE MOST IMPORTANT RULE IN THIS ENTIRE PROMPT:
+- Look at image 2 (the design file). It has WHITE text and graphics on a transparent background.
+- In your output mockup, the text and graphics MUST be rendered as PURE BRIGHT WHITE (#FFFFFF) — maximum brightness, maximum contrast against the dark ${colorName} fabric.
+- This is screen-printed DTG white ink. It is FULLY OPAQUE. It does NOT blend with the fabric. It does NOT become gray, cream, beige, tan, or any muted tone.
+- Think of it like painting pure white paint on a dark wall — the white stays white.
+- If the design has colored elements (like teal, cyan, orange accents), those must also stay VIVID and SATURATED — do not mute or desaturate any print colors.
+- COMMON MISTAKE TO AVOID: Making the white text look "natural" or "blended" — that is WRONG. The ink must look bold, crisp, and unnaturally bright white against the fabric.
+- The design must POP off the shirt with strong contrast.`;
 
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
