@@ -49,24 +49,31 @@ serve(async (req) => {
     const isUpdate = !!existingShopifyId;
 
     // Build Shopify product payload
-    // Convert plain text to HTML paragraphs
+    // Convert plain text description + bullet points to HTML
     const rawDesc = shopifyListing?.description || product.description || "";
-    // Split on double newlines if present, otherwise split long text into ~3-4 sentence paragraphs
+    const bulletPoints: string[] = shopifyListing?.bulletPoints || [];
+
+    // Split description into paragraphs
     let paragraphs: string[];
     if (rawDesc.includes("\n\n")) {
       paragraphs = rawDesc.split(/\n\s*\n/).map((p: string) => p.trim()).filter((p: string) => p);
     } else {
-      // Split by sentences and group into paragraphs of ~3 sentences
       const sentences = rawDesc.match(/[^.!?]+[.!?]+/g) || [rawDesc];
       paragraphs = [];
       for (let i = 0; i < sentences.length; i += 3) {
         paragraphs.push(sentences.slice(i, i + 3).join("").trim());
       }
     }
-    const bodyHtml = paragraphs
+
+    let bodyHtml = paragraphs
       .filter((p: string) => p.length > 0)
       .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
       .join("\n");
+
+    // Append bullet points as an HTML list
+    if (bulletPoints.length > 0) {
+      bodyHtml += "\n<ul>\n" + bulletPoints.map((bp: string) => `  <li>${bp}</li>`).join("\n") + "\n</ul>";
+    }
 
     const shopifyProduct: Record<string, unknown> = {
       title: shopifyListing?.title || product.title,
