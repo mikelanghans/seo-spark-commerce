@@ -1219,6 +1219,9 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card p-6">
               <ShopifySettings userId={user.id} />
             </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <MarketplaceSettings userId={user.id} />
+            </div>
           </div>
         )}
         {view === "autopilot" && selectedOrg && (
