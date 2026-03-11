@@ -723,7 +723,7 @@ const Dashboard = () => {
               </Button>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold">{selectedOrg.name}</h2>
-                <p className="text-sm text-muted-foreground">{selectedOrg.niche} • {products.length} products</p>
+                <p className="text-sm text-muted-foreground">{products.length} products</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
