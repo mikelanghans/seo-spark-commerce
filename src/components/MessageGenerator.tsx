@@ -291,10 +291,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
       }
       toast.success("Design regenerated!");
       await loadMessages();
-      // Update preview with new design
-      const updated = messages.find((m) => m.id === msgId);
-      if (updated?.design_url) {
-        setPreviewUrl(updated.design_url);
+      // Fetch fresh design URL for preview
+      const { data: freshMsg } = await supabase
+        .from("generated_messages")
+        .select("design_url")
+        .eq("id", msgId)
+        .single();
+      if (freshMsg?.design_url) {
+        setPreviewUrl(freshMsg.design_url);
       }
     } catch (err: any) {
       handleAiError(err, null, "Failed to regenerate design");
