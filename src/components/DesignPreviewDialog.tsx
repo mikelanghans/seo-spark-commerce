@@ -146,6 +146,7 @@ export const DesignPreviewDialog = ({
         setRating(null);
         setNotes("");
         setRegenFeedback("");
+        clearReferenceImage();
         onClose();
       }}
     >
