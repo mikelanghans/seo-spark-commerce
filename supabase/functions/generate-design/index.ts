@@ -196,7 +196,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}`;
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
