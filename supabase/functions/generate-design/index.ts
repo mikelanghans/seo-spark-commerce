@@ -30,7 +30,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle } = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, regenerateFeedback } = await req.json();
     if (!messageText) throw new Error("messageText is required");
 
     // Fetch recent design feedback to guide the AI
@@ -156,7 +156,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}`
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}`
 
       : `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
@@ -196,7 +196,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}`;
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",

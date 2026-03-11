@@ -262,6 +262,51 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
     }
   };
 
+  const handleRegenerateDesign = async (msgId: string, feedback: string) => {
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg) return;
+    setGeneratingDesignId(msg.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-design", {
+        body: {
+          messageText: msg.message_text,
+          brandName: organization.name,
+          brandTone: organization.tone,
+          brandNiche: organization.niche,
+          brandAudience: organization.audience,
+          brandFont: (organization as any).brand_font || "",
+          brandColor: (organization as any).brand_color || "",
+          brandFontSize: (organization as any).brand_font_size || "large",
+          brandStyleNotes: (organization as any).brand_style_notes || "",
+          messageId: msg.id,
+          organizationId: organization.id,
+          designVariant: "light-on-dark",
+          designStyle,
+          regenerateFeedback: feedback,
+        },
+      });
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to regenerate design");
+        return;
+      }
+      toast.success("Design regenerated!");
+      await loadMessages();
+      // Fetch fresh design URL for preview
+      const { data: freshMsg } = await supabase
+        .from("generated_messages")
+        .select("design_url")
+        .eq("id", msgId)
+        .single();
+      if (freshMsg?.design_url) {
+        setPreviewUrl(freshMsg.design_url);
+      }
+    } catch (err: any) {
+      handleAiError(err, null, "Failed to regenerate design");
+    } finally {
+      setGeneratingDesignId(null);
+    }
+  };
+
   const handlePreviewDesign = (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
@@ -647,6 +692,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
         organizationId={organization.id}
         userId={userId}
         onFeedbackSaved={() => {}}
+        onRegenerate={handleRegenerateDesign}
       />
     </div>
   );
