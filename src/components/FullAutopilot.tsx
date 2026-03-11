@@ -80,11 +80,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     setProducts([]);
     setOverallProgress(0);
 
-    const totalSteps = count * 6; // message, design, recommend, mockups, listing, printify
+    const totalSteps = 1 + count * 7; // 1 for messages + 7 per product (design, product, colors, mockups, listing, printify, shopify)
     let completedSteps = 0;
     const tick = () => {
       completedSteps++;
-      setOverallProgress(Math.round((completedSteps / totalSteps) * 100));
+      setOverallProgress(Math.min(100, Math.round((completedSteps / totalSteps) * 100)));
     };
 
     // Determine design style
