@@ -134,8 +134,7 @@ serve(async (req) => {
 
     // Build product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
-    const allVariantIds = allVariants.map((v: any) => v.id);
-    const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
+    const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
     // Design placement — image is auto-trimmed during upload so content fills the area
     const imageX = 0.5;
