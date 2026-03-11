@@ -37,12 +37,13 @@ interface Invite {
   created_at: string;
 }
 
-export const TeamManager = ({ organizationId, organizationName, userId }: Props) => {
+export const TeamManager = ({ organizationId, organizationName, userId, allOrganizations }: Props) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("editor");
+  const [inviteOrgId, setInviteOrgId] = useState<string>(organizationId);
   const [sending, setSending] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
