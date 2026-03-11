@@ -62,6 +62,28 @@ export const DesignPreviewDialog = ({
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setReferenceImage(file);
+    setReferencePreview(URL.createObjectURL(file));
+  };
+
+  const clearReferenceImage = () => {
+    setReferenceImage(null);
+    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    setReferencePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmitFeedback = async () => {
     if (!rating) {
       toast.error("Please select thumbs up or down");
@@ -69,22 +91,40 @@ export const DesignPreviewDialog = ({
     }
     setSubmitting(true);
     try {
+      let referenceImageUrl: string | null = null;
+
+      if (referenceImage) {
+        setUploadingImage(true);
+        const ext = referenceImage.name.split(".").pop() || "png";
+        const path = `feedback-refs/${userId}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("product-images")
+          .upload(path, referenceImage, { contentType: referenceImage.type });
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+        referenceImageUrl = urlData.publicUrl;
+        setUploadingImage(false);
+      }
+
       const { error } = await supabase.from("design_feedback").insert({
         user_id: userId,
         organization_id: organizationId,
         message_id: messageId,
         rating,
         notes: notes.trim(),
-      });
+        reference_image_url: referenceImageUrl,
+      } as any);
       if (error) throw error;
       toast.success("Feedback saved — future designs will reflect your preferences!");
       setRating(null);
       setNotes("");
+      clearReferenceImage();
       onFeedbackSaved?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to save feedback");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
