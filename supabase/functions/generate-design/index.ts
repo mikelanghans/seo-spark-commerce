@@ -156,7 +156,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}`
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}`
 
       : `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
