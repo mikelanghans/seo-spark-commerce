@@ -80,22 +80,23 @@ serve(async (req) => {
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Build images array — design image first, then each mockup
+    // Build images array — mockups only (design file is not a product photo)
     const images: { src: string; alt?: string; position?: number }[] = [];
-    if (imageUrl) {
+    colorVariants.forEach((v, idx) => {
+      images.push({
+        src: v.imageUrl,
+        alt: `${product.title} - ${v.colorName}`,
+        position: idx + 1,
+      });
+    });
+    // Fallback: if no mockups, use the design image
+    if (images.length === 0 && imageUrl) {
       images.push({
         src: imageUrl,
         alt: shopifyListing?.alt_text || product.title,
         position: 1,
       });
     }
-    colorVariants.forEach((v, idx) => {
-      images.push({
-        src: v.imageUrl,
-        alt: `${product.title} - ${v.colorName}`,
-        position: idx + 2,
-      });
-    });
     if (images.length > 0) {
       shopifyProduct.images = images;
     }
@@ -165,8 +166,7 @@ serve(async (req) => {
     if (hasVariants && createdProduct?.variants?.length && createdProduct?.images?.length) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
-        // Find the matching image (offset by 1 because design image is first)
-        const image = createdProduct.images[i + 1];
+        const image = createdProduct.images[i];
         if (variant && image) {
           try {
             await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
