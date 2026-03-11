@@ -76,9 +76,19 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleGenerate = async () => {
     setGenerating(true);
     try {
+      // Collect existing message texts to avoid duplicates
+      const { data: allExisting } = await supabase
+        .from("generated_messages")
+        .select("message_text")
+        .eq("organization_id", organization.id);
+      const existingTexts = new Set(
+        (allExisting || []).map((m: any) => m.message_text.toLowerCase().trim())
+      );
+
       const { data, error } = await supabase.functions.invoke("generate-messages", {
         body: {
           organization: {
+            id: organization.id,
             name: organization.name,
             niche: organization.niche,
             tone: organization.tone,
@@ -86,6 +96,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           },
           count: generateCount,
           designStyle,
+          existingProducts: (allExisting || []).map((m: any) => m.message_text),
           ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
       });
@@ -101,7 +112,17 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         return;
       }
 
-      const rows = newMessages.map((m: { text: string }) => ({
+      // Filter out duplicates client-side
+      const uniqueMessages = newMessages.filter(
+        (m: { text: string }) => !existingTexts.has(m.text.toLowerCase().trim())
+      );
+
+      if (uniqueMessages.length === 0) {
+        toast.error("All generated messages already exist — try a different topic");
+        return;
+      }
+
+      const rows = uniqueMessages.map((m: { text: string }) => ({
         user_id: userId,
         organization_id: organization.id,
         message_text: m.text,
@@ -114,7 +135,9 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
       if (insertError) throw insertError;
 
-      toast.success(`Generated ${newMessages.length} new messages!`);
+      const dupeCount = newMessages.length - uniqueMessages.length;
+      const dupeNote = dupeCount > 0 ? ` (${dupeCount} duplicates skipped)` : "";
+      toast.success(`Generated ${uniqueMessages.length} new messages!${dupeNote}`);
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate messages");
@@ -128,6 +151,18 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     if (!text) return;
     setAddingCustom(true);
     try {
+      // Check for existing duplicate
+      const { data: existing } = await supabase
+        .from("generated_messages")
+        .select("id")
+        .eq("organization_id", organization.id)
+        .ilike("message_text", text)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error("This message already exists!");
+        setAddingCustom(false);
+        return;
+      }
       const { error } = await supabase.from("generated_messages").insert({
         user_id: userId,
         organization_id: organization.id,
