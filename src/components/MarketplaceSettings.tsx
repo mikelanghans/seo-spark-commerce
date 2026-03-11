@@ -161,17 +161,46 @@ export const MarketplaceSettings = ({ userId }: Props) => {
     }
   };
 
-  const deleteConnection = async (platform: "etsy" | "ebay") => {
-    const table = platform === "etsy" ? "etsy_connections" : "ebay_connections";
-    const id = platform === "etsy" ? etsyConn?.id : ebayConn?.id;
+  const saveMeta = async () => {
+    if (!metaCatalogId.trim() || !metaAccessToken.trim()) {
+      toast.error("Catalog ID and Access Token are required");
+      return;
+    }
+    setSavingMeta(true);
+    try {
+      if (metaConn) {
+        const { error } = await supabase
+          .from("meta_connections")
+          .update({ catalog_id: metaCatalogId, access_token: metaAccessToken, page_id: metaPageId, updated_at: new Date().toISOString() } as any)
+          .eq("id", metaConn.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("meta_connections")
+          .insert({ user_id: userId, catalog_id: metaCatalogId, access_token: metaAccessToken, page_id: metaPageId } as any);
+        if (error) throw error;
+      }
+      toast.success("Meta connection saved!");
+      loadConnections();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSavingMeta(false);
+    }
+  };
+
+  const deleteConnection = async (platform: "etsy" | "ebay" | "meta") => {
+    const table = platform === "etsy" ? "etsy_connections" : platform === "ebay" ? "ebay_connections" : "meta_connections";
+    const id = platform === "etsy" ? etsyConn?.id : platform === "ebay" ? ebayConn?.id : metaConn?.id;
     if (!id) return;
 
     try {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
       if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
-      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
-      toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
+      else if (platform === "ebay") { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
+      else { setMetaConn(null); setMetaCatalogId(""); setMetaAccessToken(""); setMetaPageId(""); }
+      toast.success(`${platform === "etsy" ? "Etsy" : platform === "ebay" ? "eBay" : "Meta"} disconnected`);
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
     }
