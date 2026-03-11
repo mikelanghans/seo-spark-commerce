@@ -23,8 +23,9 @@ import { TeamManager } from "@/components/TeamManager";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
+import { FullAutopilot } from "@/components/FullAutopilot";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -892,6 +893,9 @@ const Dashboard = () => {
                 <TabsTrigger value="products" className="gap-2">
                   <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
+                <TabsTrigger value="autopilot" className="gap-2">
+                  <Rocket className="h-4 w-4" /> Autopilot
+                </TabsTrigger>
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
                 </TabsTrigger>
@@ -916,6 +920,16 @@ const Dashboard = () => {
                     }}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="autopilot" className="mt-4">
+                <FullAutopilot
+                  organization={selectedOrg}
+                  userId={user!.id}
+                  onProductsCreated={() => {
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="social" className="mt-4">
