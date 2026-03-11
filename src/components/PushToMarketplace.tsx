@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -47,8 +47,10 @@ type PushResult = {
 export const PushToMarketplace = ({ product, listings, images, userId }: Props) => {
   const [pushingEtsy, setPushingEtsy] = useState(false);
   const [pushingEbay, setPushingEbay] = useState(false);
+  const [pushingMeta, setPushingMeta] = useState(false);
   const [etsyResult, setEtsyResult] = useState<PushResult | null>(null);
   const [ebayResult, setEbayResult] = useState<PushResult | null>(null);
+  const [metaResult, setMetaResult] = useState<PushResult | null>(null);
 
   const getListing = (marketplace: string) => {
     // Try marketplace-specific listing first, fall back to any available
