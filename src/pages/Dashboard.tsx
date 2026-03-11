@@ -21,6 +21,7 @@ import { MessageGenerator } from "@/components/MessageGenerator";
 import { TeamManager } from "@/components/TeamManager";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
+import { SyncDashboard } from "@/components/SyncDashboard";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays,
 } from "lucide-react";
