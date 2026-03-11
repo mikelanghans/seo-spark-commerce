@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw, ImagePlus, X } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Download, Loader2, Send, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
