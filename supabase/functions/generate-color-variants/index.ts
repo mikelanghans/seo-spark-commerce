@@ -24,25 +24,27 @@ YOUR TASK: Generate a product mockup photo of a ${colorName} colored t-shirt wit
 CRITICAL RULES — follow ALL of these precisely:
 1. The t-shirt fabric color MUST be ${colorName}
 2. Place the design from image 2 centered on the front of the shirt
-3. Preserve EVERY color in the printed design EXACTLY as shown in image 2 — do NOT alter any design colors to match the shirt
-4. If the design has white elements, they stay white. If it has black elements, they stay black. Design colors are INDEPENDENT of shirt color.
-5. MATCH the EXACT same camera angle, distance, perspective, and framing as image 1
-6. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows as image 1
-7. MATCH the EXACT same t-shirt folding style, lay position, and any props visible in image 1
-8. The design should be proportionally sized on the shirt front — EXACTLY the same size ratio as any design in image 1. DO NOT make the text or graphic larger or smaller than in the reference photo.
-9. The output should look like it belongs in the SAME product photo set as image 1 — only the fabric color changes
-10. TEXT SIZE CONSISTENCY IS CRITICAL: If image 1 shows text at a certain size relative to the shirt, your output MUST match that exact proportion. Do not enlarge or shrink the printed design between color variants.
+3. ***PRESERVE ALL DESIGN COLORS EXACTLY*** — the printed design's colors must remain IDENTICAL to image 2. WHITE TEXT MUST STAY BRIGHT WHITE. Black elements stay black. No color in the design should shift, tint, or blend with the shirt color.
+4. The printed design must have STRONG CONTRAST against the shirt fabric. The design sits ON TOP of the fabric — it does not blend into it, it does not become translucent, and its colors do NOT adapt to the shirt color.
+5. Think of the design as a SCREEN-PRINTED ink layer — opaque, crisp, and color-accurate regardless of the fabric beneath it.
+6. MATCH the EXACT same camera angle, distance, perspective, and framing as image 1
+7. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows as image 1
+8. MATCH the EXACT same t-shirt folding style, lay position, and any props visible in image 1
+9. The design should be proportionally sized on the shirt front — EXACTLY the same size ratio as any design in image 1. DO NOT make the text or graphic larger or smaller than in the reference photo.
+10. The output should look like it belongs in the SAME product photo set as image 1 — only the fabric color changes
+11. TEXT SIZE CONSISTENCY IS CRITICAL: If image 1 shows text at a certain size relative to the shirt, your output MUST match that exact proportion.
 Product: ${productTitle}. Output a high quality product photo that is visually consistent with the reference.`
       : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}.
 
 CRITICAL RULES — follow ALL of these precisely:
 1. ONLY change the shirt/garment body color to ${colorName}
-2. If there is a printed design on the shirt, DO NOT alter ANY colors within it — keep every design color exactly as-is
-3. MATCH the EXACT same camera angle, distance, perspective, and framing
-4. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows
-5. MATCH the EXACT same t-shirt folding style, lay position, and any props visible
-6. Keep any printed design at the exact same size, position, and proportions
-7. The output should look like it belongs in the SAME product photo set — only the fabric color changes
+2. ***PRESERVE ALL DESIGN COLORS EXACTLY*** — if there is a printed design on the shirt, keep every color in it EXACTLY as-is. WHITE TEXT MUST STAY BRIGHT WHITE. The print colors are INDEPENDENT of the shirt color.
+3. The printed design is an opaque SCREEN-PRINTED ink layer — it must NOT blend into, tint toward, or become translucent against the new shirt color. It sits ON TOP with full opacity and strong contrast.
+4. MATCH the EXACT same camera angle, distance, perspective, and framing
+5. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows
+6. MATCH the EXACT same t-shirt folding style, lay position, and any props visible
+7. Keep any printed design at the exact same size, position, and proportions
+8. The output should look like it belongs in the SAME product photo set — only the fabric color changes
 Product: ${productTitle}. Output a high quality product photo that is visually consistent with the original.`;
 
     const imageContent: any[] = [
