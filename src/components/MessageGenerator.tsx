@@ -33,6 +33,7 @@ interface Props {
 
 export const MessageGenerator = ({ organization, userId, onProductsCreated }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
+  const [creatingProducts, setCreatingProducts] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
