@@ -28,7 +28,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, regenerateFeedback, referenceImageUrl } = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, regenerateFeedback, referenceImageUrl, baseDesignUrl } = await req.json();
     if (!messageText) throw new Error("messageText is required");
 
     // Fetch recent design feedback to guide the AI
@@ -161,7 +161,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`
 
       : `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
@@ -201,7 +201,7 @@ COMPOSITION:
 ${brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${brandStyleNotes}` : ""}
 
 OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
-${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`;
+${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`;
 
     const models = [
       "google/gemini-3.1-flash-image-preview",
@@ -225,10 +225,11 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
             model,
             messages: [{
               role: "user",
-              content: referenceImageUrl
+              content: (baseDesignUrl || referenceImageUrl)
                 ? [
                     { type: "text", text: prompt },
-                    { type: "image_url", image_url: { url: referenceImageUrl } },
+                    ...(baseDesignUrl ? [{ type: "image_url", image_url: { url: baseDesignUrl } }] : []),
+                    ...(referenceImageUrl && referenceImageUrl !== baseDesignUrl ? [{ type: "image_url", image_url: { url: referenceImageUrl } }] : []),
                   ]
                 : prompt,
             }],

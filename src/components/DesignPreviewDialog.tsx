@@ -27,7 +27,7 @@ interface Props {
   messageId: string | null;
   organizationId: string;
   userId: string;
-  onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string) => Promise<void>;
+  onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
@@ -337,7 +337,7 @@ export const DesignPreviewDialog = ({
                     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
                     refUrl = urlData.publicUrl;
                   }
-                  await onRegenerate(messageId, notes.trim(), refUrl);
+                  await onRegenerate(messageId, notes.trim(), refUrl, viewingUrl || undefined);
                   await refreshHistory();
                   setViewingUrl(null);
                   setNotes("");
