@@ -92,6 +92,20 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     const designStyle = styles[0] || "text-only";
 
     try {
+      // Step 0: Fetch existing products to avoid duplicates
+      log(`🔍 Scanning existing products...`, "info");
+      const { data: existingProducts } = await supabase
+        .from("products")
+        .select("title, description")
+        .eq("organization_id", organization.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      const existingTitles = (existingProducts || []).map((p: any) => p.title);
+      if (existingTitles.length > 0) {
+        log(`  Found ${existingTitles.length} existing products — will avoid duplicates`, "info");
+      }
+
       // Step 1: Generate messages
       log(`🚀 Starting autopilot — generating ${count} messages...`, "step");
 
@@ -107,6 +121,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             },
             count,
             designStyle,
+            existingProducts: existingTitles,
           },
         }),
         { label: "generate-messages" }

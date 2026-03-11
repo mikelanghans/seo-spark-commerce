@@ -26,7 +26,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { organization, count, refineOriginal, refineFeedback, topic, designStyle } = await req.json();
+    const { organization, count, refineOriginal, refineFeedback, topic, designStyle, existingProducts } = await req.json();
     const batchSize = count || 10;
     const isRefine = !!refineOriginal && !!refineFeedback;
 
@@ -115,9 +115,18 @@ BAD examples (DO NOT generate these):
 - Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
 - Think: the kind of text you'd see on a premium streetwear tee\n`;
 
+      // Build existing products exclusion list
+      let existingProductsContext = "";
+      if (existingProducts && existingProducts.length > 0) {
+        const productList = existingProducts.slice(0, 100).map((t: string) => `- "${t}"`).join("\n");
+        existingProductsContext = `\n⚠️ DUPLICATE AVOIDANCE — CRITICAL:
+The brand already has the following products. DO NOT generate messages that are the same as, or very similar to, any of these existing products. Each new message must be clearly distinct:
+${productList}\n`;
+      }
+
       prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
 
-${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}${styleDirective}
+${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}${styleDirective}${existingProductsContext}
 Brand context:
 - Niche: ${organization.niche}
 - Tone: ${organization.tone}
