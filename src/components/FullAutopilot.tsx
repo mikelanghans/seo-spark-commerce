@@ -242,96 +242,98 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 4: AI color recommendations
-          updateProduct(i, { step: "Recommending colors..." });
-          log(`  🎨 Getting color recommendations...`, "info");
+          // Step 4 & 5: AI color recommendations + mockups (only if brand has a template image)
+          let recommendedColors: string[] = [];
 
-          const { data: colorData, error: colorError } = await withRetry(() =>
-            supabase.functions.invoke("recommend-colors", {
-              body: {
-                productTitle,
-                productCategory: "T-Shirt",
-                brandName: organization.name,
-                brandNiche: organization.niche,
-                brandAudience: organization.audience,
-                brandTone: organization.tone,
-              },
-            }),
-            { label: `colors-${i}` }
-          );
+          if (hasTemplate) {
+            updateProduct(i, { step: "Recommending colors..." });
+            log(`  🎨 Getting color recommendations...`, "info");
 
-          if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
-          const recommendedColors: string[] = (colorData.recommendations || []).map((r: any) => r.color);
-          log(`  ✅ Recommended colors: ${recommendedColors.join(", ")}`, "success");
-          tick();
+            const { data: colorData, error: colorError } = await withRetry(() =>
+              supabase.functions.invoke("recommend-colors", {
+                body: {
+                  productTitle,
+                  productCategory: "T-Shirt",
+                  brandName: organization.name,
+                  brandNiche: organization.niche,
+                  brandAudience: organization.audience,
+                  brandTone: organization.tone,
+                },
+              }),
+              { label: `colors-${i}` }
+            );
 
-          if (cancelRef.current) break;
+            if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
+            recommendedColors = (colorData.recommendations || []).map((r: any) => r.color);
+            log(`  ✅ Recommended colors: ${recommendedColors.join(", ")}`, "success");
+            tick();
 
-          // Step 5: Generate mockups for each color
-          updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
-
-          // Get source image as base64
-          const sourceUrl = organization.template_image_url || designUrl;
-          const imageBase64 = await fetchImageAsBase64(sourceUrl);
-          let designBase64: string | undefined;
-          if (designUrl !== sourceUrl) {
-            designBase64 = await fetchImageAsBase64(designUrl);
-          }
-
-          let mockupCount = 0;
-          const referenceBase64 = imageBase64; // Always use brand template for consistency
-          for (const colorName of recommendedColors) {
             if (cancelRef.current) break;
-            log(`  🖌️ Generating mockup: ${colorName}...`, "info");
-            updateProduct(i, { step: `Mockup ${mockupCount + 1}/${recommendedColors.length}: ${colorName}` });
 
-            try {
-              const { data: mockupData, error: mockupError } = await withRetry(() =>
-                supabase.functions.invoke("generate-color-variants", {
-                  body: { imageBase64: referenceBase64, colorName, productTitle, designImageBase64: designBase64 },
-                }),
-                { label: `mockup-${colorName}` }
-              );
+            // Step 5: Generate mockups for each color
+            updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
-              if (mockupError || mockupData?.error) {
-                const errMsg = mockupData?.error || mockupError?.message || "";
-                log(`  ⚠️ Mockup ${colorName} failed: ${errMsg}`, "error");
-                if (errMsg.includes("402") || errMsg.includes("credits")) break;
-                continue;
-              }
-
-              const genBase64 = mockupData.imageBase64;
-              if (!genBase64) continue;
-
-              // Brand template is always used as reference for consistency
-
-              // Upload to storage
-              const base64Data = genBase64.split(",")[1] || genBase64;
-              const byteChars = atob(base64Data);
-              const byteArray = new Uint8Array(byteChars.length);
-              for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
-              const blob = new Blob([byteArray], { type: "image/png" });
-              const path = `${userId}/${crypto.randomUUID()}.png`;
-              await supabase.storage.from("product-images").upload(path, blob);
-              const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-              await supabase.from("product_images").insert({
-                product_id: productId,
-                user_id: userId,
-                image_url: urlData.publicUrl,
-                image_type: "mockup",
-                color_name: colorName,
-                position: mockupCount,
-              });
-
-              mockupCount++;
-            } catch (err: any) {
-              log(`  ⚠️ Mockup ${colorName} failed: ${err.message}`, "error");
+            const sourceUrl = organization.template_image_url || designUrl;
+            const imageBase64 = await fetchImageAsBase64(sourceUrl);
+            let designBase64: string | undefined;
+            if (designUrl !== sourceUrl) {
+              designBase64 = await fetchImageAsBase64(designUrl);
             }
-          }
 
-          log(`  ✅ Generated ${mockupCount} mockups`, "success");
-          tick();
+            let mockupCount = 0;
+            const referenceBase64 = imageBase64;
+            for (const colorName of recommendedColors) {
+              if (cancelRef.current) break;
+              log(`  🖌️ Generating mockup: ${colorName}...`, "info");
+              updateProduct(i, { step: `Mockup ${mockupCount + 1}/${recommendedColors.length}: ${colorName}` });
+
+              try {
+                const { data: mockupData, error: mockupError } = await withRetry(() =>
+                  supabase.functions.invoke("generate-color-variants", {
+                    body: { imageBase64: referenceBase64, colorName, productTitle, designImageBase64: designBase64 },
+                  }),
+                  { label: `mockup-${colorName}` }
+                );
+
+                if (mockupError || mockupData?.error) {
+                  const errMsg = mockupData?.error || mockupError?.message || "";
+                  log(`  ⚠️ Mockup ${colorName} failed: ${errMsg}`, "error");
+                  if (errMsg.includes("402") || errMsg.includes("credits")) break;
+                  continue;
+                }
+
+                const genBase64 = mockupData.imageBase64;
+                if (!genBase64) continue;
+
+                const base64Data = genBase64.split(",")[1] || genBase64;
+                const byteChars = atob(base64Data);
+                const byteArray = new Uint8Array(byteChars.length);
+                for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
+                const blob = new Blob([byteArray], { type: "image/png" });
+                const path = `${userId}/${crypto.randomUUID()}.png`;
+                await supabase.storage.from("product-images").upload(path, blob);
+                const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+                await supabase.from("product_images").insert({
+                  product_id: productId,
+                  user_id: userId,
+                  image_url: urlData.publicUrl,
+                  image_type: "mockup",
+                  color_name: colorName,
+                  position: mockupCount,
+                });
+
+                mockupCount++;
+              } catch (err: any) {
+                log(`  ⚠️ Mockup ${colorName} failed: ${err.message}`, "error");
+              }
+            }
+
+            log(`  ✅ Generated ${mockupCount} mockups`, "success");
+            tick();
+          } else {
+            log(`  ⏭️ No brand template — skipping mockup generation (Printify defaults will be used)`, "info");
+          }
 
           if (cancelRef.current) break;
 
