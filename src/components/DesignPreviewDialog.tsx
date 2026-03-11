@@ -36,7 +36,6 @@ export const DesignPreviewDialog = ({
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
-  const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
