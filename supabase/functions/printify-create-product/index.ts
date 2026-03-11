@@ -132,7 +132,7 @@ serve(async (req) => {
     // Design placement — centered horizontally, upper-chest position
     const imageX = 0.5;
     const imageY = 0.35;
-    const imageScale = 1.1112;
+    const imageScale = 1.2223;
 
     const productPayload: any = {
       title,
