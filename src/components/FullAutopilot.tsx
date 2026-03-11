@@ -255,6 +255,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           }
 
           let mockupCount = 0;
+          let referenceBase64 = imageBase64; // Will be updated after first successful mockup
           for (const colorName of recommendedColors) {
             if (cancelRef.current) break;
             log(`  🖌️ Generating mockup: ${colorName}...`, "info");
@@ -263,7 +264,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             try {
               const { data: mockupData, error: mockupError } = await withRetry(() =>
                 supabase.functions.invoke("generate-color-variants", {
-                  body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
+                  body: { imageBase64: referenceBase64, colorName, productTitle, designImageBase64: designBase64 },
                 }),
                 { label: `mockup-${colorName}` }
               );
@@ -277,6 +278,12 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
               const genBase64 = mockupData.imageBase64;
               if (!genBase64) continue;
+
+              // Use first successful mockup as reference for all subsequent colors
+              if (mockupCount === 0) {
+                referenceBase64 = genBase64;
+                log(`  📌 Using first mockup as reference for consistency`, "info");
+              }
 
               // Upload to storage
               const base64Data = genBase64.split(",")[1] || genBase64;
