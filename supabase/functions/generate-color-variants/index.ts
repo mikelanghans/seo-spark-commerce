@@ -37,13 +37,10 @@ WHAT CHANGES:
 - ONLY the t-shirt fabric color → ${colorName}
 
 ⚠️ PRINT COLOR RULE — THIS IS THE MOST IMPORTANT RULE:
-- The printed text and graphics MUST be clearly visible and high-contrast against the ${colorName} fabric.
-- For DARK fabrics (black, navy, charcoal, espresso, midnight, moss, pepper): use BRIGHT WHITE (#FFFFFF) ink.
-- For LIGHT fabrics (ivory, cream, white, chambray, light colors): use DARK ink (black #000000 or very dark color).
-- For MEDIUM fabrics (sage, dusty colors): choose whichever (white or dark) gives the strongest contrast.
-- The ink must be BOLD, OPAQUE, and FULLY VISIBLE — like real screen-printed ink sitting on top of the fabric.
-- NEVER let text fade, blend, or become invisible against the shirt color.
-- NEVER make text the same shade as the shirt — maximum contrast is essential.
+- The printed design (text, graphics, illustrations) must keep the EXACT SAME ink colors as in image 1.
+- Do NOT change, invert, or recolor any part of the printed design. The ink colors are LOCKED.
+- The design is opaque screen-printed ink — it sits ON TOP of the fabric and never blends, fades, or becomes translucent.
+- The design must remain fully visible and crisp on the ${colorName} fabric.
 
 Product: ${productTitle}. The output must be a near-identical clone of image 1 with only the fabric color changed.`
       : `Create an IDENTICAL copy of this product mockup photo but change ONLY the t-shirt fabric color to ${colorName}.
