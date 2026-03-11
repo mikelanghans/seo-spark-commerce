@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PNG } from "npm:pngjs@7.0.0";
-import { Buffer } from "node:buffer";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -291,97 +289,10 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
       throw new Error("No image generated from AI response");
     }
 
-    // Remove background to create true transparency
+    // Decode base64 to binary for upload
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const rawBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-    
-    let binaryData: Uint8Array;
-    try {
-      const png = PNG.sync.read(Buffer.from(rawBuffer));
-      const threshold = 15; // how close to pure black/white to count as bg
-      for (let i = 0; i < png.data.length; i += 4) {
-        const r = png.data[i];
-        const g = png.data[i + 1];
-        const b = png.data[i + 2];
-        if (isLightOnDark) {
-          // Remove black background
-          if (r <= threshold && g <= threshold && b <= threshold) {
-            png.data[i + 3] = 0;
-          }
-        } else {
-          // Remove white background
-          if (r >= (255 - threshold) && g >= (255 - threshold) && b >= (255 - threshold)) {
-            png.data[i + 3] = 0;
-          }
-        }
-      }
-      
-      // Crop to content bounds with padding (no longer standardizing to 4500x5400)
-      // Printify upload auto-trims, so we just need a clean tight crop here
-      const srcW = png.width;
-      const srcH = png.height;
-
-      // Find bounding box of non-transparent pixels
-      let minX = srcW, minY = srcH, maxX = 0, maxY = 0;
-      for (let y = 0; y < srcH; y++) {
-        for (let x = 0; x < srcW; x++) {
-          const idx = (y * srcW + x) * 4;
-          if (png.data[idx + 3] > 0) {
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-
-      const contentW = maxX - minX + 1;
-      const contentH = maxY - minY + 1;
-
-      // Add ~10% padding around content
-      const padX = Math.round(contentW * 0.1);
-      const padY = Math.round(contentH * 0.1);
-      const cropX = Math.max(0, minX - padX);
-      const cropY = Math.max(0, minY - padY);
-      const cropW = Math.min(srcW - cropX, contentW + padX * 2);
-      const cropH = Math.min(srcH - cropY, contentH + padY * 2);
-
-      // Upscale cropped content to print-ready resolution (min 4500px wide)
-      const MIN_WIDTH = 4500;
-      const upscale = cropW < MIN_WIDTH ? MIN_WIDTH / cropW : 1;
-      const finalW = Math.round(cropW * upscale);
-      const finalH = Math.round(cropH * upscale);
-
-      const targetPng = new PNG({ width: finalW, height: finalH });
-      for (let i = 0; i < targetPng.data.length; i += 4) {
-        targetPng.data[i] = 0;
-        targetPng.data[i + 1] = 0;
-        targetPng.data[i + 2] = 0;
-        targetPng.data[i + 3] = 0;
-      }
-
-      // Nearest-neighbor upscale from cropped region
-      for (let ty = 0; ty < finalH; ty++) {
-        for (let tx = 0; tx < finalW; tx++) {
-          const sx = cropX + Math.floor(tx / upscale);
-          const sy = cropY + Math.floor(ty / upscale);
-          if (sx >= srcW || sy >= srcH) continue;
-          const srcIdx = (sy * srcW + sx) * 4;
-          const dstIdx = (ty * finalW + tx) * 4;
-          targetPng.data[dstIdx] = png.data[srcIdx];
-          targetPng.data[dstIdx + 1] = png.data[srcIdx + 1];
-          targetPng.data[dstIdx + 2] = png.data[srcIdx + 2];
-          targetPng.data[dstIdx + 3] = png.data[srcIdx + 3];
-        }
-      }
-
-      const outputBuffer = PNG.sync.write(targetPng);
-      binaryData = new Uint8Array(outputBuffer);
-      console.log(`Design cropped+upscaled: ${srcW}x${srcH} → ${finalW}x${finalH} (content: ${contentW}x${contentH}, scale: ${upscale.toFixed(2)}x)`);
-    } catch (e) {
-      console.error("Failed to process design, using original:", e);
-      binaryData = rawBuffer;
-    }
+    const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    console.log(`Design image size: ${binaryData.length} bytes`);
     
     const fileName = `${userId}/${crypto.randomUUID()}.png`;
 
