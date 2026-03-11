@@ -26,6 +26,13 @@ interface EbayConn {
   has_token: boolean;
 }
 
+interface MetaConn {
+  id: string;
+  catalog_id: string;
+  page_id: string;
+  has_token: boolean;
+}
+
 export const MarketplaceSettings = ({ userId }: Props) => {
   const [loading, setLoading] = useState(true);
 
