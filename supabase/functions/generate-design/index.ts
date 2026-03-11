@@ -339,8 +339,13 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
       const cropW = Math.min(srcW - cropX, contentW + padX * 2);
       const cropH = Math.min(srcH - cropY, contentH + padY * 2);
 
-      // Create cropped canvas
-      const targetPng = new PNG({ width: cropW, height: cropH });
+      // Upscale cropped content to print-ready resolution (min 4500px wide)
+      const MIN_WIDTH = 4500;
+      const upscale = cropW < MIN_WIDTH ? MIN_WIDTH / cropW : 1;
+      const finalW = Math.round(cropW * upscale);
+      const finalH = Math.round(cropH * upscale);
+
+      const targetPng = new PNG({ width: finalW, height: finalH });
       for (let i = 0; i < targetPng.data.length; i += 4) {
         targetPng.data[i] = 0;
         targetPng.data[i + 1] = 0;
@@ -348,13 +353,14 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
         targetPng.data[i + 3] = 0;
       }
 
-      for (let y = 0; y < cropH; y++) {
-        for (let x = 0; x < cropW; x++) {
-          const sx = cropX + x;
-          const sy = cropY + y;
+      // Nearest-neighbor upscale from cropped region
+      for (let ty = 0; ty < finalH; ty++) {
+        for (let tx = 0; tx < finalW; tx++) {
+          const sx = cropX + Math.floor(tx / upscale);
+          const sy = cropY + Math.floor(ty / upscale);
           if (sx >= srcW || sy >= srcH) continue;
           const srcIdx = (sy * srcW + sx) * 4;
-          const dstIdx = (y * cropW + x) * 4;
+          const dstIdx = (ty * finalW + tx) * 4;
           targetPng.data[dstIdx] = png.data[srcIdx];
           targetPng.data[dstIdx + 1] = png.data[srcIdx + 1];
           targetPng.data[dstIdx + 2] = png.data[srcIdx + 2];
@@ -364,7 +370,7 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
 
       const outputBuffer = PNG.sync.write(targetPng);
       binaryData = new Uint8Array(outputBuffer);
-      console.log(`Design cropped: ${srcW}x${srcH} → ${cropW}x${cropH} (content: ${contentW}x${contentH})`);
+      console.log(`Design cropped+upscaled: ${srcW}x${srcH} → ${finalW}x${finalH} (content: ${contentW}x${contentH}, scale: ${upscale.toFixed(2)}x)`);
     } catch (e) {
       console.error("Failed to process design, using original:", e);
       binaryData = rawBuffer;
