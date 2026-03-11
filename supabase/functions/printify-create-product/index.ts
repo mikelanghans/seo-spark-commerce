@@ -131,7 +131,7 @@ serve(async (req) => {
 
     // Design placement — image is auto-trimmed during upload so content fills the area
     const imageX = 0.5;
-    const imageY = 0.4;
+    const imageY = 0.15;
     const imageScale = 1.0;
 
     const productPayload: any = {
