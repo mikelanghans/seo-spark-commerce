@@ -351,6 +351,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setPreviewUrl(msg.design_url);
+    setPreviewDarkUrl(msg.dark_design_url);
     setPreviewMessage(msg.message_text);
     setPreviewMessageId(msg.id);
   };
