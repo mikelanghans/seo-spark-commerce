@@ -337,7 +337,7 @@ export const DesignPreviewDialog = ({
                     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
                     refUrl = urlData.publicUrl;
                   }
-                  await onRegenerate(messageId, notes.trim(), refUrl);
+                  await onRegenerate(messageId, notes.trim(), refUrl, viewingUrl || undefined);
                   await refreshHistory();
                   setViewingUrl(null);
                   setNotes("");
