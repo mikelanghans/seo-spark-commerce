@@ -75,7 +75,12 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setShops(data.shops || []);
-      if (data.shops?.length >= 1) setSelectedShop(data.shops[0].id);
+      // Prefer brand-level shop mapping, fallback to first
+      if (printifyShopId && data.shops?.some((s: any) => s.id === printifyShopId)) {
+        setSelectedShop(printifyShopId);
+      } else if (data.shops?.length >= 1) {
+        setSelectedShop(data.shops[0].id);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to load Printify shops");
     } finally {
