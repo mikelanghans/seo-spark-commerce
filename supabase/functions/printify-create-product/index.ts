@@ -129,11 +129,10 @@ serve(async (req) => {
     const allVariantIds = allVariants.map((v: any) => v.id);
     const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
 
-    // Design placement for standardized 4500x5400 design files
-    // Scale up to fill print area and position in upper chest region
+    // Design placement — image is auto-trimmed during upload so content fills the area
     const imageX = 0.5;
-    const imageY = 0.35;
-    const imageScale = 1.8;
+    const imageY = 0.4;
+    const imageScale = 1.0;
 
     const productPayload: any = {
       title,
