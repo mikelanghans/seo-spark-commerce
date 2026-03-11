@@ -30,6 +30,8 @@ interface Props {
   userId: string;
   onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => Promise<void>;
   onDiscardDesign?: (messageId: string) => void;
+  onCreateProduct?: (messageId: string) => void;
+  hasProduct?: boolean;
 }
 
 export const DesignPreviewDialog = ({
