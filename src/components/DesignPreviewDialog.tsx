@@ -274,7 +274,7 @@ export const DesignPreviewDialog = ({
                   let refUrl: string | undefined;
                   if (referenceImage) {
                     const ext = referenceImage.name.split(".").pop() || "png";
-                    const path = `feedback-refs/${userId}/${Date.now()}.${ext}`;
+                    const path = `${userId}/feedback-refs/${Date.now()}.${ext}`;
                     const { error: uploadErr } = await supabase.storage
                       .from("product-images")
                       .upload(path, referenceImage, { contentType: referenceImage.type });
