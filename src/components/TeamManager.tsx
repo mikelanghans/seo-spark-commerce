@@ -107,7 +107,7 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
       const { data, error } = await supabase
         .from("organization_invites")
         .insert({
-          organization_id: organizationId,
+          organization_id: inviteOrgId,
           role: inviteRole as any,
           invited_by: userId,
         })
