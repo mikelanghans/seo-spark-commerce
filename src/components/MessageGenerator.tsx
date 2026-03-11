@@ -14,6 +14,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  design_styles?: string[];
 }
 
 interface GeneratedMessage {
@@ -47,7 +48,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
-  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">("text-only");
+  const availableStyles = (organization.design_styles as string[]) || ["text-only"];
+  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">(
+    availableStyles.includes("text-only") ? "text-only" : "minimalist"
+  );
 
   useEffect(() => {
     loadMessages();
@@ -409,36 +413,42 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
             className="flex-1 min-w-[160px] h-10"
             disabled={generating}
           />
-          <div className="flex items-center rounded-md border border-input bg-background h-10 overflow-hidden shrink-0">
-            <button
-              type="button"
-              onClick={() => setDesignStyle("text-only")}
-              disabled={generating}
-              className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
-                designStyle === "text-only"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent"
-              }`}
-              title="Text-only typography designs"
-            >
-              <Type className="h-3.5 w-3.5" />
-              Text
-            </button>
-            <button
-              type="button"
-              onClick={() => setDesignStyle("minimalist")}
-              disabled={generating}
-              className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
-                designStyle === "minimalist"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent"
-              }`}
-              title="Minimalist illustration designs"
-            >
-              <Image className="h-3.5 w-3.5" />
-              Art
-            </button>
-          </div>
+          {availableStyles.length > 1 && (
+            <div className="flex items-center rounded-md border border-input bg-background h-10 overflow-hidden shrink-0">
+              {availableStyles.includes("text-only") && (
+                <button
+                  type="button"
+                  onClick={() => setDesignStyle("text-only")}
+                  disabled={generating}
+                  className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
+                    designStyle === "text-only"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                  title="Text-only typography designs"
+                >
+                  <Type className="h-3.5 w-3.5" />
+                  Text
+                </button>
+              )}
+              {availableStyles.includes("minimalist") && (
+                <button
+                  type="button"
+                  onClick={() => setDesignStyle("minimalist")}
+                  disabled={generating}
+                  className={`flex items-center gap-1.5 px-3 h-full text-sm transition-colors ${
+                    designStyle === "minimalist"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                  title="Minimalist illustration designs"
+                >
+                  <Image className="h-3.5 w-3.5" />
+                  Art
+                </button>
+              )}
+            </div>
+          )}
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}

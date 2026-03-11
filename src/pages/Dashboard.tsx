@@ -40,6 +40,7 @@ interface Organization {
   brand_color?: string;
   brand_font_size?: string;
   brand_style_notes?: string;
+  design_styles?: string[];
 }
 
 interface Product {
@@ -92,7 +93,7 @@ const Dashboard = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[] });
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
   const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
@@ -193,7 +194,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setOrgLogoFile(null);
@@ -204,7 +205,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "" });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"] });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
@@ -678,7 +679,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "" }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -772,6 +773,43 @@ const Dashboard = () => {
                   <Label>Additional Style Notes</Label>
                   <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
                   <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Design Styles</Label>
+                  <p className="text-xs text-muted-foreground">Which design styles are available for this brand</p>
+                  <div className="flex gap-3">
+                    {[
+                      { value: "text-only", label: "Text Only", desc: "Pure typography designs" },
+                      { value: "minimalist", label: "Minimalist Art", desc: "Illustration + text" },
+                    ].map((style) => {
+                      const isChecked = orgForm.design_styles.includes(style.value);
+                      return (
+                        <label
+                          key={style.value}
+                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                            isChecked ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              const newStyles = isChecked
+                                ? orgForm.design_styles.filter((s) => s !== style.value)
+                                : [...orgForm.design_styles, style.value];
+                              if (newStyles.length === 0) return; // must have at least one
+                              setOrgForm({ ...orgForm, design_styles: newStyles });
+                            }}
+                            className="rounded"
+                          />
+                          <div>
+                            <span className="text-sm font-medium">{style.label}</span>
+                            <p className="text-xs text-muted-foreground">{style.desc}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
