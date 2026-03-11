@@ -298,7 +298,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
   };
 
-  const handleRegenerateDesign = async (msgId: string, feedback: string, referenceImageUrl?: string) => {
+  const handleRegenerateDesign = async (msgId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setGeneratingDesignId(msg.id);
@@ -320,6 +320,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           designStyle,
           regenerateFeedback: feedback,
           referenceImageUrl,
+          baseDesignUrl,
         },
       });
       if (error || data?.error) {
