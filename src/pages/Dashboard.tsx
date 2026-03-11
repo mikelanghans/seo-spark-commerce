@@ -99,7 +99,7 @@ const Dashboard = () => {
   const [orgTemplatePreview, setOrgTemplatePreview] = useState<string | null>(null);
   const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
   const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
-  const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([...MARKETPLACES]);
+  const [selectedMarketplaces, setSelectedMarketplaces] = useState<string[]>([]);
   const [productForm, setProductForm] = useState({
     title: "", description: "", keywords: "", category: "", price: "", features: "",
   });
