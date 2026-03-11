@@ -44,10 +44,12 @@ export const SwipeableMessageCard = ({
   const [editText, setEditText] = useState(messageText);
   const [showRefine, setShowRefine] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState("");
+  const [designVariant, setDesignVariant] = useState<"dark-on-light" | "light-on-dark">("light-on-dark");
   const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
+  const wasRefining = useRef(false);
   const wasRefining = useRef(false);
 
   // Auto-close refine panel when refining completes
