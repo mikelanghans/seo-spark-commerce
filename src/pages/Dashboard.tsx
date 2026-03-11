@@ -761,6 +761,9 @@ const Dashboard = () => {
                 <TabsTrigger value="calendar" className="gap-2">
                   <CalendarDays className="h-4 w-4" /> Calendar
                 </TabsTrigger>
+                <TabsTrigger value="sync" className="gap-2">
+                  <GitCompare className="h-4 w-4" /> Sync
+                </TabsTrigger>
                 <TabsTrigger value="team" className="gap-2">
                   <Users className="h-4 w-4" /> Team
                 </TabsTrigger>
