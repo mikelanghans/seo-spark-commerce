@@ -247,56 +247,6 @@ export const DesignPreviewDialog = ({
           Download{viewingUrl ? " This Version" : " Design"}
         </Button>
 
-        {/* Thumbs up / down rating */}
-        {messageId && (
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <p className="text-sm font-medium text-muted-foreground">Rate this design</p>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={async () => {
-                  setFeedbackState("up");
-                  await supabase.from("design_feedback").insert({
-                    message_id: messageId,
-                    organization_id: organizationId,
-                    user_id: userId,
-                    rating: "up",
-                  });
-                  toast.success("Thanks for the feedback!");
-                }}
-                className={cn(
-                  "rounded-md p-2 transition-colors",
-                  feedbackState === "up"
-                    ? "text-emerald-500 bg-emerald-500/10"
-                    : "text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10"
-                )}
-              >
-                <ThumbsUp className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setFeedbackState("down");
-                  await supabase.from("design_feedback").insert({
-                    message_id: messageId,
-                    organization_id: organizationId,
-                    user_id: userId,
-                    rating: "down",
-                  });
-                }}
-                className={cn(
-                  "rounded-md p-2 transition-colors",
-                  feedbackState === "down"
-                    ? "text-destructive bg-destructive/10"
-                    : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                )}
-              >
-                <ThumbsDown className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Regenerate with feedback - always available */}
         {onRegenerate && messageId && (
           <div className="space-y-3 border-t border-border pt-3">
