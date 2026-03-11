@@ -30,9 +30,10 @@ interface Props {
   organization: Organization;
   userId: string;
   onProductsCreated?: () => void;
+  refreshKey?: number;
 }
 
-export const MessageGenerator = ({ organization, userId, onProductsCreated }: Props) => {
+export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [creatingProducts, setCreatingProducts] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -55,7 +56,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
 
   useEffect(() => {
     loadMessages();
-  }, [organization.id]);
+  }, [organization.id, refreshKey]);
 
   const loadMessages = async () => {
     setLoading(true);

@@ -106,6 +106,7 @@ const Dashboard = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [msgRefreshKey, setMsgRefreshKey] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -885,7 +886,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="messages" className="w-full">
+            <Tabs defaultValue="messages" className="w-full" onValueChange={(v) => { if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }}>
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="messages" className="gap-2">
                   <Sparkles className="h-4 w-4" /> Message Ideas
@@ -915,6 +916,7 @@ const Dashboard = () => {
                   <MessageGenerator
                     organization={selectedOrg}
                     userId={user!.id}
+                    refreshKey={msgRefreshKey}
                     onProductsCreated={() => {
                       if (selectedOrg) loadProducts(selectedOrg.id);
                     }}
