@@ -32,6 +32,7 @@ export const DesignPreviewDialog = ({
   organizationId,
   userId,
   onFeedbackSaved,
+  onRegenerate,
 }: Props) => {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [notes, setNotes] = useState("");
