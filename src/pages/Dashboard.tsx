@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +24,7 @@ import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -726,24 +727,33 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">{products.length} products</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setView("shopify-enrich")} className="gap-2">
-                  <RefreshCw className="h-4 w-4" /> Enrich Existing
-                </Button>
                 {importingShopify ? (
-                  <Button variant="destructive" onClick={handleCancelImport} className="gap-2">
+                  <Button variant="destructive" size="sm" onClick={handleCancelImport} className="gap-2">
                     <X className="h-4 w-4" /> Cancel Import
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={handleImportFromShopify} className="gap-2">
-                    <Store className="h-4 w-4" /> Import from Shopify
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2">
+                        <Plus className="h-4 w-4" /> Add Manually
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setView("bulk-upload")} className="gap-2">
+                        <Upload className="h-4 w-4" /> AI from Images / CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
+                        <Store className="h-4 w-4" /> Import from Shopify
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setView("shopify-enrich")} className="gap-2">
+                        <Zap className="h-4 w-4" /> SEO Boost
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-                <Button variant="outline" onClick={() => setView("bulk-upload")} className="gap-2">
-                  <Upload className="h-4 w-4" /> Import Products
-                </Button>
-                <Button variant="outline" onClick={() => setView("product-form")} className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Product
-                </Button>
               </div>
             </div>
 
