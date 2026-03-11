@@ -781,6 +781,20 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         organizationId={organization.id}
         userId={userId}
         onRegenerate={handleRegenerateDesign}
+        onDiscardDesign={async (msgId) => {
+          // Clear design from DB
+          await supabase
+            .from("generated_messages")
+            .update({ design_url: null, dark_design_url: null })
+            .eq("id", msgId);
+          // Clear design from local state
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === msgId ? { ...m, design_url: null, dark_design_url: null } : m
+            )
+          );
+          toast.success("Design removed — message kept for a fresh start");
+        }}
       />
     </div>
   );
