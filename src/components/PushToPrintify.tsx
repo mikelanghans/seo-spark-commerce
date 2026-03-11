@@ -235,31 +235,18 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
           </DialogHeader>
 
           <div className="space-y-5">
-            {/* Shop */}
-            <div className="space-y-2">
-              <Label className="font-medium">Printify Shop</Label>
-              {loadingShops ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-                </div>
-              ) : shops.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No shops found.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {shops.map((shop) => (
-                    <Button
-                      key={shop.id}
-                      type="button"
-                      variant={selectedShop === shop.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedShop(shop.id)}
-                    >
-                      {shop.title}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Shop - just show the name, no picker */}
+            {loadingShops ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading shop...
+              </div>
+            ) : shops.length === 0 ? (
+              <p className="text-sm text-destructive">No Printify shop found. Connect one in settings.</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Pushing to <span className="font-medium text-foreground">{shops.find(s => s.id === selectedShop)?.title || shops[0]?.title}</span>
+              </p>
+            )}
 
             {/* Mockup colors */}
             <div className="space-y-3">
