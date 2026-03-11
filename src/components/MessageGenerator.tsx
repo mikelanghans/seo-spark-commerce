@@ -46,7 +46,7 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
-  const [designVariant, setDesignVariant] = useState<"dark-on-light" | "light-on-dark">("dark-on-light");
+  const [designVariant, setDesignVariant] = useState<"dark-on-light" | "light-on-dark">("light-on-dark");
 
   useEffect(() => {
     loadMessages();
