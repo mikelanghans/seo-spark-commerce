@@ -64,6 +64,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
       .select("*")
       .eq("organization_id", organization.id)
       .eq("user_id", userId)
+      .is("product_id", null)
       .order("created_at", { ascending: false });
     setMessages((data as GeneratedMessage[]) || []);
     const kept = new Set((data || []).filter((m: any) => m.is_selected).map((m: any) => m.id));
