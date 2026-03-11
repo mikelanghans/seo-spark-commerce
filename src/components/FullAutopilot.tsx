@@ -279,11 +279,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               const genBase64 = mockupData.imageBase64;
               if (!genBase64) continue;
 
-              // Use first successful mockup as reference for all subsequent colors
-              if (mockupCount === 0) {
-                referenceBase64 = genBase64;
-                log(`  📌 Using first mockup as reference for consistency`, "info");
-              }
+              // Brand template is always used as reference for consistency
 
               // Upload to storage
               const base64Data = genBase64.split(",")[1] || genBase64;
