@@ -688,6 +688,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
         organizationId={organization.id}
         userId={userId}
         onFeedbackSaved={() => {}}
+        onRegenerate={handleRegenerateDesign}
       />
     </div>
   );
