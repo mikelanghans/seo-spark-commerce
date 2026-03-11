@@ -254,7 +254,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           return;
         }
       }
-      toast.success(variant === "both" ? "Both designs generated!" : "Design generated!");
+      toast.success("Design generated!");
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate design");
