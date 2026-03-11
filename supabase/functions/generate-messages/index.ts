@@ -74,9 +74,26 @@ Generate exactly 3 refined variations of this message based on the feedback. Eac
 - Match the brand tone
 - Be distinct from each other — give meaningfully different takes`;
     } else {
+      const isMinimalist = designStyle === "minimalist";
+      const styleDirective = isMinimalist
+        ? `\n🎨 DESIGN STYLE: MINIMALIST ILLUSTRATION
+These messages will be paired with minimalist artwork/illustrations. Generate messages that:
+- Work alongside a visual element (icon, illustration, or symbol)
+- Can be shorter since the illustration carries meaning too
+- Evoke imagery — animals, objects, nature, abstract concepts
+- Think: a simple line drawing of a cat + "nope" or a wilting flower + "still growing"
+- The message + illustration together should tell a complete story\n`
+        : `\n🎨 DESIGN STYLE: TEXT-ONLY TYPOGRAPHY
+These messages will be pure typography designs — no illustrations. Generate messages that:
+- Stand on their own visually as bold text
+- Have natural typographic hierarchy (big word + small attribution works great)
+- Sound powerful when read aloud — the words ARE the design
+- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements
+- Think: the kind of text you'd see on a premium streetwear tee\n`;
+
       prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
 
-${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}
+${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}${styleDirective}
 Brand context:
 - Niche: ${organization.niche}
 - Tone: ${organization.tone}
@@ -95,10 +112,10 @@ Before generating messages, apply your knowledge of what sells well in the print
    - "Seen on TikTok/Instagram" relatable humor
 
 2. DESIGN-FIRST THINKING:
-   - Messages that look GREAT as minimalist typography (bold + thin font combos)
+   - ${isMinimalist ? "Messages that pair beautifully with a simple illustration or icon" : "Messages that look GREAT as minimalist typography (bold + thin font combos)"}
    - Short messages (2-5 words) consistently outsell longer ones
-   - Messages with natural visual hierarchy (a bold word + a smaller attribution)
-   - Bracket/brace format {LIKE THIS} performs extremely well in the minimalist POD space
+   - ${isMinimalist ? "Think about what visual would accompany each message" : "Messages with natural visual hierarchy (a bold word + a smaller attribution)"}
+   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Bracket/brace format {LIKE THIS} performs extremely well in the minimalist POD space"}
 
 3. AUDIENCE PSYCHOLOGY:
    - Gen Z/Millennial buyers want to feel "seen" — messages should feel like an inside joke
@@ -110,7 +127,7 @@ Generate exactly ${batchSize} short, punchy messages that could be printed on t-
 - Written in the brand's tone: "${organization.tone}"
 - Short enough for a t-shirt print (ideally 2-8 words, max 12 words)
 - Memorable, quotable, and slightly irreverent
-- Mix of formats: some with {curly braces}, some with attributions, some standalone
+- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Mix of formats: some with {curly braces}, some with attributions, some standalone"}
 - Optimized for SELLING — think about what someone would actually pay $29 to wear
 
 Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends and that authentically represent the "${organization.name}" brand.`;
