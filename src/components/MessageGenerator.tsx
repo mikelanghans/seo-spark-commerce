@@ -510,12 +510,25 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
 
       {messages.length > 0 && (
         <>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{keptCount} kept</span>
-            <span>·</span>
-            <span>{unkeptMessages.length} to review</span>
-            <span>·</span>
-            <span>{messages.length} total</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{keptCount} kept</span>
+              <span>·</span>
+              <span>{unkeptMessages.length} to review</span>
+              <span>·</span>
+              <span>{messages.length} total</span>
+            </div>
+            {unkeptMessages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Clear all
+              </Button>
+            )}
           </div>
 
           {/* Unkept messages to review */}
