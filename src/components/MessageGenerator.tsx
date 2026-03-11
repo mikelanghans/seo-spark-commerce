@@ -367,6 +367,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
     cancelDesignsRef.current = false;
     let completed = 0;
+    setBatchProgress({ done: 0, total: kept.length });
 
     for (const msg of kept) {
       if (cancelDesignsRef.current) {
@@ -398,12 +399,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
       } else {
         completed++;
+        setBatchProgress({ done: completed, total: kept.length });
       }
 
       await new Promise((r) => setTimeout(r, 2000));
     }
 
     setGeneratingDesignId(null);
+    setBatchProgress(null);
     if (!cancelDesignsRef.current) {
       toast.success(`Generated designs for ${completed} messages!`);
     }
