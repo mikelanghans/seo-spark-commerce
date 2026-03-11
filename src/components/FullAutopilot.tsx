@@ -88,7 +88,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     setOverallProgress(0);
 
     const hasTemplate = !!organization.template_image_url;
-    const stepsPerProduct = hasTemplate ? 7 : 5; // without template: design, product, listing, printify, shopify (skip colors+mockups)
+    const stepsPerProduct = hasTemplate ? 7 : 6; // without template: design, product, colors, listing, printify, shopify (skip mockups)
     const totalSteps = 1 + count * stepsPerProduct;
     let completedSteps = 0;
     const tick = () => {
@@ -242,35 +242,35 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 4 & 5: AI color recommendations + mockups (only if brand has a template image)
+          // Step 4: AI color recommendations (always run)
           let recommendedColors: string[] = [];
 
+          updateProduct(i, { step: "Recommending colors..." });
+          log(`  🎨 Getting color recommendations...`, "info");
+
+          const { data: colorData, error: colorError } = await withRetry(() =>
+            supabase.functions.invoke("recommend-colors", {
+              body: {
+                productTitle,
+                productCategory: "T-Shirt",
+                brandName: organization.name,
+                brandNiche: organization.niche,
+                brandAudience: organization.audience,
+                brandTone: organization.tone,
+              },
+            }),
+            { label: `colors-${i}` }
+          );
+
+          if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
+          recommendedColors = (colorData.recommendations || []).map((r: any) => r.color);
+          log(`  ✅ Recommended colors: ${recommendedColors.join(", ")}`, "success");
+          tick();
+
+          if (cancelRef.current) break;
+
+          // Step 5: Generate mockups (only if brand has a template image)
           if (hasTemplate) {
-            updateProduct(i, { step: "Recommending colors..." });
-            log(`  🎨 Getting color recommendations...`, "info");
-
-            const { data: colorData, error: colorError } = await withRetry(() =>
-              supabase.functions.invoke("recommend-colors", {
-                body: {
-                  productTitle,
-                  productCategory: "T-Shirt",
-                  brandName: organization.name,
-                  brandNiche: organization.niche,
-                  brandAudience: organization.audience,
-                  brandTone: organization.tone,
-                },
-              }),
-              { label: `colors-${i}` }
-            );
-
-            if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
-            recommendedColors = (colorData.recommendations || []).map((r: any) => r.color);
-            log(`  ✅ Recommended colors: ${recommendedColors.join(", ")}`, "success");
-            tick();
-
-            if (cancelRef.current) break;
-
-            // Step 5: Generate mockups for each color
             updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
             const sourceUrl = organization.template_image_url || designUrl;
