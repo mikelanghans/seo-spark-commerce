@@ -20,6 +20,7 @@ interface Props {
   organizationId: string;
   userId: string;
   onFeedbackSaved?: () => void;
+  onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
