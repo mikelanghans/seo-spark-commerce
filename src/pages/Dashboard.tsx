@@ -1481,6 +1481,7 @@ const Dashboard = () => {
                         setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
                         setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
                       }}
+                      printifyShopId={selectedOrg?.printify_shop_id}
                     />
                     <PushToMarketplace
                       product={selectedProduct}
