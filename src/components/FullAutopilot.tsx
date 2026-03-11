@@ -63,7 +63,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
   }, []);
 
   const fetchImageAsBase64 = async (url: string): Promise<string> => {
-    const resp = await fetch(url);
+    const resp = await fetch(url, { signal: abortRef.current?.signal });
     const blob = await resp.blob();
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -71,6 +71,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  };
+
+  const checkCancelled = () => {
+    if (cancelRef.current) throw new Error("__CANCELLED__");
   };
 
   const runAutopilot = async () => {
