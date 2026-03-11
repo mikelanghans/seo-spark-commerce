@@ -999,6 +999,9 @@ const Dashboard = () => {
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
                 </TabsTrigger>
+                <TabsTrigger value="team" className="gap-2">
+                  <Users className="h-4 w-4" /> Team
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -1163,6 +1166,17 @@ const Dashboard = () => {
                     ))}
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="team" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <TeamManager
+                    organizationId={selectedOrg.id}
+                    organizationName={selectedOrg.name}
+                    userId={user!.id}
+                    allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
+                  />
+                </div>
               </TabsContent>
 
             </Tabs>
@@ -1523,14 +1537,6 @@ const Dashboard = () => {
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <TeamManager
-                organizationId={orgs[0]?.id || ""}
-                organizationName={orgs[0]?.name || ""}
-                userId={user.id}
-                allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
-              />
             </div>
           </div>
         )}
