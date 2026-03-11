@@ -631,7 +631,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               <span>·</span>
               <span>{messages.length} total</span>
             </div>
-            {unkeptMessages.length > 0 && (
+            {unkeptMessages.length > 0 ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -639,8 +639,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                 className="text-xs text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Clear all
+                Clear {unkeptMessages.length} unkept
               </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">All messages kept ✓</span>
             )}
           </div>
 
