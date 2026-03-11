@@ -157,31 +157,6 @@ export const DesignPreviewDialog = ({
           Download Design
         </Button>
 
-        {/* Regenerate with feedback */}
-        {onRegenerate && (
-          <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-sm font-medium text-muted-foreground">Regenerate design</p>
-            <Textarea
-              placeholder="What should change? (e.g. 'bigger font', 'less whitespace', 'bolder style')"
-              value={regenFeedback}
-              onChange={(e) => setRegenFeedback(e.target.value)}
-              rows={2}
-              className="text-sm"
-              disabled={regenerating}
-            />
-            <Button
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-            >
-              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {regenerating ? "Regenerating..." : "Regenerate"}
-            </Button>
-          </div>
-        )}
-
         {/* Feedback */}
         <div className="space-y-3 border-t border-border pt-3">
           <p className="text-sm font-medium text-muted-foreground">Rate this design</p>
