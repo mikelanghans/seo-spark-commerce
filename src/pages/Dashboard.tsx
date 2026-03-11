@@ -862,7 +862,42 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Template Mockup Image */}
+            {/* Printify Shop Mapping */}
+            <div className="space-y-2">
+              <Label>Printify Shop</Label>
+              <p className="text-xs text-muted-foreground">Which Printify shop this brand pushes to</p>
+              {loadingPrintifyShops ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading shops...
+                </div>
+              ) : printifyShops.length === 0 ? (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">No Printify shops found</p>
+                  <Button type="button" variant="outline" size="sm" onClick={async () => {
+                    setLoadingPrintifyShops(true);
+                    try {
+                      const { data } = await supabase.functions.invoke("printify-get-shops");
+                      setPrintifyShops(data?.shops || []);
+                    } catch { /* silent */ }
+                    setLoadingPrintifyShops(false);
+                  }}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Load shops
+                  </Button>
+                </div>
+              ) : (
+                <select
+                  value={orgForm.printify_shop_id ?? ""}
+                  onChange={(e) => setOrgForm({ ...orgForm, printify_shop_id: e.target.value ? Number(e.target.value) : null })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">Auto (first shop)</option>
+                  {printifyShops.map((shop) => (
+                    <option key={shop.id} value={shop.id}>{shop.title}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Default Mockup Template (optional)</Label>
               <p className="text-xs text-muted-foreground">Fallback image used for AI color variants when a product has no image</p>
