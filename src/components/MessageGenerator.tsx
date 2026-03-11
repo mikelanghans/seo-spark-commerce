@@ -550,10 +550,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
                 </Button>
               )
             )}
-            {readyForProductCount > 0 && onCreateProduct && (
-              <Button onClick={handleCreateProducts} className="gap-2">
-                <ArrowRight className="h-4 w-4" />
-                Create {readyForProductCount} Product{readyForProductCount > 1 ? "s" : ""}
+            {readyForProductCount > 0 && (
+              <Button onClick={handleCreateProducts} disabled={creatingProducts} className="gap-2">
+                {creatingProducts ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )}
+                {creatingProducts ? "Creating…" : `Create ${readyForProductCount} Product${readyForProductCount > 1 ? "s" : ""}`}
               </Button>
             )}
           </div>
