@@ -88,7 +88,10 @@ Product: ${productTitle}. The result must look like the same photo with a color 
       imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
     }
 
+    // gemini-2.5-flash-image is best for controlled edits (recoloring)
+    // Fall back to newer models if unavailable
     const models = [
+      "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
       "google/gemini-3-pro-image-preview",
     ];
