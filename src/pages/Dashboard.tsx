@@ -199,11 +199,13 @@ const Dashboard = () => {
     setLoading(false);
   };
 
-  const loadProducts = async (orgId: string) => {
+  const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
     const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
-    setProducts((data as Product[]) || []);
+    const prods = (data as Product[]) || [];
+    setProducts(prods);
     setLoading(false);
+    return prods;
   };
 
   const loadListings = async (productId: string) => {
