@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type TouchEvent, type MouseEvent } from "react";
-import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare, ThumbsUp, ThumbsDown, Sun, Moon, Layers } from "lucide-react";
+import { Check, X, Paintbrush, Eye, RefreshCw, Loader2, Pencil, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
