@@ -87,13 +87,32 @@ These messages will be paired with minimalist artwork/illustrations. Generate me
         : `\n🎨 DESIGN STYLE: TEXT-ONLY TYPOGRAPHY
 These messages will be pure typography designs — no illustrations. Generate messages that:
 - Stand on their own visually as bold text
-- Have natural typographic hierarchy (big word + small attribution works great)
 - Sound powerful when read aloud — the words ARE the design
 ${isYouniverses
-  ? `- IMPORTANT: Every message MUST end with "— the universe" as an attribution. The message reads as a direct quote FROM the universe to the wearer.
-- Keep the main message SHORT (2-6 words) since the attribution adds length. Examples: "you got this — the universe", "plot twist — the universe", "trust the timing — the universe"
-- The format is always: "[short message] — the universe"`
-  : `- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
+  ? `
+
+⚠️ CRITICAL BRAND RULE — READ CAREFULLY:
+Every single message MUST follow this EXACT format: "[short phrase] — the universe"
+The phrase before " — the universe" must be 2-5 words. Shorter is always better.
+DO NOT use {BRACKETS}, long sentences, periods mid-message, or parentheticals.
+
+GOOD examples:
+- "you got this — the universe"
+- "plot twist — the universe"  
+- "trust the timing — the universe"
+- "breathe — the universe"
+- "it's happening — the universe"
+- "keep going — the universe"
+- "not yet — the universe"
+
+BAD examples (DO NOT generate these):
+- "{ORBITING} but not quite reaching the point" ← WRONG, no brackets, no long text
+- "DON'T PANIC. Everything is temporary." ← WRONG, missing "— the universe"
+- "YOU ARE HERE. (Unfortunately) — The Universe" ← WRONG, too long, has parenthetical
+
+`
+  : `- Have natural typographic hierarchy (big word + small attribution works great)
+- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
 - Think: the kind of text you'd see on a premium streetwear tee\n`;
 
       prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
