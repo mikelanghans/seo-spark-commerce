@@ -157,6 +157,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
     toast("Discarded", { duration: 1500 });
   };
 
+  const handleClearAll = async () => {
+    const idsToRemove = messages.filter((m) => !keptIds.has(m.id)).map((m) => m.id);
+    if (idsToRemove.length === 0) return;
+    setMessages((prev) => prev.filter((m) => keptIds.has(m.id)));
+    await supabase.from("generated_messages").delete().in("id", idsToRemove);
+    toast(`Cleared ${idsToRemove.length} messages`, { duration: 1500 });
+  };
+
   const handleEdit = async (id: string, newText: string) => {
     setMessages((prev) =>
       prev.map((m) => (m.id === id ? { ...m, message_text: newText } : m))
