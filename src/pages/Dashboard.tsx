@@ -13,6 +13,7 @@ import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
+import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { MessageGenerator } from "@/components/MessageGenerator";
