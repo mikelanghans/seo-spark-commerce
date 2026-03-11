@@ -51,7 +51,7 @@ serve(async (req) => {
     // Build Shopify product payload
     // Convert plain text description + bullet points to HTML
     const rawDesc = shopifyListing?.description || product.description || "";
-    const bulletPoints: string[] = shopifyListing?.bulletPoints || [];
+    const bulletPoints: string[] = shopifyListing?.bullet_points || shopifyListing?.bulletPoints || [];
 
     // Split description into paragraphs
     let paragraphs: string[];
