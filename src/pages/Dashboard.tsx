@@ -774,6 +774,43 @@ const Dashboard = () => {
                   <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
                   <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
                 </div>
+                <div className="space-y-2">
+                  <Label>Design Styles</Label>
+                  <p className="text-xs text-muted-foreground">Which design styles are available for this brand</p>
+                  <div className="flex gap-3">
+                    {[
+                      { value: "text-only", label: "Text Only", desc: "Pure typography designs" },
+                      { value: "minimalist", label: "Minimalist Art", desc: "Illustration + text" },
+                    ].map((style) => {
+                      const isChecked = orgForm.design_styles.includes(style.value);
+                      return (
+                        <label
+                          key={style.value}
+                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                            isChecked ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              const newStyles = isChecked
+                                ? orgForm.design_styles.filter((s) => s !== style.value)
+                                : [...orgForm.design_styles, style.value];
+                              if (newStyles.length === 0) return; // must have at least one
+                              setOrgForm({ ...orgForm, design_styles: newStyles });
+                            }}
+                            className="rounded"
+                          />
+                          <div>
+                            <span className="text-sm font-medium">{style.label}</span>
+                            <p className="text-xs text-muted-foreground">{style.desc}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
 
