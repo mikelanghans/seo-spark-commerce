@@ -14,6 +14,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  design_styles?: string[];
 }
 
 interface GeneratedMessage {
