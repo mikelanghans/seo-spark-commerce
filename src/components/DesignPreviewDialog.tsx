@@ -243,11 +243,36 @@ export const DesignPreviewDialog = ({
           </div>
         )}
 
-        {/* Download */}
-        <Button variant="outline" className="w-full gap-2" onClick={handleDownload}>
-          <Download className="h-4 w-4" />
-          Download{viewingUrl ? " This Version" : " Design"}
-        </Button>
+        {/* Design verdict */}
+        {messageId && onDiscardDesign && (
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <p className="text-sm font-medium text-muted-foreground">Keep this design?</p>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  toast.success("Design kept!");
+                  onClose();
+                }}
+                className="rounded-md p-2 text-muted-foreground transition-colors hover:text-emerald-500 hover:bg-emerald-500/10"
+                title="Keep design"
+              >
+                <ThumbsUp className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDiscardDesign(messageId);
+                  onClose();
+                }}
+                className="rounded-md p-2 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
+                title="Remove design, keep message"
+              >
+                <ThumbsDown className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Regenerate with feedback - always available */}
         {onRegenerate && messageId && (
