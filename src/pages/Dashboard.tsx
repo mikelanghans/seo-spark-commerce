@@ -748,9 +748,6 @@ const Dashboard = () => {
                       <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setView("shopify-enrich")} className="gap-2">
-                        <Zap className="h-4 w-4" /> SEO Boost
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
