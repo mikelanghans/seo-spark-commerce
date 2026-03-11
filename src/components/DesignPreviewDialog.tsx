@@ -227,15 +227,37 @@ export const DesignPreviewDialog = ({
             )}
           </div>
 
-          <Button
-            onClick={handleSubmitFeedback}
-            disabled={!rating || submitting}
-            size="sm"
-            className="gap-1.5"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {uploadingImage ? "Uploading…" : "Submit Feedback"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSubmitFeedback}
+              disabled={!rating || submitting}
+              size="sm"
+              className="gap-1.5"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {uploadingImage ? "Uploading…" : "Submit Feedback"}
+            </Button>
+
+            {onRegenerate && messageId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={regenerating}
+                onClick={async () => {
+                  setRegenerating(true);
+                  try {
+                    await onRegenerate(messageId, notes.trim());
+                  } finally {
+                    setRegenerating(false);
+                  }
+                }}
+              >
+                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {regenerating ? "Regenerating…" : "Regenerate"}
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
