@@ -23,6 +23,7 @@ interface GeneratedMessage {
   is_selected: boolean;
   product_id: string | null;
   design_url: string | null;
+  dark_design_url: string | null;
   created_at: string;
 }
 
