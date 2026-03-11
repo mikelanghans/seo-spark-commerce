@@ -451,6 +451,32 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           .update({ product_id: product.id })
           .eq("id", msg.id);
 
+        // Insert both design variants into product_images
+        const designEntries = [];
+        if (msg.design_url) {
+          designEntries.push({
+            product_id: product.id,
+            user_id: userId,
+            image_url: msg.design_url,
+            image_type: "design",
+            color_name: "light-on-dark",
+            position: 0,
+          });
+        }
+        if (msg.dark_design_url) {
+          designEntries.push({
+            product_id: product.id,
+            user_id: userId,
+            image_url: msg.dark_design_url,
+            image_type: "design",
+            color_name: "dark-on-light",
+            position: 1,
+          });
+        }
+        if (designEntries.length > 0) {
+          await supabase.from("product_images").insert(designEntries);
+        }
+
         created++;
       }
 
