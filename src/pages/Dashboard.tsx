@@ -1368,6 +1368,7 @@ const Dashboard = () => {
                         marketplace: l.marketplace,
                         title: l.title,
                         description: l.description,
+                        bullet_points: l.bullet_points as string[],
                         tags: l.tags as string[],
                         seo_title: l.seo_title,
                         seo_description: l.seo_description,
