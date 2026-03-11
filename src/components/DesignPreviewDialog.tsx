@@ -69,7 +69,6 @@ export const DesignPreviewDialog = ({
       setHistory([]);
       setShowHistory(false);
       setViewingUrl(null);
-      setFeedbackState("none");
       setActiveVariant("light");
     }
   }, [open, messageId]);
