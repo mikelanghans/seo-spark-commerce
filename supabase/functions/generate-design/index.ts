@@ -223,7 +223,15 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
           },
           body: JSON.stringify({
             model,
-            messages: [{ role: "user", content: prompt }],
+            messages: [{
+              role: "user",
+              content: referenceImageUrl
+                ? [
+                    { type: "text", text: prompt },
+                    { type: "image_url", image_url: { url: referenceImageUrl } },
+                  ]
+                : prompt,
+            }],
             modalities: ["image", "text"],
           }),
         });
