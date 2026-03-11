@@ -23,6 +23,7 @@ interface GeneratedMessage {
   is_selected: boolean;
   product_id: string | null;
   design_url: string | null;
+  dark_design_url: string | null;
   created_at: string;
 }
 
@@ -41,6 +42,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [keptIds, setKeptIds] = useState<Set<string>>(new Set());
   const [generatingDesignId, setGeneratingDesignId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewDarkUrl, setPreviewDarkUrl] = useState<string | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null);
   const [refiningId, setRefiningId] = useState<string | null>(null);
@@ -329,14 +331,15 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       }
       toast.success("Design regenerated!");
       await loadMessages();
-      // Fetch fresh design URL for preview
+      // Fetch fresh design URLs for preview
       const { data: freshMsg } = await supabase
         .from("generated_messages")
-        .select("design_url")
+        .select("design_url, dark_design_url")
         .eq("id", msgId)
         .single();
       if (freshMsg?.design_url) {
         setPreviewUrl(freshMsg.design_url);
+        setPreviewDarkUrl((freshMsg as any).dark_design_url || null);
       }
     } catch (err: any) {
       handleAiError(err, null, "Failed to regenerate design");
@@ -349,6 +352,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setPreviewUrl(msg.design_url);
+    setPreviewDarkUrl(msg.dark_design_url);
     setPreviewMessage(msg.message_text);
     setPreviewMessageId(msg.id);
   };
@@ -449,6 +453,32 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           .from("generated_messages")
           .update({ product_id: product.id })
           .eq("id", msg.id);
+
+        // Insert both design variants into product_images
+        const designEntries = [];
+        if (msg.design_url) {
+          designEntries.push({
+            product_id: product.id,
+            user_id: userId,
+            image_url: msg.design_url,
+            image_type: "design",
+            color_name: "light-on-dark",
+            position: 0,
+          });
+        }
+        if (msg.dark_design_url) {
+          designEntries.push({
+            product_id: product.id,
+            user_id: userId,
+            image_url: msg.dark_design_url,
+            image_type: "design",
+            color_name: "dark-on-light",
+            position: 1,
+          });
+        }
+        if (designEntries.length > 0) {
+          await supabase.from("product_images").insert(designEntries);
+        }
 
         created++;
       }
@@ -723,13 +753,13 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
       <DesignPreviewDialog
         open={!!previewUrl}
-        onClose={() => { setPreviewUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
+        onClose={() => { setPreviewUrl(null); setPreviewDarkUrl(null); setPreviewMessage(null); setPreviewMessageId(null); }}
         designUrl={previewUrl}
+        darkDesignUrl={previewDarkUrl}
         messageText={previewMessage}
         messageId={previewMessageId}
         organizationId={organization.id}
         userId={userId}
-        
         onRegenerate={handleRegenerateDesign}
       />
     </div>

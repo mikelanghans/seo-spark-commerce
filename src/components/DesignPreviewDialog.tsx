@@ -23,6 +23,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   designUrl: string | null;
+  darkDesignUrl?: string | null;
   messageText: string | null;
   messageId: string | null;
   organizationId: string;
@@ -34,6 +35,7 @@ export const DesignPreviewDialog = ({
   open,
   onClose,
   designUrl,
+  darkDesignUrl,
   messageText,
   messageId,
   organizationId,
@@ -48,6 +50,7 @@ export const DesignPreviewDialog = ({
   const [showHistory, setShowHistory] = useState(false);
   const [viewingUrl, setViewingUrl] = useState<string | null>(null);
   const [feedbackState, setFeedbackState] = useState<"none" | "up" | "down">("none");
+  const [activeVariant, setActiveVariant] = useState<"light" | "dark">("light");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch history when dialog opens
@@ -67,6 +70,7 @@ export const DesignPreviewDialog = ({
       setShowHistory(false);
       setViewingUrl(null);
       setFeedbackState("none");
+      setActiveVariant("light");
     }
   }, [open, messageId]);
 
@@ -81,7 +85,7 @@ export const DesignPreviewDialog = ({
     setHistory(data || []);
   };
 
-  const activeUrl = viewingUrl || designUrl;
+  const activeUrl = viewingUrl || (activeVariant === "dark" && darkDesignUrl ? darkDesignUrl : designUrl);
 
   const handleDownload = async () => {
     if (!activeUrl) return;
@@ -136,6 +140,36 @@ export const DesignPreviewDialog = ({
         <DialogHeader>
           <DialogTitle className="text-sm font-medium">{messageText}</DialogTitle>
         </DialogHeader>
+
+        {/* Variant toggle */}
+        {designUrl && darkDesignUrl && !viewingUrl && (
+          <div className="flex rounded-md border border-input bg-background overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setActiveVariant("light")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium transition-colors",
+                activeVariant === "light"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              ☀️ Light ink (dark shirts)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveVariant("dark")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium transition-colors",
+                activeVariant === "dark"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              🌙 Dark ink (light shirts)
+            </button>
+          </div>
+        )}
 
         {activeUrl && (
           <img
