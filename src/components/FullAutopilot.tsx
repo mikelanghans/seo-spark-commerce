@@ -80,6 +80,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
   const runAutopilot = async () => {
     const count = parseInt(batchSize);
     cancelRef.current = false;
+    abortRef.current = new AbortController();
     setRunning(true);
     setLogs([]);
     setProducts([]);
