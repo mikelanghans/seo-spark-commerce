@@ -16,6 +16,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
+import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { TeamManager } from "@/components/TeamManager";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
