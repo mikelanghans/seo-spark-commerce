@@ -21,6 +21,7 @@ interface Listing {
   marketplace: string;
   title: string;
   description: string;
+  bulletPoints?: string[];
   tags: string[];
   seo_title: string;
   seo_description: string;
@@ -128,7 +129,7 @@ export const ShopifyPushPreview = ({
 
           <Separator />
 
-          {/* Description */}
+          {/* Description + Bullet Points */}
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Description
@@ -136,6 +137,13 @@ export const ShopifyPushPreview = ({
             <p className="mt-1 text-sm leading-relaxed text-secondary-foreground whitespace-pre-line">
               {listing.description || product.description}
             </p>
+            {listing.bulletPoints?.length > 0 && (
+              <ul className="mt-3 space-y-1 list-disc list-inside text-sm text-secondary-foreground">
+                {listing.bulletPoints.map((bp: string, idx: number) => (
+                  <li key={idx}>{bp}</li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Tags */}
