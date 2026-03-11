@@ -19,7 +19,7 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { MessageGenerator } from "@/components/MessageGenerator";
-import { TeamManager } from "@/components/TeamManager";
+import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
@@ -999,9 +999,6 @@ const Dashboard = () => {
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
                 </TabsTrigger>
-                <TabsTrigger value="team" className="gap-2">
-                  <Users className="h-4 w-4" /> Team
-                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -1168,16 +1165,6 @@ const Dashboard = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="team" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <TeamManager
-                    organizationId={selectedOrg.id}
-                    organizationName={selectedOrg.name}
-                    userId={user!.id}
-                    allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
-                  />
-                </div>
-              </TabsContent>
 
             </Tabs>
           </div>
@@ -1537,6 +1524,9 @@ const Dashboard = () => {
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
             </div>
           </div>
         )}
