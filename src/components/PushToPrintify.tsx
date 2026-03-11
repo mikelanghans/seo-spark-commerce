@@ -46,6 +46,14 @@ interface Props {
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
+// Comfort Colors 1717 light colors where white/light designs won't show well
+const LIGHT_COLORS = new Set([
+  "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+  "island reef", "chambray", "white", "flo blue", "watermelon",
+  "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+  "light green", "bay", "sage",
+]);
+
 export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -142,7 +150,15 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
     setResult(null);
 
     try {
+      // Detect which selected colors are "light"
+      const lightColorsSelected = uniqueMockupColors.filter(
+        (c) => LIGHT_COLORS.has(c.toLowerCase())
+      );
+      const hasLightColors = lightColorsSelected.length > 0;
+
       toast.info("Uploading design to Printify...");
+
+      // Step 1: Upload original (white/light) design
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
         { body: { imageUrl: product.image_url, fileName: `${product.title}-design.png` } }
@@ -152,6 +168,30 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
 
       const printifyImageId = uploadData.image?.id;
       if (!printifyImageId) throw new Error("Failed to get uploaded image ID");
+
+      // Step 2: If light colors exist, generate & upload a dark variant
+      let darkPrintifyImageId: string | null = null;
+      if (hasLightColors) {
+        toast.info(`Generating dark design for ${lightColorsSelected.length} light colors...`);
+
+        const { data: darkData, error: darkError } = await supabase.functions.invoke(
+          "generate-dark-design",
+          { body: { designUrl: product.image_url } }
+        );
+        if (darkError) throw darkError;
+        if (darkData?.error) throw new Error(darkData.error);
+
+        if (darkData?.darkDesignUrl) {
+          toast.info("Uploading dark design to Printify...");
+          const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
+            "printify-upload-image",
+            { body: { imageUrl: darkData.darkDesignUrl, fileName: `${product.title}-dark-design.png` } }
+          );
+          if (darkUploadError) throw darkUploadError;
+          if (darkUpload?.error) throw new Error(darkUpload.error);
+          darkPrintifyImageId = darkUpload.image?.id || null;
+        }
+      }
 
       // Build mockup images using color names directly
       const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
@@ -176,6 +216,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
           description: shopifyListing?.description || product.description,
           tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
           printifyImageId,
+          darkPrintifyImageId,
+          lightColors: lightColorsSelected,
           selectedColors: uniqueMockupColors,
           selectedSizes,
           price: product.price,
@@ -195,8 +237,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
       toast.success(data.updated
-        ? `Updated on Printify with ${data.variantCount} variants!`
-        : `Created on Printify with ${data.variantCount} variants!`
+        ? `Updated on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
+        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
       );
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Printify");
@@ -255,9 +297,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
               </Label>
 
               {uniqueMockupColors.length > 0 ? (
-                <div className="space-y-2">
+              <div className="space-y-2">
                   {uniqueMockupColors.map((colorName) => {
                     const mockup = mockups.find((m) => m.color_name === colorName);
+                    const isLight = LIGHT_COLORS.has(colorName.toLowerCase());
                     return (
                       <div key={colorName} className="flex items-center gap-3 p-2 rounded-md border border-border bg-muted/30">
                         {mockup && (
@@ -267,7 +310,12 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate }: P
                             className="h-10 w-10 rounded object-cover border border-border shrink-0"
                           />
                         )}
-                        <p className="text-sm font-medium">{colorName}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{colorName}</p>
+                          {isLight && (
+                            <p className="text-xs text-muted-foreground">Dark design will be applied</p>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

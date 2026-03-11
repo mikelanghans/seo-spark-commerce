@@ -29,6 +29,7 @@ serve(async (req) => {
 
     const {
       shopId, title, description, tags, printifyImageId,
+      darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price,
       blueprintId, printProviderId, productId, printifyProductId,
     } = await req.json();
@@ -134,6 +135,51 @@ serve(async (req) => {
     const imageY = 0.5;
     const imageScale = 1.0;
 
+    // Split variants into light and dark groups if we have a dark design
+    const lightColorSet = new Set((lightColors || []).map((c: string) => c.toLowerCase()));
+    const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+
+    let printAreas: any[];
+    if (hasDarkDesign) {
+      // Separate variant IDs by light vs dark shirt color
+      const darkVariantIds = allVariants
+        .filter((v: any) => !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+        .map((v: any) => v.id);
+      const lightVariantIds = allVariants
+        .filter((v: any) => lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+        .map((v: any) => v.id);
+
+      console.log(`Dual design: ${darkVariantIds.length} dark variants (white design), ${lightVariantIds.length} light variants (dark design)`);
+
+      printAreas = [];
+      if (darkVariantIds.length > 0) {
+        printAreas.push({
+          variant_ids: darkVariantIds,
+          placeholders: [{
+            position: "front",
+            images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+          }],
+        });
+      }
+      if (lightVariantIds.length > 0) {
+        printAreas.push({
+          variant_ids: lightVariantIds,
+          placeholders: [{
+            position: "front",
+            images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+          }],
+        });
+      }
+    } else {
+      printAreas = [{
+        variant_ids: allVariantIds,
+        placeholders: [{
+          position: "front",
+          images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+        }],
+      }];
+    }
+
     const productPayload: any = {
       title,
       description: description || "",
@@ -145,25 +191,7 @@ serve(async (req) => {
         price: priceInCents,
         is_enabled: filteredVariantIds.has(v.id),
       })),
-      print_areas: [
-        {
-          variant_ids: allVariantIds,
-          placeholders: [
-            {
-              position: "front",
-              images: [
-                {
-                  id: printifyImageId,
-                  x: imageX,
-                  y: imageY,
-                  scale: imageScale,
-                  angle: 0,
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      print_areas: printAreas,
     };
 
     // Mockup images will be set AFTER product creation using uploaded image IDs
@@ -185,7 +213,38 @@ serve(async (req) => {
         console.log(`Existing product has ${existingVariantIds.length} variants`);
 
         // Build UPDATE payload — omit blueprint_id and print_provider_id (immutable)
-        // Use the existing product's variant IDs for print_areas
+        // Build print_areas for update using existing variant IDs, with dual design support
+        let updatePrintAreas: any[];
+        if (hasDarkDesign) {
+          // Match existing variants to light/dark by cross-referencing with allVariants
+          const existingVariantSet = new Set(existingVariantIds);
+          const darkExistingIds = allVariants
+            .filter((v: any) => existingVariantSet.has(v.id) && !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+            .map((v: any) => v.id);
+          const lightExistingIds = allVariants
+            .filter((v: any) => existingVariantSet.has(v.id) && lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+            .map((v: any) => v.id);
+
+          updatePrintAreas = [];
+          if (darkExistingIds.length > 0) {
+            updatePrintAreas.push({
+              variant_ids: darkExistingIds,
+              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+            });
+          }
+          if (lightExistingIds.length > 0) {
+            updatePrintAreas.push({
+              variant_ids: lightExistingIds,
+              placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+            });
+          }
+        } else {
+          updatePrintAreas = [{
+            variant_ids: existingVariantIds,
+            placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+          }];
+        }
+
         const updatePayload: any = {
           title,
           description: description || "",
@@ -195,25 +254,7 @@ serve(async (req) => {
             price: priceInCents,
             is_enabled: filteredVariantIds.has(vid),
           })),
-          print_areas: [
-            {
-              variant_ids: existingVariantIds,
-              placeholders: [
-                {
-                  position: "front",
-                  images: [
-                    {
-                      id: printifyImageId,
-                      x: imageX,
-                      y: imageY,
-                      scale: imageScale,
-                      angle: 0,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
+          print_areas: updatePrintAreas,
         };
 
         // Don't set images here — they'll be set after via separate PUT with uploaded IDs
