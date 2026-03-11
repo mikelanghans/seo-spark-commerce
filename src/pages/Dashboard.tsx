@@ -1538,14 +1538,6 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />
             </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <TeamManager
-                organizationId={orgs[0]?.id || ""}
-                organizationName={orgs[0]?.name || ""}
-                userId={user.id}
-                allOrganizations={orgs.map(o => ({ id: o.id, name: o.name }))}
-              />
-            </div>
           </div>
         )}
         {view === "autopilot" && selectedOrg && (
