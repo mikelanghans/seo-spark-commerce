@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -39,6 +39,10 @@ export const DesignPreviewDialog = ({
   const [submitting, setSubmitting] = useState(false);
   const [regenFeedback, setRegenFeedback] = useState("");
   const [regenerating, setRegenerating] = useState(false);
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownload = async () => {
     if (!designUrl) return;
@@ -58,6 +62,28 @@ export const DesignPreviewDialog = ({
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setReferenceImage(file);
+    setReferencePreview(URL.createObjectURL(file));
+  };
+
+  const clearReferenceImage = () => {
+    setReferenceImage(null);
+    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    setReferencePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmitFeedback = async () => {
     if (!rating) {
       toast.error("Please select thumbs up or down");
@@ -65,22 +91,40 @@ export const DesignPreviewDialog = ({
     }
     setSubmitting(true);
     try {
+      let referenceImageUrl: string | null = null;
+
+      if (referenceImage) {
+        setUploadingImage(true);
+        const ext = referenceImage.name.split(".").pop() || "png";
+        const path = `feedback-refs/${userId}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("product-images")
+          .upload(path, referenceImage, { contentType: referenceImage.type });
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+        referenceImageUrl = urlData.publicUrl;
+        setUploadingImage(false);
+      }
+
       const { error } = await supabase.from("design_feedback").insert({
         user_id: userId,
         organization_id: organizationId,
         message_id: messageId,
         rating,
         notes: notes.trim(),
-      });
+        reference_image_url: referenceImageUrl,
+      } as any);
       if (error) throw error;
       toast.success("Feedback saved — future designs will reflect your preferences!");
       setRating(null);
       setNotes("");
+      clearReferenceImage();
       onFeedbackSaved?.();
     } catch (err: any) {
       toast.error(err.message || "Failed to save feedback");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -102,6 +146,7 @@ export const DesignPreviewDialog = ({
         setRating(null);
         setNotes("");
         setRegenFeedback("");
+        clearReferenceImage();
         onClose();
       }}
     >
@@ -181,6 +226,43 @@ export const DesignPreviewDialog = ({
             className="text-sm"
           />
 
+          {/* Reference image upload */}
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            {referencePreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={referencePreview}
+                  alt="Reference"
+                  className="h-20 w-20 rounded-md border border-border object-cover"
+                />
+                <button
+                  onClick={clearReferenceImage}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-muted-foreground"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" />
+                Add reference image
+              </Button>
+            )}
+          </div>
+
           <Button
             onClick={handleSubmitFeedback}
             disabled={!rating || submitting}
@@ -188,7 +270,7 @@ export const DesignPreviewDialog = ({
             className="gap-1.5"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Submit Feedback
+            {uploadingImage ? "Uploading…" : "Submit Feedback"}
           </Button>
         </div>
       </DialogContent>
