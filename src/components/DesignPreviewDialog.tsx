@@ -141,6 +141,36 @@ export const DesignPreviewDialog = ({
           <DialogTitle className="text-sm font-medium">{messageText}</DialogTitle>
         </DialogHeader>
 
+        {/* Variant toggle */}
+        {designUrl && darkDesignUrl && !viewingUrl && (
+          <div className="flex rounded-md border border-input bg-background overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setActiveVariant("light")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium transition-colors",
+                activeVariant === "light"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              ☀️ Light ink (dark shirts)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveVariant("dark")}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium transition-colors",
+                activeVariant === "dark"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent"
+              )}
+            >
+              🌙 Dark ink (light shirts)
+            </button>
+          </div>
+        )}
+
         {activeUrl && (
           <img
             src={activeUrl}
