@@ -29,8 +29,9 @@ CRITICAL RULES — follow ALL of these precisely:
 5. MATCH the EXACT same camera angle, distance, perspective, and framing as image 1
 6. MATCH the EXACT same background scene, surface/table texture, lighting direction, and shadows as image 1
 7. MATCH the EXACT same t-shirt folding style, lay position, and any props visible in image 1
-8. The design should be proportionally sized on the shirt front — same size ratio as any design in image 1
+8. The design should be proportionally sized on the shirt front — EXACTLY the same size ratio as any design in image 1. DO NOT make the text or graphic larger or smaller than in the reference photo.
 9. The output should look like it belongs in the SAME product photo set as image 1 — only the fabric color changes
+10. TEXT SIZE CONSISTENCY IS CRITICAL: If image 1 shows text at a certain size relative to the shirt, your output MUST match that exact proportion. Do not enlarge or shrink the printed design between color variants.
 Product: ${productTitle}. Output a high quality product photo that is visually consistent with the reference.`
       : `Take this product mockup photo and change ONLY the t-shirt fabric color to ${colorName}.
 
