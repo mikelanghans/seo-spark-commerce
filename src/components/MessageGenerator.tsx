@@ -48,7 +48,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
-  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">("text-only");
+  const availableStyles = (organization.design_styles as string[]) || ["text-only"];
+  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">(
+    availableStyles.includes("text-only") ? "text-only" : "minimalist"
+  );
 
   useEffect(() => {
     loadMessages();
