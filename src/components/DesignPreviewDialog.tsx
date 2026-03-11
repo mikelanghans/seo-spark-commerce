@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, Loader2, ImagePlus, X, RefreshCw, History } from "lucide-react";
+import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsUp, ThumbsDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
