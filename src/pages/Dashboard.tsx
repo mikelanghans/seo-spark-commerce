@@ -892,6 +892,9 @@ const Dashboard = () => {
                 <TabsTrigger value="products" className="gap-2">
                   <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
+                <TabsTrigger value="autopilot" className="gap-2">
+                  <Rocket className="h-4 w-4" /> Autopilot
+                </TabsTrigger>
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
                 </TabsTrigger>
@@ -916,6 +919,16 @@ const Dashboard = () => {
                     }}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="autopilot" className="mt-4">
+                <FullAutopilot
+                  organization={selectedOrg}
+                  userId={user!.id}
+                  onProductsCreated={() => {
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="social" className="mt-4">
