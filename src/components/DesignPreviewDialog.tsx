@@ -45,6 +45,8 @@ export const DesignPreviewDialog = ({
   userId,
   onRegenerate,
   onDiscardDesign,
+  onCreateProduct,
+  hasProduct,
 }: Props) => {
   const [notes, setNotes] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
