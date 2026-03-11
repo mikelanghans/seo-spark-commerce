@@ -335,7 +335,7 @@ export const SwipeableMessageCard = ({
               size="icon"
               className="h-8 w-8"
               disabled={isGeneratingDesign || disableDesignActions}
-              onClick={() => onGenerateDesign(id, designVariant)}
+              onClick={() => onGenerateDesign(id)}
               title={hasDesign ? "Regenerate design" : "Generate design"}
             >
               {isGeneratingDesign ? (
