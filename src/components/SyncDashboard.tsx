@@ -11,6 +11,7 @@ interface Product {
   shopify_product_id: number | null;
   etsy_listing_id?: string | null;
   ebay_listing_id?: string | null;
+  meta_listing_id?: string | null;
   category: string;
   price: string;
 }
