@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
