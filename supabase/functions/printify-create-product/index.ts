@@ -122,13 +122,19 @@ serve(async (req) => {
       throw new Error("No matching variants. Available: " + availColors.slice(0, 15).join(", "));
     }
 
+    // Cap enabled variants at 100 (Printify limit)
+    let enabledVariants = filteredVariants;
+    if (enabledVariants.length > 100) {
+      console.log(`Capping variants from ${enabledVariants.length} to 100`);
+      enabledVariants = enabledVariants.slice(0, 100);
+    }
+
     // Note: Printify auto-generates mockups from print_areas design.
     // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
     // Build product payload
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
-    const allVariantIds = allVariants.map((v: any) => v.id);
-    const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
+    const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
     // Design placement — image is auto-trimmed during upload so content fills the area
     const imageX = 0.5;
@@ -141,11 +147,11 @@ serve(async (req) => {
 
     let printAreas: any[];
     if (hasDarkDesign) {
-      // Separate variant IDs by light vs dark shirt color
-      const darkVariantIds = allVariants
+      // Separate enabled variant IDs by light vs dark shirt color
+      const darkVariantIds = enabledVariants
         .filter((v: any) => !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
         .map((v: any) => v.id);
-      const lightVariantIds = allVariants
+      const lightVariantIds = enabledVariants
         .filter((v: any) => lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
         .map((v: any) => v.id);
 
@@ -172,7 +178,7 @@ serve(async (req) => {
       }
     } else {
       printAreas = [{
-        variant_ids: allVariantIds,
+        variant_ids: enabledVariants.map((v: any) => v.id),
         placeholders: [{
           position: "front",
           images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
@@ -186,10 +192,10 @@ serve(async (req) => {
       tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
       blueprint_id: bpId,
       print_provider_id: ppId,
-      variants: allVariants.map((v: any) => ({
+      variants: enabledVariants.map((v: any) => ({
         id: v.id,
         price: priceInCents,
-        is_enabled: filteredVariantIds.has(v.id),
+        is_enabled: true,
       })),
       print_areas: printAreas,
     };
@@ -252,7 +258,7 @@ serve(async (req) => {
           variants: existingVariantIds.map((vid: number) => ({
             id: vid,
             price: priceInCents,
-            is_enabled: filteredVariantIds.has(vid),
+            is_enabled: enabledVariantIds.has(vid),
           })),
           print_areas: updatePrintAreas,
         };
