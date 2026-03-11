@@ -173,6 +173,7 @@ export type Database = {
       generated_messages: {
         Row: {
           created_at: string
+          dark_design_url: string | null
           design_url: string | null
           id: string
           is_selected: boolean
@@ -183,6 +184,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dark_design_url?: string | null
           design_url?: string | null
           id?: string
           is_selected?: boolean
@@ -193,6 +195,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dark_design_url?: string | null
           design_url?: string | null
           id?: string
           is_selected?: boolean
