@@ -308,11 +308,76 @@ ${feedbackContext}${inspirationContext}${regenerateFeedback ? `\n\n⚠️ REGENE
           }
         }
       }
-      const outputBuffer = PNG.sync.write(png);
+      
+      // Standardize canvas to 4500x5400 (Printify Comfort Colors 1717 print area)
+      // This ensures consistent positioning across all designs
+      const TARGET_W = 4500;
+      const TARGET_H = 5400;
+      const srcW = png.width;
+      const srcH = png.height;
+
+      // Find bounding box of non-transparent pixels
+      let minX = srcW, minY = srcH, maxX = 0, maxY = 0;
+      for (let y = 0; y < srcH; y++) {
+        for (let x = 0; x < srcW; x++) {
+          const idx = (y * srcW + x) * 4;
+          if (png.data[idx + 3] > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      const contentW = maxX - minX + 1;
+      const contentH = maxY - minY + 1;
+
+      // Scale content to fit within ~70% of the target canvas (leaving padding)
+      const maxFitW = TARGET_W * 0.7;
+      const maxFitH = TARGET_H * 0.5; // design sits in upper portion
+      const fitScale = Math.min(maxFitW / contentW, maxFitH / contentH, 1.0);
+
+      const scaledW = Math.round(contentW * fitScale);
+      const scaledH = Math.round(contentH * fitScale);
+
+      // Create new canvas
+      const targetPng = new PNG({ width: TARGET_W, height: TARGET_H });
+      // Fill with transparent
+      for (let i = 0; i < targetPng.data.length; i += 4) {
+        targetPng.data[i] = 0;
+        targetPng.data[i + 1] = 0;
+        targetPng.data[i + 2] = 0;
+        targetPng.data[i + 3] = 0;
+      }
+
+      // Center horizontally, position in upper third vertically
+      const offsetX = Math.round((TARGET_W - scaledW) / 2);
+      const offsetY = Math.round(TARGET_H * 0.15); // ~15% from top
+
+      // Nearest-neighbor scale and place onto target canvas
+      for (let ty = 0; ty < scaledH; ty++) {
+        for (let tx = 0; tx < scaledW; tx++) {
+          const sx = minX + Math.floor(tx / fitScale);
+          const sy = minY + Math.floor(ty / fitScale);
+          if (sx >= srcW || sy >= srcH) continue;
+          const srcIdx = (sy * srcW + sx) * 4;
+          const dstX = offsetX + tx;
+          const dstY = offsetY + ty;
+          if (dstX >= TARGET_W || dstY >= TARGET_H) continue;
+          const dstIdx = (dstY * TARGET_W + dstX) * 4;
+          targetPng.data[dstIdx] = png.data[srcIdx];
+          targetPng.data[dstIdx + 1] = png.data[srcIdx + 1];
+          targetPng.data[dstIdx + 2] = png.data[srcIdx + 2];
+          targetPng.data[dstIdx + 3] = png.data[srcIdx + 3];
+        }
+      }
+
+      const outputBuffer = PNG.sync.write(targetPng);
       binaryData = new Uint8Array(outputBuffer);
-      console.log(`${isLightOnDark ? "Black" : "White"} background removed successfully`);
+      console.log(`Design standardized: ${srcW}x${srcH} → ${TARGET_W}x${TARGET_H} (content: ${contentW}x${contentH}, scaled: ${scaledW}x${scaledH})`);
     } catch (e) {
-      console.error("Failed to remove background, using original:", e);
+      console.error("Failed to process design, using original:", e);
       binaryData = rawBuffer;
     }
     
