@@ -813,6 +813,18 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="sync" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <SyncDashboard
+                    products={products as any}
+                    onSelectProduct={(productId) => {
+                      const p = products.find((pr) => pr.id === productId);
+                      if (p) { setSelectedProduct(p); setView("product-detail"); }
+                    }}
+                  />
+                </div>
+              </TabsContent>
+
               <TabsContent value="products" className="mt-4 space-y-4">
                 {products.length > 0 && (
                   <>
