@@ -59,6 +59,84 @@ export type Database = {
           },
         ]
       }
+      ebay_connections: {
+        Row: {
+          access_token: string | null
+          client_id: string
+          client_secret: string
+          created_at: string
+          environment: string
+          id: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      etsy_connections: {
+        Row: {
+          access_token: string | null
+          api_key: string
+          created_at: string
+          id: string
+          refresh_token: string | null
+          shop_id: string
+          shop_name: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          api_key?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string | null
+          shop_id?: string
+          shop_name?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          api_key?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string | null
+          shop_id?: string
+          shop_name?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_messages: {
         Row: {
           created_at: string
@@ -333,6 +411,8 @@ export type Database = {
           category: string
           created_at: string
           description: string
+          ebay_listing_id: string | null
+          etsy_listing_id: string | null
           features: string
           id: string
           image_url: string | null
@@ -349,6 +429,8 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string
+          ebay_listing_id?: string | null
+          etsy_listing_id?: string | null
           features?: string
           id?: string
           image_url?: string | null
@@ -365,6 +447,8 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string
+          ebay_listing_id?: string | null
+          etsy_listing_id?: string | null
           features?: string
           id?: string
           image_url?: string | null
