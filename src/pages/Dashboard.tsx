@@ -946,6 +946,15 @@ const Dashboard = () => {
                           <Sparkles className="h-4 w-4" /> Generate SEO Listings
                         </Button>
                       )}
+                      {pushingAllShopify ? (
+                        <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                          <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
+                        </Button>
+                      ) : (
+                        <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
+                          <Store className="h-4 w-4" /> Push All to Shopify
+                        </Button>
+                      )}
                     </div>
 
                     {/* Category Filters */}
