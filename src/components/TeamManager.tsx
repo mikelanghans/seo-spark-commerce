@@ -17,6 +17,7 @@ interface Props {
   organizationId: string;
   organizationName: string;
   userId: string;
+  allOrganizations?: { id: string; name: string }[];
 }
 
 interface Member {
@@ -36,12 +37,13 @@ interface Invite {
   created_at: string;
 }
 
-export const TeamManager = ({ organizationId, organizationName, userId }: Props) => {
+export const TeamManager = ({ organizationId, organizationName, userId, allOrganizations }: Props) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("editor");
+  const [inviteOrgId, setInviteOrgId] = useState<string>(organizationId);
   const [sending, setSending] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export const TeamManager = ({ organizationId, organizationName, userId }: Props)
     setSending(true);
     try {
       const { error } = await supabase.from("organization_invites").insert({
-        organization_id: organizationId,
+        organization_id: inviteOrgId,
         invited_email: inviteEmail.trim().toLowerCase(),
         role: inviteRole as any,
         invited_by: userId,
@@ -105,7 +107,7 @@ export const TeamManager = ({ organizationId, organizationName, userId }: Props)
       const { data, error } = await supabase
         .from("organization_invites")
         .insert({
-          organization_id: organizationId,
+          organization_id: inviteOrgId,
           role: inviteRole as any,
           invited_by: userId,
         })
@@ -276,8 +278,25 @@ export const TeamManager = ({ organizationId, organizationName, userId }: Props)
       {canManage && (
         <div className="space-y-3 rounded-lg border border-border bg-card p-4">
           <p className="text-sm font-medium">Invite a collaborator</p>
-          <div className="flex items-end gap-2">
-            <div className="flex-1 space-y-1">
+          <div className="flex items-end gap-2 flex-wrap">
+            {allOrganizations && allOrganizations.length > 1 && (
+              <div className="w-44 space-y-1">
+                <Label className="text-xs">Brand</Label>
+                <Select value={inviteOrgId} onValueChange={setInviteOrgId}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allOrganizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex-1 min-w-[180px] space-y-1">
               <Label className="text-xs">Email (optional)</Label>
               <Input
                 value={inviteEmail}
