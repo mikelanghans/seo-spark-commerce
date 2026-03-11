@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Download, Loader2, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   organizationId: string;
   userId: string;
   onFeedbackSaved?: () => void;
+  onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
@@ -31,10 +32,13 @@ export const DesignPreviewDialog = ({
   organizationId,
   userId,
   onFeedbackSaved,
+  onRegenerate,
 }: Props) => {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [regenFeedback, setRegenFeedback] = useState("");
+  const [regenerating, setRegenerating] = useState(false);
 
   const handleDownload = async () => {
     if (!designUrl) return;
@@ -80,12 +84,24 @@ export const DesignPreviewDialog = ({
     }
   };
 
+  const handleRegenerate = async () => {
+    if (!messageId || !onRegenerate) return;
+    setRegenerating(true);
+    try {
+      await onRegenerate(messageId, regenFeedback.trim());
+      setRegenFeedback("");
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <Dialog
       open={open}
       onOpenChange={() => {
         setRating(null);
         setNotes("");
+        setRegenFeedback("");
         onClose();
       }}
     >
@@ -107,6 +123,31 @@ export const DesignPreviewDialog = ({
           <Download className="h-4 w-4" />
           Download Design
         </Button>
+
+        {/* Regenerate with feedback */}
+        {onRegenerate && (
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-sm font-medium text-muted-foreground">Regenerate design</p>
+            <Textarea
+              placeholder="What should change? (e.g. 'bigger font', 'less whitespace', 'bolder style')"
+              value={regenFeedback}
+              onChange={(e) => setRegenFeedback(e.target.value)}
+              rows={2}
+              className="text-sm"
+              disabled={regenerating}
+            />
+            <Button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+            >
+              {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {regenerating ? "Regenerating..." : "Regenerate"}
+            </Button>
+          </div>
+        )}
 
         {/* Feedback */}
         <div className="space-y-3 border-t border-border pt-3">
