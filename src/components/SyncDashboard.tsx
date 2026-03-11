@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Store, ShoppingBag, Package, CheckCircle2, XCircle, Search, ArrowUpDown, ExternalLink } from "lucide-react";
+import { Store, ShoppingBag, Package, Facebook, CheckCircle2, XCircle, Search, ArrowUpDown, ExternalLink } from "lucide-react";
 
 interface Product {
   id: string;
