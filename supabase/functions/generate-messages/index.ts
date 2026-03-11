@@ -30,7 +30,7 @@ serve(async (req) => {
     const isRefine = !!refineOriginal && !!refineFeedback;
 
     // Fetch past design feedback to inform message generation
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     let feedbackContext = "";
     if (organization.id) {
       const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
