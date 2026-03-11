@@ -1071,6 +1071,21 @@ const Dashboard = () => {
                   setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
                 }}
               />
+              <PushToMarketplace
+                product={selectedProduct}
+                listings={listings.map((l) => ({
+                  marketplace: l.marketplace,
+                  title: l.title,
+                  description: l.description,
+                  tags: l.tags as string[],
+                  seo_title: l.seo_title,
+                  seo_description: l.seo_description,
+                  url_handle: l.url_handle,
+                  alt_text: l.alt_text,
+                }))}
+                images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
+                userId={user!.id}
+              />
             </div>
 
             {/* Design File Download */}
