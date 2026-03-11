@@ -158,6 +158,40 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Persist selected org/product IDs for state restoration
+  useEffect(() => {
+    if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
+    else sessionStorage.removeItem("dash_org_id");
+  }, [selectedOrg]);
+
+  useEffect(() => {
+    if (selectedProduct) sessionStorage.setItem("dash_product_id", selectedProduct.id);
+    else sessionStorage.removeItem("dash_product_id");
+  }, [selectedProduct]);
+
+  // Restore navigation state after orgs load
+  useEffect(() => {
+    if (_restoredNav || orgs.length === 0) return;
+    setRestoredNav(true);
+    const savedOrgId = sessionStorage.getItem("dash_org_id");
+    const savedProductId = sessionStorage.getItem("dash_product_id");
+    if (!savedOrgId) return;
+    const org = orgs.find(o => o.id === savedOrgId);
+    if (!org) { setView("orgs"); return; }
+    setSelectedOrg(org);
+    loadProducts(org.id).then((prods) => {
+      if (savedProductId && (view === "product-detail")) {
+        const prod = (prods || []).find((p: Product) => p.id === savedProductId);
+        if (prod) {
+          setSelectedProduct(prod);
+          loadListings(prod.id);
+        } else {
+          setView("products");
+        }
+      }
+    });
+  }, [orgs]);
+
   const loadOrgs = async () => {
     setLoading(true);
     const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: false });
