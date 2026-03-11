@@ -306,7 +306,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
     await loadMessages();
   };
 
-  const handleCreateProducts = () => {
+  const handleCreateProducts = async () => {
     const ready = messages.filter(
       (m) => keptIds.has(m.id) && !m.product_id && m.design_url
     );
@@ -314,7 +314,58 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated }: Pr
       toast.error("No kept messages with designs ready to create products");
       return;
     }
-    ready.forEach((m) => onCreateProduct?.(m.message_text, m.design_url!));
+
+    setCreatingProducts(true);
+    let created = 0;
+
+    try {
+      for (const msg of ready) {
+        const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
+        const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
+        const autoKeywords = msg.message_text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
+
+        const { data: product, error } = await supabase
+          .from("products")
+          .insert({
+            title: msg.message_text,
+            description: autoDescription,
+            keywords: autoKeywords,
+            category: "T-Shirt",
+            price: "29.99",
+            features: autoFeatures,
+            organization_id: organization.id,
+            user_id: userId,
+            image_url: msg.design_url,
+          })
+          .select("id")
+          .single();
+
+        if (error) {
+          console.error("Failed to create product:", error);
+          continue;
+        }
+
+        // Link message to product
+        await supabase
+          .from("generated_messages")
+          .update({ product_id: product.id })
+          .eq("id", msg.id);
+
+        created++;
+      }
+
+      if (created > 0) {
+        toast.success(`Created ${created} product${created > 1 ? "s" : ""}!`);
+        await loadMessages();
+        onProductsCreated?.();
+      } else {
+        toast.error("Failed to create products");
+      }
+    } catch (err: any) {
+      toast.error("Failed to create products");
+    } finally {
+      setCreatingProducts(false);
+    }
   };
 
   const keptCount = keptIds.size;
