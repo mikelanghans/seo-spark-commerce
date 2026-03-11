@@ -916,6 +916,7 @@ const Dashboard = () => {
                   <MessageGenerator
                     organization={selectedOrg}
                     userId={user!.id}
+                    refreshKey={msgRefreshKey}
                     onProductsCreated={() => {
                       if (selectedOrg) loadProducts(selectedOrg.id);
                     }}

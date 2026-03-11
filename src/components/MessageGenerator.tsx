@@ -56,7 +56,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
   useEffect(() => {
     loadMessages();
-  }, [organization.id]);
+  }, [organization.id, refreshKey]);
 
   const loadMessages = async () => {
     setLoading(true);
