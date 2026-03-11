@@ -53,50 +53,32 @@ CRITICAL MISTAKES TO AVOID:
 
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
-      ? `You are given two images:
-1. A REFERENCE product mockup photo — you must CLONE this photo exactly, only changing the shirt color
-2. The original design/graphic printed on the shirt
+      ? `TASK: Change ONLY the t-shirt fabric color to ${colorName}. Everything else must be PIXEL-PERFECT identical.
 
-YOUR TASK: Create an IDENTICAL copy of image 1 but with the t-shirt fabric color changed to ${colorName}.
+You receive two images:
+1. The reference mockup photo — clone this EXACTLY, only recolor the fabric
+2. The original design graphic — this is what's printed on the shirt
 
-THIS IS A RECOLORING TASK, NOT A REDESIGN TASK.
-
-CRITICAL — WHAT MUST BE IDENTICAL TO IMAGE 1:
-- The EXACT same text, letter-for-letter, word-for-word — read image 1 carefully and reproduce every word exactly
-- The EXACT same font, font size, font weight, letter spacing, and text layout
-- The EXACT same graphic/illustration elements in the same positions
-- The EXACT same design size relative to the shirt — same coverage area, same proportions
-- The EXACT same design position on the shirt
-- The EXACT same camera angle, distance, perspective, framing
-- The EXACT same background scene, surface texture, lighting direction, shadows
-- The EXACT same t-shirt folding style, lay position, wrinkles, and props
-
-WHAT CHANGES:
-- ONLY the t-shirt fabric color → ${colorName}
-${isLightShirt ? "- The design ink color changes from white/light to DARK BLACK (see print color rule below)" : ""}
+ABSOLUTE RULES:
+- Copy the EXACT same photo: same angle, lighting, background, wrinkles, shadows, folding
+- The printed design must be IDENTICAL: same text (letter-for-letter), same graphics, same fonts, same size, same position
+- Do NOT redesign, reinterpret, or regenerate the design — just change the fabric color underneath it
+- Think of this as a Photoshop "Hue/Saturation" adjustment on ONLY the fabric pixels
 
 ${printColorRule}
 
-Product: ${productTitle}. The output must be a near-identical clone of image 1 with only the fabric color changed.`
-      : `Create an IDENTICAL copy of this product mockup photo but change ONLY the t-shirt fabric color to ${colorName}.
+Product: ${productTitle}. The result must look like the same photo with a color filter applied to just the shirt fabric.`
+      : `TASK: Change ONLY the t-shirt fabric color to ${colorName}. Everything else must be PIXEL-PERFECT identical.
 
-THIS IS A RECOLORING TASK, NOT A REDESIGN TASK.
-
-CRITICAL — WHAT MUST STAY IDENTICAL:
-- The EXACT same text on the shirt, letter-for-letter, word-for-word
-- The EXACT same font, size, weight, spacing, and layout
-- The EXACT same graphic elements in the same positions
-- The EXACT same design size and position on the shirt
-- The EXACT same camera angle, perspective, framing, background, lighting, shadows
-- The EXACT same t-shirt fold, lay position, wrinkles, and props
-
-WHAT CHANGES:
-- ONLY the fabric color → ${colorName}
-${isLightShirt ? "- The design ink color changes from white/light to DARK BLACK (see print color rule below)" : ""}
+ABSOLUTE RULES:
+- Copy the EXACT same photo: same angle, lighting, background, wrinkles, shadows, folding
+- The printed design must be IDENTICAL: same text (letter-for-letter), same graphics, same fonts, same size, same position
+- Do NOT redesign, reinterpret, or regenerate the design — just change the fabric color underneath it
+- Think of this as a Photoshop "Hue/Saturation" adjustment on ONLY the fabric pixels
 
 ${printColorRule}
 
-Product: ${productTitle}. Output must be a near-identical clone with only the fabric color changed.`;
+Product: ${productTitle}. The result must look like the same photo with a color filter applied to just the shirt fabric.`;
 
     const imageContent: any[] = [
       { type: "text", text: prompt },
@@ -106,7 +88,10 @@ Product: ${productTitle}. Output must be a near-identical clone with only the fa
       imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
     }
 
+    // gemini-2.5-flash-image is best for controlled edits (recoloring)
+    // Fall back to newer models if unavailable
     const models = [
+      "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
       "google/gemini-3-pro-image-preview",
     ];

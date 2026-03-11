@@ -136,10 +136,12 @@ serve(async (req) => {
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
-    // Design placement — image is auto-trimmed during upload so content fills the area
+    // Design placement — centered, ~65% of print area width for standard DTG look
     const imageX = 0.5;
     const imageY = 0.5;
-    const imageScale = 1.0;
+    // Scale 1.0 means design fills the entire print area width.
+    // For a standard centered chest print, use ~0.65 (65% of print area width).
+    const imageScale = 0.65;
 
     // Split variants into light and dark groups if we have a dark design
     const lightColorSet = new Set((lightColors || []).map((c: string) => c.toLowerCase()));
