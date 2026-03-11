@@ -135,6 +135,51 @@ serve(async (req) => {
     const imageY = 0.5;
     const imageScale = 1.0;
 
+    // Split variants into light and dark groups if we have a dark design
+    const lightColorSet = new Set((lightColors || []).map((c: string) => c.toLowerCase()));
+    const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+
+    let printAreas: any[];
+    if (hasDarkDesign) {
+      // Separate variant IDs by light vs dark shirt color
+      const darkVariantIds = allVariants
+        .filter((v: any) => !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+        .map((v: any) => v.id);
+      const lightVariantIds = allVariants
+        .filter((v: any) => lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
+        .map((v: any) => v.id);
+
+      console.log(`Dual design: ${darkVariantIds.length} dark variants (white design), ${lightVariantIds.length} light variants (dark design)`);
+
+      printAreas = [];
+      if (darkVariantIds.length > 0) {
+        printAreas.push({
+          variant_ids: darkVariantIds,
+          placeholders: [{
+            position: "front",
+            images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+          }],
+        });
+      }
+      if (lightVariantIds.length > 0) {
+        printAreas.push({
+          variant_ids: lightVariantIds,
+          placeholders: [{
+            position: "front",
+            images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+          }],
+        });
+      }
+    } else {
+      printAreas = [{
+        variant_ids: allVariantIds,
+        placeholders: [{
+          position: "front",
+          images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
+        }],
+      }];
+    }
+
     const productPayload: any = {
       title,
       description: description || "",
@@ -146,25 +191,7 @@ serve(async (req) => {
         price: priceInCents,
         is_enabled: filteredVariantIds.has(v.id),
       })),
-      print_areas: [
-        {
-          variant_ids: allVariantIds,
-          placeholders: [
-            {
-              position: "front",
-              images: [
-                {
-                  id: printifyImageId,
-                  x: imageX,
-                  y: imageY,
-                  scale: imageScale,
-                  angle: 0,
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      print_areas: printAreas,
     };
 
     // Mockup images will be set AFTER product creation using uploaded image IDs
