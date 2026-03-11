@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-social-posts]
 verify_jwt = false
+
+[functions.generate-social-image]
+verify_jwt = false
