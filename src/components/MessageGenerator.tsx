@@ -151,6 +151,18 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     if (!text) return;
     setAddingCustom(true);
     try {
+      // Check for existing duplicate
+      const { data: existing } = await supabase
+        .from("generated_messages")
+        .select("id")
+        .eq("organization_id", organization.id)
+        .ilike("message_text", text)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error("This message already exists!");
+        setAddingCustom(false);
+        return;
+      }
       const { error } = await supabase.from("generated_messages").insert({
         user_id: userId,
         organization_id: organization.id,
