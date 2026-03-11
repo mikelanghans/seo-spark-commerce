@@ -205,33 +205,39 @@ export const MessageGenerator = ({ organization, userId, onCreateProduct }: Prop
     }
   };
 
-  const handleGenerateDesign = async (msgId: string, variant: "dark-on-light" | "light-on-dark" = "light-on-dark") => {
+  const handleGenerateDesign = async (msgId: string, variant: "dark-on-light" | "light-on-dark" | "both" = "light-on-dark") => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     setGeneratingDesignId(msg.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-design", {
-        body: {
-          messageText: msg.message_text,
-          brandName: organization.name,
-          brandTone: organization.tone,
-          brandNiche: organization.niche,
-          brandAudience: organization.audience,
-          brandFont: (organization as any).brand_font || "",
-          brandColor: (organization as any).brand_color || "",
-          brandFontSize: (organization as any).brand_font_size || "large",
-          brandStyleNotes: (organization as any).brand_style_notes || "",
-          messageId: msg.id,
-          organizationId: organization.id,
-          designVariant: variant,
-        },
-      });
 
-      if (error || data?.error) {
-        handleAiError(error, data, "Failed to generate design");
-        return;
+    const variants: ("dark-on-light" | "light-on-dark")[] = 
+      variant === "both" ? ["light-on-dark", "dark-on-light"] : [variant];
+
+    try {
+      for (const v of variants) {
+        const { data, error } = await supabase.functions.invoke("generate-design", {
+          body: {
+            messageText: msg.message_text,
+            brandName: organization.name,
+            brandTone: organization.tone,
+            brandNiche: organization.niche,
+            brandAudience: organization.audience,
+            brandFont: (organization as any).brand_font || "",
+            brandColor: (organization as any).brand_color || "",
+            brandFontSize: (organization as any).brand_font_size || "large",
+            brandStyleNotes: (organization as any).brand_style_notes || "",
+            messageId: msg.id,
+            organizationId: organization.id,
+            designVariant: v,
+          },
+        });
+
+        if (error || data?.error) {
+          handleAiError(error, data, `Failed to generate ${v} design`);
+          return;
+        }
       }
-      toast.success("Design generated!");
+      toast.success(variant === "both" ? "Both designs generated!" : "Design generated!");
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate design");
