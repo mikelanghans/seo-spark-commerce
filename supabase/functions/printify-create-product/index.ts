@@ -129,10 +129,9 @@ serve(async (req) => {
     const allVariantIds = allVariants.map((v: any) => v.id);
     const filteredVariantIds = new Set(filteredVariants.map((v: any) => v.id));
 
-    // Design placement specs (from Printify editor reference):
-    // Width/Height: 18.52in, Scale: 111.12%, Position left: -11.82%, Position top: -7.54%
-    const imageX = 0.3818;
-    const imageY = 0.4246;
+    // Design placement — centered horizontally, upper-chest position
+    const imageX = 0.5;
+    const imageY = 0.35;
     const imageScale = 1.1112;
 
     const productPayload: any = {
