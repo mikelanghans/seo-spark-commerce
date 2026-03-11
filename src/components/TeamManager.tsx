@@ -85,7 +85,7 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
     setSending(true);
     try {
       const { error } = await supabase.from("organization_invites").insert({
-        organization_id: organizationId,
+        organization_id: inviteOrgId,
         invited_email: inviteEmail.trim().toLowerCase(),
         role: inviteRole as any,
         invited_by: userId,
