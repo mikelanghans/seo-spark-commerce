@@ -325,7 +325,7 @@ export const DesignPreviewDialog = ({
                   setViewingUrl(null);
                   setNotes("");
                   clearReferenceImage();
-                  setFeedbackState("none");
+                  
                 } finally {
                   setRegenerating(false);
                 }
