@@ -459,9 +459,15 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       log(`🏁 Autopilot complete!`, "step");
       onProductsCreated();
     } catch (err: any) {
-      log(`❌ Autopilot error: ${err.message}`, "error");
+      const msg = err?.message || "";
+      if (msg.includes("__CANCELLED__") || msg.includes("abort") || msg.includes("AbortError") || cancelRef.current) {
+        log("⚠️ Cancelled by user", "error");
+      } else {
+        log(`❌ Autopilot error: ${msg}`, "error");
+      }
     } finally {
       setRunning(false);
+      abortRef.current = null;
     }
   };
 
