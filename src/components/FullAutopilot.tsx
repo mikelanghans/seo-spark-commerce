@@ -205,6 +205,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (productError) throw productError;
           const productId = productData.id;
+
+          // Link message to product so it's filtered from Message Ideas
+          if (savedMsg?.id) {
+            await supabase.from("generated_messages")
+              .update({ product_id: productId })
+              .eq("id", savedMsg.id);
+          }
+
           log(`  ✅ Product created`, "success");
           tick();
 
