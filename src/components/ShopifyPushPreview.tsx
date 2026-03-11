@@ -133,7 +133,7 @@ export const ShopifyPushPreview = ({
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Description
             </label>
-            <p className="mt-1 text-sm leading-relaxed text-secondary-foreground line-clamp-4">
+            <p className="mt-1 text-sm leading-relaxed text-secondary-foreground whitespace-pre-line">
               {listing.description || product.description}
             </p>
           </div>
