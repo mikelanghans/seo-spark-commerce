@@ -18,7 +18,7 @@ interface SwipeableMessageCardProps {
   onDiscard: (id: string) => void;
   onEdit: (id: string, newText: string) => void;
   onRefine: (id: string, feedback: string) => void;
-  onGenerateDesign: (id: string) => void;
+  onGenerateDesign: (id: string, variant: "dark-on-light" | "light-on-dark") => void;
   onPreviewDesign: (id: string) => void;
 }
 
