@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, Download, Loader2, Send, ImagePlus, X } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Download, Loader2, Send, ImagePlus, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   organizationId: string;
   userId: string;
   onFeedbackSaved?: () => void;
+  onRegenerate?: (messageId: string, feedback: string) => Promise<void>;
 }
 
 export const DesignPreviewDialog = ({
@@ -31,6 +32,7 @@ export const DesignPreviewDialog = ({
   organizationId,
   userId,
   onFeedbackSaved,
+  onRegenerate,
 }: Props) => {
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [notes, setNotes] = useState("");
@@ -38,6 +40,7 @@ export const DesignPreviewDialog = ({
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownload = async () => {
@@ -224,15 +227,37 @@ export const DesignPreviewDialog = ({
             )}
           </div>
 
-          <Button
-            onClick={handleSubmitFeedback}
-            disabled={!rating || submitting}
-            size="sm"
-            className="gap-1.5"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {uploadingImage ? "Uploading…" : "Submit Feedback"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSubmitFeedback}
+              disabled={!rating || submitting}
+              size="sm"
+              className="gap-1.5"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {uploadingImage ? "Uploading…" : "Submit Feedback"}
+            </Button>
+
+            {onRegenerate && messageId && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={regenerating}
+                onClick={async () => {
+                  setRegenerating(true);
+                  try {
+                    await onRegenerate(messageId, notes.trim());
+                  } finally {
+                    setRegenerating(false);
+                  }
+                }}
+              >
+                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {regenerating ? "Regenerating…" : "Regenerate"}
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
