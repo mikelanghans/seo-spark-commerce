@@ -53,32 +53,33 @@ CRITICAL MISTAKES TO AVOID:
 
     const hasDesignRef = !!designImageBase64;
     const prompt = hasDesignRef
-      ? `TASK: Change ONLY the t-shirt fabric color to ${colorName}. Everything else must be PIXEL-PERFECT identical.
+      ? `TASK: You are a professional product photographer doing a simple fabric recolor in post-production. Change ONLY the t-shirt fabric color to "${colorName}". NOTHING else changes.
 
 You receive two images:
-1. The reference mockup photo — clone this EXACTLY, only recolor the fabric
-2. The original design graphic — this is what's printed on the shirt
+1. IMAGE 1 — The MASTER reference mockup photo. You must reproduce this photo EXACTLY — same camera angle, same distance, same crop, same background texture, same shadows, same wrinkles, same folding, same styling props (jeans, wood, etc). This is your ground truth.
+2. IMAGE 2 — The design/graphic that is printed on the shirt. Use this as reference for the print details.
 
-ABSOLUTE RULES:
-- Copy the EXACT same photo: same angle, lighting, background, wrinkles, shadows, folding
-- The printed design must be IDENTICAL: same text (letter-for-letter), same graphics, same fonts, same size, same position
-- Do NOT redesign, reinterpret, or regenerate the design — just change the fabric color underneath it
-- Think of this as a Photoshop "Hue/Saturation" adjustment on ONLY the fabric pixels
-
-${printColorRule}
-
-Product: ${productTitle}. The result must look like the same photo with a color filter applied to just the shirt fabric.`
-      : `TASK: Change ONLY the t-shirt fabric color to ${colorName}. Everything else must be PIXEL-PERFECT identical.
-
-ABSOLUTE RULES:
-- Copy the EXACT same photo: same angle, lighting, background, wrinkles, shadows, folding
-- The printed design must be IDENTICAL: same text (letter-for-letter), same graphics, same fonts, same size, same position
-- Do NOT redesign, reinterpret, or regenerate the design — just change the fabric color underneath it
-- Think of this as a Photoshop "Hue/Saturation" adjustment on ONLY the fabric pixels
+CRITICAL COMPOSITION RULES (violation = failure):
+- The output must be INDISTINGUISHABLE from the reference photo except for fabric color
+- Same exact camera position, focal length, and framing — do NOT zoom in, zoom out, or change the angle
+- Same exact background: if the reference has a dark textured surface, yours must too
+- Same exact styling: if jeans are visible, they must be in the same position
+- Same exact shirt fold/drape pattern
+- Do NOT add or remove any props, backgrounds, or styling elements
 
 ${printColorRule}
 
-Product: ${productTitle}. The result must look like the same photo with a color filter applied to just the shirt fabric.`;
+Product: "${productTitle}". Think of this as: open Photoshop → select only the fabric pixels → fill with ${colorName} → save. Everything else is untouched.`
+      : `TASK: You are a professional product photographer doing a simple fabric recolor in post-production. Change ONLY the t-shirt fabric color to "${colorName}". NOTHING else changes.
+
+CRITICAL COMPOSITION RULES (violation = failure):
+- Reproduce the reference photo EXACTLY — same camera angle, distance, crop, background, shadows, wrinkles, folding, styling props
+- The output must be INDISTINGUISHABLE from the reference except for the fabric color
+- Do NOT change the camera position, zoom, framing, or add/remove any elements
+
+${printColorRule}
+
+Product: "${productTitle}". Think of this as: open Photoshop → select only the fabric pixels → fill with ${colorName} → save. Everything else is untouched.`;
 
     const imageContent: any[] = [
       { type: "text", text: prompt },
