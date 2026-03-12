@@ -466,6 +466,7 @@ const Dashboard = () => {
       if (insertError) throw insertError;
 
       await loadListings(product.id);
+      if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
       toast.success(`Listings generated for ${targets.join(", ")}!`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate listings");
