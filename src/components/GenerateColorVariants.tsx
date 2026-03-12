@@ -12,6 +12,11 @@ import {
   compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   productId: string;
   userId: string;
@@ -24,6 +29,7 @@ interface Props {
   brandAudience?: string;
   brandTone?: string;
   productCategory?: string;
+  aiUsage?: AiUsage;
 }
 
 const SUGGESTED_COLORS = [
@@ -37,7 +43,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
@@ -65,6 +71,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   };
 
   const loadRecommendations = async () => {
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("recommend-colors", userId);
+      if (!allowed) return;
+    }
     setLoadingRecs(true);
     try {
       const existingList = Array.from(existingColorSet).map((c) =>
@@ -117,6 +127,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         const all = new Set([...prev, ...newColors]);
         return Array.from(all);
       });
+      if (aiUsage) await aiUsage.logUsage("recommend-colors", userId);
       toast.success(`AI recommended ${recs.length} colors!`);
     } catch (err: any) {
       handleAiError(err, null, "Failed to get recommendations");

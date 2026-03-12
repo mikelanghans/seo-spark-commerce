@@ -16,11 +16,17 @@ interface Organization {
   audience: string;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   organization: Organization;
   userId: string;
   onComplete: () => void;
   onBack: () => void;
+  aiUsage?: AiUsage;
 }
 
 interface ShopifyProduct {
@@ -46,7 +52,7 @@ interface EnrichItem {
   newSeoDescription?: string;
 }
 
-export const ShopifyEnrich = ({ organization, userId, onComplete, onBack }: Props) => {
+export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsage }: Props) => {
   const [items, setItems] = useState<EnrichItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
@@ -104,6 +110,15 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack }: Prop
         // Step 1: Generate SEO-optimized content via AI
         updateItem(i, { status: "enriching" });
 
+        // Check AI usage
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("generate-listings", userId);
+          if (!allowed) {
+            updateItem(i, { status: "error", error: "AI generation limit reached" });
+            continue;
+          }
+        }
+
         const product = item.shopifyProduct;
         const productData = {
           title: product.title,
@@ -131,6 +146,7 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack }: Prop
         const shopifyListing = listings?.shopify;
         if (!shopifyListing) throw new Error("No Shopify listing generated");
 
+        if (aiUsage) await aiUsage.logUsage("generate-listings", userId);
         updateItem(i, {
           newTitle: shopifyListing.title,
           newDescription: shopifyListing.description,

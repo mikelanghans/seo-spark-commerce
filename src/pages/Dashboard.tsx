@@ -353,6 +353,10 @@ const Dashboard = () => {
 
       setIsAnalyzing(true);
       try {
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("analyze-product", user!.id);
+          if (!allowed) { setIsAnalyzing(false); return; }
+        }
         const { data, error } = await supabase.functions.invoke("analyze-product", {
           body: { imageBase64: base64 },
         });
@@ -366,6 +370,7 @@ const Dashboard = () => {
           keywords: (data.keywords || []).join(", "),
           price: data.suggestedPrice || "",
         });
+        if (aiUsage) await aiUsage.logUsage("analyze-product", user!.id);
         toast.success("Product analyzed!");
       } catch (err: any) {
         toast.error(err.message || "Failed to analyze image");
@@ -424,6 +429,10 @@ const Dashboard = () => {
     setGenerating(true);
 
     try {
+      if (aiUsage) {
+        const allowed = await aiUsage.checkAndLog("generate-listings", user!.id);
+        if (!allowed) { setGenerating(false); return; }
+      }
       const { data: result, error } = await supabase.functions.invoke("generate-listings", {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
@@ -457,6 +466,7 @@ const Dashboard = () => {
       if (insertError) throw insertError;
 
       await loadListings(product.id);
+      if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
       toast.success(`Listings generated for ${targets.join(", ")}!`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate listings");
@@ -545,6 +555,10 @@ const Dashboard = () => {
       const product = products[i];
       setGenAllProgress({ done: i, total: products.length });
       try {
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("generate-listings", user!.id);
+          if (!allowed) { toast.error("AI generation limit reached"); break; }
+        }
         const { data: result, error } = await supabase.functions.invoke("generate-listings", {
           body: {
             business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
@@ -571,6 +585,7 @@ const Dashboard = () => {
         }));
 
         await supabase.from("listings").insert(listingRows);
+        if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
         successCount++;
       } catch (err: any) {
         console.error(`Failed to generate listings for ${product.title}:`, err);
@@ -1089,6 +1104,7 @@ const Dashboard = () => {
                     organization={selectedOrg}
                     products={products}
                     userId={user!.id}
+                    aiUsage={aiUsage}
                   />
                 </div>
               </TabsContent>
@@ -1442,7 +1458,7 @@ const Dashboard = () => {
               {/* Mockups Tab */}
               <TabsContent value="mockups">
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={selectedProduct.category} />
+                  <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={selectedProduct.category} aiUsage={aiUsage} />
                 </div>
               </TabsContent>
 
@@ -1605,6 +1621,7 @@ const Dashboard = () => {
               loadProducts(selectedOrg.id);
             }}
             onBack={() => setView("products")}
+            aiUsage={aiUsage}
           />
         )}
         {/* Settings */}
@@ -1650,6 +1667,7 @@ const Dashboard = () => {
               loadProducts(selectedOrg.id);
             }}
             onBack={() => setView("products")}
+            aiUsage={aiUsage}
           />
         )}
       </main>

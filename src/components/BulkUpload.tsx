@@ -17,11 +17,17 @@ interface ProductData {
   image_url?: string | null;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   organizationId: string;
   userId: string;
   onComplete: () => void;
   onBack: () => void;
+  aiUsage?: AiUsage;
 }
 
 interface UploadResult {
@@ -56,7 +62,7 @@ function mapCSVRow(row: Record<string, string>): ProductData {
   };
 }
 
-export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props) => {
+export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage }: Props) => {
   const [tab, setTab] = useState("images");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -82,6 +88,15 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       try {
+        // Check AI usage before calling
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("analyze-product", userId);
+          if (!allowed) {
+            setResults((prev) => [...prev, { name: file.name, status: "error", message: "AI generation limit reached" }]);
+            setProgress(i + 1);
+            continue;
+          }
+        }
         const base64 = await fileToBase64(file);
 
         // Analyze with AI
@@ -115,6 +130,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props
         });
         if (insertError) throw insertError;
 
+        if (aiUsage) await aiUsage.logUsage("analyze-product", userId);
         setResults((prev) => [...prev, { name: file.name, status: "success" }]);
       } catch (err: any) {
         setResults((prev) => [...prev, { name: file.name, status: "error", message: err.message }]);

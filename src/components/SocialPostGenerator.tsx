@@ -38,14 +38,21 @@ const PLATFORMS = [
   { id: "facebook", label: "Facebook", icon: "📘" },
 ] as const;
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 export function SocialPostGenerator({
   organization,
   products,
   userId,
+  aiUsage,
 }: {
   organization: Organization;
   products: Product[];
   userId: string;
+  aiUsage?: AiUsage;
 }) {
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
@@ -67,6 +74,11 @@ export function SocialPostGenerator({
     if (!product) { toast.error("Select a product first"); return; }
     if (selectedPlatforms.length === 0) { toast.error("Select at least one platform"); return; }
 
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-social-posts", userId);
+      if (!allowed) return;
+    }
+
     setLoading(true);
     setPosts({});
     setPostImages({});
@@ -84,6 +96,7 @@ export function SocialPostGenerator({
       if (data?.error) throw new Error(data.error);
 
       setPosts(data);
+      if (aiUsage) await aiUsage.logUsage("generate-social-posts", userId);
       toast.success("Social posts generated!");
     } catch (e: any) {
       toast.error(e.message || "Failed to generate posts");
@@ -98,6 +111,10 @@ export function SocialPostGenerator({
 
     setGeneratingImage(platform);
     try {
+      if (aiUsage) {
+        const allowed = await aiUsage.checkAndLog("generate-social-image", userId);
+        if (!allowed) { setGeneratingImage(null); return; }
+      }
       const { data, error } = await supabase.functions.invoke("generate-social-image", {
         body: {
           productTitle: product.title,
@@ -113,6 +130,7 @@ export function SocialPostGenerator({
       if (data?.error) throw new Error(data.error);
 
       setPostImages((prev) => ({ ...prev, [platform]: data.imageUrl }));
+      if (aiUsage) await aiUsage.logUsage("generate-social-image", userId);
       toast.success(`${platform} image generated!`);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate image");

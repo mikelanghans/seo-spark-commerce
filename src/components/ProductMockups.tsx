@@ -16,6 +16,11 @@ interface ProductImage {
   position: number;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   productId: string;
   userId: string;
@@ -27,9 +32,10 @@ interface Props {
   brandAudience?: string;
   brandTone?: string;
   productCategory?: string;
+  aiUsage?: AiUsage;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -148,6 +154,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         brandAudience={brandAudience}
         brandTone={brandTone}
         productCategory={productCategory}
+        aiUsage={aiUsage}
       />
 
       {loading ? (
