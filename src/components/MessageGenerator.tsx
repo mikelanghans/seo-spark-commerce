@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { removeBackground, recolorOpaquePixels } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SwipeableMessageCard } from "@/components/SwipeableMessageCard";

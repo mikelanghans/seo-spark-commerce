@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight } from "lucide-react";
+import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +31,7 @@ interface Props {
   onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => Promise<void>;
   onDiscardDesign?: (messageId: string) => void;
   onCreateProduct?: (messageId: string) => void;
+  onReplaceDesign?: (messageId: string, file: File) => Promise<void>;
   hasProduct?: boolean;
 }
 
@@ -46,18 +47,21 @@ export const DesignPreviewDialog = ({
   onRegenerate,
   onDiscardDesign,
   onCreateProduct,
+  onReplaceDesign,
   hasProduct,
 }: Props) => {
   const [notes, setNotes] = useState("");
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingUrl, setViewingUrl] = useState<string | null>(null);
   
   const [activeVariant, setActiveVariant] = useState<"light" | "dark">("light");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch history when dialog opens
   useEffect(() => {
@@ -125,6 +129,27 @@ export const DesignPreviewDialog = ({
     setReferencePreview(URL.createObjectURL(file));
   };
 
+  const handleReplaceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !messageId || !onReplaceDesign) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      await onReplaceDesign(messageId, file);
+      await refreshHistory();
+    } finally {
+      setUploading(false);
+      if (replaceInputRef.current) replaceInputRef.current.value = "";
+    }
+  };
+
   const clearReferenceImage = () => {
     setReferenceImage(null);
     if (referencePreview) URL.revokeObjectURL(referencePreview);
@@ -183,6 +208,37 @@ export const DesignPreviewDialog = ({
             className="w-full rounded-lg border border-border"
           />
         )}
+
+        {/* Action buttons row: Download + Upload replacement */}
+        <div className="flex gap-2">
+          {activeUrl && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload}>
+              <Download className="h-4 w-4" />
+              Download
+            </Button>
+          )}
+          {onReplaceDesign && messageId && (
+            <>
+              <input
+                ref={replaceInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleReplaceFileSelect}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={uploading}
+                onClick={() => replaceInputRef.current?.click()}
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploading ? "Uploading…" : "Replace design"}
+              </Button>
+            </>
+          )}
+        </div>
 
         {/* Version history strip */}
         {history.length > 0 && (
