@@ -274,6 +274,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
       await supabase.from("generated_messages").insert(rows);
       toast.success(`Generated ${variations.length} variations!`);
+      if (aiUsage) await aiUsage.logUsage("generate-messages", userId);
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to refine message");
