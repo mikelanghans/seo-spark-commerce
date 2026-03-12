@@ -64,6 +64,28 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       const existingList = Array.from(existingColorSet).map((c) =>
         SUGGESTED_COLORS.find((s) => s.toLowerCase() === c) || c
       );
+
+      // Fetch design image to send to AI for context-aware recommendations
+      let designImageBase64: string | undefined;
+      const designUrl = designImageUrl;
+      if (designUrl) {
+        try {
+          const resp = await fetch(designUrl);
+          const ct = resp.headers.get("content-type") || "";
+          if (ct.startsWith("image/")) {
+            const blob = await resp.blob();
+            designImageBase64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch {
+          // Non-critical — continue without design image
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("recommend-colors", {
         body: {
           productTitle,
@@ -73,6 +95,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           brandAudience,
           brandTone,
           existingColors: existingList,
+          designImageBase64,
         },
       });
       if (error || data?.error) {
