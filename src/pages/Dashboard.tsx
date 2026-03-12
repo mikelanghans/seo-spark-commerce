@@ -671,7 +671,6 @@ const Dashboard = () => {
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={brandAuraLogo} alt="Brand Aura" className="h-10 w-auto object-contain" />
-            <div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
