@@ -110,6 +110,7 @@ serve(async (req) => {
         position: 1,
       });
     }
+    console.log(`Images to push (${images.length}):`, JSON.stringify(images.map(img => ({ src: img.src?.substring(0, 80), alt: img.alt }))));
     if (images.length > 0) {
       shopifyProduct.images = images;
     }
