@@ -207,48 +207,67 @@ serve(async (req) => {
         .eq("id", product.id);
     }
 
-    // Upload images via src URL (Shopify fetches from the public URL directly)
-    const uploadedImages: { id: number; alt: string; colorName?: string }[] = [];
+    // Upload images with progressive fallbacks (large -> medium -> compact -> original)
+    const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
     if (createdProduct?.id && imageEntries.length > 0) {
       for (let i = 0; i < imageEntries.length; i++) {
         const entry = imageEntries[i];
-        try {
-          const uploadRes = await fetch(
-            `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
-            {
-              method: "POST",
-              headers: {
-                "X-Shopify-Access-Token": connection.access_token,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                image: {
-                  src: entry.url,
-                  alt: entry.alt,
-                  position: i + 1,
-                  filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.png`,
-                },
-              }),
-            }
-          );
+        let uploaded = false;
 
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            uploadedImages.push({
-              id: uploadData.image.id,
-              alt: entry.alt,
-              colorName: entry.colorName,
-            });
-            console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
-          } else {
+        for (let c = 0; c < entry.uploadCandidates.length; c++) {
+          const candidateUrl = entry.uploadCandidates[c];
+          try {
+            const uploadRes = await fetch(
+              `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
+              {
+                method: "POST",
+                headers: {
+                  "X-Shopify-Access-Token": connection.access_token,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  image: {
+                    src: candidateUrl,
+                    alt: entry.alt,
+                    position: i + 1,
+                    filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.jpg`,
+                  },
+                }),
+              }
+            );
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              uploadedImages[i] = {
+                id: uploadData.image.id,
+                alt: entry.alt,
+                colorName: entry.colorName,
+              };
+              console.log(
+                `Uploaded image ${i + 1}/${imageEntries.length} (${c + 1}/${entry.uploadCandidates.length} candidate): ${entry.colorName || "fallback"}`,
+              );
+              uploaded = true;
+              break;
+            }
+
             const errText = await uploadRes.text();
-            console.error(`Image upload ${i} failed (${uploadRes.status}): ${errText}`);
+            console.error(
+              `Image upload ${i} failed (${uploadRes.status}) on candidate ${c + 1}/${entry.uploadCandidates.length}: ${errText}`,
+            );
+          } catch (imgErr) {
+            console.error(`Image ${i} candidate ${c + 1} error:`, imgErr);
           }
-        } catch (imgErr) {
-          console.error(`Image ${i} error:`, imgErr);
         }
+
+        if (!uploaded) uploadedImages[i] = null;
       }
-      console.log(`Successfully uploaded ${uploadedImages.length}/${imageEntries.length} images`);
+
+      const uploadedCount = uploadedImages.filter(Boolean).length;
+      console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
+
+      if (uploadedCount === 0) {
+        throw new Error("Unable to upload mockups to Shopify (source images are too large or timed out). Please regenerate or re-upload optimized mockups.");
+      }
     }
 
     // Associate uploaded images with their corresponding variants
