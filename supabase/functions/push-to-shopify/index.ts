@@ -6,6 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const buildRenderImageUrl = (rawUrl: string, width: number, quality: number) => {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.pathname.includes("/storage/v1/object/public/")) return rawUrl;
+
+    const renderPath = parsed.pathname.replace(
+      "/storage/v1/object/public/",
+      "/storage/v1/render/image/public/",
+    );
+
+    const renderUrl = new URL(`${parsed.origin}${renderPath}`);
+    renderUrl.searchParams.set("width", String(width));
+    renderUrl.searchParams.set("quality", String(quality));
+    renderUrl.searchParams.set("format", "jpeg");
+    renderUrl.searchParams.set("resize", "contain");
+    return renderUrl.toString();
+  } catch {
+    return rawUrl;
+  }
+};
+
+const getShopifyUploadCandidates = (rawUrl: string) => {
+  const large = buildRenderImageUrl(rawUrl, 2048, 84);
+  if (large === rawUrl) return [rawUrl];
+
+  const medium = buildRenderImageUrl(rawUrl, 1600, 76);
+  const compact = buildRenderImageUrl(rawUrl, 1280, 72);
+  return Array.from(new Set([large, medium, compact, rawUrl]));
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
