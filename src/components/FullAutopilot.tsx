@@ -293,9 +293,16 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             const sourceUrl = organization.template_image_url || designUrl;
             const referenceBase64 = await fetchImageAsBase64(sourceUrl);
-            let designBase64: string | undefined;
-            if (designUrl !== sourceUrl) {
-              designBase64 = await fetchImageAsBase64(designUrl);
+
+            // Pre-composite design onto template so AI only needs to recolor
+            let preCompositedBase64 = referenceBase64;
+            if (designUrl && designUrl !== sourceUrl) {
+              try {
+                const designBase64 = await fetchImageAsBase64(designUrl);
+                preCompositedBase64 = await compositeDesignOntoTemplate(referenceBase64, designBase64);
+              } catch {
+                // Fall back to template without design
+              }
             }
 
             let targetSize: { width: number; height: number } | null = null;
