@@ -74,6 +74,11 @@ export function SocialPostGenerator({
     if (!product) { toast.error("Select a product first"); return; }
     if (selectedPlatforms.length === 0) { toast.error("Select at least one platform"); return; }
 
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-social-posts", userId);
+      if (!allowed) return;
+    }
+
     setLoading(true);
     setPosts({});
     setPostImages({});
