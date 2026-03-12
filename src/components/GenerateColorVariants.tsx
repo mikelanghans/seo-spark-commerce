@@ -228,29 +228,41 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
-    let designBase64: string | undefined;
-    if (designImageUrl) {
+    // Load both design variants from product_images
+    let lightDesignBase64: string | undefined;
+    let darkDesignBase64: string | undefined;
+
+    const { data: designImages } = await supabase
+      .from("product_images")
+      .select("image_url, color_name")
+      .eq("product_id", productId)
+      .eq("image_type", "design");
+
+    const lightDesignUrl = designImages?.find(d => d.color_name === "light-on-dark")?.image_url || designImageUrl;
+    const darkDesignUrl = designImages?.find(d => d.color_name === "dark-on-light")?.image_url;
+
+    const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
       try {
-        const resp = await fetch(designImageUrl);
-        const contentType = resp.headers.get("content-type") || "";
-        if (contentType.startsWith("image/")) {
-          const blob = await resp.blob();
-          designBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } else {
-          toast.error("Design image URL is broken or expired.");
-          setGenerating(false);
-          return;
-        }
+        const resp = await fetch(url);
+        const ct = resp.headers.get("content-type") || "";
+        if (!ct.startsWith("image/")) return undefined;
+        const blob = await resp.blob();
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
       } catch {
-        toast.error("Failed to load design image.");
-        setGenerating(false);
-        return;
+        return undefined;
       }
+    };
+
+    if (lightDesignUrl) lightDesignBase64 = await fetchAsBase64(lightDesignUrl);
+    if (darkDesignUrl) darkDesignBase64 = await fetchAsBase64(darkDesignUrl);
+
+    if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+      lightDesignBase64 = await fetchAsBase64(designImageUrl);
     }
 
     // Process with concurrency of 2
@@ -267,7 +279,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         setActiveColors((prev) => [...prev, colorName]);
 
         try {
-          const ok = await generateSingleColor(colorName, imageBase64, designBase64);
+          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64);
+          if (ok) successCount++;
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
