@@ -585,6 +585,7 @@ const Dashboard = () => {
         }));
 
         await supabase.from("listings").insert(listingRows);
+        if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
         successCount++;
       } catch (err: any) {
         console.error(`Failed to generate listings for ${product.title}:`, err);
