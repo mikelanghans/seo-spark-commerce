@@ -303,10 +303,35 @@ const Dashboard = () => {
     loadProducts(org.id);
   };
 
-  const handleDeleteOrg = async (id: string) => {
-    await supabase.from("organizations").delete().eq("id", id);
-    toast.success("Organization deleted");
+  const [deleteConfirmOrg, setDeleteConfirmOrg] = useState<Organization | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [archivedOrgs, setArchivedOrgs] = useState<Organization[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const loadArchivedOrgs = async () => {
+    const { data } = await supabase.from("organizations").select("*").not("deleted_at", "is", null).order("deleted_at", { ascending: false });
+    setArchivedOrgs((data as Organization[]) || []);
+  };
+
+  const handleDeleteOrg = async (org: Organization) => {
+    setDeleteConfirmOrg(org);
+    setDeleteConfirmText("");
+  };
+
+  const confirmDeleteOrg = async () => {
+    if (!deleteConfirmOrg) return;
+    await supabase.from("organizations").update({ deleted_at: new Date().toISOString() }).eq("id", deleteConfirmOrg.id);
+    toast.success("Brand archived — it can be restored within 30 days");
+    setDeleteConfirmOrg(null);
+    setDeleteConfirmText("");
     loadOrgs();
+  };
+
+  const handleRestoreOrg = async (id: string) => {
+    await supabase.from("organizations").update({ deleted_at: null }).eq("id", id);
+    toast.success("Brand restored!");
+    loadOrgs();
+    loadArchivedOrgs();
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
