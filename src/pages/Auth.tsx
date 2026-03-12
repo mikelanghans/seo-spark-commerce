@@ -43,9 +43,10 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="flex flex-col items-center gap-3">
-          <img src={brandAuraLogo} alt="Brand Aura" className="h-32 w-auto object-contain" />
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <img src={brandAuraIcon} alt="Brand Aura" className="h-20 w-20 object-contain" />
+          <h1 className="text-2xl font-bold tracking-tight">Brand Aura</h1>
+          <p className="text-xs text-muted-foreground tracking-widest uppercase">AI-Powered Brand Studio</p>
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
         </div>
