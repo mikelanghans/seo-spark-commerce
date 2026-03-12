@@ -525,6 +525,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 }] : [],
                 imageUrl: designUrl,
                 variants: shopifyVariants,
+                shopifyStatus,
               },
             });
 
