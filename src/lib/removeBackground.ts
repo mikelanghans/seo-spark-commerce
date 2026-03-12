@@ -141,6 +141,33 @@ export async function recolorOpaquePixels(
   return canvasToPngBase64(canvas);
 }
 
+/**
+ * Upscale a base64 PNG (without data URL prefix) to a target width using canvas.
+ * Maintains aspect ratio. Returns base64 string without data URL prefix.
+ */
+export async function upscaleBase64Png(
+  base64Png: string,
+  targetWidth = 4500,
+): Promise<string> {
+  const img = await loadImage(`data:image/png;base64,${base64Png}`);
+  if (img.width >= targetWidth) return base64Png; // already large enough
+
+  const scale = targetWidth / img.width;
+  const targetHeight = Math.round(img.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+  return canvasToPngBase64(canvas);
+}
+
 function canvasToPngBase64(canvas: HTMLCanvasElement): string {
   const dataUrl = canvas.toDataURL("image/png");
   return dataUrl.replace(/^data:image\/png;base64,/, "");
