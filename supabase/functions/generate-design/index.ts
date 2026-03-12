@@ -60,7 +60,8 @@ STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 TYPOGRAPHY:
 - Font style: ${fontDirection}
 - Text should be ${sizeDirection.toLowerCase()} but balanced with the illustration
-- The illustration should be the primary visual, text secondary but readable
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be perfectly sharp, crisp, and readable. Use thick stroke weights — no thin or wispy fonts.
+- The illustration should be the primary visual, text secondary but always clearly readable
 - If the message has a sub-attribution, set it small and elegant
 - TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"}) — do NOT color the text
 
