@@ -205,8 +205,8 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
       const completedSteps = new Set<string>();
       if (resumeData) {
         // Determine which steps are already done
-        const stepOrder = STEPS.map((s) => s.key);
-        const currentStepIdx = stepOrder.indexOf(resumeData.step as StepKey);
+        const stepOrder: string[] = STEPS.map((s) => s.key);
+        const currentStepIdx = stepOrder.indexOf(resumeData.step);
         if (resumeData.status === "done" || resumeData.step === "done") {
           // Fully done — skip
           updateItem(i, { step: "done", status: "done" });
