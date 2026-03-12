@@ -170,14 +170,16 @@ serve(async (req) => {
         console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
 
         if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
-          // Calculate scale so the design fits within the print area while preserving aspect ratio
-          const scaleByWidth = printAreaWidth / imgW;
-          const scaleByHeight = printAreaHeight / imgH;
-          // Use the smaller scale to ensure the design fits entirely
-          const fitScale = Math.min(scaleByWidth, scaleByHeight);
-          // Normalize to Printify's scale where 1.0 = fill print area width
-          imageScale = (fitScale * imgW) / printAreaWidth;
-          console.log(`Calculated scale: ${imageScale.toFixed(4)} (fitScale=${fitScale.toFixed(4)})`);
+          // Scale to keep full design visible while targeting chest-print footprint.
+          const widthFillScale = printAreaWidth / imgW;
+          const heightFitScale = printAreaHeight / imgH;
+          const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
+          const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
+
+          imageScale = Math.max(0.2, Math.min(1.5, targetChestScale));
+          console.log(
+            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, default=${DEFAULT_IMAGE_SCALE})`
+          );
         }
       } else {
         console.log(`Could not fetch image info (${imageInfoRes.status}), using default scale`);
