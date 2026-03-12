@@ -8,6 +8,7 @@ import {
   compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
+import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
