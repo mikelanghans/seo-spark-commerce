@@ -136,12 +136,39 @@ serve(async (req) => {
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
-    // Design placement — centered, ~65% of print area width for standard DTG look
-    const imageX = 0.5;
-    const imageY = 0.5;
-    // Scale 1.0 means design fills the entire print area width.
-    // For a standard centered chest print, use ~0.65 (65% of print area width).
-    const imageScale = 0.65;
+    // Printify coordinate system: x=0, y=0 = centered. scale=1.0 = fill print area width.
+    const imageX = 0;
+    const imageY = 0;
+
+    // Fetch uploaded image dimensions from Printify to calculate optimal scale
+    let imageScale = 1.0; // Default: fill the print area
+    try {
+      const imageInfoRes = await fetch(
+        `https://api.printify.com/v1/uploads/${printifyImageId}.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      );
+      if (imageInfoRes.ok) {
+        const imageInfo = await imageInfoRes.json();
+        const imgW = imageInfo.width || 0;
+        const imgH = imageInfo.height || 0;
+        console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
+
+        if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
+          // Calculate scale so the design fits within the print area while preserving aspect ratio
+          const scaleByWidth = printAreaWidth / imgW;
+          const scaleByHeight = printAreaHeight / imgH;
+          // Use the smaller scale to ensure the design fits entirely
+          const fitScale = Math.min(scaleByWidth, scaleByHeight);
+          // Normalize to Printify's scale where 1.0 = fill print area width
+          imageScale = (fitScale * imgW) / printAreaWidth;
+          console.log(`Calculated scale: ${imageScale.toFixed(4)} (fitScale=${fitScale.toFixed(4)})`);
+        }
+      } else {
+        console.log(`Could not fetch image info (${imageInfoRes.status}), using default scale`);
+      }
+    } catch (imgErr) {
+      console.log(`Image info fetch failed, using default scale: ${imgErr}`);
+    }
 
     // Split variants into light and dark groups if we have a dark design
     const lightColorSet = new Set((lightColors || []).map((c: string) => c.toLowerCase()));
