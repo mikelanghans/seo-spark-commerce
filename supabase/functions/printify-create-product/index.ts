@@ -148,10 +148,6 @@ serve(async (req) => {
     // Note: Printify auto-generates mockups from print_areas design.
     // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
-    // Build product payload
-    const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
-    const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
-
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Move design up toward neckline — lower y = higher on shirt.
     const imageX = 0.5;
