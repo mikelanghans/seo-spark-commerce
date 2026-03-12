@@ -112,6 +112,50 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
   };
 
+  const CONCURRENCY = 2;
+
+  const generateSingleColor = async (
+    colorName: string,
+    imageBase64: string,
+    designBase64: string | undefined,
+  ): Promise<boolean> => {
+    const { data, error } = await supabase.functions.invoke("generate-color-variants", {
+      body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
+    });
+    if (error || data?.error) {
+      handleAiError(error, data, `Failed: ${colorName}`);
+      const errorMsg = data?.error || error?.message || "";
+      if (errorMsg.includes("credits") || errorMsg.includes("402")) throw new Error("CREDITS_EXHAUSTED");
+      return false;
+    }
+
+    const generatedBase64 = data.imageBase64;
+    if (!generatedBase64) throw new Error("No image returned");
+
+    const base64Data = generatedBase64.split(",")[1] || generatedBase64;
+    const byteChars = atob(base64Data);
+    const byteArray = new Uint8Array(byteChars.length);
+    for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
+    const blob = new Blob([byteArray], { type: "image/png" });
+
+    const path = `${userId}/${crypto.randomUUID()}.png`;
+    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+    await supabase.from("product_images").insert({
+      product_id: productId,
+      user_id: userId,
+      image_url: urlData.publicUrl,
+      image_type: "mockup",
+      color_name: colorName,
+      position: 0,
+    });
+
+    return true;
+  };
+
   const handleGenerate = async () => {
     if (!sourceImageUrl) {
       toast.error("No source image available. Upload a product image first.");
@@ -123,7 +167,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
 
     setGenerating(true);
+    setStartTime(Date.now());
+    setAvgTime(null);
     setProgress({ done: 0, total: colors.length, current: colors[0] });
+    setActiveColors([]);
 
     const { data: existingImages } = await supabase
       .from("product_images")
@@ -139,7 +186,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
-    setProgress({ done: 0, total: newColors.length, current: newColors[0] });
+    setProgress({ done: 0, total: newColors.length, current: "" });
 
     let imageBase64: string;
     try {
@@ -188,55 +235,51 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       }
     }
 
+    // Process with concurrency of 2
     let successCount = 0;
-    for (let i = 0; i < newColors.length; i++) {
-      const colorName = newColors[i];
-      setProgress({ done: i, total: newColors.length, current: colorName });
+    let doneCount = 0;
+    let creditsExhausted = false;
+    const genStart = Date.now();
+    let nextIndex = 0;
 
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-color-variants", {
-          body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
-        });
-        if (error || data?.error) {
-          handleAiError(error, data, `Failed: ${colorName}`);
-          const errorMsg = data?.error || error?.message || "";
-          if (errorMsg.includes("credits") || errorMsg.includes("402")) break;
-          continue;
+    const worker = async () => {
+      while (nextIndex < newColors.length && !creditsExhausted) {
+        const i = nextIndex++;
+        const colorName = newColors[i];
+        setActiveColors((prev) => [...prev, colorName]);
+
+        try {
+          const ok = await generateSingleColor(colorName, imageBase64, designBase64);
+          if (ok) successCount++;
+        } catch (err: any) {
+          if (err?.message === "CREDITS_EXHAUSTED") {
+            creditsExhausted = true;
+            return;
+          }
+          console.error(`Failed to generate ${colorName}:`, err);
+          handleAiError(err, null, `Failed: ${colorName}`);
+        } finally {
+          doneCount++;
+          const elapsed = Date.now() - genStart;
+          const perItem = elapsed / doneCount;
+          setAvgTime(perItem);
+          setActiveColors((prev) => prev.filter((c) => c !== colorName));
+          setProgress({ done: doneCount, total: newColors.length, current: "" });
         }
-
-        const generatedBase64 = data.imageBase64;
-        if (!generatedBase64) throw new Error("No image returned");
-
-        const base64Data = generatedBase64.split(",")[1] || generatedBase64;
-        const byteChars = atob(base64Data);
-        const byteArray = new Uint8Array(byteChars.length);
-        for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
-        const blob = new Blob([byteArray], { type: "image/png" });
-
-        const path = `${userId}/${crypto.randomUUID()}.png`;
-        const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-        await supabase.from("product_images").insert({
-          product_id: productId,
-          user_id: userId,
-          image_url: urlData.publicUrl,
-          image_type: "mockup",
-          color_name: colorName,
-          position: i,
-        });
-
-        successCount++;
-      } catch (err: any) {
-        console.error(`Failed to generate ${colorName}:`, err);
-        handleAiError(err, null, `Failed: ${colorName}`);
       }
-    }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(CONCURRENCY, newColors.length) },
+      () => worker()
+    );
+    await Promise.all(workers);
 
     setProgress({ done: newColors.length, total: newColors.length, current: "" });
     setGenerating(false);
+    setStartTime(null);
+    setAvgTime(null);
+    setActiveColors([]);
     if (colors.length > newColors.length) {
       toast.success(`Generated ${successCount}/${newColors.length} new variants (${colors.length - newColors.length} already existed)`);
     } else {
