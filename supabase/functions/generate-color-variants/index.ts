@@ -105,8 +105,13 @@ RULES:
 
         const data = await response.json();
         const message = data.choices?.[0]?.message;
+        const textContent = typeof message?.content === "string"
+          ? message.content
+          : Array.isArray(message?.content)
+            ? message.content.filter((p: any) => p?.type === "text" && typeof p?.text === "string").map((p: any) => p.text).join("\n")
+            : "";
 
-        // Extract image from response
+        // Extract image from response (chat-completions style)
         if (message?.images?.length > 0) {
           imageBase64Result = message.images[0].image_url?.url || null;
         }
@@ -126,9 +131,31 @@ RULES:
           imageBase64Result = message.content;
         }
 
+        // Extract image from alternate payload shape (images endpoint compatibility)
+        const compatImage = data?.data?.[0]?.b64_json || data?.data?.[0]?.url;
+        if (!imageBase64Result && compatImage) {
+          imageBase64Result = compatImage.startsWith("data:image")
+            ? compatImage
+            : compatImage.startsWith("http")
+              ? compatImage
+              : `data:image/png;base64,${compatImage}`;
+        }
+
         if (imageBase64Result) break;
 
-        // AI returned text only (no image) — retry with stronger prompt
+        // If the model refuses because source already matches target color, keep original image
+        const lowerText = textContent.toLowerCase();
+        const lowerColor = (colorName || "").toLowerCase();
+        const sameColorRefusal =
+          (lowerText.includes("cannot recolor") || lowerText.includes("already")) &&
+          lowerText.includes(`to ${lowerColor}`);
+
+        if (sameColorRefusal) {
+          imageBase64Result = imageBase64;
+          break;
+        }
+
+        // AI returned text only (no image) — retry
         console.warn(`Attempt ${attempt + 1} with ${model}: AI returned text only, retrying...`);
       }
       if (imageBase64Result) break;
