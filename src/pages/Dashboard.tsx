@@ -1708,6 +1708,9 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+      {showTour && (
+        <OnboardingTour onClose={() => { setShowTour(false); localStorage.setItem("brand_aura_tour_seen", "1"); }} />
+      )}
     </div>
   );
 };
