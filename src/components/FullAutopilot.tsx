@@ -1,6 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { removeBackground } from "@/lib/removeBackground";
+import {
+  ensureImageDataUrl,
+  getImageDimensionsFromDataUrl,
+  normalizeAndLockToTemplateBlob,
+} from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -73,6 +78,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  };
+
+  const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
+    const response = await fetch(dataUrl, { signal: abortRef.current?.signal });
+    return await response.blob();
   };
 
   const checkCancelled = () => {
@@ -281,14 +291,20 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
             const sourceUrl = organization.template_image_url || designUrl;
-            const imageBase64 = await fetchImageAsBase64(sourceUrl);
+            const referenceBase64 = await fetchImageAsBase64(sourceUrl);
             let designBase64: string | undefined;
             if (designUrl !== sourceUrl) {
               designBase64 = await fetchImageAsBase64(designUrl);
             }
 
+            let targetSize: { width: number; height: number } | null = null;
+            try {
+              targetSize = await getImageDimensionsFromDataUrl(referenceBase64);
+            } catch {
+              targetSize = null;
+            }
+
             let mockupCount = 0;
-            const referenceBase64 = imageBase64;
             for (const colorName of recommendedColors) {
               if (cancelRef.current) break;
               log(`  🖌️ Generating mockup: ${colorName}...`, "info");
@@ -297,7 +313,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               try {
                 const { data: mockupData, error: mockupError } = await withRetry(() =>
                   supabase.functions.invoke("generate-color-variants", {
-                    body: { imageBase64: referenceBase64, colorName, productTitle, designImageBase64: designBase64 },
+                    body: {
+                      imageBase64: referenceBase64,
+                      colorName,
+                      productTitle,
+                      designImageBase64: designBase64,
+                      sourceWidth: targetSize?.width ?? null,
+                      sourceHeight: targetSize?.height ?? null,
+                    },
                   }),
                   { label: `mockup-${colorName}` }
                 );
@@ -312,11 +335,16 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 const genBase64 = mockupData.imageBase64;
                 if (!genBase64) continue;
 
-                const base64Data = genBase64.split(",")[1] || genBase64;
-                const byteChars = atob(base64Data);
-                const byteArray = new Uint8Array(byteChars.length);
-                for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
-                const blob = new Blob([byteArray], { type: "image/png" });
+                const generatedDataUrl = ensureImageDataUrl(genBase64);
+                const blob = targetSize
+                  ? await normalizeAndLockToTemplateBlob({
+                      templateDataUrl: referenceBase64,
+                      generatedDataUrl,
+                      targetWidth: targetSize.width,
+                      targetHeight: targetSize.height,
+                    })
+                  : await dataUrlToBlob(generatedDataUrl);
+
                 const path = `${userId}/${crypto.randomUUID()}.png`;
                 await supabase.storage.from("product-images").upload(path, blob);
                 const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
