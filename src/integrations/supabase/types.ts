@@ -440,6 +440,118 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_job_items: {
+        Row: {
+          created_at: string
+          design_file_name: string
+          design_url: string | null
+          error: string | null
+          folder_name: string
+          id: string
+          item_index: number
+          job_id: string
+          mockup_file_names: Json
+          mockup_uploads: Json | null
+          product_id: string | null
+          product_title: string | null
+          status: string
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          design_file_name?: string
+          design_url?: string | null
+          error?: string | null
+          folder_name: string
+          id?: string
+          item_index?: number
+          job_id: string
+          mockup_file_names?: Json
+          mockup_uploads?: Json | null
+          product_id?: string | null
+          product_title?: string | null
+          status?: string
+          step?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          design_file_name?: string
+          design_url?: string | null
+          error?: string | null
+          folder_name?: string
+          id?: string
+          item_index?: number
+          job_id?: string
+          mockup_file_names?: Json
+          mockup_uploads?: Json | null
+          product_id?: string | null
+          product_title?: string | null
+          status?: string
+          step?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_jobs: {
+        Row: {
+          completed_items: number
+          concurrency: number
+          created_at: string
+          failed_items: number
+          id: string
+          organization_id: string
+          push_to_shopify: boolean
+          status: string
+          total_items: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_items?: number
+          concurrency?: number
+          created_at?: string
+          failed_items?: number
+          id?: string
+          organization_id: string
+          push_to_shopify?: boolean
+          status?: string
+          total_items?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_items?: number
+          concurrency?: number
+          created_at?: string
+          failed_items?: number
+          id?: string
+          organization_id?: string
+          push_to_shopify?: boolean
+          status?: string
+          total_items?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           color_name: string
