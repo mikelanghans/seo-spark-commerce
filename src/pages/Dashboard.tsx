@@ -756,37 +756,37 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-
-              {/* Archived Brands */}
-              <div className="mt-8">
-                <button
-                  onClick={() => { setShowArchived(!showArchived); if (!showArchived) loadArchivedOrgs(); }}
-                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  {showArchived ? "Hide" : "Show"} archived brands
-                </button>
-                {showArchived && archivedOrgs.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {archivedOrgs.map((org) => (
-                      <div key={org.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
-                        <div>
-                          <span className="font-medium text-muted-foreground">{org.name}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            Archived {org.deleted_at ? new Date(org.deleted_at).toLocaleDateString() : ""}
-                          </span>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => handleRestoreOrg(org.id)}>
-                          Restore
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {showArchived && archivedOrgs.length === 0 && (
-                  <p className="mt-2 text-xs text-muted-foreground">No archived brands</p>
-                )}
-              </div>
             )}
+
+            {/* Archived Brands */}
+            <div className="mt-8">
+              <button
+                onClick={() => { setShowArchived(!showArchived); if (!showArchived) loadArchivedOrgs(); }}
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                {showArchived ? "Hide" : "Show"} archived brands
+              </button>
+              {showArchived && archivedOrgs.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {archivedOrgs.map((org) => (
+                    <div key={org.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
+                      <div>
+                        <span className="font-medium text-muted-foreground">{org.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Archived {org.deleted_at ? new Date(org.deleted_at).toLocaleDateString() : ""}
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreOrg(org.id)}>
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showArchived && archivedOrgs.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">No archived brands</p>
+              )}
+            </div>
           </div>
         )}
 
