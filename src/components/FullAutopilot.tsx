@@ -443,8 +443,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
             // Upload design
-            // Remove black background client-side, upload as base64
-            const base64Contents = await removeBackground(designUrl, "black");
+            // Remove black background client-side, upscale for high DPI, upload as base64
+            let base64Contents = await removeBackground(designUrl, "black");
+            base64Contents = await upscaleBase64Png(base64Contents, 4500);
             const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {
               body: { base64Contents, fileName: `${productTitle}-design.png` },
             });
