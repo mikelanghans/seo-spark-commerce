@@ -52,7 +52,7 @@ interface EnrichItem {
   newSeoDescription?: string;
 }
 
-export const ShopifyEnrich = ({ organization, userId, onComplete, onBack }: Props) => {
+export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsage }: Props) => {
   const [items, setItems] = useState<EnrichItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
