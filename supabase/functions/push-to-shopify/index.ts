@@ -79,7 +79,7 @@ serve(async (req) => {
       title: shopifyListing?.title || product.title,
       body_html: bodyHtml || `<p>${rawDesc}</p>`,
       product_type: product.category,
-      status: "active",
+      status: shopifyStatus === "draft" ? "draft" : "active",
       tags: (() => {
         let tagList: string[] = [];
         if (Array.isArray(shopifyListing?.tags)) tagList = shopifyListing.tags;
