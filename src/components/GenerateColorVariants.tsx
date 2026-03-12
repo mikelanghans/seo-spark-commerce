@@ -157,21 +157,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   const generateSingleColor = async (
     colorName: string,
-    imageBase64: string,
-    lightDesignBase64: string | undefined,
-    darkDesignBase64: string | undefined,
+    preCompositedBase64: string,
     targetSize: { width: number; height: number } | null,
   ): Promise<boolean> => {
-    // Pick the correct design variant for this color
-    const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
-    const designBase64 = isLight ? (darkDesignBase64 || lightDesignBase64) : (lightDesignBase64 || darkDesignBase64);
-
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
-        imageBase64,
+        imageBase64: preCompositedBase64,
         colorName,
         productTitle,
-        designImageBase64: designBase64,
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
       },
