@@ -438,9 +438,20 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
       {/* Progress */}
       {generating && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Generating {progress.current}… ({progress.done}/{progress.total})
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>
+              Generating {progress.done}/{progress.total}
+              {activeColors.length > 0 && ` — ${activeColors.join(", ")}`}
+            </span>
+          </div>
+          {avgTime && progress.done < progress.total && (
+            <p className="text-[10px] text-muted-foreground pl-6">
+              ~{Math.ceil(((progress.total - progress.done) * avgTime) / 1000 / 60)} min remaining
+              {" "}(~{Math.round(avgTime / 1000)}s per color, 2 at a time)
+            </p>
+          )}
         </div>
       )}
 
