@@ -429,6 +429,10 @@ const Dashboard = () => {
     setGenerating(true);
 
     try {
+      if (aiUsage) {
+        const allowed = await aiUsage.checkAndLog("generate-listings", user!.id);
+        if (!allowed) { setGenerating(false); return; }
+      }
       const { data: result, error } = await supabase.functions.invoke("generate-listings", {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
