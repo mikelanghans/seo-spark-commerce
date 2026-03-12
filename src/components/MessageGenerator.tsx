@@ -841,6 +841,65 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           await loadMessages();
           onProductsCreated?.();
         }}
+        onReplaceDesign={async (msgId, file) => {
+          const msg = messages.find((m) => m.id === msgId);
+          // Archive current design to history before replacing
+          if (msg?.design_url) {
+            await supabase.from("design_history" as any).insert({
+              message_id: msgId,
+              design_url: msg.design_url,
+              feedback_notes: "Replaced with uploaded file",
+              organization_id: organization.id,
+              user_id: userId,
+            });
+          }
+
+          // Upload file to storage
+          const ext = file.name.split(".").pop() || "png";
+          const path = `${userId}/designs/${Date.now()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("product-images")
+            .upload(path, file, { contentType: file.type });
+          if (uploadErr) {
+            toast.error("Failed to upload design file");
+            return;
+          }
+          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+          const newDesignUrl = urlData.publicUrl;
+
+          // Generate dark variant client-side
+          let darkUrl: string | null = null;
+          try {
+            const lightBase64 = await removeBackground(newDesignUrl, "black");
+            const darkBase64 = await recolorOpaquePixels(lightBase64);
+            const darkBlob = await fetch(`data:image/png;base64,${darkBase64}`).then(r => r.blob());
+            const darkPath = `${userId}/designs/${Date.now()}-dark.png`;
+            const { error: darkUploadErr } = await supabase.storage
+              .from("product-images")
+              .upload(darkPath, darkBlob, { contentType: "image/png" });
+            if (!darkUploadErr) {
+              const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
+              darkUrl = darkUrlData.publicUrl;
+            }
+          } catch {
+            // Dark variant generation is optional, continue without it
+          }
+
+          // Update the message record
+          await supabase
+            .from("generated_messages")
+            .update({ design_url: newDesignUrl, dark_design_url: darkUrl })
+            .eq("id", msgId);
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === msgId ? { ...m, design_url: newDesignUrl, dark_design_url: darkUrl } : m
+            )
+          );
+          setPreviewUrl(newDesignUrl);
+          setPreviewDarkUrl(darkUrl);
+          toast.success("Design replaced!");
+        }}
       />
     </div>
   );
