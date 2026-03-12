@@ -154,6 +154,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         brandAudience={brandAudience}
         brandTone={brandTone}
         productCategory={productCategory}
+        aiUsage={aiUsage}
       />
 
       {loading ? (
