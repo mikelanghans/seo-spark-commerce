@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -172,20 +171,12 @@ serve(async (req) => {
         .eq("id", product.id);
     }
 
-    // Upload images via base64 attachment (much more reliable than src URLs)
+    // Upload images via src URL (Shopify fetches from the public URL directly)
     const uploadedImages: { id: number; alt: string; colorName?: string }[] = [];
     if (createdProduct?.id && imageEntries.length > 0) {
       for (let i = 0; i < imageEntries.length; i++) {
         const entry = imageEntries[i];
         try {
-          const imgRes = await fetch(entry.url);
-          if (!imgRes.ok) {
-            console.error(`Failed to fetch image ${i}: ${imgRes.status}`);
-            continue;
-          }
-          const imgBuffer = await imgRes.arrayBuffer();
-          const base64 = base64Encode(new Uint8Array(imgBuffer));
-
           const uploadRes = await fetch(
             `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
             {
@@ -196,7 +187,7 @@ serve(async (req) => {
               },
               body: JSON.stringify({
                 image: {
-                  attachment: base64,
+                  src: entry.url,
                   alt: entry.alt,
                   position: i + 1,
                   filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.png`,
