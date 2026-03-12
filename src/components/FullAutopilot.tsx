@@ -599,6 +599,18 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             </Button>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Label htmlFor="shopify-status" className="text-sm text-muted-foreground">Shopify status:</Label>
+            <div
+              id="shopify-status"
+              className="flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => setShopifyStatus((s) => s === "active" ? "draft" : "active")}
+            >
+              <Switch checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
+              <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
+            </div>
+          </div>
+
           <div className="text-xs text-muted-foreground space-y-1">
             <p>• Design style: <strong>{(organization.design_styles as string[])?.[0] || "text-only"}</strong></p>
             <p>• Colors: <strong>AI recommended</strong></p>
