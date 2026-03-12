@@ -234,6 +234,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleRefine = async (id: string, feedback: string) => {
     const msg = messages.find((m) => m.id === id);
     if (!msg) return;
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-messages", userId);
+      if (!allowed) return;
+    }
     setRefiningId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-messages", {
