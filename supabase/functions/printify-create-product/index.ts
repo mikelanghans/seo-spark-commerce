@@ -190,49 +190,58 @@ serve(async (req) => {
     }
 
     // Split variants into light and dark groups if we have a dark design
+    // CRITICAL: Printify requires ALL variant IDs from the blueprint to appear
+    // in print_areas.*.variant_ids — not just enabled ones.
     const lightColorSet = new Set((lightColors || []).map((c: string) => c.toLowerCase()));
     const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+    const allVariantIds = allVariants.map((v: any) => v.id);
 
-    let printAreas: any[];
-    if (hasDarkDesign) {
-      // Separate enabled variant IDs by light vs dark shirt color
-      const darkVariantIds = enabledVariants
-        .filter((v: any) => !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
-        .map((v: any) => v.id);
-      const lightVariantIds = enabledVariants
-        .filter((v: any) => lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
-        .map((v: any) => v.id);
+    // Helper to build print_areas ensuring ALL variantIds are covered
+    const buildPrintAreas = (variantIds: number[]) => {
+      const variantIdSet = new Set(variantIds);
 
-      console.log(`Dual design: ${darkVariantIds.length} dark variants (white design), ${lightVariantIds.length} light variants (dark design)`);
+      if (hasDarkDesign) {
+        // Split by light vs dark shirt color
+        const darkIds: number[] = [];
+        const lightIds: number[] = [];
+        for (const v of allVariants) {
+          if (!variantIdSet.has(v.id)) continue;
+          if (lightColorSet.has((v.options?.color || "").trim().toLowerCase())) {
+            lightIds.push(v.id);
+          } else {
+            darkIds.push(v.id);
+          }
+        }
 
-      printAreas = [];
-      if (darkVariantIds.length > 0) {
-        printAreas.push({
-          variant_ids: darkVariantIds,
-          placeholders: [{
-            position: "front",
-            images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
-          }],
-        });
+        console.log(`Dual design: ${darkIds.length} dark variants, ${lightIds.length} light variants (of ${variantIds.length} total)`);
+
+        const areas: any[] = [];
+        if (darkIds.length > 0) {
+          areas.push({
+            variant_ids: darkIds,
+            placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+          });
+        }
+        if (lightIds.length > 0) {
+          areas.push({
+            variant_ids: lightIds,
+            placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+          });
+        }
+        return areas;
+      } else {
+        return [{
+          variant_ids: variantIds,
+          placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
+        }];
       }
-      if (lightVariantIds.length > 0) {
-        printAreas.push({
-          variant_ids: lightVariantIds,
-          placeholders: [{
-            position: "front",
-            images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
-          }],
-        });
-      }
-    } else {
-      printAreas = [{
-        variant_ids: enabledVariants.map((v: any) => v.id),
-        placeholders: [{
-          position: "front",
-          images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }],
-        }],
-      }];
-    }
+    };
+
+    // For CREATE: include ALL blueprint variants (enabled + disabled)
+    const printAreas = buildPrintAreas(allVariantIds);
+
+    const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
+    const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
     const productPayload: any = {
       title,
@@ -240,10 +249,10 @@ serve(async (req) => {
       tags: Array.from(new Set([...(tags || []), ...(bpId === 706 ? ["T-shirts"] : [])])),
       blueprint_id: bpId,
       print_provider_id: ppId,
-      variants: enabledVariants.map((v: any) => ({
+      variants: allVariants.map((v: any) => ({
         id: v.id,
         price: priceInCents,
-        is_enabled: true,
+        is_enabled: enabledVariantIds.has(v.id),
       })),
       print_areas: printAreas,
     };
