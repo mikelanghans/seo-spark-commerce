@@ -1335,7 +1335,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Design File Download */}
+            {/* Design File Download & Replace */}
             {selectedProduct.image_url && (
               <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1347,30 +1347,71 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(selectedProduct.image_url!);
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_design.png`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
-                    } catch {
-                      toast.error("Failed to download design");
-                    }
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="replace-design-input"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !file.type.startsWith("image/")) return;
+                      const newUrl = await uploadImageToStorage(file);
+                      if (!newUrl) return;
+                      const { error } = await supabase
+                        .from("products")
+                        .update({ image_url: newUrl })
+                        .eq("id", selectedProduct.id);
+                      if (error) {
+                        toast.error("Failed to update design file");
+                        return;
+                      }
+                      // Also update product_images design entry if exists
+                      await supabase
+                        .from("product_images")
+                        .update({ image_url: newUrl })
+                        .eq("product_id", selectedProduct.id)
+                        .eq("image_type", "design")
+                        .eq("color_name", "light-on-dark");
+                      setSelectedProduct({ ...selectedProduct, image_url: newUrl });
+                      toast.success("Design file replaced!");
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => document.getElementById("replace-design-input")?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                    Replace
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(selectedProduct.image_url!);
+                        const blob = await res.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_design.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } catch {
+                        toast.error("Failed to download design");
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </Button>
+                </div>
               </div>
             )}
 
