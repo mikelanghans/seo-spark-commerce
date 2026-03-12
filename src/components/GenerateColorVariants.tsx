@@ -71,6 +71,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   };
 
   const loadRecommendations = async () => {
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("recommend-colors", userId);
+      if (!allowed) return;
+    }
     setLoadingRecs(true);
     try {
       const existingList = Array.from(existingColorSet).map((c) =>
