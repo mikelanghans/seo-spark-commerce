@@ -90,6 +90,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   };
 
   const handleGenerate = async () => {
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-messages", userId);
+      if (!allowed) return;
+    }
     setGenerating(true);
     try {
       // Collect existing message texts to avoid duplicates
