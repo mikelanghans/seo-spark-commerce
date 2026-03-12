@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, designImageBase64 } = await req.json();
+    const { imageBase64, colorName, productTitle, designImageBase64, sourceWidth, sourceHeight } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -21,19 +21,46 @@ serve(async (req) => {
     ]);
     const isLightShirt = LIGHT_COLORS.has((colorName || "").toLowerCase().trim());
 
-    // Short, direct ink rule
     const inkRule = isLightShirt
-      ? `INK: Change all white/light ink to DARK BLACK so it's visible on ${colorName}. Same design, dark ink only.`
-      : `INK: Keep bright opaque white (#FFFFFF) ink and fully saturated colored ink. Do NOT blend with fabric. The print sits ON TOP like a sticker.`;
+      ? `The design uses white/light ink that would be invisible on ${colorName}. Change the design's ink to DARK BLACK/CHARCOAL. Keep everything else about the design identical — same text, fonts, graphics, layout, size, position.`
+      : `Keep the design's ink colors exactly as-is: bright opaque white (#FFFFFF) and fully saturated colors. The ink is a physical layer ON TOP of the fabric — it must NOT blend, fade, or absorb into the shirt. Think of a bright white sticker on dark fabric.`;
 
-    // Concise prompt — image models work better with shorter instructions
-    const prompt = `Edit this product photo: recolor ONLY the t-shirt fabric to ${colorName}.
+    const sizeHint = sourceWidth && sourceHeight
+      ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
+      : "";
 
-RULES:
-- IDENTICAL composition: same angle, crop, background, shadows, wrinkles, props, folding
-- ONLY the fabric color changes — everything else is pixel-perfect identical
-- ${inkRule}
-- Product: "${productTitle}"`;
+    const hasDesignRef = !!designImageBase64;
+    const prompt = hasDesignRef
+      ? `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
+
+IMAGE 1 is the MASTER reference photo — you must clone it EXACTLY:
+- Same camera angle, distance, focal length, crop
+- Same background texture, color, lighting
+- Same styling props (jeans, sunglasses, dried flowers, etc.) in the same positions  
+- Same shirt fold pattern, wrinkles, and shadows
+- Same overall composition and framing — do NOT zoom, crop, or reframe
+
+IMAGE 2 is the design graphic printed on the shirt. Place it in the exact same position and size as shown in IMAGE 1.
+
+${inkRule}
+
+${sizeHint}
+
+The output should look like someone opened the reference photo in Photoshop, selected ONLY the fabric pixels with a magic wand, and filled them with ${colorName}. Nothing else changes.`
+      : `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
+
+Clone the reference photo EXACTLY:
+- Same camera angle, distance, focal length, crop
+- Same background texture, color, lighting  
+- Same styling props in the same positions
+- Same shirt fold pattern, wrinkles, and shadows
+- Same design/print in the exact same position and size
+
+${inkRule}
+
+${sizeHint}
+
+The output should look like someone opened this photo in Photoshop, selected ONLY the fabric pixels, and filled them with ${colorName}. Nothing else changes.`;
 
     // Build content: reference image first, then design, then text
     const imageContent: any[] = [
@@ -69,7 +96,7 @@ RULES:
               messages: [
                 {
                   role: "system",
-                  content: "You are a Photoshop expert. You ALWAYS output an edited image. You recolor fabric in product photos while keeping everything else identical. Only change the fabric color — never change the composition, angle, background, props, or design. You MUST generate an image, never respond with only text.",
+                  content: "You are a professional product photo editor. You edit existing photos by recoloring fabric while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, design placement. Your output must be indistinguishable from the input except for the fabric color. You ALWAYS output an image. Never respond with text only.",
                 },
                 {
                   role: "user",

@@ -215,7 +215,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const designBase64 = isLight ? (darkDesignBase64 || lightDesignBase64) : (lightDesignBase64 || darkDesignBase64);
 
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
-      body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
+      body: {
+        imageBase64,
+        colorName,
+        productTitle,
+        designImageBase64: designBase64,
+        sourceWidth: targetSize?.width || null,
+        sourceHeight: targetSize?.height || null,
+      },
     });
     if (error || data?.error) {
       handleAiError(error, data, `Failed: ${colorName}`);
