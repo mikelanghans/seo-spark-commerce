@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 1.0;
+const DEFAULT_IMAGE_SCALE = 1.3;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -153,10 +153,11 @@ serve(async (req) => {
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
+    // Move design up toward neckline — lower y = higher on shirt.
     const imageX = 0.5;
-    const imageY = 0.5;
+    const imageY = 0.35;
 
-    // Default to a chest-print width (~65% of print area) when provider print area metadata is unavailable.
+    // Scale up to fill the chest area generously.
     let imageScale = DEFAULT_IMAGE_SCALE;
     try {
       const imageInfoRes = await fetch(
