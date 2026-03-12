@@ -454,6 +454,50 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           }
           tick();
 
+          if (cancelRef.current) break;
+
+          // Step 8: Push to Shopify
+          updateProduct(i, { step: "Pushing to Shopify..." });
+          log(`  🛍️ Pushing to Shopify...`, "info");
+
+          try {
+            // Fetch mockup images for Shopify gallery
+            const { data: shopifyMockups } = await supabase
+              .from("product_images")
+              .select("image_url, color_name, position")
+              .eq("product_id", productId)
+              .eq("image_type", "mockup")
+              .order("position");
+
+            const shopifyVariants = (shopifyMockups || []).map((m: any) => ({
+              colorName: m.color_name,
+              imageUrl: m.image_url,
+            }));
+
+            const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
+              body: {
+                product: {
+                  id: productId,
+                  title: shopifyListing?.title || productTitle,
+                  description: shopifyListing?.description || messageText,
+                  category: "T-Shirt",
+                  price: "29.99",
+                  keywords: organization.niche,
+                  shopify_product_id: null,
+                },
+                listings: shopifyListing ? [shopifyListing] : [],
+                imageUrl: designUrl,
+                variants: shopifyVariants,
+              },
+            });
+
+            if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
+            log(`  ✅ Published to Shopify`, "success");
+          } catch (err: any) {
+            log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
+          }
+          tick();
+
           updateProduct(i, { status: "done", step: "Complete!" });
           log(`✅ Product ${i + 1} complete!`, "success");
 
