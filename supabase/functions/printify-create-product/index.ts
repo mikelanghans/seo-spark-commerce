@@ -152,12 +152,12 @@ serve(async (req) => {
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
-    // Printify coordinate system: x=0, y=0 = centered. scale=1.0 = fill print area width.
-    const imageX = 0;
-    const imageY = 0;
+    // Printify normalized placement: (0.5, 0.5) is centered in the print area.
+    const imageX = 0.5;
+    const imageY = 0.5;
 
-    // Fetch uploaded image dimensions from Printify to calculate optimal scale
-    let imageScale = 1.0; // Default: fill the print area
+    // Default to a chest-print width (~65% of print area) when provider print area metadata is unavailable.
+    let imageScale = DEFAULT_IMAGE_SCALE;
     try {
       const imageInfoRes = await fetch(
         `https://api.printify.com/v1/uploads/${printifyImageId}.json`,
