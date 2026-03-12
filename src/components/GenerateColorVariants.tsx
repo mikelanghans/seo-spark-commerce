@@ -9,6 +9,7 @@ import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
+  compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 
 interface Props {
