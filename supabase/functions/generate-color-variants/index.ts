@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight } = await req.json();
+    const { imageBase64, colorName, productTitle, designImageBase64, sourceWidth, sourceHeight } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -29,6 +29,11 @@ serve(async (req) => {
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
+    const hasDesignRef = !!designImageBase64;
+    const designRule = hasDesignRef
+      ? `IMAGE 2 is the print design file. You MUST apply this exact design onto the shirt and keep it clearly visible. Do not remove it. Match realistic print placement centered on the chest and preserve the design proportions.`
+      : `Preserve any existing print on IMAGE 1 exactly as-is. Do not remove or alter it.`;
+
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
 IMAGE 1 is the IMMUTABLE master photo. Keep it pixel-locked:
@@ -36,22 +41,27 @@ IMAGE 1 is the IMMUTABLE master photo. Keep it pixel-locked:
 - Same shirt geometry (collar, sleeves, hem, fold silhouette)
 - Same background texture, color, lighting, props, and prop positions
 - Same wrinkles and shadow geometry on the shirt
-- Same print position, size, and alignment
+- Same overall framing and composition
 - Do NOT zoom, reframe, or alter composition in any way
 
-Your edit scope is strictly limited to fabric recoloring.
+${designRule}
+
+Your edit scope is strictly limited to fabric recoloring + preserving/applying the same print.
 
 ${inkRule}
 
 ${sizeHint}
 
-The output must look like the same exact photo with only the shirt fabric recolored in Photoshop. Never redesign or recompose the scene.`;
+The output must look like the same exact photo with only the shirt fabric recolored. Never redesign or recompose the scene.`;
 
-    // Build content: master reference image + text instruction
+    // Build content: master reference image first, optional design second, then text
     const imageContent: any[] = [
       { type: "image_url", image_url: { url: imageBase64 } },
-      { type: "text", text: prompt },
     ];
+    if (designImageBase64) {
+      imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
+    }
+    imageContent.push({ type: "text", text: prompt });
 
     // Use a single model consistently — gemini-2.5-flash-image is best for controlled edits
     const models = [
