@@ -676,7 +676,10 @@ const Dashboard = () => {
             <img src={brandAuraIcon} alt="Brand Aura" className="h-14 w-14 object-contain mix-blend-screen -m-3" />
             <span className="text-lg font-bold tracking-tight leading-none">Brand Aura</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {selectedOrg && (
+              <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+            )}
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
