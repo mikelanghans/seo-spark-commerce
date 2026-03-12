@@ -184,7 +184,7 @@ serve(async (req) => {
             continue;
           }
           const imgBuffer = await imgRes.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+          const base64 = base64Encode(new Uint8Array(imgBuffer));
 
           const uploadRes = await fetch(
             `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
