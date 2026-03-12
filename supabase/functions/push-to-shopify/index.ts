@@ -6,6 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const buildRenderImageUrl = (rawUrl: string, width: number, quality: number) => {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.pathname.includes("/storage/v1/object/public/")) return rawUrl;
+
+    const renderPath = parsed.pathname.replace(
+      "/storage/v1/object/public/",
+      "/storage/v1/render/image/public/",
+    );
+
+    const renderUrl = new URL(`${parsed.origin}${renderPath}`);
+    renderUrl.searchParams.set("width", String(width));
+    renderUrl.searchParams.set("quality", String(quality));
+    renderUrl.searchParams.set("format", "jpeg");
+    renderUrl.searchParams.set("resize", "contain");
+    return renderUrl.toString();
+  } catch {
+    return rawUrl;
+  }
+};
+
+const getShopifyUploadCandidates = (rawUrl: string) => {
+  const large = buildRenderImageUrl(rawUrl, 2048, 84);
+  if (large === rawUrl) return [rawUrl];
+
+  const medium = buildRenderImageUrl(rawUrl, 1600, 76);
+  const compact = buildRenderImageUrl(rawUrl, 1280, 72);
+  return Array.from(new Set([large, medium, compact, rawUrl]));
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -93,11 +123,12 @@ serve(async (req) => {
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Collect image URLs for post-creation upload (Shopify often can't fetch external URLs)
-    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
+    // Collect image URLs for post-creation upload (optimized render URLs improve Shopify fetch reliability)
+    const imageEntries: { originalUrl: string; uploadCandidates: string[]; alt: string; colorName?: string }[] = [];
     colorVariants.forEach((v) => {
       imageEntries.push({
-        url: v.imageUrl,
+        originalUrl: v.imageUrl,
+        uploadCandidates: getShopifyUploadCandidates(v.imageUrl),
         alt: `${product.title} - ${v.colorName}`,
         colorName: v.colorName,
       });
@@ -105,11 +136,16 @@ serve(async (req) => {
     // Fallback: if no mockups, use the design image
     if (imageEntries.length === 0 && imageUrl) {
       imageEntries.push({
-        url: imageUrl,
+        originalUrl: imageUrl,
+        uploadCandidates: getShopifyUploadCandidates(imageUrl),
         alt: shopifyListing?.alt_text || product.title,
       });
     }
-    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map(img => ({ url: img.url?.substring(0, 80), alt: img.alt }))));
+    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map((img) => ({
+      url: img.originalUrl?.substring(0, 80),
+      candidates: img.uploadCandidates.length,
+      alt: img.alt,
+    }))));
 
     // Build variants — no inventory tracking (print-on-demand via Printify)
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
@@ -171,52 +207,71 @@ serve(async (req) => {
         .eq("id", product.id);
     }
 
-    // Upload images via src URL (Shopify fetches from the public URL directly)
-    const uploadedImages: { id: number; alt: string; colorName?: string }[] = [];
+    // Upload images with progressive fallbacks (large -> medium -> compact -> original)
+    const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
     if (createdProduct?.id && imageEntries.length > 0) {
       for (let i = 0; i < imageEntries.length; i++) {
         const entry = imageEntries[i];
-        try {
-          const uploadRes = await fetch(
-            `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
-            {
-              method: "POST",
-              headers: {
-                "X-Shopify-Access-Token": connection.access_token,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                image: {
-                  src: entry.url,
-                  alt: entry.alt,
-                  position: i + 1,
-                  filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.png`,
-                },
-              }),
-            }
-          );
+        let uploaded = false;
 
-          if (uploadRes.ok) {
-            const uploadData = await uploadRes.json();
-            uploadedImages.push({
-              id: uploadData.image.id,
-              alt: entry.alt,
-              colorName: entry.colorName,
-            });
-            console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
-          } else {
+        for (let c = 0; c < entry.uploadCandidates.length; c++) {
+          const candidateUrl = entry.uploadCandidates[c];
+          try {
+            const uploadRes = await fetch(
+              `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
+              {
+                method: "POST",
+                headers: {
+                  "X-Shopify-Access-Token": connection.access_token,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  image: {
+                    src: candidateUrl,
+                    alt: entry.alt,
+                    position: i + 1,
+                    filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.jpg`,
+                  },
+                }),
+              }
+            );
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json();
+              uploadedImages[i] = {
+                id: uploadData.image.id,
+                alt: entry.alt,
+                colorName: entry.colorName,
+              };
+              console.log(
+                `Uploaded image ${i + 1}/${imageEntries.length} (${c + 1}/${entry.uploadCandidates.length} candidate): ${entry.colorName || "fallback"}`,
+              );
+              uploaded = true;
+              break;
+            }
+
             const errText = await uploadRes.text();
-            console.error(`Image upload ${i} failed (${uploadRes.status}): ${errText}`);
+            console.error(
+              `Image upload ${i} failed (${uploadRes.status}) on candidate ${c + 1}/${entry.uploadCandidates.length}: ${errText}`,
+            );
+          } catch (imgErr) {
+            console.error(`Image ${i} candidate ${c + 1} error:`, imgErr);
           }
-        } catch (imgErr) {
-          console.error(`Image ${i} error:`, imgErr);
         }
+
+        if (!uploaded) uploadedImages[i] = null;
       }
-      console.log(`Successfully uploaded ${uploadedImages.length}/${imageEntries.length} images`);
+
+      const uploadedCount = uploadedImages.filter(Boolean).length;
+      console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
+
+      if (uploadedCount === 0) {
+        throw new Error("Unable to upload mockups to Shopify (source images are too large or timed out). Please regenerate or re-upload optimized mockups.");
+      }
     }
 
     // Associate uploaded images with their corresponding variants
-    if (hasVariants && createdProduct?.variants?.length && uploadedImages.length > 0) {
+    if (hasVariants && createdProduct?.variants?.length && uploadedImages.some(Boolean)) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
         const image = uploadedImages[i];

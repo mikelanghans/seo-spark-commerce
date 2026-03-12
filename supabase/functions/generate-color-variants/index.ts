@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const COLOR_SWATCH_HINTS: Record<string, string> = {
+  black: "deep neutral black (near #1A1A1A)",
+  white: "soft natural cotton white (near #F5F5EF)",
+  "true navy": "deep classic navy (near #1F2A44)",
+  red: "clean medium red (near #B3272D)",
+  moss: "muted earthy olive green (near #6F7A5D)",
+  grey: "medium neutral heather gray (near #78797D)",
+  "blue jean": "washed dusty denim blue (near #6E8090)",
+  pepper: "washed charcoal black with subtle warm tone (near #2F3133)",
+  "island green": "rich green-teal (near #2F8E79)",
+  ivory: "warm off-white cream (near #F2E9D6)",
+  crimson: "deep crimson red (near #8E1D2E)",
+  espresso: "dark warm brown (near #3A2A21)",
+  midnight: "very dark navy with cool undertone (near #1B2230)",
+  sage: "muted light sage green (near #9BAC95)",
+  chambray: "light muted blue-gray (near #8EA3B6)",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -17,6 +35,9 @@ serve(async (req) => {
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
+    const swatchHint = COLOR_SWATCH_HINTS[(colorName || "").toLowerCase().trim()]
+      || `${colorName} with realistic garment dye tone`;
+
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
 IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. Keep it pixel-locked:
@@ -28,11 +49,16 @@ IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. 
 - Do NOT zoom, reframe, or alter composition in any way
 - The print/design on the shirt MUST remain fully visible and unchanged
 
-Your edit scope is ONLY fabric recoloring. Change the shirt fabric to "${colorName}" while keeping the print/design crisp and fully visible on top.
+Your edit scope is ONLY fabric recoloring.
+Color target (must match): ${swatchHint}.
+- Preserve natural fabric texture and shadows while changing only hue/saturation/lightness of shirt fabric
+- Keep white balance neutral; do not add color casts
+- Do NOT over-darken or over-wash the garment
+- Do NOT change print/design colors or contrast
 
 ${sizeHint}
 
-The output must look like the same exact photo with only the shirt fabric recolored. Never redesign or recompose the scene.`;
+The output must look like the exact same photo with only the shirt fabric recolored to the target tone.`;
 
     const imageContent: any[] = [
       { type: "image_url", image_url: { url: imageBase64 } },
