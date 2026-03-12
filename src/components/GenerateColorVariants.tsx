@@ -319,9 +319,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     let targetSize: { width: number; height: number } | null = null;
     try {
-      targetSize = await getImageDimensions(imageBase64);
-    } catch {
-      // Non-fatal: if dimensions can't be read, skip normalization
+      targetSize = await getImageDimensionsFromDataUrl(imageBase64);
       targetSize = null;
     }
 

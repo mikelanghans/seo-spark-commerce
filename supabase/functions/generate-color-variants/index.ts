@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, designImageBase64, sourceWidth, sourceHeight } = await req.json();
+    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -29,47 +29,29 @@ serve(async (req) => {
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
-    const hasDesignRef = !!designImageBase64;
-    const prompt = hasDesignRef
-      ? `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
+    const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
-IMAGE 1 is the MASTER reference photo — you must clone it EXACTLY:
-- Same camera angle, distance, focal length, crop
-- Same background texture, color, lighting
-- Same styling props (jeans, sunglasses, dried flowers, etc.) in the same positions  
-- Same shirt fold pattern, wrinkles, and shadows
-- Same overall composition and framing — do NOT zoom, crop, or reframe
+IMAGE 1 is the IMMUTABLE master photo. Keep it pixel-locked:
+- Same camera angle, distance, focal length, and crop
+- Same shirt geometry (collar, sleeves, hem, fold silhouette)
+- Same background texture, color, lighting, props, and prop positions
+- Same wrinkles and shadow geometry on the shirt
+- Same print position, size, and alignment
+- Do NOT zoom, reframe, or alter composition in any way
 
-IMAGE 2 is the design graphic printed on the shirt. Place it in the exact same position and size as shown in IMAGE 1.
-
-${inkRule}
-
-${sizeHint}
-
-The output should look like someone opened the reference photo in Photoshop, selected ONLY the fabric pixels with a magic wand, and filled them with ${colorName}. Nothing else changes.`
-      : `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
-
-Clone the reference photo EXACTLY:
-- Same camera angle, distance, focal length, crop
-- Same background texture, color, lighting  
-- Same styling props in the same positions
-- Same shirt fold pattern, wrinkles, and shadows
-- Same design/print in the exact same position and size
+Your edit scope is strictly limited to fabric recoloring.
 
 ${inkRule}
 
 ${sizeHint}
 
-The output should look like someone opened this photo in Photoshop, selected ONLY the fabric pixels, and filled them with ${colorName}. Nothing else changes.`;
+The output must look like the same exact photo with only the shirt fabric recolored in Photoshop. Never redesign or recompose the scene.`;
 
-    // Build content: reference image first, then design, then text
+    // Build content: master reference image + text instruction
     const imageContent: any[] = [
       { type: "image_url", image_url: { url: imageBase64 } },
+      { type: "text", text: prompt },
     ];
-    if (designImageBase64) {
-      imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
-    }
-    imageContent.push({ type: "text", text: prompt });
 
     // Use a single model consistently — gemini-2.5-flash-image is best for controlled edits
     const models = [
