@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.push-to-meta]
 verify_jwt = false
+
+[functions.push-to-shopify]
+verify_jwt = false
+
+[functions.fetch-shopify-products]
+verify_jwt = false
+
+[functions.import-shopify-catalog]
+verify_jwt = false
