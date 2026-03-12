@@ -322,10 +322,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 const { data: mockupData, error: mockupError } = await withRetry(() =>
                   supabase.functions.invoke("generate-color-variants", {
                     body: {
-                      imageBase64: referenceBase64,
+                      imageBase64: preCompositedBase64,
                       colorName,
                       productTitle,
-                      designImageBase64: designBase64,
                       sourceWidth: targetSize?.width ?? null,
                       sourceHeight: targetSize?.height ?? null,
                     },
