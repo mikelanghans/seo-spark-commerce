@@ -144,11 +144,71 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   const CONCURRENCY = 2;
 
+  const ensureDataUrl = (value: string) =>
+    value.startsWith("data:image") ? value : `data:image/png;base64,${value}`;
+
+  const getImageDimensions = async (dataUrl: string): Promise<{ width: number; height: number }> => {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          width: img.naturalWidth || img.width,
+          height: img.naturalHeight || img.height,
+        });
+      };
+      img.onerror = () => reject(new Error("Failed to read image dimensions"));
+      img.src = dataUrl;
+    });
+  };
+
+  const dataUrlToPngBlob = async (dataUrl: string): Promise<Blob> => {
+    const resp = await fetch(dataUrl);
+    return await resp.blob();
+  };
+
+  const normalizeToTemplateSize = async (
+    dataUrl: string,
+    targetWidth: number,
+    targetHeight: number,
+  ): Promise<Blob> => {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("Failed to load generated image"));
+      i.src = dataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context unavailable");
+
+    // Keep template aspect ratio with center-crop to avoid distortion
+    const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+    const drawWidth = img.width * scale;
+    const drawHeight = img.height * scale;
+    const dx = (targetWidth - drawWidth) / 2;
+    const dy = (targetHeight - drawHeight) / 2;
+    ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Failed to convert normalized image to blob"));
+          return;
+        }
+        resolve(blob);
+      }, "image/png");
+    });
+  };
+
   const generateSingleColor = async (
     colorName: string,
     imageBase64: string,
     lightDesignBase64: string | undefined,
     darkDesignBase64: string | undefined,
+    targetSize: { width: number; height: number } | null,
   ): Promise<boolean> => {
     // Pick the correct design variant for this color
     const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
@@ -167,11 +227,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const generatedBase64 = data.imageBase64;
     if (!generatedBase64) throw new Error("No image returned");
 
-    const base64Data = generatedBase64.split(",")[1] || generatedBase64;
-    const byteChars = atob(base64Data);
-    const byteArray = new Uint8Array(byteChars.length);
-    for (let j = 0; j < byteChars.length; j++) byteArray[j] = byteChars.charCodeAt(j);
-    const blob = new Blob([byteArray], { type: "image/png" });
+    const generatedDataUrl = ensureDataUrl(generatedBase64);
+    const blob = targetSize
+      ? await normalizeToTemplateSize(generatedDataUrl, targetSize.width, targetSize.height)
+      : await dataUrlToPngBlob(generatedDataUrl);
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
@@ -295,6 +354,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const genStart = Date.now();
     let nextIndex = 0;
 
+    let targetSize: { width: number; height: number } | null = null;
+    try {
+      targetSize = await getImageDimensions(imageBase64);
+    } catch {
+      // Non-fatal: if dimensions can't be read, skip normalization
+      targetSize = null;
+    }
+
     const worker = async () => {
       while (nextIndex < newColors.length && !creditsExhausted) {
         const i = nextIndex++;
@@ -302,8 +369,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         setActiveColors((prev) => [...prev, colorName]);
 
         try {
-          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64);
-          if (ok) successCount++;
+          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64, targetSize);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
