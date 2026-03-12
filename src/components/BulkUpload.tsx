@@ -62,7 +62,7 @@ function mapCSVRow(row: Record<string, string>): ProductData {
   };
 }
 
-export const BulkUpload = ({ organizationId, userId, onComplete, onBack }: Props) => {
+export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage }: Props) => {
   const [tab, setTab] = useState("images");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
