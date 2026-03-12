@@ -130,6 +130,7 @@ export function SocialPostGenerator({
       if (data?.error) throw new Error(data.error);
 
       setPostImages((prev) => ({ ...prev, [platform]: data.imageUrl }));
+      if (aiUsage) await aiUsage.logUsage("generate-social-image", userId);
       toast.success(`${platform} image generated!`);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate image");
