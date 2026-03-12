@@ -127,6 +127,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         const all = new Set([...prev, ...newColors]);
         return Array.from(all);
       });
+      if (aiUsage) await aiUsage.logUsage("recommend-colors", userId);
       toast.success(`AI recommended ${recs.length} colors!`);
     } catch (err: any) {
       handleAiError(err, null, "Failed to get recommendations");
