@@ -80,9 +80,14 @@ serve(async (req) => {
       body_html: bodyHtml || `<p>${rawDesc}</p>`,
       product_type: product.category,
       status: "active",
-      tags: shopifyListing?.tags?.length
-        ? shopifyListing.tags.join(", ")
-        : product.keywords,
+      tags: (() => {
+        let tagList: string[] = [];
+        if (Array.isArray(shopifyListing?.tags)) tagList = shopifyListing.tags;
+        else if (typeof shopifyListing?.tags === "string") tagList = shopifyListing.tags.split(",").map((t: string) => t.trim());
+        if (!tagList.length && product.keywords) tagList = product.keywords.split(",").map((t: string) => t.trim());
+        if (!tagList.includes("T-shirts")) tagList.push("T-shirts");
+        return tagList.join(", ");
+      })(),
       handle: shopifyListing?.url_handle || undefined,
       metafields_global_title_tag: shopifyListing?.seo_title || undefined,
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
