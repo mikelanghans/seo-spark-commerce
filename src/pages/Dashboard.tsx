@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon.png";
+import { useAiUsage } from "@/hooks/useAiUsage";
+import { AiUsageMeter } from "@/components/AiUsageMeter";
 
 interface Organization {
   id: string;
