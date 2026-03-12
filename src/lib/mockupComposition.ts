@@ -234,8 +234,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Composite a transparent design PNG onto a template photo (center-chest placement).
- * Returns a data URL of the combined image.
+ * Composite a design onto a template photo (center-chest placement).
+ * If the design has a solid edge background (black/white), it is stripped first.
  */
 export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
@@ -255,18 +255,138 @@ export async function compositeDesignOntoTemplate(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context unavailable");
 
-  // Draw the template
+  // Draw template first
   ctx.drawImage(templateImg, 0, 0, w, h);
 
-  // Place design centered horizontally, ~20-30% from top (chest area)
-  // Scale design to ~40% of template width
-  const designScale = 0.4;
-  const drawWidth = w * designScale;
-  const drawHeight = drawWidth * (designImg.height / designImg.width);
-  const dx = (w - drawWidth) / 2;
-  const dy = h * 0.22; // chest position
+  // Clean design (remove solid edge bg if needed)
+  const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
+  const designWidth = cleanedDesignCanvas.width;
+  const designHeight = cleanedDesignCanvas.height;
 
-  ctx.drawImage(designImg, dx, dy, drawWidth, drawHeight);
+  // Chest-print sizing/placement
+  const designScale = 0.32;
+  const drawWidth = w * designScale;
+  const drawHeight = drawWidth * (designHeight / designWidth);
+  const dx = (w - drawWidth) / 2;
+  const dy = h * 0.24;
+
+  ctx.drawImage(cleanedDesignCanvas, dx, dy, drawWidth, drawHeight);
 
   return canvas.toDataURL("image/png");
+}
+
+function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return canvas;
+
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imgData.data;
+
+  // If design already has transparency, don't alter it.
+  let transparentPixels = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 250) transparentPixels++;
+  }
+  if (transparentPixels > (canvas.width * canvas.height) * 0.002) {
+    return canvas;
+  }
+
+  const edge = sampleEdgeColor(data, canvas.width, canvas.height);
+  if (!edge) return canvas;
+
+  const totalPixels = canvas.width * canvas.height;
+  const visited = new Uint8Array(totalPixels);
+  const queue = new Int32Array(totalPixels);
+  let head = 0;
+  let tail = 0;
+
+  const enqueue = (idx: number) => {
+    if (idx < 0 || idx >= totalPixels || visited[idx]) return;
+    visited[idx] = 1;
+    queue[tail++] = idx;
+  };
+
+  for (let x = 0; x < canvas.width; x++) {
+    enqueue(x);
+    enqueue((canvas.height - 1) * canvas.width + x);
+  }
+  for (let y = 1; y < canvas.height - 1; y++) {
+    enqueue(y * canvas.width);
+    enqueue(y * canvas.width + (canvas.width - 1));
+  }
+
+  const tolerance = 32;
+
+  while (head < tail) {
+    const pos = queue[head++];
+    const p = pos * 4;
+
+    const dr = Math.abs(data[p] - edge.r);
+    const dg = Math.abs(data[p + 1] - edge.g);
+    const db = Math.abs(data[p + 2] - edge.b);
+
+    if (dr > tolerance || dg > tolerance || db > tolerance) continue;
+
+    data[p + 3] = 0;
+
+    const x = pos % canvas.width;
+    const y = Math.floor(pos / canvas.width);
+    if (x > 0) enqueue(pos - 1);
+    if (x < canvas.width - 1) enqueue(pos + 1);
+    if (y > 0) enqueue(pos - canvas.width);
+    if (y < canvas.height - 1) enqueue(pos + canvas.width);
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return canvas;
+}
+
+function sampleEdgeColor(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { r: number; g: number; b: number } | null {
+  const samples: Array<{ r: number; g: number; b: number }> = [];
+
+  const read = (x: number, y: number) => {
+    const idx = (y * width + x) * 4;
+    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+  };
+
+  for (let x = 0; x < width; x++) {
+    read(x, 0);
+    read(x, height - 1);
+  }
+  for (let y = 1; y < height - 1; y++) {
+    read(0, y);
+    read(width - 1, y);
+  }
+
+  if (samples.length === 0) return null;
+
+  const avg = samples.reduce(
+    (acc, s) => ({ r: acc.r + s.r, g: acc.g + s.g, b: acc.b + s.b }),
+    { r: 0, g: 0, b: 0 },
+  );
+
+  const r = Math.round(avg.r / samples.length);
+  const g = Math.round(avg.g / samples.length);
+  const b = Math.round(avg.b / samples.length);
+
+  const variance = samples.reduce((acc, s) => {
+    const dr = s.r - r;
+    const dg = s.g - g;
+    const db = s.b - b;
+    return acc + dr * dr + dg * dg + db * db;
+  }, 0) / samples.length;
+
+  // Only strip when edges are fairly uniform (solid background)
+  if (variance > 1200) return null;
+
+  return { r, g, b };
 }

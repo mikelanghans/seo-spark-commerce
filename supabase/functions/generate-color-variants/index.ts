@@ -135,8 +135,11 @@ The output must look like the same exact photo with only the shirt fabric recolo
         const lowerText = textContent.toLowerCase();
         const lowerColor = (colorName || "").toLowerCase();
         const sameColorRefusal =
-          (lowerText.includes("cannot recolor") || lowerText.includes("already")) &&
-          lowerText.includes(`to ${lowerColor}`);
+          lowerText.includes("already") &&
+          (lowerText.includes(`already ${lowerColor}`) ||
+            lowerText.includes(`already in ${lowerColor}`) ||
+            lowerText.includes(`already ${lowerColor} colored`) ||
+            lowerText.includes(`already ${lowerColor}-colored`));
 
         if (sameColorRefusal) {
           imageBase64Result = imageBase64;
