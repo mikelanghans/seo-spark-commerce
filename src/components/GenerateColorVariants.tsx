@@ -112,13 +112,25 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
   };
 
+  const LIGHT_COLORS = new Set([
+    "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+    "island reef", "chambray", "white", "flo blue", "watermelon",
+    "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+    "light green", "bay", "sage",
+  ]);
+
   const CONCURRENCY = 2;
 
   const generateSingleColor = async (
     colorName: string,
     imageBase64: string,
-    designBase64: string | undefined,
+    lightDesignBase64: string | undefined,
+    darkDesignBase64: string | undefined,
   ): Promise<boolean> => {
+    // Pick the correct design variant for this color
+    const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
+    const designBase64 = isLight ? (darkDesignBase64 || lightDesignBase64) : (lightDesignBase64 || darkDesignBase64);
+
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: { imageBase64, colorName, productTitle, designImageBase64: designBase64 },
     });
