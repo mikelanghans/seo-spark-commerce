@@ -565,7 +565,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             <p>• Design style: <strong>{(organization.design_styles as string[])?.[0] || "text-only"}</strong></p>
             <p>• Colors: <strong>AI recommended</strong></p>
             <p>• Listings: <strong>Shopify only</strong></p>
-            <p>• Push: <strong>Printify (Comfort Colors 1717)</strong></p>
+            <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify (published)</strong></p>
           </div>
         </div>
       )}
