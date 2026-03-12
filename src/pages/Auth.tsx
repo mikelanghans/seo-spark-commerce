@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import brandAuraLogo from "@/assets/brand-aura-logo.png";
+import brandAuraIcon from "@/assets/brand-aura-icon.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
