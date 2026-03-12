@@ -1606,6 +1606,7 @@ const Dashboard = () => {
               loadProducts(selectedOrg.id);
             }}
             onBack={() => setView("products")}
+            aiUsage={aiUsage}
           />
         )}
         {/* Settings */}
