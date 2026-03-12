@@ -88,7 +88,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     setOverallProgress(0);
 
     const hasTemplate = !!organization.template_image_url;
-    const stepsPerProduct = hasTemplate ? 7 : 6; // without template: design, product, colors, listing, printify, shopify (skip mockups)
+    const stepsPerProduct = hasTemplate ? 8 : 7; // design, product, colors, [mockups], listing, printify, shopify
     const totalSteps = 1 + count * stepsPerProduct;
     let completedSteps = 0;
     const tick = () => {
