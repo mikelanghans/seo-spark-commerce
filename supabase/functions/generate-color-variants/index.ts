@@ -134,52 +134,8 @@ RULES:
       if (imageBase64Result) break;
     }
 
-    if (!response || !response.ok) {
-      const status = response?.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = response ? await response.text() : lastError;
-      console.error("AI gateway error:", status, t);
-      throw new Error(`AI gateway error: ${status || "all models unavailable"}`);
-    }
-
-    const data = await response.json();
-    const message = data.choices?.[0]?.message;
-
-    let imageBase64Result: string | null = null;
-
-    if (message?.images?.length > 0) {
-      imageBase64Result = message.images[0].image_url?.url || null;
-    }
-
-    if (!imageBase64Result && Array.isArray(message?.content)) {
-      for (const part of message.content) {
-        if (part.type === "image_url" && part.image_url?.url) {
-          imageBase64Result = part.image_url.url;
-          break;
-        }
-        if (part.inline_data) {
-          imageBase64Result = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
-          break;
-        }
-      }
-    }
-
-    if (!imageBase64Result && typeof message?.content === "string" && message.content.startsWith("data:image")) {
-      imageBase64Result = message.content;
-    }
-
     if (!imageBase64Result) {
-      console.error("Unexpected response structure:", JSON.stringify(data).substring(0, 500));
-      throw new Error("No image generated from AI response");
+      throw new Error("No image generated from AI response after all retries");
     }
 
     return new Response(JSON.stringify({ imageBase64: imageBase64Result }), {
