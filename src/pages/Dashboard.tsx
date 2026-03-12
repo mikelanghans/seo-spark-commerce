@@ -1089,6 +1089,7 @@ const Dashboard = () => {
                     organization={selectedOrg}
                     products={products}
                     userId={user!.id}
+                    aiUsage={aiUsage}
                   />
                 </div>
               </TabsContent>
