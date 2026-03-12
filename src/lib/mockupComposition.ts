@@ -28,43 +28,21 @@ export async function normalizeAndLockToTemplateBlob({
   targetWidth,
   targetHeight,
 }: CompositionLockParams): Promise<Blob> {
-  const [templateImage, generatedImage] = await Promise.all([
-    loadImage(templateDataUrl),
-    loadImage(generatedDataUrl),
-  ]);
+  const generatedImage = await loadImage(generatedDataUrl);
 
-  const templateCanvas = document.createElement("canvas");
-  templateCanvas.width = targetWidth;
-  templateCanvas.height = targetHeight;
-  const templateCtx = templateCanvas.getContext("2d");
-  if (!templateCtx) throw new Error("Canvas context unavailable");
-  drawCover(templateCtx, templateImage, targetWidth, targetHeight);
-
-  const generatedCanvas = document.createElement("canvas");
-  generatedCanvas.width = targetWidth;
-  generatedCanvas.height = targetHeight;
-  const generatedCtx = generatedCanvas.getContext("2d");
-  if (!generatedCtx) throw new Error("Canvas context unavailable");
-  drawCover(generatedCtx, generatedImage, targetWidth, targetHeight);
-
-  const templateData = templateCtx.getImageData(0, 0, targetWidth, targetHeight);
-  const generatedData = generatedCtx.getImageData(0, 0, targetWidth, targetHeight);
-
-  const rawMask = buildRawChangeMask(templateData.data, generatedData.data);
-  const lockedMask = removeEdgeConnectedChanges(rawMask, targetWidth, targetHeight);
-  const coverage = countMaskCoverage(lockedMask);
-  const finalMask =
-    coverage < MIN_MASK_COVERAGE
-      ? rawMask
-      : blurMask(lockedMask, targetWidth, targetHeight, 2);
-
-  const outData = templateCtx.createImageData(targetWidth, targetHeight);
-  compositeFromMask(templateData.data, generatedData.data, finalMask, outData.data);
-
-  templateCtx.putImageData(outData, 0, 0);
+  // Simply resize/crop the AI output to match template dimensions.
+  // The AI is already instructed to preserve framing, props, and composition —
+  // the old diff-mask approach was incorrectly reverting large color changes
+  // (e.g. black→white) because the shirt touched image edges.
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
+  drawCover(ctx, generatedImage, targetWidth, targetHeight);
 
   return await new Promise<Blob>((resolve, reject) => {
-    templateCanvas.toBlob((blob) => {
+    canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error("Failed to convert composed image to blob"));
         return;
