@@ -123,7 +123,7 @@ COMPOSITION:
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
 }
 
