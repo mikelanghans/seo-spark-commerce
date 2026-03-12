@@ -199,7 +199,7 @@ const Dashboard = () => {
 
   const loadOrgs = async () => {
     setLoading(true);
-    const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("organizations").select("*").is("deleted_at", null).order("created_at", { ascending: false });
     setOrgs((data as Organization[]) || []);
     setLoading(false);
   };
