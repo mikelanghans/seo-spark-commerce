@@ -265,6 +265,12 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
           recommendedColors = (colorData.recommendations || []).map((r: any) => r.color);
+          // Ensure Black is always first (hero mockup)
+          recommendedColors.sort((a: string, b: string) => {
+            const aBlack = a.toLowerCase() === "black" ? 0 : 1;
+            const bBlack = b.toLowerCase() === "black" ? 0 : 1;
+            return aBlack - bBlack;
+          });
           log(`  ✅ Recommended colors: ${recommendedColors.join(", ")}`, "success");
           tick();
 

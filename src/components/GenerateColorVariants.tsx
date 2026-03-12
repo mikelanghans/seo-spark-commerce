@@ -179,6 +179,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       .eq("image_type", "mockup");
     const existingColors = new Set((existingImages || []).map((img) => img.color_name.toLowerCase()));
     const newColors = colors.filter((c) => !existingColors.has(c.toLowerCase()));
+    // Ensure Black is always first (hero mockup position 0)
+    newColors.sort((a, b) => {
+      const aBlack = a.toLowerCase() === "black" ? 0 : 1;
+      const bBlack = b.toLowerCase() === "black" ? 0 : 1;
+      return aBlack - bBlack;
+    });
 
     if (newColors.length === 0) {
       toast.info("All selected colors already exist as variants.");
