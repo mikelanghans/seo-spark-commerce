@@ -320,6 +320,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     let targetSize: { width: number; height: number } | null = null;
     try {
       targetSize = await getImageDimensionsFromDataUrl(imageBase64);
+    } catch {
+      // Non-fatal: if dimensions can't be read, skip composition lock
       targetSize = null;
     }
 
