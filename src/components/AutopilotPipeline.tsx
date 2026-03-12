@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
+import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
 import {
@@ -374,16 +375,19 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           .eq("marketplace", "shopify");
         const shopifyListing = shopifyListings?.[0];
 
+        const rawVariants = mockupUploads.map((m) => ({
+          colorName: m.colorName,
+          imageUrl: m.url,
+        }));
+        const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, productId || "unknown");
+
         const { data: shopifyResult, error: shopifyError } = await withRetry(
           () => supabase.functions.invoke("push-to-shopify", {
             body: {
               product: productData,
               listings: shopifyListing ? [shopifyListing] : [],
               imageUrl: designUrl,
-              variants: mockupUploads.map((m) => ({
-                colorName: m.colorName,
-                imageUrl: m.url,
-              })),
+              variants: optimizedVariants,
             },
           }),
           { label: `shopify-${i}` }

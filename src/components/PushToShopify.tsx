@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Store, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopifyPushPreview } from "./ShopifyPushPreview";
+import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 
 interface Product {
   id: string;
@@ -50,10 +51,12 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
     setPushing(true);
     setResult(null);
     try {
-      const variants = selectedMockups.map((m) => ({
+      const rawVariants = selectedMockups.map((m) => ({
         colorName: m.color_name,
         imageUrl: m.image_url,
       }));
+
+      const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
 
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
@@ -68,7 +71,7 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
           },
           listings,
           imageUrl: product.image_url,
-          variants,
+          variants: optimizedVariants,
         },
       });
 
