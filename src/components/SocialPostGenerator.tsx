@@ -111,6 +111,10 @@ export function SocialPostGenerator({
 
     setGeneratingImage(platform);
     try {
+      if (aiUsage) {
+        const allowed = await aiUsage.checkAndLog("generate-social-image", userId);
+        if (!allowed) { setGeneratingImage(null); return; }
+      }
       const { data, error } = await supabase.functions.invoke("generate-social-image", {
         body: {
           productTitle: product.title,
