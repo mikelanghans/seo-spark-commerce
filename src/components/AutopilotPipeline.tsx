@@ -1,15 +1,23 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Upload, Loader2, CheckCircle2, XCircle, AlertTriangle,
-  Rocket, ChevronDown, ChevronUp, FolderOpen,
+  Rocket, ChevronDown, ChevronUp, FolderOpen, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
 import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
+import {
+  createPipelineJob,
+  updatePipelineItem,
+  updatePipelineJobCounters,
+  findIncompleteJob,
+  dbItemToPipelineItem,
+  type PipelineJobItemRow,
+} from "@/lib/pipelineDb";
 
 interface Organization {
   id: string;
@@ -55,26 +63,13 @@ export const STEPS = [
 
 /** Extract color name from a mockup filename like "black-front.png" → "Black Front" */
 const colorFromFilename = (filename: string): string => {
-  const name = filename.replace(/\.[^.]+$/, ""); // strip extension
+  const name = filename.replace(/\.[^.]+$/, "");
   return name
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-/**
- * Parse selected folder files into design + mockups structure.
- * Supports both flat and nested layouts:
- *
- * Flat (select product folder directly):
- *   my-product/design.png + my-product/mockups/black.png
- *
- * Nested (select parent folder with multiple products):
- *   parent/product-a/design.png + parent/product-a/mockups/black.png
- *   parent/product-b/design.png + parent/product-b/mockups/red.png
- */
 const parseFolderFiles = (files: File[]): ParsedFolder[] => {
-  // First, detect if structure is flat or nested by checking if the
-  // root folder itself contains images (flat) or only subfolders (nested).
   const rootFolder = files[0]?.webkitRelativePath?.split("/")[0];
   if (!rootFolder) return [];
 
@@ -83,41 +78,27 @@ const parseFolderFiles = (files: File[]): ParsedFolder[] => {
     return parts.length === 2 && parts[0] === rootFolder && f.type.startsWith("image/");
   });
 
-  // Determine depth offset: flat = 0 (folder name is parts[0]), nested = 1 (folder name is parts[1])
   const depthOffset = hasRootImages ? 0 : 1;
-
   const folderMap = new Map<string, { design: File | null; mockups: File[] }>();
 
   for (const file of files) {
     const path = file.webkitRelativePath;
     if (!path || !file.type.startsWith("image/")) continue;
-
     const parts = path.split("/");
     if (parts.length < depthOffset + 2) continue;
-
     const folderName = parts[depthOffset];
-    if (!folderMap.has(folderName)) {
-      folderMap.set(folderName, { design: null, mockups: [] });
-    }
+    if (!folderMap.has(folderName)) folderMap.set(folderName, { design: null, mockups: [] });
     const entry = folderMap.get(folderName)!;
-
-    // Check if file is in a "mockups" subfolder relative to the product folder
     const mockupsIdx = depthOffset + 1;
     const isInMockups = parts.length >= mockupsIdx + 2 && parts[mockupsIdx].toLowerCase() === "mockups";
     const isDirectChild = parts.length === depthOffset + 2;
-
-    if (isInMockups) {
-      entry.mockups.push(file);
-    } else if (isDirectChild) {
-      if (!entry.design) entry.design = file;
-    }
+    if (isInMockups) entry.mockups.push(file);
+    else if (isDirectChild && !entry.design) entry.design = file;
   }
 
   const result: ParsedFolder[] = [];
   for (const [folderName, entry] of folderMap) {
-    if (entry.design) {
-      result.push({ folderName, designFile: entry.design, mockupFiles: entry.mockups });
-    }
+    if (entry.design) result.push({ folderName, designFile: entry.design, mockupFiles: entry.mockups });
   }
   return result;
 };
@@ -128,16 +109,68 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
   const [pushToShopify, setPushToShopify] = useState(true);
   const [concurrency, setConcurrency] = useState(3);
+  const [resumableJob, setResumableJob] = useState<{
+    jobId: string;
+    items: PipelineJobItemRow[];
+    pushToShopify: boolean;
+    concurrency: number;
+  } | null>(null);
   const folderRef = useRef<HTMLInputElement>(null);
+  const jobIdRef = useRef<string | null>(null);
 
   const totalDone = items.filter((i) => i.step === "done").length;
   const totalErrors = items.filter((i) => i.status === "error").length;
   const progress = items.length > 0 ? ((totalDone + totalErrors) / items.length) * 100 : 0;
   const isDone = !running && items.length > 0 && totalDone + totalErrors === items.length;
 
-  const updateItem = (index: number, updates: Partial<PipelineItem>) => {
+  // Check for incomplete jobs on mount
+  useEffect(() => {
+    const checkIncomplete = async () => {
+      try {
+        const result = await findIncompleteJob(userId, organization.id);
+        if (result) {
+          const { job, items: dbItems } = result;
+          const hasUnfinished = dbItems.some(
+            (i) => i.step !== "done" && i.status !== "error"
+          );
+          if (hasUnfinished) {
+            setResumableJob({
+              jobId: job.id,
+              items: dbItems,
+              pushToShopify: job.push_to_shopify,
+              concurrency: job.concurrency,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check for incomplete jobs:", err);
+      }
+    };
+    checkIncomplete();
+  }, [userId, organization.id]);
+
+  const updateItem = useCallback((index: number, updates: Partial<PipelineItem>) => {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...updates } : item)));
-  };
+  }, []);
+
+  /** Persist item update to DB */
+  const persistUpdate = useCallback(async (index: number, updates: Partial<PipelineItem> & {
+    designUrl?: string;
+    mockupUploads?: { colorName: string; url: string }[];
+  }) => {
+    updateItem(index, updates);
+    const jobId = jobIdRef.current;
+    if (!jobId) return;
+    await updatePipelineItem(jobId, index, {
+      step: updates.step as StepKey | undefined,
+      status: updates.status as StepStatus | undefined,
+      error: updates.error,
+      productTitle: updates.productTitle,
+      productId: updates.productId,
+      designUrl: updates.designUrl,
+      mockupUploads: updates.mockupUploads,
+    });
+  }, [updateItem]);
 
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -156,6 +189,219 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     return urlData.publicUrl;
   };
 
+  /** Process a single folder through the pipeline, skipping already-completed steps */
+  const processFolder = useCallback(async (
+    folder: ParsedFolder | null,
+    i: number,
+    resumeData?: PipelineJobItemRow
+  ) => {
+    try {
+      let designUrl = resumeData?.design_url || "";
+      let mockupUploads: { colorName: string; url: string }[] =
+        (resumeData?.mockup_uploads as { colorName: string; url: string }[]) || [];
+      let productId = resumeData?.product_id || "";
+      let productTitle = resumeData?.product_title || "";
+
+      const completedSteps = new Set<string>();
+      if (resumeData) {
+        // Determine which steps are already done
+        const stepOrder = STEPS.map((s) => s.key);
+        const currentStepIdx = stepOrder.indexOf(resumeData.step as StepKey);
+        if (resumeData.status === "done" || resumeData.step === "done") {
+          // Fully done — skip
+          updateItem(i, { step: "done", status: "done" });
+          return;
+        }
+        if (resumeData.status === "error") {
+          // Resume from the failed step
+          for (let s = 0; s < currentStepIdx; s++) completedSteps.add(stepOrder[s]);
+        } else {
+          // Was active/pending — resume from this step
+          for (let s = 0; s < currentStepIdx; s++) completedSteps.add(stepOrder[s]);
+        }
+      }
+
+      // Step 1: Upload
+      if (!completedSteps.has("upload")) {
+        if (!folder) throw new Error("No file data available — cannot upload. Please start a new pipeline.");
+        await persistUpdate(i, { step: "upload", status: "active" });
+        designUrl = await withRetry(() => uploadFile(folder.designFile), { label: `upload-design-${i}` });
+        mockupUploads = await Promise.all(
+          folder.mockupFiles.map(async (f) => ({
+            colorName: colorFromFilename(f.name),
+            url: await withRetry(() => uploadFile(f), { label: `upload-mockup-${i}` }),
+          }))
+        );
+        await persistUpdate(i, { step: "upload", status: "done" as StepStatus, designUrl, mockupUploads });
+      }
+
+      // Step 2: AI Analyze
+      if (!completedSteps.has("analyze")) {
+        await persistUpdate(i, { step: "analyze", status: "active" });
+
+        let base64: string;
+        if (folder) {
+          base64 = await fileToBase64(folder.designFile);
+        } else {
+          // Resuming without file — fetch from storage
+          if (!designUrl) throw new Error("No design URL available for analysis");
+          const res = await fetch(designUrl);
+          const blob = await res.blob();
+          base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const { data: analysis, error: analyzeError } = await withRetry(
+          () => supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } }),
+          { label: `analyze-${i}` }
+        );
+        if (analyzeError) throw new Error(`Analysis failed: ${analyzeError.message}`);
+        if (analysis.error) throw new Error(`Analysis failed: ${analysis.error}`);
+
+        const productData = {
+          title: analysis.title || (folder?.folderName || resumeData?.folder_name || "Product"),
+          description: analysis.description || "",
+          features: (analysis.features || []).join("\n"),
+          category: analysis.category || "",
+          keywords: (analysis.keywords || []).join(", "),
+          price: analysis.suggestedPrice || "",
+        };
+
+        productTitle = productData.title;
+        await persistUpdate(i, { productTitle });
+
+        const { data: product, error: insertError } = await supabase
+          .from("products")
+          .insert({
+            ...productData,
+            image_url: designUrl,
+            organization_id: organization.id,
+            user_id: userId,
+          })
+          .select()
+          .single();
+        if (insertError) throw new Error(`Save failed: ${insertError.message}`);
+
+        productId = product.id;
+        await persistUpdate(i, { productId: product.id });
+
+        if (mockupUploads.length > 0) {
+          const imageRows = mockupUploads.map((m, idx) => ({
+            product_id: product.id,
+            user_id: userId,
+            image_url: m.url,
+            image_type: "mockup",
+            color_name: m.colorName,
+            position: idx,
+          }));
+          const { error: imgInsertError } = await supabase.from("product_images").insert(imageRows);
+          if (imgInsertError) console.error("Failed to save mockup images:", imgInsertError.message);
+        }
+      }
+
+      // Step 3: Generate listings + SEO
+      if (!completedSteps.has("listings")) {
+        await persistUpdate(i, { step: "listings", status: "active" });
+
+        const { data: productRow } = productId
+          ? await supabase.from("products").select("*").eq("id", productId).single()
+          : { data: null };
+
+        const productData = productRow
+          ? {
+              title: productRow.title,
+              description: productRow.description,
+              features: productRow.features,
+              category: productRow.category,
+              keywords: productRow.keywords,
+              price: productRow.price,
+            }
+          : { title: productTitle, description: "", features: "", category: "", keywords: "", price: "" };
+
+        const { data: listings, error: listError } = await withRetry(
+          () => supabase.functions.invoke("generate-listings", {
+            body: {
+              business: {
+                name: organization.name,
+                niche: organization.niche,
+                tone: organization.tone,
+                audience: organization.audience,
+              },
+              product: productData,
+            },
+          }),
+          { label: `listings-${i}` }
+        );
+        if (listError) throw new Error(`Listing generation failed: ${listError.message}`);
+        if (listings.error) throw new Error(`Listing generation failed: ${listings.error}`);
+
+        const marketplaces = ["amazon", "etsy", "ebay", "shopify"];
+        await supabase.from("listings").delete().eq("product_id", productId);
+        const listingRows = marketplaces.map((m) => ({
+          product_id: productId,
+          user_id: userId,
+          marketplace: m,
+          title: listings[m].title,
+          description: listings[m].description,
+          bullet_points: listings[m].bulletPoints,
+          tags: listings[m].tags,
+          seo_title: listings[m].seoTitle || "",
+          seo_description: listings[m].seoDescription || "",
+          url_handle: listings[m].urlHandle || "",
+          alt_text: listings[m].altText || "",
+        }));
+        const { error: listInsertError } = await supabase.from("listings").insert(listingRows);
+        if (listInsertError) throw new Error(`Saving listings failed: ${listInsertError.message}`);
+      }
+
+      // Step 4: Push to Shopify
+      if (!completedSteps.has("shopify") && pushToShopify) {
+        await persistUpdate(i, { step: "shopify", status: "active" });
+
+        const { data: productRow } = productId
+          ? await supabase.from("products").select("*").eq("id", productId).single()
+          : { data: null };
+        const productData = productRow || { title: productTitle, description: "", category: "", keywords: "", price: "" };
+
+        const { data: shopifyListings } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("product_id", productId)
+          .eq("marketplace", "shopify");
+        const shopifyListing = shopifyListings?.[0];
+
+        const { data: shopifyResult, error: shopifyError } = await withRetry(
+          () => supabase.functions.invoke("push-to-shopify", {
+            body: {
+              product: productData,
+              listings: shopifyListing ? [shopifyListing] : [],
+              imageUrl: designUrl,
+              variants: mockupUploads.map((m) => ({
+                colorName: m.colorName,
+                imageUrl: m.url,
+              })),
+            },
+          }),
+          { label: `shopify-${i}` }
+        );
+        if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
+        if (shopifyResult?.error) throw new Error(`Shopify push failed: ${shopifyResult.error}`);
+      }
+
+      await persistUpdate(i, { step: "done", status: "done" });
+      if (jobIdRef.current) await updatePipelineJobCounters(jobIdRef.current);
+    } catch (err: any) {
+      console.error(`Pipeline error for item ${i}:`, err);
+      await persistUpdate(i, { status: "error", error: err.message });
+      if (jobIdRef.current) await updatePipelineJobCounters(jobIdRef.current);
+    }
+  }, [organization, userId, pushToShopify, persistUpdate, updateItem]);
+
+  /** Start a new pipeline from selected files */
   const handleSelectFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const allFiles = Array.from(e.target.files || []);
     const folders = parseFolderFiles(allFiles);
@@ -174,141 +420,55 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
     }));
     setItems(pipelineItems);
     setRunning(true);
+    setResumableJob(null);
 
-    const processFolder = async (folder: ParsedFolder, i: number) => {
-      try {
-        // Step 1: Upload all images (design + mockups)
-        updateItem(i, { step: "upload", status: "active" });
-        const designUrl = await withRetry(() => uploadFile(folder.designFile), { label: `upload-design-${i}` });
-        const mockupUploads = await Promise.all(
-          folder.mockupFiles.map(async (f) => ({
-            colorName: colorFromFilename(f.name),
-            url: await withRetry(() => uploadFile(f), { label: `upload-mockup-${i}` }),
-          }))
-        );
+    // Create job in DB
+    const jobId = await createPipelineJob(userId, organization.id, pushToShopify, concurrency, pipelineItems);
+    jobIdRef.current = jobId;
 
-        // Step 2: AI analyze the design image
-        updateItem(i, { step: "analyze", status: "active" });
-        const base64 = await fileToBase64(folder.designFile);
-        const { data: analysis, error: analyzeError } = await withRetry(
-          () => supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } }),
-          { label: `analyze-${i}` }
-        );
-        if (analyzeError) throw new Error(`Analysis failed: ${analyzeError.message}`);
-        if (analysis.error) throw new Error(`Analysis failed: ${analysis.error}`);
-
-        const productData = {
-          title: analysis.title || folder.folderName,
-          description: analysis.description || "",
-          features: (analysis.features || []).join("\n"),
-          category: analysis.category || "",
-          keywords: (analysis.keywords || []).join(", "),
-          price: analysis.suggestedPrice || "",
-        };
-
-        updateItem(i, { productTitle: productData.title });
-
-        // Save product to DB
-        const { data: product, error: insertError } = await supabase
-          .from("products")
-          .insert({
-            ...productData,
-            image_url: designUrl,
-            organization_id: organization.id,
-            user_id: userId,
-          })
-          .select()
-          .single();
-        if (insertError) throw new Error(`Save failed: ${insertError.message}`);
-
-        updateItem(i, { productId: product.id });
-
-        // Save mockup images to product_images table
-        if (mockupUploads.length > 0) {
-          const imageRows = mockupUploads.map((m, idx) => ({
-            product_id: product.id,
-            user_id: userId,
-            image_url: m.url,
-            image_type: "mockup",
-            color_name: m.colorName,
-            position: idx,
-          }));
-          const { error: imgInsertError } = await supabase.from("product_images").insert(imageRows);
-          if (imgInsertError) console.error("Failed to save mockup images:", imgInsertError.message);
-        }
-
-        // Step 3: Generate listings + SEO
-        updateItem(i, { step: "listings", status: "active" });
-        const { data: listings, error: listError } = await withRetry(
-          () => supabase.functions.invoke("generate-listings", {
-            body: {
-              business: {
-                name: organization.name,
-                niche: organization.niche,
-                tone: organization.tone,
-                audience: organization.audience,
-              },
-              product: productData,
-            },
-          }),
-          { label: `listings-${i}` }
-        );
-        if (listError) throw new Error(`Listing generation failed: ${listError.message}`);
-        if (listings.error) throw new Error(`Listing generation failed: ${listings.error}`);
-
-        // Save listings to DB
-        const marketplaces = ["amazon", "etsy", "ebay", "shopify"];
-        await supabase.from("listings").delete().eq("product_id", product.id);
-        const listingRows = marketplaces.map((m) => ({
-          product_id: product.id,
-          user_id: userId,
-          marketplace: m,
-          title: listings[m].title,
-          description: listings[m].description,
-          bullet_points: listings[m].bulletPoints,
-          tags: listings[m].tags,
-          seo_title: listings[m].seoTitle || "",
-          seo_description: listings[m].seoDescription || "",
-          url_handle: listings[m].urlHandle || "",
-          alt_text: listings[m].altText || "",
-        }));
-        const { error: listInsertError } = await supabase.from("listings").insert(listingRows);
-        if (listInsertError) throw new Error(`Saving listings failed: ${listInsertError.message}`);
-
-        // Step 4: Push to Shopify with color variants
-        if (pushToShopify) {
-          updateItem(i, { step: "shopify", status: "active" });
-          const shopifyListing = listingRows.find((l) => l.marketplace === "shopify");
-          const { data: shopifyResult, error: shopifyError } = await withRetry(
-            () => supabase.functions.invoke("push-to-shopify", {
-              body: {
-                product: productData,
-                listings: [shopifyListing],
-                imageUrl: designUrl,
-                variants: mockupUploads.map((m) => ({
-                  colorName: m.colorName,
-                  imageUrl: m.url,
-                })),
-              },
-            }),
-            { label: `shopify-${i}` }
-          );
-          if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
-          if (shopifyResult?.error) throw new Error(`Shopify push failed: ${shopifyResult.error}`);
-        }
-
-        updateItem(i, { step: "done", status: "done" });
-      } catch (err: any) {
-        console.error(`Pipeline error for ${folder.folderName}:`, err);
-        updateItem(i, { status: "error", error: err.message });
-      }
-    };
-
-    // Process folders with controlled concurrency
-    await processWithConcurrency(folders, concurrency, processFolder);
+    await processWithConcurrency(folders, concurrency, (folder, i) => processFolder(folder, i));
 
     setRunning(false);
     toast.success(`Pipeline complete! ${folders.length} products processed.`);
+  };
+
+  /** Resume an incomplete pipeline */
+  const handleResume = async () => {
+    if (!resumableJob) return;
+
+    const { jobId, items: dbItems, pushToShopify: savedPush, concurrency: savedConcurrency } = resumableJob;
+    jobIdRef.current = jobId;
+    setPushToShopify(savedPush);
+
+    const pipelineItems = dbItems.map(dbItemToPipelineItem);
+    setItems(pipelineItems);
+    setRunning(true);
+    setResumableJob(null);
+
+    // Only process items that aren't done/error
+    const itemsToResume = dbItems
+      .map((dbItem, i) => ({ dbItem, i }))
+      .filter(({ dbItem }) => dbItem.step !== "done" && dbItem.status !== "error");
+
+    await processWithConcurrency(
+      itemsToResume,
+      savedConcurrency,
+      ({ dbItem, i }) => processFolder(null, i, dbItem)
+    );
+
+    setRunning(false);
+    toast.success("Pipeline resumed and complete!");
+  };
+
+  /** Dismiss resume prompt and mark job as completed */
+  const handleDismissResume = async () => {
+    if (resumableJob) {
+      await supabase
+        .from("pipeline_jobs")
+        .update({ status: "dismissed" })
+        .eq("id", resumableJob.jobId);
+    }
+    setResumableJob(null);
   };
 
   return (
@@ -328,43 +488,68 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         </div>
       </div>
 
+      {/* Resume banner */}
+      {resumableJob && !running && items.length === 0 && (
+        <div className="flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <RotateCcw className="h-5 w-5 shrink-0 text-primary" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Incomplete pipeline found</p>
+            <p className="text-xs text-muted-foreground">
+              {resumableJob.items.filter((i) => i.step === "done").length} of{" "}
+              {resumableJob.items.length} products completed.
+              {resumableJob.items.filter((i) => i.status === "error").length > 0 &&
+                ` ${resumableJob.items.filter((i) => i.status === "error").length} failed.`}
+              {" "}Resume to continue from where it left off.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleDismissResume}>
+              Dismiss
+            </Button>
+            <Button size="sm" onClick={handleResume} className="gap-1.5">
+              <RotateCcw className="h-3.5 w-3.5" /> Resume
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Config */}
       {!running && items.length === 0 && (
         <div className="space-y-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <input
-              type="checkbox"
-              id="push-shopify"
-              checked={pushToShopify}
-              onChange={(e) => setPushToShopify(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-primary"
-            />
-            <label htmlFor="push-shopify" className="text-sm">
-              Auto-push to Shopify after generating listings (with color variants from mockups)
-            </label>
-          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+              <input
+                type="checkbox"
+                id="push-shopify"
+                checked={pushToShopify}
+                onChange={(e) => setPushToShopify(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary"
+              />
+              <label htmlFor="push-shopify" className="text-sm">
+                Auto-push to Shopify after generating listings (with color variants from mockups)
+              </label>
+            </div>
 
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <label htmlFor="concurrency" className="text-sm whitespace-nowrap">
-              Parallel processing:
-            </label>
-            <select
-              id="concurrency"
-              value={concurrency}
-              onChange={(e) => setConcurrency(Number(e.target.value))}
-              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-            >
-              <option value={1}>1 at a time (safest)</option>
-              <option value={2}>2 parallel</option>
-              <option value={3}>3 parallel (recommended)</option>
-              <option value={5}>5 parallel</option>
-            </select>
-            <span className="text-xs text-muted-foreground">
-              Higher = faster but more likely to hit rate limits
-            </span>
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+              <label htmlFor="concurrency" className="text-sm whitespace-nowrap">
+                Parallel processing:
+              </label>
+              <select
+                id="concurrency"
+                value={concurrency}
+                onChange={(e) => setConcurrency(Number(e.target.value))}
+                className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+              >
+                <option value={1}>1 at a time (safest)</option>
+                <option value={2}>2 parallel</option>
+                <option value={3}>3 parallel (recommended)</option>
+                <option value={5}>5 parallel</option>
+              </select>
+              <span className="text-xs text-muted-foreground">
+                Higher = faster but more likely to hit rate limits
+              </span>
+            </div>
           </div>
-        </div>
 
           <input
             ref={folderRef}
