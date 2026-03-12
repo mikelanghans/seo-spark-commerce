@@ -354,6 +354,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const genStart = Date.now();
     let nextIndex = 0;
 
+    let targetSize: { width: number; height: number } | null = null;
+    try {
+      targetSize = await getImageDimensions(imageBase64);
+    } catch {
+      // Non-fatal: if dimensions can't be read, skip normalization
+      targetSize = null;
+    }
+
     const worker = async () => {
       while (nextIndex < newColors.length && !creditsExhausted) {
         const i = nextIndex++;
@@ -361,8 +369,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         setActiveColors((prev) => [...prev, colorName]);
 
         try {
-          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64);
-          if (ok) successCount++;
+          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64, targetSize);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
