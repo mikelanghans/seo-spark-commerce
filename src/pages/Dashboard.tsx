@@ -353,6 +353,10 @@ const Dashboard = () => {
 
       setIsAnalyzing(true);
       try {
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("analyze-product", user!.id);
+          if (!allowed) { setIsAnalyzing(false); return; }
+        }
         const { data, error } = await supabase.functions.invoke("analyze-product", {
           body: { imageBase64: base64 },
         });
