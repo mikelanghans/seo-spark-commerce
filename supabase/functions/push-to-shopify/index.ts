@@ -79,6 +79,7 @@ serve(async (req) => {
       title: shopifyListing?.title || product.title,
       body_html: bodyHtml || `<p>${rawDesc}</p>`,
       product_type: product.category,
+      status: "active",
       tags: shopifyListing?.tags?.length
         ? shopifyListing.tags.join(", ")
         : product.keywords,
