@@ -34,6 +34,7 @@ import { AiUsageMeter } from "@/components/AiUsageMeter";
 
 interface Organization {
   id: string;
+  user_id: string;
   name: string;
   niche: string;
   tone: string;
