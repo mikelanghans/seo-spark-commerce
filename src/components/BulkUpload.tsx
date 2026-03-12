@@ -17,11 +17,17 @@ interface ProductData {
   image_url?: string | null;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   organizationId: string;
   userId: string;
   onComplete: () => void;
   onBack: () => void;
+  aiUsage?: AiUsage;
 }
 
 interface UploadResult {
