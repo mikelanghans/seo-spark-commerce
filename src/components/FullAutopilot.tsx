@@ -538,7 +538,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             <div>
               <h3 className="font-semibold">Full Autopilot</h3>
               <p className="text-sm text-muted-foreground">
-                Zero-touch pipeline: Message → Design → Mockups → Listing → Printify
+                Zero-touch pipeline: Message → Design → Mockups → Listing → Printify → Shopify
               </p>
             </div>
           </div>
