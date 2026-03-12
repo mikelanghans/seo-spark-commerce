@@ -180,9 +180,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     if (!generatedBase64) throw new Error("No image returned");
 
     const generatedDataUrl = ensureImageDataUrl(generatedBase64);
+    const templateDataUrl = preCompositedBase64;
     const blob = targetSize
       ? await normalizeAndLockToTemplateBlob({
-          templateDataUrl: imageBase64,
+          templateDataUrl,
           generatedDataUrl,
           targetWidth: targetSize.width,
           targetHeight: targetSize.height,
