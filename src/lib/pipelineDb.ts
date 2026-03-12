@@ -150,7 +150,7 @@ export async function findIncompleteJob(
 
   if (!items) return null;
 
-  return { job, items: items as PipelineJobItemRow[] };
+  return { job, items: items as unknown as PipelineJobItemRow[] };
 }
 
 /** Convert DB items back to PipelineItem format */
