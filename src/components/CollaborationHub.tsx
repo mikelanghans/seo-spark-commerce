@@ -101,6 +101,33 @@ export const CollaborationHub = ({ userId, organizations }: Props) => {
     return <Eye className="h-3.5 w-3.5 text-muted-foreground" />;
   };
 
+  const copyTextWithFallback = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Continue to fallback
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, text.length);
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
+  };
+
   const handleEmailInvite = async () => {
     if (!inviteEmail.trim() || !inviteOrgId) return;
     setSending(true);
@@ -132,9 +159,17 @@ export const CollaborationHub = ({ userId, organizations }: Props) => {
         .select("invite_token")
         .single();
       if (error) throw error;
+
       const link = `${window.location.origin}/invite/${data.invite_token}`;
-      await navigator.clipboard.writeText(link);
-      toast.success("Invite link copied to clipboard!");
+      const copied = await copyTextWithFallback(link);
+
+      if (copied) {
+        toast.success("Invite link copied to clipboard!");
+      } else {
+        window.prompt("Copy this invite link:", link);
+        toast.success("Invite link created — copy it from the dialog.");
+      }
+
       await loadAllTeams();
     } catch (err: any) {
       toast.error(err.message || "Failed to generate link");
@@ -160,8 +195,15 @@ export const CollaborationHub = ({ userId, organizations }: Props) => {
   };
 
   const handleCopyLink = async (token: string) => {
-    await navigator.clipboard.writeText(`${window.location.origin}/invite/${token}`);
-    toast.success("Link copied!");
+    const link = `${window.location.origin}/invite/${token}`;
+    const copied = await copyTextWithFallback(link);
+
+    if (copied) {
+      toast.success("Link copied!");
+    } else {
+      window.prompt("Copy this invite link:", link);
+      toast.success("Invite link ready — copy it from the dialog.");
+    }
   };
 
   if (loading) {
