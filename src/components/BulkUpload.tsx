@@ -88,6 +88,15 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
       try {
+        // Check AI usage before calling
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("analyze-product", userId);
+          if (!allowed) {
+            setResults((prev) => [...prev, { name: file.name, status: "error", message: "AI generation limit reached" }]);
+            setProgress(i + 1);
+            continue;
+          }
+        }
         const base64 = await fileToBase64(file);
 
         // Analyze with AI
