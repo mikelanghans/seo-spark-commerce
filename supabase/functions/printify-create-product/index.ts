@@ -88,18 +88,33 @@ serve(async (req) => {
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
-    // Parse print area dimensions
+    // Parse print area dimensions (schema differs across Printify providers)
     let printAreaWidth = 0;
     let printAreaHeight = 0;
     if (printingRes.ok) {
       const printingData = await printingRes.json();
-      const placeholders = printingData.placeholders || [];
-      const frontPlaceholder = placeholders.find((p: any) => p.position === "front") || placeholders[0];
+
+      const directPlaceholders = Array.isArray(printingData.placeholders) ? printingData.placeholders : [];
+      const variantPrintAreas = Array.isArray(printingData.variant_print_areas) ? printingData.variant_print_areas : [];
+      const variantPlaceholders = variantPrintAreas.flatMap((area: any) =>
+        Array.isArray(area?.placeholders) ? area.placeholders : []
+      );
+
+      const allPlaceholders = [...directPlaceholders, ...variantPlaceholders];
+      const frontPlaceholder = allPlaceholders.find((p: any) => p?.position === "front") || allPlaceholders[0];
+
       if (frontPlaceholder) {
-        printAreaWidth = frontPlaceholder.width || 0;
-        printAreaHeight = frontPlaceholder.height || 0;
-        console.log(`Print area: ${printAreaWidth}x${printAreaHeight} (position: ${frontPlaceholder.position})`);
+        printAreaWidth = Number(
+          frontPlaceholder.width ?? frontPlaceholder.print_area_width ?? frontPlaceholder.area_width ?? 0
+        );
+        printAreaHeight = Number(
+          frontPlaceholder.height ?? frontPlaceholder.print_area_height ?? frontPlaceholder.area_height ?? 0
+        );
       }
+
+      console.log(
+        `Print area: ${printAreaWidth}x${printAreaHeight} (position: ${frontPlaceholder?.position ?? "unknown"})`
+      );
     }
 
     // Filter variants - selectedColors are exact Printify color names
