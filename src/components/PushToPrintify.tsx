@@ -164,10 +164,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
       toast.info("Uploading design to Printify...");
 
-      // Step 1: Upload original (white/light) design
+      // Step 1: Upload original (white/light) design — has black background, remove it
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
-        { body: { imageUrl: product.image_url, fileName: `${product.title}-design.png` } }
+        { body: { imageUrl: product.image_url, fileName: `${product.title}-design.png`, removeBackgroundColor: "black" } }
       );
       if (uploadError) throw uploadError;
       if (uploadData?.error) throw new Error(uploadData.error);
