@@ -93,27 +93,23 @@ serve(async (req) => {
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Build images array — mockups only (design file is not a product photo)
-    const images: { src: string; alt?: string; position?: number }[] = [];
-    colorVariants.forEach((v, idx) => {
-      images.push({
-        src: v.imageUrl,
+    // Collect image URLs for post-creation upload (Shopify often can't fetch external URLs)
+    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
+    colorVariants.forEach((v) => {
+      imageEntries.push({
+        url: v.imageUrl,
         alt: `${product.title} - ${v.colorName}`,
-        position: idx + 1,
+        colorName: v.colorName,
       });
     });
     // Fallback: if no mockups, use the design image
-    if (images.length === 0 && imageUrl) {
-      images.push({
-        src: imageUrl,
+    if (imageEntries.length === 0 && imageUrl) {
+      imageEntries.push({
+        url: imageUrl,
         alt: shopifyListing?.alt_text || product.title,
-        position: 1,
       });
     }
-    console.log(`Images to push (${images.length}):`, JSON.stringify(images.map(img => ({ src: img.src?.substring(0, 80), alt: img.alt }))));
-    if (images.length > 0) {
-      shopifyProduct.images = images;
-    }
+    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map(img => ({ url: img.url?.substring(0, 80), alt: img.alt }))));
 
     // Build variants — no inventory tracking (print-on-demand via Printify)
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
@@ -138,7 +134,6 @@ serve(async (req) => {
     let shopifyResponse: Response;
     
     if (isUpdate) {
-      // Update existing product
       shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`, {
         method: "PUT",
         headers: {
@@ -148,7 +143,6 @@ serve(async (req) => {
         body: JSON.stringify({ product: shopifyProduct }),
       });
     } else {
-      // Create new product
       shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products.json`, {
         method: "POST",
         headers: {
@@ -167,7 +161,7 @@ serve(async (req) => {
 
     const shopifyData = await shopifyResponse.json();
     const createdProduct = shopifyData.product;
-    console.log(`Shopify response - product id: ${createdProduct?.id}, images count: ${createdProduct?.images?.length || 0}, variants count: ${createdProduct?.variants?.length || 0}`);
+    console.log(`Shopify product id: ${createdProduct?.id}, variants: ${createdProduct?.variants?.length || 0}`);
 
     // Save the Shopify product ID back to our database
     if (createdProduct?.id && product.id) {
@@ -177,11 +171,63 @@ serve(async (req) => {
         .eq("id", product.id);
     }
 
-    // Associate mockup images with their corresponding variants
-    if (hasVariants && createdProduct?.variants?.length && createdProduct?.images?.length) {
+    // Upload images via base64 attachment (much more reliable than src URLs)
+    const uploadedImages: { id: number; alt: string; colorName?: string }[] = [];
+    if (createdProduct?.id && imageEntries.length > 0) {
+      for (let i = 0; i < imageEntries.length; i++) {
+        const entry = imageEntries[i];
+        try {
+          const imgRes = await fetch(entry.url);
+          if (!imgRes.ok) {
+            console.error(`Failed to fetch image ${i}: ${imgRes.status}`);
+            continue;
+          }
+          const imgBuffer = await imgRes.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+
+          const uploadRes = await fetch(
+            `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
+            {
+              method: "POST",
+              headers: {
+                "X-Shopify-Access-Token": connection.access_token,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                image: {
+                  attachment: base64,
+                  alt: entry.alt,
+                  position: i + 1,
+                  filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.png`,
+                },
+              }),
+            }
+          );
+
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            uploadedImages.push({
+              id: uploadData.image.id,
+              alt: entry.alt,
+              colorName: entry.colorName,
+            });
+            console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
+          } else {
+            const errText = await uploadRes.text();
+            console.error(`Image upload ${i} failed (${uploadRes.status}): ${errText}`);
+          }
+        } catch (imgErr) {
+          console.error(`Image ${i} error:`, imgErr);
+        }
+      }
+      console.log(`Successfully uploaded ${uploadedImages.length}/${imageEntries.length} images`);
+    }
+
+    // Associate uploaded images with their corresponding variants
+    if (hasVariants && createdProduct?.variants?.length && uploadedImages.length > 0) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
-        const image = createdProduct.images[i];
+        const image = uploadedImages[i];
         if (variant && image) {
           try {
             await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
