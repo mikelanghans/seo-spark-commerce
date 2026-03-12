@@ -698,6 +698,7 @@ const Dashboard = () => {
             {selectedOrg && (
               <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
             )}
+            <OnboardingTrigger onClick={() => setShowTour(true)} />
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
