@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { removeBackground } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -401,8 +402,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
             // Upload design
+            // Remove black background client-side, upload as base64
+            const base64Contents = await removeBackground(designUrl, "black");
             const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {
-              body: { imageUrl: designUrl, fileName: `${productTitle}-design.png`, removeBackgroundColor: "black" },
+              body: { base64Contents, fileName: `${productTitle}-design.png` },
             });
             if (uploadErr || uploadData?.error) throw new Error(uploadData?.error || uploadErr?.message);
             const printifyImageId = uploadData.image?.id;
