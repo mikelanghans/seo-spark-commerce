@@ -56,7 +56,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <img src={brandAuraIcon} alt="Brand Aura" className="h-9 w-9 object-contain" />
+          <img src={brandAuraIcon} alt="Brand Aura" className="h-10 w-10 object-contain mix-blend-screen -m-1" />
           <span className="text-lg font-bold tracking-tight">Brand Aura</span>
         </div>
       </header>
