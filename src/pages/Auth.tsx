@@ -47,6 +47,7 @@ const Auth = () => {
           <img src={brandAuraIcon} alt="Brand Aura" className="h-20 w-20 object-contain" />
           <h1 className="text-2xl font-bold tracking-tight">Brand Aura</h1>
           <p className="text-xs text-muted-foreground tracking-widest uppercase">AI-Powered Brand Studio</p>
+          <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
         </div>
