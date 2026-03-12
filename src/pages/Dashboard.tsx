@@ -1068,6 +1068,7 @@ const Dashboard = () => {
                     onProductsCreated={() => {
                       if (selectedOrg) loadProducts(selectedOrg.id);
                     }}
+                    aiUsage={aiUsage}
                   />
                 </div>
               </TabsContent>
