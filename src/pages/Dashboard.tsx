@@ -729,7 +729,7 @@ const Dashboard = () => {
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org); }}
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
