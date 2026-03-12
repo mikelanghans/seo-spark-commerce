@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Store, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopifyPushPreview } from "./ShopifyPushPreview";
+import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 
 interface Product {
   id: string;
@@ -41,63 +42,6 @@ interface Props {
   userId: string;
 }
 
-/**
- * Resize an image URL to max 2048px wide JPEG, upload to storage,
- * and return the public URL. This keeps images under Shopify's 20MB limit.
- */
-const optimizeImageForShopify = async (
-  imageUrl: string,
-  userId: string,
-  productId: string,
-  colorName: string,
-): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = async () => {
-      try {
-        const maxWidth = 2048;
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, w, h);
-
-        const blob = await new Promise<Blob>((res, rej) => {
-          canvas.toBlob(
-            (b) => (b ? res(b) : rej(new Error("Canvas toBlob failed"))),
-            "image/jpeg",
-            0.85,
-          );
-        });
-
-        const safeName = colorName.replace(/\s+/g, "-").toLowerCase();
-        const path = `${userId}/shopify-optimized/${productId}/${safeName}-${Date.now()}.jpg`;
-
-        const { error: upErr } = await supabase.storage
-          .from("product-images")
-          .upload(path, blob, { contentType: "image/jpeg", cacheControl: "3600", upsert: true });
-
-        if (upErr) throw upErr;
-
-        const { data: urlData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(path);
-
-        resolve(urlData.publicUrl);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    img.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
-    img.src = imageUrl;
-  });
-};
-
 export const PushToShopify = ({ product, listings, userId }: Props) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -107,23 +51,12 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
     setPushing(true);
     setResult(null);
     try {
-      // Optimize images client-side (resize to 2048px JPEG) before pushing
-      const optimizedVariants = await Promise.all(
-        selectedMockups.map(async (m) => {
-          try {
-            const optimizedUrl = await optimizeImageForShopify(
-              m.image_url,
-              userId,
-              product.id,
-              m.color_name,
-            );
-            return { colorName: m.color_name, imageUrl: optimizedUrl };
-          } catch (err) {
-            console.warn(`Failed to optimize ${m.color_name}, using original`, err);
-            return { colorName: m.color_name, imageUrl: m.image_url };
-          }
-        }),
-      );
+      const rawVariants = selectedMockups.map((m) => ({
+        colorName: m.color_name,
+        imageUrl: m.image_url,
+      }));
+
+      const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
 
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
