@@ -110,6 +110,15 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsag
         // Step 1: Generate SEO-optimized content via AI
         updateItem(i, { status: "enriching" });
 
+        // Check AI usage
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("generate-listings", userId);
+          if (!allowed) {
+            updateItem(i, { status: "error", error: "AI generation limit reached" });
+            continue;
+          }
+        }
+
         const product = item.shopifyProduct;
         const productData = {
           title: product.title,
