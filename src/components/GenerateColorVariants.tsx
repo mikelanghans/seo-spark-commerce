@@ -38,6 +38,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   const [customColor, setCustomColor] = useState("");
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+  const [activeColors, setActiveColors] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [avgTime, setAvgTime] = useState<number | null>(null);
   const [recommendations, setRecommendations] = useState<ColorRecommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
 
