@@ -268,10 +268,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       return;
     }
 
-    // Load both design variants from product_images
-    let lightDesignBase64: string | undefined;
-    let darkDesignBase64: string | undefined;
-
+    // Load design variants and pre-composite onto template
     const { data: designImages } = await supabase
       .from("product_images")
       .select("image_url, color_name")
@@ -298,11 +295,31 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       }
     };
 
+    let lightDesignBase64: string | undefined;
+    let darkDesignBase64: string | undefined;
     if (lightDesignUrl) lightDesignBase64 = await fetchAsBase64(lightDesignUrl);
     if (darkDesignUrl) darkDesignBase64 = await fetchAsBase64(darkDesignUrl);
-
     if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
       lightDesignBase64 = await fetchAsBase64(designImageUrl);
+    }
+
+    // Pre-composite: bake the appropriate design into the template for each color group
+    // Light shirts use dark design, dark shirts use light design
+    const lightDesign = lightDesignBase64; // white/bright ink for dark shirts
+    const darkDesign = darkDesignBase64;   // dark ink for light shirts
+
+    let preCompositedDark: string = imageBase64; // for dark shirts (use light design)
+    let preCompositedLight: string = imageBase64; // for light shirts (use dark design)
+
+    if (lightDesign) {
+      try {
+        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign);
+      } catch { preCompositedDark = imageBase64; }
+    }
+    if (darkDesign || lightDesign) {
+      try {
+        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!);
+      } catch { preCompositedLight = imageBase64; }
     }
 
     // Process with concurrency of 2
@@ -316,7 +333,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     try {
       targetSize = await getImageDimensionsFromDataUrl(imageBase64);
     } catch {
-      // Non-fatal: if dimensions can't be read, skip composition lock
       targetSize = null;
     }
 
@@ -327,7 +343,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         setActiveColors((prev) => [...prev, colorName]);
 
         try {
-          const ok = await generateSingleColor(colorName, imageBase64, lightDesignBase64, darkDesignBase64, targetSize);
+          const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
+          const preComposited = isLight ? preCompositedLight : preCompositedDark;
+          const ok = await generateSingleColor(colorName, preComposited, targetSize);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
