@@ -555,6 +555,10 @@ const Dashboard = () => {
       const product = products[i];
       setGenAllProgress({ done: i, total: products.length });
       try {
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("generate-listings", user!.id);
+          if (!allowed) { toast.error("AI generation limit reached"); break; }
+        }
         const { data: result, error } = await supabase.functions.invoke("generate-listings", {
           body: {
             business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
