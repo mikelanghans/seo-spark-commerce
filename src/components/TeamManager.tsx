@@ -80,6 +80,33 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
   const canManage = currentUserRole === "owner" || currentUserRole === "editor";
   const isOwner = currentUserRole === "owner";
 
+  const copyTextWithFallback = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fallback below
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, text.length);
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
+  };
+
   const handleEmailInvite = async () => {
     if (!inviteEmail.trim()) return;
     setSending(true);
@@ -114,9 +141,17 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
         .select("invite_token")
         .single();
       if (error) throw error;
+
       const link = `${window.location.origin}/invite/${data.invite_token}`;
-      await navigator.clipboard.writeText(link);
-      toast.success("Invite link copied to clipboard!");
+      const copied = await copyTextWithFallback(link);
+
+      if (copied) {
+        toast.success("Invite link copied to clipboard!");
+      } else {
+        window.prompt("Copy this invite link:", link);
+        toast.success("Invite link created — copy it from the dialog.");
+      }
+
       await loadTeam();
     } catch (err: any) {
       toast.error(err.message || "Failed to generate link");
@@ -127,8 +162,14 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
 
   const handleCopyLink = async (token: string) => {
     const link = `${window.location.origin}/invite/${token}`;
-    await navigator.clipboard.writeText(link);
-    toast.success("Link copied!");
+    const copied = await copyTextWithFallback(link);
+
+    if (copied) {
+      toast.success("Link copied!");
+    } else {
+      window.prompt("Copy this invite link:", link);
+      toast.success("Invite link ready — copy it from the dialog.");
+    }
   };
 
   const handleRemoveMember = async (memberId: string, memberUserId: string) => {
