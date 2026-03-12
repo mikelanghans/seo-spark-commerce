@@ -53,6 +53,7 @@ interface ProductProgress {
 export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props) => {
   const [running, setRunning] = useState(false);
   const [batchSize, setBatchSize] = useState("3");
+  const [shopifyStatus, setShopifyStatus] = useState<"active" | "draft">("active");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [products, setProducts] = useState<ProductProgress[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
