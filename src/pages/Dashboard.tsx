@@ -121,6 +121,7 @@ const Dashboard = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
+  const aiUsage = useAiUsage(selectedOrg?.id ?? null);
 
   useEffect(() => {
     if (user) {
