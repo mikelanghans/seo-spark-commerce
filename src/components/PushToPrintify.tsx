@@ -163,12 +163,13 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
       );
       const hasLightColors = lightColorsSelected.length > 0;
 
-      toast.info("Uploading design to Printify...");
+      toast.info("Removing background & uploading design to Printify...");
 
-      // Step 1: Upload original (white/light) design — has black background, remove it
+      // Step 1: Remove black background client-side, then upload as base64
+      const base64Contents = await removeBackground(product.image_url!, "black");
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
-        { body: { imageUrl: product.image_url, fileName: `${product.title}-design.png`, removeBackgroundColor: "black" } }
+        { body: { base64Contents, fileName: `${product.title}-design.png` } }
       );
       if (uploadError) throw uploadError;
       if (uploadData?.error) throw new Error(uploadData.error);
