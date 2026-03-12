@@ -104,8 +104,44 @@ export async function removeBackground(
   }
 
   ctx.putImageData(imageData, 0, 0);
+  return canvasToPngBase64(canvas);
+}
 
-  // Export as base64 (without data URL prefix)
+/**
+ * Recolor every non-transparent pixel to a single target color.
+ * Useful for generating a clean dark-ink variant for light garments.
+ */
+export async function recolorOpaquePixels(
+  sourceBase64Png: string,
+  targetColor: { r: number; g: number; b: number } = { r: 24, g: 24, b: 24 },
+): Promise<string> {
+  const img = await loadImage(`data:image/png;base64,${sourceBase64Png}`);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+
+  for (let idx = 0; idx < pixels.length; idx += 4) {
+    const alpha = pixels[idx + 3];
+    if (alpha === 0) continue;
+
+    pixels[idx] = targetColor.r;
+    pixels[idx + 1] = targetColor.g;
+    pixels[idx + 2] = targetColor.b;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvasToPngBase64(canvas);
+}
+
+function canvasToPngBase64(canvas: HTMLCanvasElement): string {
   const dataUrl = canvas.toDataURL("image/png");
   return dataUrl.replace(/^data:image\/png;base64,/, "");
 }
