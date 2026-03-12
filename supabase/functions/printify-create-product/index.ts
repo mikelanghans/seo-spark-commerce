@@ -276,37 +276,8 @@ serve(async (req) => {
         console.log(`Existing product has ${existingVariantIds.length} variants`);
 
         // Build UPDATE payload — omit blueprint_id and print_provider_id (immutable)
-        // Build print_areas for update using existing variant IDs, with dual design support
-        let updatePrintAreas: any[];
-        if (hasDarkDesign) {
-          // Match existing variants to light/dark by cross-referencing with allVariants
-          const existingVariantSet = new Set(existingVariantIds);
-          const darkExistingIds = allVariants
-            .filter((v: any) => existingVariantSet.has(v.id) && !lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
-            .map((v: any) => v.id);
-          const lightExistingIds = allVariants
-            .filter((v: any) => existingVariantSet.has(v.id) && lightColorSet.has((v.options?.color || "").trim().toLowerCase()))
-            .map((v: any) => v.id);
-
-          updatePrintAreas = [];
-          if (darkExistingIds.length > 0) {
-            updatePrintAreas.push({
-              variant_ids: darkExistingIds,
-              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
-            });
-          }
-          if (lightExistingIds.length > 0) {
-            updatePrintAreas.push({
-              variant_ids: lightExistingIds,
-              placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
-            });
-          }
-        } else {
-          updatePrintAreas = [{
-            variant_ids: existingVariantIds,
-            placeholders: [{ position: "front", images: [{ id: printifyImageId, x: imageX, y: imageY, scale: imageScale, angle: 0 }] }],
-          }];
-        }
+        // Use ALL existing variant IDs in print_areas (Printify validation requirement)
+        const updatePrintAreas = buildPrintAreas(existingVariantIds);
 
         const updatePayload: any = {
           title,
