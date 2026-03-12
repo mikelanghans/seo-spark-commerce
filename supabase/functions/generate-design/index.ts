@@ -106,6 +106,7 @@ TYPOGRAPHY:
 - Use ONE typeface maximum — create hierarchy through weight, size, and spacing only
 - Generous letter-spacing and line-height for a premium feel
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every single letter must be perfectly sharp, crisp, and fully readable at arm's length. Use thick stroke weights. Do NOT use thin, wispy, or decorative fonts that sacrifice readability. If in doubt, go BOLDER.
 
 COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
 ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only. The design will be printed on black, navy, charcoal, or similar dark fabrics." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors. The design will be printed on white, cream, light gray, or similar light fabrics."}
@@ -116,9 +117,13 @@ KEEP IT ULTRA CLEAN:
 - Pure typography only — the power comes from the words and how they're set
 - Maximum 2-3 visual elements total (including the text lines)
 
+SIZE & FILL:
+- ⚠️ CRITICAL: The design should FILL at least 70-80% of the canvas width. Do NOT leave excessive empty margins.
+- Text should be LARGE and DOMINANT — this is streetwear, not a whisper. Scale up the typography to command attention.
+- The design should feel dense and impactful, not floating in empty space.
+
 COMPOSITION:
 - Center the design vertically and horizontally
-- Leave generous breathing room / negative space around the text
 - The design should feel like it belongs on a $45 streetwear tee, not a tourist shop
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
