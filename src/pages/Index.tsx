@@ -4,7 +4,7 @@ import { BusinessContextForm, BusinessContext } from "@/components/BusinessConte
 import { ProductForm, ProductInfo } from "@/components/ProductForm";
 import { ListingOutput } from "@/components/ListingOutput";
 import { MarketplaceListings } from "@/lib/listingGenerator";
-import { Sparkles } from "lucide-react";
+import brandAuraLogo from "@/assets/brand-aura-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
