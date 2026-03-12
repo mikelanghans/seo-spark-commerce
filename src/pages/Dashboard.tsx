@@ -1609,6 +1609,39 @@ const Dashboard = () => {
           />
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteConfirmOrg(null)}>
+          <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold">Archive Brand</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This will archive <strong>{deleteConfirmOrg.name}</strong>. You can restore it within 30 days.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Type <strong>{deleteConfirmOrg.name}</strong> to confirm:
+            </p>
+            <Input
+              className="mt-2"
+              placeholder="Type brand name..."
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              autoFocus
+            />
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOrg(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteConfirmText !== deleteConfirmOrg.name}
+                onClick={confirmDeleteOrg}
+              >
+                Archive Brand
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
