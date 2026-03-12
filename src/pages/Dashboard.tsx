@@ -887,7 +887,7 @@ const Dashboard = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Additional Style Notes</Label>
-                  <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
+                  <Textarea value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" rows={3} className="resize-none" />
                   <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
                 </div>
                 <div className="space-y-2">
