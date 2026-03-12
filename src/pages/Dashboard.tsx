@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon.png";
+import { useAiUsage } from "@/hooks/useAiUsage";
+import { AiUsageMeter } from "@/components/AiUsageMeter";
 
 interface Organization {
   id: string;
@@ -119,6 +121,7 @@ const Dashboard = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
+  const aiUsage = useAiUsage(selectedOrg?.id ?? null);
 
   useEffect(() => {
     if (user) {
@@ -673,7 +676,10 @@ const Dashboard = () => {
             <img src={brandAuraIcon} alt="Brand Aura" className="h-14 w-14 object-contain mix-blend-screen -m-3" />
             <span className="text-lg font-bold tracking-tight leading-none">Brand Aura</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {selectedOrg && (
+              <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+            )}
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
@@ -1062,6 +1068,7 @@ const Dashboard = () => {
                     onProductsCreated={() => {
                       if (selectedOrg) loadProducts(selectedOrg.id);
                     }}
+                    aiUsage={aiUsage}
                   />
                 </div>
               </TabsContent>

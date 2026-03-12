@@ -28,14 +28,26 @@ interface GeneratedMessage {
   created_at: string;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+  canUseAi: boolean;
+  usedCount: number;
+  remaining: number;
+  limit: number;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
 interface Props {
   organization: Organization;
   userId: string;
   onProductsCreated?: () => void;
   refreshKey?: number;
+  aiUsage?: AiUsage;
 }
 
-export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey }: Props) => {
+export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey, aiUsage }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [creatingProducts, setCreatingProducts] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -78,6 +90,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   };
 
   const handleGenerate = async () => {
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-messages", userId);
+      if (!allowed) return;
+    }
     setGenerating(true);
     try {
       // Collect existing message texts to avoid duplicates
@@ -142,6 +158,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       const dupeCount = newMessages.length - uniqueMessages.length;
       const dupeNote = dupeCount > 0 ? ` (${dupeCount} duplicates skipped)` : "";
       toast.success(`Generated ${uniqueMessages.length} new messages!${dupeNote}`);
+      if (aiUsage) await aiUsage.logUsage("generate-messages", userId);
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate messages");
@@ -217,6 +234,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleRefine = async (id: string, feedback: string) => {
     const msg = messages.find((m) => m.id === id);
     if (!msg) return;
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-messages", userId);
+      if (!allowed) return;
+    }
     setRefiningId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-messages", {
@@ -253,6 +274,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
       await supabase.from("generated_messages").insert(rows);
       toast.success(`Generated ${variations.length} variations!`);
+      if (aiUsage) await aiUsage.logUsage("generate-messages", userId);
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to refine message");
@@ -264,6 +286,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleGenerateDesign = async (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-design", userId);
+      if (!allowed) return;
+    }
     setGeneratingDesignId(msg.id);
 
     const variants: ("light-on-dark")[] = ["light-on-dark"];
@@ -294,6 +320,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         }
       }
       toast.success("Design generated!");
+      if (aiUsage) await aiUsage.logUsage("generate-design", userId);
       // Auto-keep the message when a design is generated
       if (!keptIds.has(msg.id)) {
         const newKept = new Set(keptIds);
