@@ -56,19 +56,26 @@ serve(async (req) => {
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
-    // Parse printing specs for print area dimensions
+    // Parse printing specs for print area dimensions (schema differs by provider)
     let printAreaSpecs: any = null;
     if (printingRes.ok) {
       const printingData = await printingRes.json();
       console.log(`Printing data: ${JSON.stringify(printingData).substring(0, 500)}`);
-      // Find "front" placeholder
-      const placeholders = printingData.placeholders || [];
-      const frontPlaceholder = placeholders.find((p: any) => p.position === "front") || placeholders[0];
+
+      const directPlaceholders = Array.isArray(printingData.placeholders) ? printingData.placeholders : [];
+      const variantPrintAreas = Array.isArray(printingData.variant_print_areas) ? printingData.variant_print_areas : [];
+      const variantPlaceholders = variantPrintAreas.flatMap((area: any) =>
+        Array.isArray(area?.placeholders) ? area.placeholders : []
+      );
+
+      const allPlaceholders = [...directPlaceholders, ...variantPlaceholders];
+      const frontPlaceholder = allPlaceholders.find((p: any) => p?.position === "front") || allPlaceholders[0];
+
       if (frontPlaceholder) {
         printAreaSpecs = {
-          position: frontPlaceholder.position,
-          width: frontPlaceholder.width,
-          height: frontPlaceholder.height,
+          position: frontPlaceholder.position || "front",
+          width: Number(frontPlaceholder.width ?? frontPlaceholder.print_area_width ?? frontPlaceholder.area_width ?? 0),
+          height: Number(frontPlaceholder.height ?? frontPlaceholder.print_area_height ?? frontPlaceholder.area_height ?? 0),
         };
       }
     }
