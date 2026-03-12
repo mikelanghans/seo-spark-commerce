@@ -149,63 +149,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   const CONCURRENCY = 2;
 
-  const ensureDataUrl = (value: string) =>
-    value.startsWith("data:image") ? value : `data:image/png;base64,${value}`;
-
-  const getImageDimensions = async (dataUrl: string): Promise<{ width: number; height: number }> => {
-    return await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({
-          width: img.naturalWidth || img.width,
-          height: img.naturalHeight || img.height,
-        });
-      };
-      img.onerror = () => reject(new Error("Failed to read image dimensions"));
-      img.src = dataUrl;
-    });
-  };
-
-  const dataUrlToPngBlob = async (dataUrl: string): Promise<Blob> => {
+  const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
     const resp = await fetch(dataUrl);
     return await resp.blob();
-  };
-
-  const normalizeToTemplateSize = async (
-    dataUrl: string,
-    targetWidth: number,
-    targetHeight: number,
-  ): Promise<Blob> => {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error("Failed to load generated image"));
-      i.src = dataUrl;
-    });
-
-    const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas context unavailable");
-
-    // Keep template aspect ratio with center-crop to avoid distortion
-    const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
-    const drawWidth = img.width * scale;
-    const drawHeight = img.height * scale;
-    const dx = (targetWidth - drawWidth) / 2;
-    const dy = (targetHeight - drawHeight) / 2;
-    ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
-
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("Failed to convert normalized image to blob"));
-          return;
-        }
-        resolve(blob);
-      }, "image/png");
-    });
   };
 
   const generateSingleColor = async (
