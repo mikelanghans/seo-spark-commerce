@@ -670,11 +670,7 @@ const Dashboard = () => {
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={brandAuraLogo} alt="Brand Aura" className="h-12 w-12 rounded-lg object-contain" />
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Brand Aura</h1>
-              <p className="text-xs text-muted-foreground">AI-powered brand studio</p>
-            </div>
+            <img src={brandAuraLogo} alt="Brand Aura" className="h-10 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">

@@ -44,8 +44,7 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3">
-          <img src={brandAuraLogo} alt="Brand Aura" className="h-20 w-20 rounded-xl object-contain" />
-          <h1 className="text-2xl font-bold tracking-tight">Brand Aura</h1>
+          <img src={brandAuraLogo} alt="Brand Aura" className="h-24 w-auto object-contain" />
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
           </p>
