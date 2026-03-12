@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { removeBackground } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
