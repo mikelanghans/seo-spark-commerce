@@ -320,6 +320,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         }
       }
       toast.success("Design generated!");
+      if (aiUsage) await aiUsage.logUsage("generate-design", userId);
       // Auto-keep the message when a design is generated
       if (!keptIds.has(msg.id)) {
         const newKept = new Set(keptIds);
