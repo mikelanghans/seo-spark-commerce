@@ -9,61 +9,36 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, designImageBase64, sourceWidth, sourceHeight } = await req.json();
+    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    const LIGHT_COLORS = new Set([
-      "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
-      "island reef", "chambray", "white", "flo blue", "watermelon",
-      "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-      "light green", "bay", "sage",
-    ]);
-    const isLightShirt = LIGHT_COLORS.has((colorName || "").toLowerCase().trim());
-
-    const inkRule = isLightShirt
-      ? `The design uses white/light ink that would be invisible on ${colorName}. Change the design's ink to DARK BLACK/CHARCOAL. Keep everything else about the design identical — same text, fonts, graphics, layout, size, position.`
-      : `Keep the design's ink colors exactly as-is: bright opaque white (#FFFFFF) and fully saturated colors. The ink is a physical layer ON TOP of the fabric — it must NOT blend, fade, or absorb into the shirt. Think of a bright white sticker on dark fabric.`;
 
     const sizeHint = sourceWidth && sourceHeight
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
-    const hasDesignRef = !!designImageBase64;
-    const designRule = hasDesignRef
-      ? `IMAGE 2 is the print design file. You MUST apply this exact design onto the shirt and keep it clearly visible. Do not remove it. Match realistic print placement centered on the chest and preserve the design proportions.`
-      : `Preserve any existing print on IMAGE 1 exactly as-is. Do not remove or alter it.`;
-
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
-IMAGE 1 is the IMMUTABLE master photo. Keep it pixel-locked:
+IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. Keep it pixel-locked:
 - Same camera angle, distance, focal length, and crop
 - Same shirt geometry (collar, sleeves, hem, fold silhouette)
 - Same background texture, color, lighting, props, and prop positions
 - Same wrinkles and shadow geometry on the shirt
 - Same overall framing and composition
 - Do NOT zoom, reframe, or alter composition in any way
+- The print/design on the shirt MUST remain fully visible and unchanged
 
-${designRule}
-
-Your edit scope is strictly limited to fabric recoloring + preserving/applying the same print.
-
-${inkRule}
+Your edit scope is ONLY fabric recoloring. Change the shirt fabric to "${colorName}" while keeping the print/design crisp and fully visible on top.
 
 ${sizeHint}
 
 The output must look like the same exact photo with only the shirt fabric recolored. Never redesign or recompose the scene.`;
 
-    // Build content: master reference image first, optional design second, then text
     const imageContent: any[] = [
       { type: "image_url", image_url: { url: imageBase64 } },
+      { type: "text", text: prompt },
     ];
-    if (designImageBase64) {
-      imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
-    }
-    imageContent.push({ type: "text", text: prompt });
 
-    // Use a single model consistently — gemini-2.5-flash-image is best for controlled edits
     const models = [
       "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
@@ -88,12 +63,9 @@ The output must look like the same exact photo with only the shirt fabric recolo
               messages: [
                 {
                   role: "system",
-                  content: "You are a professional product photo editor. You edit existing photos by recoloring fabric while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, and print visibility/placement. If a design reference image is provided, you MUST apply and keep that exact print visible on the shirt. Your output must be indistinguishable from the input except for fabric recolor and required print application. You ALWAYS output an image. Never respond with text only.",
+                  content: "You are a professional product photo editor. You recolor fabric in existing photos while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, and any print/design on the shirt. The print/design must remain crisp and fully visible. Your output must be indistinguishable from the input except for the fabric color. You ALWAYS output an image. Never respond with text only.",
                 },
-                {
-                  role: "user",
-                  content: imageContent,
-                },
+                { role: "user", content: imageContent },
               ],
               modalities: ["image", "text"],
             }),
@@ -130,7 +102,6 @@ The output must look like the same exact photo with only the shirt fabric recolo
             ? message.content.filter((p: any) => p?.type === "text" && typeof p?.text === "string").map((p: any) => p.text).join("\n")
             : "";
 
-        // Extract image from response (chat-completions style)
         if (message?.images?.length > 0) {
           imageBase64Result = message.images[0].image_url?.url || null;
         }
@@ -150,7 +121,6 @@ The output must look like the same exact photo with only the shirt fabric recolo
           imageBase64Result = message.content;
         }
 
-        // Extract image from alternate payload shape (images endpoint compatibility)
         const compatImage = data?.data?.[0]?.b64_json || data?.data?.[0]?.url;
         if (!imageBase64Result && compatImage) {
           imageBase64Result = compatImage.startsWith("data:image")
@@ -162,7 +132,6 @@ The output must look like the same exact photo with only the shirt fabric recolo
 
         if (imageBase64Result) break;
 
-        // If the model refuses because source already matches target color, keep original image
         const lowerText = textContent.toLowerCase();
         const lowerColor = (colorName || "").toLowerCase();
         const sameColorRefusal =
@@ -174,7 +143,6 @@ The output must look like the same exact photo with only the shirt fabric recolo
           break;
         }
 
-        // AI returned text only (no image) — retry
         console.warn(`Attempt ${attempt + 1} with ${model}: AI returned text only, retrying...`);
       }
       if (imageBase64Result) break;

@@ -5,6 +5,7 @@ import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
+  compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -292,9 +293,16 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             const sourceUrl = organization.template_image_url || designUrl;
             const referenceBase64 = await fetchImageAsBase64(sourceUrl);
-            let designBase64: string | undefined;
-            if (designUrl !== sourceUrl) {
-              designBase64 = await fetchImageAsBase64(designUrl);
+
+            // Pre-composite design onto template so AI only needs to recolor
+            let preCompositedBase64 = referenceBase64;
+            if (designUrl && designUrl !== sourceUrl) {
+              try {
+                const designBase64 = await fetchImageAsBase64(designUrl);
+                preCompositedBase64 = await compositeDesignOntoTemplate(referenceBase64, designBase64);
+              } catch {
+                // Fall back to template without design
+              }
             }
 
             let targetSize: { width: number; height: number } | null = null;
@@ -314,10 +322,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 const { data: mockupData, error: mockupError } = await withRetry(() =>
                   supabase.functions.invoke("generate-color-variants", {
                     body: {
-                      imageBase64: referenceBase64,
+                      imageBase64: preCompositedBase64,
                       colorName,
                       productTitle,
-                      designImageBase64: designBase64,
                       sourceWidth: targetSize?.width ?? null,
                       sourceHeight: targetSize?.height ?? null,
                     },

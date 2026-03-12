@@ -232,3 +232,41 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.src = src;
   });
 }
+
+/**
+ * Composite a transparent design PNG onto a template photo (center-chest placement).
+ * Returns a data URL of the combined image.
+ */
+export async function compositeDesignOntoTemplate(
+  templateDataUrl: string,
+  designDataUrl: string,
+): Promise<string> {
+  const [templateImg, designImg] = await Promise.all([
+    loadImage(templateDataUrl),
+    loadImage(designDataUrl),
+  ]);
+
+  const w = templateImg.naturalWidth || templateImg.width;
+  const h = templateImg.naturalHeight || templateImg.height;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
+
+  // Draw the template
+  ctx.drawImage(templateImg, 0, 0, w, h);
+
+  // Place design centered horizontally, ~20-30% from top (chest area)
+  // Scale design to ~40% of template width
+  const designScale = 0.4;
+  const drawWidth = w * designScale;
+  const drawHeight = drawWidth * (designImg.height / designImg.width);
+  const dx = (w - drawWidth) / 2;
+  const dy = h * 0.22; // chest position
+
+  ctx.drawImage(designImg, dx, dy, drawWidth, drawHeight);
+
+  return canvas.toDataURL("image/png");
+}
