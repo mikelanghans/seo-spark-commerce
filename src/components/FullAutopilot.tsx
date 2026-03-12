@@ -80,6 +80,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     });
   };
 
+  const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
+    const response = await fetch(dataUrl, { signal: abortRef.current?.signal });
+    return await response.blob();
+  };
+
   const checkCancelled = () => {
     if (cancelRef.current) throw new Error("__CANCELLED__");
   };
