@@ -4,7 +4,7 @@ import { BusinessContextForm, BusinessContext } from "@/components/BusinessConte
 import { ProductForm, ProductInfo } from "@/components/ProductForm";
 import { ListingOutput } from "@/components/ListingOutput";
 import { MarketplaceListings } from "@/lib/listingGenerator";
-import brandAuraLogo from "@/assets/brand-aura-logo.png";
+import brandAuraIcon from "@/assets/brand-aura-icon.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -56,7 +56,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <img src={brandAuraLogo} alt="Brand Aura" className="h-10 w-auto object-contain" />
+          <img src={brandAuraIcon} alt="Brand Aura" className="h-9 w-9 object-contain" />
+          <span className="text-lg font-bold tracking-tight">Brand Aura</span>
         </div>
       </header>
 

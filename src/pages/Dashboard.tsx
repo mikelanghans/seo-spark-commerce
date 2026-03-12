@@ -28,7 +28,7 @@ import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
-import brandAuraLogo from "@/assets/brand-aura-logo.png";
+import brandAuraIcon from "@/assets/brand-aura-icon.png";
 
 interface Organization {
   id: string;
@@ -669,8 +669,9 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={brandAuraLogo} alt="Brand Aura" className="h-10 w-auto object-contain" />
+          <div className="flex items-center gap-2.5">
+            <img src={brandAuraIcon} alt="Brand Aura" className="h-9 w-9 object-contain" />
+            <span className="text-lg font-bold tracking-tight">Brand Aura</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
