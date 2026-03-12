@@ -185,10 +185,15 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const generatedBase64 = data.imageBase64;
     if (!generatedBase64) throw new Error("No image returned");
 
-    const generatedDataUrl = ensureDataUrl(generatedBase64);
+    const generatedDataUrl = ensureImageDataUrl(generatedBase64);
     const blob = targetSize
-      ? await normalizeToTemplateSize(generatedDataUrl, targetSize.width, targetSize.height)
-      : await dataUrlToPngBlob(generatedDataUrl);
+      ? await normalizeAndLockToTemplateBlob({
+          templateDataUrl: imageBase64,
+          generatedDataUrl,
+          targetWidth: targetSize.width,
+          targetHeight: targetSize.height,
+        })
+      : await dataUrlToBlob(generatedDataUrl);
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
