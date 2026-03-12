@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Rocket, Loader2, X, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
@@ -53,6 +55,7 @@ interface ProductProgress {
 export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props) => {
   const [running, setRunning] = useState(false);
   const [batchSize, setBatchSize] = useState("3");
+  const [shopifyStatus, setShopifyStatus] = useState<"active" | "draft">("active");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [products, setProducts] = useState<ProductProgress[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -524,6 +527,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 }] : [],
                 imageUrl: designUrl,
                 variants: shopifyVariants,
+                shopifyStatus,
               },
             });
 
@@ -597,11 +601,23 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             </Button>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Label htmlFor="shopify-status" className="text-sm text-muted-foreground">Shopify status:</Label>
+            <div
+              id="shopify-status"
+              className="flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => setShopifyStatus((s) => s === "active" ? "draft" : "active")}
+            >
+              <Switch checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
+              <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
+            </div>
+          </div>
+
           <div className="text-xs text-muted-foreground space-y-1">
             <p>• Design style: <strong>{(organization.design_styles as string[])?.[0] || "text-only"}</strong></p>
             <p>• Colors: <strong>AI recommended</strong></p>
             <p>• Listings: <strong>Shopify only</strong></p>
-            <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify (published)</strong></p>
+            <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify ({shopifyStatus === "active" ? "published" : "draft"})</strong></p>
           </div>
         </div>
       )}
