@@ -864,7 +864,7 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <Label>Brand Color</Label>
                   <div className="flex gap-2">
-                    <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" className="flex-1" />
+                    <Textarea value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" rows={2} className="flex-1 resize-none" />
                     {orgForm.brand_color && /^#[0-9A-Fa-f]{6}$/.test(orgForm.brand_color) && (
                       <div className="h-10 w-10 rounded-md border border-border" style={{ backgroundColor: orgForm.brand_color }} />
                     )}
