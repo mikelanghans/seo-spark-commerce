@@ -414,18 +414,6 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             });
             const printProviderId = variantData?.printProviderId;
 
-            // Build mockup images
-            const { data: mockupImages } = await supabase
-              .from("product_images")
-              .select("image_url, color_name")
-              .eq("product_id", productId)
-              .eq("image_type", "mockup");
-
-            const mockupImagesForPrintify = (mockupImages || []).map((m: any) => ({
-              printifyColorName: m.color_name,
-              imageUrl: m.image_url,
-            }));
-
             const { data: printifyResult, error: printifyErr } = await supabase.functions.invoke("printify-create-product", {
               body: {
                 shopId,
@@ -436,7 +424,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 selectedColors: recommendedColors,
                 selectedSizes: ["S", "M", "L", "XL", "2XL"],
                 price: "29.99",
-                mockupImages: mockupImagesForPrintify,
+                mockupImages: [],
                 productId,
                 printProviderId,
               },
