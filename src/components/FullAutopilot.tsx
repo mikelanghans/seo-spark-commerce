@@ -402,7 +402,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             // Upload design
             const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {
-              body: { imageUrl: designUrl, fileName: `${productTitle}-design.png` },
+              body: { imageUrl: designUrl, fileName: `${productTitle}-design.png`, removeBackgroundColor: "black" },
             });
             if (uploadErr || uploadData?.error) throw new Error(uploadData?.error || uploadErr?.message);
             const printifyImageId = uploadData.image?.id;

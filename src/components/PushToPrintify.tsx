@@ -191,7 +191,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           toast.info("Uploading dark design to Printify...");
           const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
             "printify-upload-image",
-            { body: { imageUrl: darkData.darkDesignUrl, fileName: `${product.title}-dark-design.png` } }
+            { body: { imageUrl: darkData.darkDesignUrl, fileName: `${product.title}-dark-design.png`, removeBackgroundColor: "white" } }
           );
           if (darkUploadError) throw darkUploadError;
           if (darkUpload?.error) throw new Error(darkUpload.error);
