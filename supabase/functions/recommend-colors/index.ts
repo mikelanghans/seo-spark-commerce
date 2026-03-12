@@ -12,7 +12,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { productTitle, productCategory, brandName, brandNiche, brandAudience, brandTone, existingColors } = await req.json();
+    const { productTitle, productCategory, brandName, brandNiche, brandAudience, brandTone, existingColors, designImageBase64 } = await req.json();
 
     const prompt = `You are a fashion merchandising expert specializing in print-on-demand apparel color strategy.
 
@@ -25,6 +25,8 @@ TONE: ${brandTone || "modern"}
 
 ${existingColors?.length ? `ALREADY GENERATED COLORS (do NOT recommend these): ${existingColors.join(", ")}` : ""}
 
+${designImageBase64 ? "I've attached the actual design graphic. ANALYZE IT CAREFULLY — consider its colors, mood, theme, and visual elements when recommending garment colors. Choose colors that complement or contrast the design's palette for maximum visual impact." : ""}
+
 AVAILABLE COLORS (Comfort Colors 1717 palette — ONLY recommend from this list):
 Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Crimson, Espresso, Midnight, Sage, Chambray
 
@@ -34,12 +36,18 @@ IMPORTANT RULES:
 3. Black and White are mandatory because every design is produced in both light-ink and dark-ink versions.
 
 For each color beyond Black and White, recommend those that would:
-1. Sell best for this specific product and target audience
-2. Create strong visual contrast with the design text/graphics
+1. Best complement or contrast the SPECIFIC design's color palette and visual theme
+2. Create strong visual impact — the garment color should make this particular design pop
 3. Cover the most popular color preferences for the niche
 4. Maximize conversion rates based on POD industry data
 
-For each color, provide a brief reason why it's a good choice for this specific product.`;
+For each color, provide a brief reason specific to THIS design (reference its colors, theme, or elements — not generic reasons).`;
+
+    // Build message content — include design image if available
+    const userContent: any[] = [{ type: "text", text: prompt }];
+    if (designImageBase64) {
+      userContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -50,8 +58,8 @@ For each color, provide a brief reason why it's a good choice for this specific 
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a merchandising expert. You MUST call the recommend_colors function. Always include Black and White. Return 6-8 total colors." },
-          { role: "user", content: prompt },
+          { role: "system", content: "You are a merchandising expert. You MUST call the recommend_colors function. Always include Black and White. Return 6-8 total colors. When a design image is provided, your recommendations MUST be specifically tailored to that design's visual characteristics." },
+          { role: "user", content: designImageBase64 ? userContent : prompt },
         ],
         tools: [
           {
@@ -68,7 +76,7 @@ For each color, provide a brief reason why it's a good choice for this specific 
                       type: "object",
                       properties: {
                         color: { type: "string", description: "Exact color name from the available palette" },
-                        reason: { type: "string", description: "Brief reason why this color works (max 15 words)" },
+                        reason: { type: "string", description: "Brief reason referencing the specific design (max 15 words)" },
                       },
                       required: ["color", "reason"],
                       additionalProperties: false,
