@@ -16,11 +16,17 @@ interface Organization {
   audience: string;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   organization: Organization;
   userId: string;
   onComplete: () => void;
   onBack: () => void;
+  aiUsage?: AiUsage;
 }
 
 interface ShopifyProduct {
