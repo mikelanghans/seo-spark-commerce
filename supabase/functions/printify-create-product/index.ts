@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
+const DEFAULT_IMAGE_SCALE = 0.65;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -87,18 +88,33 @@ serve(async (req) => {
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
-    // Parse print area dimensions
+    // Parse print area dimensions (schema differs across Printify providers)
     let printAreaWidth = 0;
     let printAreaHeight = 0;
     if (printingRes.ok) {
       const printingData = await printingRes.json();
-      const placeholders = printingData.placeholders || [];
-      const frontPlaceholder = placeholders.find((p: any) => p.position === "front") || placeholders[0];
+
+      const directPlaceholders = Array.isArray(printingData.placeholders) ? printingData.placeholders : [];
+      const variantPrintAreas = Array.isArray(printingData.variant_print_areas) ? printingData.variant_print_areas : [];
+      const variantPlaceholders = variantPrintAreas.flatMap((area: any) =>
+        Array.isArray(area?.placeholders) ? area.placeholders : []
+      );
+
+      const allPlaceholders = [...directPlaceholders, ...variantPlaceholders];
+      const frontPlaceholder = allPlaceholders.find((p: any) => p?.position === "front") || allPlaceholders[0];
+
       if (frontPlaceholder) {
-        printAreaWidth = frontPlaceholder.width || 0;
-        printAreaHeight = frontPlaceholder.height || 0;
-        console.log(`Print area: ${printAreaWidth}x${printAreaHeight} (position: ${frontPlaceholder.position})`);
+        printAreaWidth = Number(
+          frontPlaceholder.width ?? frontPlaceholder.print_area_width ?? frontPlaceholder.area_width ?? 0
+        );
+        printAreaHeight = Number(
+          frontPlaceholder.height ?? frontPlaceholder.print_area_height ?? frontPlaceholder.area_height ?? 0
+        );
       }
+
+      console.log(
+        `Print area: ${printAreaWidth}x${printAreaHeight} (position: ${frontPlaceholder?.position ?? "unknown"})`
+      );
     }
 
     // Filter variants - selectedColors are exact Printify color names
@@ -136,12 +152,12 @@ serve(async (req) => {
     const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
 
-    // Printify coordinate system: x=0, y=0 = centered. scale=1.0 = fill print area width.
-    const imageX = 0;
-    const imageY = 0;
+    // Printify normalized placement: (0.5, 0.5) is centered in the print area.
+    const imageX = 0.5;
+    const imageY = 0.5;
 
-    // Fetch uploaded image dimensions from Printify to calculate optimal scale
-    let imageScale = 1.0; // Default: fill the print area
+    // Default to a chest-print width (~65% of print area) when provider print area metadata is unavailable.
+    let imageScale = DEFAULT_IMAGE_SCALE;
     try {
       const imageInfoRes = await fetch(
         `https://api.printify.com/v1/uploads/${printifyImageId}.json`,
@@ -154,14 +170,16 @@ serve(async (req) => {
         console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
 
         if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
-          // Calculate scale so the design fits within the print area while preserving aspect ratio
-          const scaleByWidth = printAreaWidth / imgW;
-          const scaleByHeight = printAreaHeight / imgH;
-          // Use the smaller scale to ensure the design fits entirely
-          const fitScale = Math.min(scaleByWidth, scaleByHeight);
-          // Normalize to Printify's scale where 1.0 = fill print area width
-          imageScale = (fitScale * imgW) / printAreaWidth;
-          console.log(`Calculated scale: ${imageScale.toFixed(4)} (fitScale=${fitScale.toFixed(4)})`);
+          // Scale to keep full design visible while targeting chest-print footprint.
+          const widthFillScale = printAreaWidth / imgW;
+          const heightFitScale = printAreaHeight / imgH;
+          const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
+          const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
+
+          imageScale = Math.max(0.2, Math.min(1.5, targetChestScale));
+          console.log(
+            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, default=${DEFAULT_IMAGE_SCALE})`
+          );
         }
       } else {
         console.log(`Could not fetch image info (${imageInfoRes.status}), using default scale`);
