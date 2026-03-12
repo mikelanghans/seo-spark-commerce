@@ -669,9 +669,9 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-7 w-7 object-contain" />
-            <span className="text-base font-bold tracking-tight leading-none">Brand Aura</span>
+          <div className="flex items-center gap-2.5">
+            <img src={brandAuraIcon} alt="Brand Aura" className="h-6 w-6 object-contain" />
+            <span className="text-lg font-bold tracking-tight leading-none">Brand Aura</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
