@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { removeBackground } from "@/lib/removeBackground";
+import { recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
