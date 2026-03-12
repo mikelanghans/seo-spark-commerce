@@ -97,7 +97,8 @@ BRAND CONTEXT:
 
 STRICT DESIGN RULES:
 
-BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
+BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
+⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.
 
 TYPOGRAPHY:
 - Font style: ${fontDirection}
