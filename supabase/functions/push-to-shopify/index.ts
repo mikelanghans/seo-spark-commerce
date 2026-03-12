@@ -167,6 +167,7 @@ serve(async (req) => {
 
     const shopifyData = await shopifyResponse.json();
     const createdProduct = shopifyData.product;
+    console.log(`Shopify response - product id: ${createdProduct?.id}, images count: ${createdProduct?.images?.length || 0}, variants count: ${createdProduct?.variants?.length || 0}`);
 
     // Save the Shopify product ID back to our database
     if (createdProduct?.id && product.id) {
