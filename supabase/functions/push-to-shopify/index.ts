@@ -271,7 +271,7 @@ serve(async (req) => {
     }
 
     // Associate uploaded images with their corresponding variants
-    if (hasVariants && createdProduct?.variants?.length && uploadedImages.length > 0) {
+    if (hasVariants && createdProduct?.variants?.length && uploadedImages.some(Boolean)) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
         const image = uploadedImages[i];

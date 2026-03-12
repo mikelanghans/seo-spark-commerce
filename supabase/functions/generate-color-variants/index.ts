@@ -35,6 +35,9 @@ serve(async (req) => {
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
+    const swatchHint = COLOR_SWATCH_HINTS[(colorName || "").toLowerCase().trim()]
+      || `${colorName} with realistic garment dye tone`;
+
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
 IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. Keep it pixel-locked:
@@ -46,11 +49,16 @@ IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. 
 - Do NOT zoom, reframe, or alter composition in any way
 - The print/design on the shirt MUST remain fully visible and unchanged
 
-Your edit scope is ONLY fabric recoloring. Change the shirt fabric to "${colorName}" while keeping the print/design crisp and fully visible on top.
+Your edit scope is ONLY fabric recoloring.
+Color target (must match): ${swatchHint}.
+- Preserve natural fabric texture and shadows while changing only hue/saturation/lightness of shirt fabric
+- Keep white balance neutral; do not add color casts
+- Do NOT over-darken or over-wash the garment
+- Do NOT change print/design colors or contrast
 
 ${sizeHint}
 
-The output must look like the same exact photo with only the shirt fabric recolored. Never redesign or recompose the scene.`;
+The output must look like the exact same photo with only the shirt fabric recolored to the target tone.`;
 
     const imageContent: any[] = [
       { type: "image_url", image_url: { url: imageBase64 } },
