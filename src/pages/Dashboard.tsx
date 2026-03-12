@@ -370,6 +370,7 @@ const Dashboard = () => {
           keywords: (data.keywords || []).join(", "),
           price: data.suggestedPrice || "",
         });
+        if (aiUsage) await aiUsage.logUsage("analyze-product", user!.id);
         toast.success("Product analyzed!");
       } catch (err: any) {
         toast.error(err.message || "Failed to analyze image");
