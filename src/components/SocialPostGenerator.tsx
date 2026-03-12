@@ -38,14 +38,21 @@ const PLATFORMS = [
   { id: "facebook", label: "Facebook", icon: "📘" },
 ] as const;
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 export function SocialPostGenerator({
   organization,
   products,
   userId,
+  aiUsage,
 }: {
   organization: Organization;
   products: Product[];
   userId: string;
+  aiUsage?: AiUsage;
 }) {
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
