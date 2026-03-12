@@ -6,36 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const buildRenderImageUrl = (rawUrl: string, width: number, quality: number) => {
-  try {
-    const parsed = new URL(rawUrl);
-    if (!parsed.pathname.includes("/storage/v1/object/public/")) return rawUrl;
-
-    const renderPath = parsed.pathname.replace(
-      "/storage/v1/object/public/",
-      "/storage/v1/render/image/public/",
-    );
-
-    const renderUrl = new URL(`${parsed.origin}${renderPath}`);
-    renderUrl.searchParams.set("width", String(width));
-    renderUrl.searchParams.set("quality", String(quality));
-    renderUrl.searchParams.set("format", "jpeg");
-    renderUrl.searchParams.set("resize", "contain");
-    return renderUrl.toString();
-  } catch {
-    return rawUrl;
-  }
-};
-
-const getShopifyUploadCandidates = (rawUrl: string) => {
-  const large = buildRenderImageUrl(rawUrl, 2048, 84);
-  if (large === rawUrl) return [rawUrl];
-
-  const medium = buildRenderImageUrl(rawUrl, 1600, 76);
-  const compact = buildRenderImageUrl(rawUrl, 1280, 72);
-  return Array.from(new Set([large, medium, compact, rawUrl]));
-};
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -70,20 +40,16 @@ serve(async (req) => {
 
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
 
-    // Build variant data from mockup color images
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
     const hasVariants = colorVariants.length > 0;
 
-    // Check if product already exists on Shopify
     const existingShopifyId = product.shopify_product_id;
     const isUpdate = !!existingShopifyId;
 
-    // Build Shopify product payload
-    // Convert plain text description + bullet points to HTML
+    // Build HTML description
     const rawDesc = shopifyListing?.description || product.description || "";
     const bulletPoints: string[] = shopifyListing?.bullet_points || shopifyListing?.bulletPoints || [];
 
-    // Split description into paragraphs
     let paragraphs: string[];
     if (rawDesc.includes("\n\n")) {
       paragraphs = rawDesc.split(/\n\s*\n/).map((p: string) => p.trim()).filter((p: string) => p);
@@ -100,7 +66,6 @@ serve(async (req) => {
       .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
       .join("\n");
 
-    // Append bullet points as an HTML list
     if (bulletPoints.length > 0) {
       bodyHtml += "\n<ul>\n" + bulletPoints.map((bp: string) => `  <li>${bp}</li>`).join("\n") + "\n</ul>";
     }
@@ -123,31 +88,24 @@ serve(async (req) => {
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Collect image URLs for post-creation upload (optimized render URLs improve Shopify fetch reliability)
-    const imageEntries: { originalUrl: string; uploadCandidates: string[]; alt: string; colorName?: string }[] = [];
+    // Collect image URLs (already optimized client-side to ≤2048px JPEG)
+    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
     colorVariants.forEach((v) => {
       imageEntries.push({
-        originalUrl: v.imageUrl,
-        uploadCandidates: getShopifyUploadCandidates(v.imageUrl),
+        url: v.imageUrl,
         alt: `${product.title} - ${v.colorName}`,
         colorName: v.colorName,
       });
     });
-    // Fallback: if no mockups, use the design image
     if (imageEntries.length === 0 && imageUrl) {
       imageEntries.push({
-        originalUrl: imageUrl,
-        uploadCandidates: getShopifyUploadCandidates(imageUrl),
+        url: imageUrl,
         alt: shopifyListing?.alt_text || product.title,
       });
     }
-    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map((img) => ({
-      url: img.originalUrl?.substring(0, 80),
-      candidates: img.uploadCandidates.length,
-      alt: img.alt,
-    }))));
+    console.log(`Images to upload: ${imageEntries.length}`);
 
-    // Build variants — no inventory tracking (print-on-demand via Printify)
+    // Build variants
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
     if (hasVariants) {
       shopifyProduct.options = [{ name: "Color" }];
@@ -158,7 +116,7 @@ serve(async (req) => {
         inventory_policy: "continue",
       }));
     } else {
-      shopifyProduct.variants = [{ 
+      shopifyProduct.variants = [{
         price,
         inventory_management: null,
         inventory_policy: "continue",
@@ -168,23 +126,16 @@ serve(async (req) => {
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     let shopifyResponse: Response;
-    
     if (isUpdate) {
       shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`, {
         method: "PUT",
-        headers: {
-          "X-Shopify-Access-Token": connection.access_token,
-          "Content-Type": "application/json",
-        },
+        headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
         body: JSON.stringify({ product: shopifyProduct }),
       });
     } else {
       shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products.json`, {
         method: "POST",
-        headers: {
-          "X-Shopify-Access-Token": connection.access_token,
-          "Content-Type": "application/json",
-        },
+        headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
         body: JSON.stringify({ product: shopifyProduct }),
       });
     }
@@ -199,7 +150,6 @@ serve(async (req) => {
     const createdProduct = shopifyData.product;
     console.log(`Shopify product id: ${createdProduct?.id}, variants: ${createdProduct?.variants?.length || 0}`);
 
-    // Save the Shopify product ID back to our database
     if (createdProduct?.id && product.id) {
       await adminClient
         .from("products")
@@ -207,70 +157,48 @@ serve(async (req) => {
         .eq("id", product.id);
     }
 
-    // Upload images with progressive fallbacks (large -> medium -> compact -> original)
+    // Upload images to Shopify (images are already optimized client-side)
     const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
     if (createdProduct?.id && imageEntries.length > 0) {
       for (let i = 0; i < imageEntries.length; i++) {
         const entry = imageEntries[i];
-        let uploaded = false;
-
-        for (let c = 0; c < entry.uploadCandidates.length; c++) {
-          const candidateUrl = entry.uploadCandidates[c];
-          try {
-            const uploadRes = await fetch(
-              `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
-              {
-                method: "POST",
-                headers: {
-                  "X-Shopify-Access-Token": connection.access_token,
-                  "Content-Type": "application/json",
+        try {
+          const uploadRes = await fetch(
+            `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
+            {
+              method: "POST",
+              headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                image: {
+                  src: entry.url,
+                  alt: entry.alt,
+                  position: i + 1,
+                  filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.jpg`,
                 },
-                body: JSON.stringify({
-                  image: {
-                    src: candidateUrl,
-                    alt: entry.alt,
-                    position: i + 1,
-                    filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.jpg`,
-                  },
-                }),
-              }
-            );
+              }),
+            },
+          );
 
-            if (uploadRes.ok) {
-              const uploadData = await uploadRes.json();
-              uploadedImages[i] = {
-                id: uploadData.image.id,
-                alt: entry.alt,
-                colorName: entry.colorName,
-              };
-              console.log(
-                `Uploaded image ${i + 1}/${imageEntries.length} (${c + 1}/${entry.uploadCandidates.length} candidate): ${entry.colorName || "fallback"}`,
-              );
-              uploaded = true;
-              break;
-            }
-
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            uploadedImages[i] = { id: uploadData.image.id, alt: entry.alt, colorName: entry.colorName };
+            console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
+          } else {
             const errText = await uploadRes.text();
-            console.error(
-              `Image upload ${i} failed (${uploadRes.status}) on candidate ${c + 1}/${entry.uploadCandidates.length}: ${errText}`,
-            );
-          } catch (imgErr) {
-            console.error(`Image ${i} candidate ${c + 1} error:`, imgErr);
+            console.error(`Image upload ${i} failed (${uploadRes.status}): ${errText}`);
+            uploadedImages[i] = null;
           }
+        } catch (imgErr) {
+          console.error(`Image ${i} error:`, imgErr);
+          uploadedImages[i] = null;
         }
-
-        if (!uploaded) uploadedImages[i] = null;
       }
 
       const uploadedCount = uploadedImages.filter(Boolean).length;
       console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
-
-      if (uploadedCount === 0) {
-        throw new Error("Unable to upload mockups to Shopify (source images are too large or timed out). Please regenerate or re-upload optimized mockups.");
-      }
     }
 
-    // Associate uploaded images with their corresponding variants
+    // Associate images with variants
     if (hasVariants && createdProduct?.variants?.length && uploadedImages.some(Boolean)) {
       for (let i = 0; i < colorVariants.length; i++) {
         const variant = createdProduct.variants[i];
@@ -279,10 +207,7 @@ serve(async (req) => {
           try {
             await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
               method: "PUT",
-              headers: {
-                "X-Shopify-Access-Token": connection.access_token,
-                "Content-Type": "application/json",
-              },
+              headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
               body: JSON.stringify({ variant: { id: variant.id, image_id: image.id } }),
             });
           } catch (e) {
@@ -292,8 +217,8 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       shopifyProduct: createdProduct,
       updated: isUpdate,
     }), {
