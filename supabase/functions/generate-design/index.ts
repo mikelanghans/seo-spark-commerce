@@ -76,7 +76,8 @@ ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Text sta
 
 COMPOSITION:
 - Illustration centered, text below or integrated naturally
-- Leave generous negative space
+- The design should FILL at least 65-75% of the canvas width — do NOT leave excessive empty margins
+- Scale the illustration and text to command attention on the garment
 - The design should feel like it belongs on a $45 streetwear tee
 - Maximum 3 visual elements: illustration + 1-2 text lines
 
