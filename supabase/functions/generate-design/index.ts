@@ -60,7 +60,8 @@ STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 TYPOGRAPHY:
 - Font style: ${fontDirection}
 - Text should be ${sizeDirection.toLowerCase()} but balanced with the illustration
-- The illustration should be the primary visual, text secondary but readable
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be perfectly sharp, crisp, and readable. Use thick stroke weights — no thin or wispy fonts.
+- The illustration should be the primary visual, text secondary but always clearly readable
 - If the message has a sub-attribution, set it small and elegant
 - TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"}) — do NOT color the text
 
@@ -75,7 +76,8 @@ ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Text sta
 
 COMPOSITION:
 - Illustration centered, text below or integrated naturally
-- Leave generous negative space
+- The design should FILL at least 65-75% of the canvas width — do NOT leave excessive empty margins
+- Scale the illustration and text to command attention on the garment
 - The design should feel like it belongs on a $45 streetwear tee
 - Maximum 3 visual elements: illustration + 1-2 text lines
 
@@ -106,6 +108,7 @@ TYPOGRAPHY:
 - Use ONE typeface maximum — create hierarchy through weight, size, and spacing only
 - Generous letter-spacing and line-height for a premium feel
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every single letter must be perfectly sharp, crisp, and fully readable at arm's length. Use thick stroke weights. Do NOT use thin, wispy, or decorative fonts that sacrifice readability. If in doubt, go BOLDER.
 
 COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
 ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only. The design will be printed on black, navy, charcoal, or similar dark fabrics." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors. The design will be printed on white, cream, light gray, or similar light fabrics."}
@@ -116,9 +119,13 @@ KEEP IT ULTRA CLEAN:
 - Pure typography only — the power comes from the words and how they're set
 - Maximum 2-3 visual elements total (including the text lines)
 
+SIZE & FILL:
+- ⚠️ CRITICAL: The design should FILL at least 70-80% of the canvas width. Do NOT leave excessive empty margins.
+- Text should be LARGE and DOMINANT — this is streetwear, not a whisper. Scale up the typography to command attention.
+- The design should feel dense and impactful, not floating in empty space.
+
 COMPOSITION:
 - Center the design vertically and horizontally
-- Leave generous breathing room / negative space around the text
 - The design should feel like it belongs on a $45 streetwear tee, not a tourist shop
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
