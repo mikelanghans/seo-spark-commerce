@@ -88,7 +88,7 @@ The output must look like the same exact photo with only the shirt fabric recolo
               messages: [
                 {
                   role: "system",
-                  content: "You are a professional product photo editor. You edit existing photos by recoloring fabric while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, design placement. Your output must be indistinguishable from the input except for the fabric color. You ALWAYS output an image. Never respond with text only.",
+                  content: "You are a professional product photo editor. You edit existing photos by recoloring fabric while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, and print visibility/placement. If a design reference image is provided, you MUST apply and keep that exact print visible on the shirt. Your output must be indistinguishable from the input except for fabric recolor and required print application. You ALWAYS output an image. Never respond with text only.",
                 },
                 {
                   role: "user",
