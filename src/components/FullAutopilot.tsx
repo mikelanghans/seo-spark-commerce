@@ -5,6 +5,7 @@ import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
+  compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
