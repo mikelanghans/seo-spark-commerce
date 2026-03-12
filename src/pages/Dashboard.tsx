@@ -43,6 +43,7 @@ interface Organization {
   brand_style_notes?: string;
   design_styles?: string[];
   printify_shop_id?: number | null;
+  deleted_at?: string | null;
 }
 
 interface Product {
