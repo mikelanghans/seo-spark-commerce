@@ -50,45 +50,88 @@ RULES:
       "google/gemini-3.1-flash-image-preview",
     ];
 
-    let response: Response | null = null;
-    let lastError = "";
+    let imageBase64Result: string | null = null;
 
     for (const model of models) {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
 
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content: "You are a Photoshop expert. You recolor fabric in product photos while keeping everything else identical. Only change the fabric color — never change the composition, angle, background, props, or design.",
-              },
-              {
-                role: "user",
-                content: imageContent,
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        });
-
-        if (response.ok) break;
-        if (response.status === 503 || response.status === 500) {
-          lastError = `${model} returned ${response.status}`;
-          console.error(`Attempt ${attempt + 1} with ${model}: ${response.status}`);
-          response = null;
+        let response: Response;
+        try {
+          response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a Photoshop expert. You ALWAYS output an edited image. You recolor fabric in product photos while keeping everything else identical. Only change the fabric color — never change the composition, angle, background, props, or design. You MUST generate an image, never respond with only text.",
+                },
+                {
+                  role: "user",
+                  content: imageContent,
+                },
+              ],
+              modalities: ["image", "text"],
+            }),
+          });
+        } catch (fetchErr) {
+          console.error(`Fetch error on attempt ${attempt + 1} with ${model}:`, fetchErr);
           continue;
         }
-        break;
+
+        if (!response.ok) {
+          const status = response.status;
+          if (status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+              status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (status === 402) {
+            return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+              status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (status === 503 || status === 500) {
+            console.error(`Attempt ${attempt + 1} with ${model}: ${status}`);
+            continue;
+          }
+          break;
+        }
+
+        const data = await response.json();
+        const message = data.choices?.[0]?.message;
+
+        // Extract image from response
+        if (message?.images?.length > 0) {
+          imageBase64Result = message.images[0].image_url?.url || null;
+        }
+        if (!imageBase64Result && Array.isArray(message?.content)) {
+          for (const part of message.content) {
+            if (part.type === "image_url" && part.image_url?.url) {
+              imageBase64Result = part.image_url.url;
+              break;
+            }
+            if (part.inline_data) {
+              imageBase64Result = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
+              break;
+            }
+          }
+        }
+        if (!imageBase64Result && typeof message?.content === "string" && message.content.startsWith("data:image")) {
+          imageBase64Result = message.content;
+        }
+
+        if (imageBase64Result) break;
+
+        // AI returned text only (no image) — retry with stronger prompt
+        console.warn(`Attempt ${attempt + 1} with ${model}: AI returned text only, retrying...`);
       }
-      if (response?.ok) break;
+      if (imageBase64Result) break;
     }
 
     if (!response || !response.ok) {
