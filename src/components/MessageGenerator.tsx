@@ -28,14 +28,26 @@ interface GeneratedMessage {
   created_at: string;
 }
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+  canUseAi: boolean;
+  usedCount: number;
+  remaining: number;
+  limit: number;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
 interface Props {
   organization: Organization;
   userId: string;
   onProductsCreated?: () => void;
   refreshKey?: number;
+  aiUsage?: AiUsage;
 }
 
-export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey }: Props) => {
+export const MessageGenerator = ({ organization, userId, onProductsCreated, refreshKey, aiUsage }: Props) => {
   const [messages, setMessages] = useState<GeneratedMessage[]>([]);
   const [creatingProducts, setCreatingProducts] = useState(false);
   const [generating, setGenerating] = useState(false);
