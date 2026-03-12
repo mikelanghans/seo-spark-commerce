@@ -43,6 +43,7 @@ interface Organization {
   brand_style_notes?: string;
   design_styles?: string[];
   printify_shop_id?: number | null;
+  deleted_at?: string | null;
 }
 
 interface Product {
@@ -199,7 +200,7 @@ const Dashboard = () => {
 
   const loadOrgs = async () => {
     setLoading(true);
-    const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("organizations").select("*").is("deleted_at", null).order("created_at", { ascending: false });
     setOrgs((data as Organization[]) || []);
     setLoading(false);
   };
@@ -303,10 +304,35 @@ const Dashboard = () => {
     loadProducts(org.id);
   };
 
-  const handleDeleteOrg = async (id: string) => {
-    await supabase.from("organizations").delete().eq("id", id);
-    toast.success("Organization deleted");
+  const [deleteConfirmOrg, setDeleteConfirmOrg] = useState<Organization | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [archivedOrgs, setArchivedOrgs] = useState<Organization[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const loadArchivedOrgs = async () => {
+    const { data } = await supabase.from("organizations").select("*").not("deleted_at", "is", null).order("deleted_at", { ascending: false });
+    setArchivedOrgs((data as Organization[]) || []);
+  };
+
+  const handleDeleteOrg = async (org: Organization) => {
+    setDeleteConfirmOrg(org);
+    setDeleteConfirmText("");
+  };
+
+  const confirmDeleteOrg = async () => {
+    if (!deleteConfirmOrg) return;
+    await supabase.from("organizations").update({ deleted_at: new Date().toISOString() }).eq("id", deleteConfirmOrg.id);
+    toast.success("Brand archived — it can be restored within 30 days");
+    setDeleteConfirmOrg(null);
+    setDeleteConfirmText("");
     loadOrgs();
+  };
+
+  const handleRestoreOrg = async (id: string) => {
+    await supabase.from("organizations").update({ deleted_at: null }).eq("id", id);
+    toast.success("Brand restored!");
+    loadOrgs();
+    loadArchivedOrgs();
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -704,7 +730,7 @@ const Dashboard = () => {
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org); }}
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -732,6 +758,36 @@ const Dashboard = () => {
                 ))}
               </div>
             )}
+
+            {/* Archived Brands */}
+            <div className="mt-8">
+              <button
+                onClick={() => { setShowArchived(!showArchived); if (!showArchived) loadArchivedOrgs(); }}
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                {showArchived ? "Hide" : "Show"} archived brands
+              </button>
+              {showArchived && archivedOrgs.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {archivedOrgs.map((org) => (
+                    <div key={org.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
+                      <div>
+                        <span className="font-medium text-muted-foreground">{org.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          Archived {org.deleted_at ? new Date(org.deleted_at).toLocaleDateString() : ""}
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreOrg(org.id)}>
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showArchived && archivedOrgs.length === 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">No archived brands</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -1553,6 +1609,39 @@ const Dashboard = () => {
           />
         )}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteConfirmOrg(null)}>
+          <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold">Archive Brand</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This will archive <strong>{deleteConfirmOrg.name}</strong>. You can restore it within 30 days.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Type <strong>{deleteConfirmOrg.name}</strong> to confirm:
+            </p>
+            <Input
+              className="mt-2"
+              placeholder="Type brand name..."
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              autoFocus
+            />
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOrg(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteConfirmText !== deleteConfirmOrg.name}
+                onClick={confirmDeleteOrg}
+              >
+                Archive Brand
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

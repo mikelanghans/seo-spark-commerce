@@ -388,6 +388,7 @@ export type Database = {
           brand_font_size: string
           brand_style_notes: string
           created_at: string
+          deleted_at: string | null
           design_styles: Json
           id: string
           logo_url: string | null
@@ -406,6 +407,7 @@ export type Database = {
           brand_font_size?: string
           brand_style_notes?: string
           created_at?: string
+          deleted_at?: string | null
           design_styles?: Json
           id?: string
           logo_url?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           brand_font_size?: string
           brand_style_notes?: string
           created_at?: string
+          deleted_at?: string | null
           design_styles?: Json
           id?: string
           logo_url?: string | null
