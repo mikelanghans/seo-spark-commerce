@@ -858,7 +858,7 @@ const Dashboard = () => {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Preferred Font Style</Label>
-                  <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" />
+                  <Textarea value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" rows={2} className="resize-none" />
                   <p className="text-xs text-muted-foreground">The typeface style for your designs</p>
                 </div>
                 <div className="space-y-2">
