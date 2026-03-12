@@ -96,6 +96,7 @@ export function SocialPostGenerator({
       if (data?.error) throw new Error(data.error);
 
       setPosts(data);
+      if (aiUsage) await aiUsage.logUsage("generate-social-posts", userId);
       toast.success("Social posts generated!");
     } catch (e: any) {
       toast.error(e.message || "Failed to generate posts");
