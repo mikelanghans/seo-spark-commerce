@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
+import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 
 interface Organization {
   id: string;
