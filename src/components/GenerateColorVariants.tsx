@@ -12,6 +12,11 @@ import {
   compositeDesignOntoTemplate,
 } from "@/lib/mockupComposition";
 
+interface AiUsage {
+  checkAndLog: (fn: string, userId: string) => Promise<boolean>;
+  logUsage: (fn: string, userId: string) => Promise<void>;
+}
+
 interface Props {
   productId: string;
   userId: string;
@@ -24,6 +29,7 @@ interface Props {
   brandAudience?: string;
   brandTone?: string;
   productCategory?: string;
+  aiUsage?: AiUsage;
 }
 
 const SUGGESTED_COLORS = [
