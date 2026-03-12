@@ -158,6 +158,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       const dupeCount = newMessages.length - uniqueMessages.length;
       const dupeNote = dupeCount > 0 ? ` (${dupeCount} duplicates skipped)` : "";
       toast.success(`Generated ${uniqueMessages.length} new messages!${dupeNote}`);
+      if (aiUsage) await aiUsage.logUsage("generate-messages", userId);
       await loadMessages();
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate messages");
