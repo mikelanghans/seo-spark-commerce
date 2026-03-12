@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { removeBackground } from "@/lib/removeBackground";
+import { removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
