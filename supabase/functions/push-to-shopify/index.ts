@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -183,7 +184,7 @@ serve(async (req) => {
             continue;
           }
           const imgBuffer = await imgRes.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+          const base64 = base64Encode(new Uint8Array(imgBuffer));
 
           const uploadRes = await fetch(
             `https://${domain}/admin/api/2024-01/products/${createdProduct.id}/images.json`,
