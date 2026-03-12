@@ -485,7 +485,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                   keywords: organization.niche,
                   shopify_product_id: null,
                 },
-                listings: shopifyListing ? [shopifyListing] : [],
+                listings: shopifyListing ? [{
+                  ...shopifyListing,
+                  tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
+                }] : [],
                 imageUrl: designUrl,
                 variants: shopifyVariants,
               },
