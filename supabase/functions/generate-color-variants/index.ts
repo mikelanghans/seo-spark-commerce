@@ -13,7 +13,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Detect if this is a light-colored shirt where white/light ink won't be visible
     const LIGHT_COLORS = new Set([
       "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
       "island reef", "chambray", "white", "flo blue", "watermelon",
@@ -22,79 +21,33 @@ serve(async (req) => {
     ]);
     const isLightShirt = LIGHT_COLORS.has((colorName || "").toLowerCase().trim());
 
-    const printColorRule = isLightShirt
-      ? `⚠️ PRINT COLOR RULE — CRITICAL FOR LIGHT SHIRTS:
-- The original design uses white/light colored ink which would be INVISIBLE on a ${colorName} shirt.
-- You MUST change the design's ink color to DARK BLACK/CHARCOAL so it is clearly visible on the light ${colorName} fabric.
-- Keep everything else about the design identical: same text, same fonts, same graphics, same layout, same size, same position.
-- ONLY the ink/print color changes from white/light to dark black. The design content stays exactly the same.
-- The dark design must be crisp, bold, and fully legible against the ${colorName} fabric.`
-      : `⚠️ PRINT COLOR RULE — THE SINGLE MOST IMPORTANT RULE IN THIS ENTIRE PROMPT:
+    // Short, direct ink rule
+    const inkRule = isLightShirt
+      ? `INK: Change all white/light ink to DARK BLACK so it's visible on ${colorName}. Same design, dark ink only.`
+      : `INK: Keep bright opaque white (#FFFFFF) ink and fully saturated colored ink. Do NOT blend with fabric. The print sits ON TOP like a sticker.`;
 
-THINK OF THIS AS TWO SEPARATE LAYERS:
-LAYER 1 (bottom): The plain ${colorName} t-shirt fabric with NO design — just blank fabric.
-LAYER 2 (top): The design printed ON TOP using thick, opaque screen-print ink that completely covers the fabric beneath it.
+    // Concise prompt — image models work better with shorter instructions
+    const prompt = `Edit this product photo: recolor ONLY the t-shirt fabric to ${colorName}.
 
-The ink is a PHYSICAL LAYER sitting ON TOP of the fabric:
-- ALL white elements = thick opaque white ink = PURE #FFFFFF, as bright as a sheet of white printer paper
-- ALL colored elements (teal, cyan, orange, etc.) = thick opaque colored ink = FULLY SATURATED vivid colors
-- The ink does NOT absorb into the fabric. It does NOT become transparent. It does NOT take on the fabric color.
-- Imagine white paint splashed on a dark wall — the white stays pure white.
+RULES:
+- IDENTICAL composition: same angle, crop, background, shadows, wrinkles, props, folding
+- ONLY the fabric color changes — everything else is pixel-perfect identical
+- ${inkRule}
+- Product: "${productTitle}"`;
 
-CRITICAL MISTAKES TO AVOID:
-❌ Making white text look gray, cream, beige, or muted — WRONG
-❌ Making the design look like it's dyed into the fabric — WRONG
-❌ Reducing opacity or blending the design with the shirt color — WRONG
-❌ Making colored accents look washed out or desaturated — WRONG
-
-✅ The design must look like a bright, crisp sticker placed on top of the fabric
-✅ Maximum contrast between bright white ink and dark ${colorName} fabric
-✅ The white must be eye-catchingly bright — unnaturally so if needed`;
-
-    const hasDesignRef = !!designImageBase64;
-    const prompt = hasDesignRef
-      ? `TASK: You are a professional product photographer doing a simple fabric recolor in post-production. Change ONLY the t-shirt fabric color to "${colorName}". NOTHING else changes.
-
-You receive two images:
-1. IMAGE 1 — The MASTER reference mockup photo. You must reproduce this photo EXACTLY — same camera angle, same distance, same crop, same background texture, same shadows, same wrinkles, same folding, same styling props (jeans, wood, etc). This is your ground truth.
-2. IMAGE 2 — The design/graphic that is printed on the shirt. Use this as reference for the print details.
-
-CRITICAL COMPOSITION RULES (violation = failure):
-- The output must be INDISTINGUISHABLE from the reference photo except for fabric color
-- Same exact camera position, focal length, and framing — do NOT zoom in, zoom out, or change the angle
-- Same exact background: if the reference has a dark textured surface, yours must too
-- Same exact styling: if jeans are visible, they must be in the same position
-- Same exact shirt fold/drape pattern
-- Do NOT add or remove any props, backgrounds, or styling elements
-
-${printColorRule}
-
-Product: "${productTitle}". Think of this as: open Photoshop → select only the fabric pixels → fill with ${colorName} → save. Everything else is untouched.`
-      : `TASK: You are a professional product photographer doing a simple fabric recolor in post-production. Change ONLY the t-shirt fabric color to "${colorName}". NOTHING else changes.
-
-CRITICAL COMPOSITION RULES (violation = failure):
-- Reproduce the reference photo EXACTLY — same camera angle, distance, crop, background, shadows, wrinkles, folding, styling props
-- The output must be INDISTINGUISHABLE from the reference except for the fabric color
-- Do NOT change the camera position, zoom, framing, or add/remove any elements
-
-${printColorRule}
-
-Product: "${productTitle}". Think of this as: open Photoshop → select only the fabric pixels → fill with ${colorName} → save. Everything else is untouched.`;
-
+    // Build content: reference image first, then design, then text
     const imageContent: any[] = [
-      { type: "text", text: prompt },
       { type: "image_url", image_url: { url: imageBase64 } },
     ];
     if (designImageBase64) {
       imageContent.push({ type: "image_url", image_url: { url: designImageBase64 } });
     }
+    imageContent.push({ type: "text", text: prompt });
 
-    // gemini-2.5-flash-image is best for controlled edits (recoloring)
-    // Fall back to newer models if unavailable
+    // Use a single model consistently — gemini-2.5-flash-image is best for controlled edits
     const models = [
       "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
-      "google/gemini-3-pro-image-preview",
     ];
 
     let response: Response | null = null;
@@ -114,6 +67,10 @@ Product: "${productTitle}". Think of this as: open Photoshop → select only the
             model,
             messages: [
               {
+                role: "system",
+                content: "You are a Photoshop expert. You recolor fabric in product photos while keeping everything else identical. Only change the fabric color — never change the composition, angle, background, props, or design.",
+              },
+              {
                 role: "user",
                 content: imageContent,
               },
@@ -129,7 +86,6 @@ Product: "${productTitle}". Think of this as: open Photoshop → select only the
           response = null;
           continue;
         }
-        // Non-retryable errors
         break;
       }
       if (response?.ok) break;
@@ -155,14 +111,12 @@ Product: "${productTitle}". Think of this as: open Photoshop → select only the
     const data = await response.json();
     const message = data.choices?.[0]?.message;
 
-    // Check for images array (new format)
     let imageBase64Result: string | null = null;
 
     if (message?.images?.length > 0) {
       imageBase64Result = message.images[0].image_url?.url || null;
     }
 
-    // Fallback: check content array
     if (!imageBase64Result && Array.isArray(message?.content)) {
       for (const part of message.content) {
         if (part.type === "image_url" && part.image_url?.url) {
@@ -176,7 +130,6 @@ Product: "${productTitle}". Think of this as: open Photoshop → select only the
       }
     }
 
-    // Fallback: string content
     if (!imageBase64Result && typeof message?.content === "string" && message.content.startsWith("data:image")) {
       imageBase64Result = message.content;
     }
