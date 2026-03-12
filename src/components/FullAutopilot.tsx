@@ -506,10 +506,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               .eq("image_type", "mockup")
               .order("position");
 
-            const shopifyVariants = (shopifyMockups || []).map((m: any) => ({
-              colorName: m.color_name,
-              imageUrl: m.image_url,
-            }));
+            const shopifyVariants = await optimizeVariantsForShopify(
+              (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
+              userId,
+              productId,
+            );
 
             const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
               body: {
