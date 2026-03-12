@@ -146,6 +146,7 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsag
         const shopifyListing = listings?.shopify;
         if (!shopifyListing) throw new Error("No Shopify listing generated");
 
+        if (aiUsage) await aiUsage.logUsage("generate-listings", userId);
         updateItem(i, {
           newTitle: shopifyListing.title,
           newDescription: shopifyListing.description,
