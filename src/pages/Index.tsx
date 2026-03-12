@@ -4,7 +4,7 @@ import { BusinessContextForm, BusinessContext } from "@/components/BusinessConte
 import { ProductForm, ProductInfo } from "@/components/ProductForm";
 import { ListingOutput } from "@/components/ListingOutput";
 import { MarketplaceListings } from "@/lib/listingGenerator";
-import { Sparkles } from "lucide-react";
+import brandAuraLogo from "@/assets/brand-aura-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -56,12 +56,10 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img src={brandAuraLogo} alt="Brand Aura" className="h-9 w-9 rounded-lg object-contain" />
           <div>
             <h1 className="text-lg font-bold tracking-tight">Brand Aura</h1>
-            <p className="text-xs text-muted-foreground">AI-powered marketplace listings</p>
+            <p className="text-xs text-muted-foreground">AI-powered brand studio</p>
           </div>
         </div>
       </header>

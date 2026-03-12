@@ -61,6 +61,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        aura: {
+          cyan: "hsl(var(--aura-cyan))",
+          magenta: "hsl(var(--aura-magenta))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
