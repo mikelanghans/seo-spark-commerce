@@ -858,13 +858,13 @@ const Dashboard = () => {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Preferred Font Style</Label>
-                  <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" />
+                  <Textarea value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Bold sans-serif, Handwritten script, Condensed uppercase" rows={2} className="resize-none" />
                   <p className="text-xs text-muted-foreground">The typeface style for your designs</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Brand Color</Label>
                   <div className="flex gap-2">
-                    <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" className="flex-1" />
+                    <Textarea value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. Black, #FF5733, Navy blue" rows={2} className="flex-1 resize-none" />
                     {orgForm.brand_color && /^#[0-9A-Fa-f]{6}$/.test(orgForm.brand_color) && (
                       <div className="h-10 w-10 rounded-md border border-border" style={{ backgroundColor: orgForm.brand_color }} />
                     )}
@@ -887,7 +887,7 @@ const Dashboard = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Additional Style Notes</Label>
-                  <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" />
+                  <Textarea value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Vintage aesthetic, no cursive, distressed texture" rows={3} className="resize-none" />
                   <p className="text-xs text-muted-foreground">Any other design preferences the AI should follow</p>
                 </div>
                 <div className="space-y-2">
