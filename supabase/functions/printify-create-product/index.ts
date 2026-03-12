@@ -155,7 +155,7 @@ serve(async (req) => {
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Move design up toward neckline — lower y = higher on shirt.
     const imageX = 0.5;
-    const imageY = 0.35;
+    const imageY = 0.2;
 
     // Scale up to fill the chest area generously.
     let imageScale = DEFAULT_IMAGE_SCALE;
