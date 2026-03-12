@@ -43,7 +43,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());

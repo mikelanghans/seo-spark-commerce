@@ -130,6 +130,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
         });
         if (insertError) throw insertError;
 
+        if (aiUsage) await aiUsage.logUsage("analyze-product", userId);
         setResults((prev) => [...prev, { name: file.name, status: "success" }]);
       } catch (err: any) {
         setResults((prev) => [...prev, { name: file.name, status: "error", message: err.message }]);
