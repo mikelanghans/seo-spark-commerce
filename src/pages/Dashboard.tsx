@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
+import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 
 interface Organization {
   id: string;
@@ -123,6 +124,7 @@ const Dashboard = () => {
   const [aiAutoFill, setAiAutoFill] = useState(true);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const aiUsage = useAiUsage(selectedOrg?.user_id ?? null, selectedOrg?.id ?? null);
+  const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
 
   useEffect(() => {
     if (user) {
@@ -696,6 +698,7 @@ const Dashboard = () => {
             {selectedOrg && (
               <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
             )}
+            <OnboardingTrigger onClick={() => setShowTour(true)} />
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
@@ -1704,6 +1707,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      )}
+      {showTour && (
+        <OnboardingTour onClose={() => { setShowTour(false); localStorage.setItem("brand_aura_tour_seen", "1"); }} />
       )}
     </div>
   );
