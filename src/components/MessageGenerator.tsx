@@ -285,6 +285,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleGenerateDesign = async (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
+    if (aiUsage) {
+      const allowed = await aiUsage.checkAndLog("generate-design", userId);
+      if (!allowed) return;
+    }
     setGeneratingDesignId(msg.id);
 
     const variants: ("light-on-dark")[] = ["light-on-dark"];
