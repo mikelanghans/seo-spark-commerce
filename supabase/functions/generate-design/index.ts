@@ -47,7 +47,8 @@ BRAND CONTEXT:
 
 STRICT DESIGN RULES:
 
-BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
+BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
+⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.
 
 STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 - Create a simple, clean illustration or icon that pairs with the text message
@@ -80,7 +81,7 @@ COMPOSITION:
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
   }
 
@@ -96,7 +97,8 @@ BRAND CONTEXT:
 
 STRICT DESIGN RULES:
 
-BACKGROUND: ${bgColor}. No patterns, no gradients, no checkered grids, no textures.
+BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
+⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.
 
 TYPOGRAPHY:
 - Font style: ${fontDirection}
@@ -121,7 +123,7 @@ COMPOSITION:
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines.
+OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
 }
 
