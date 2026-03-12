@@ -123,11 +123,12 @@ serve(async (req) => {
       metafields_global_description_tag: shopifyListing?.seo_description || undefined,
     };
 
-    // Collect image URLs for post-creation upload (Shopify often can't fetch external URLs)
-    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
+    // Collect image URLs for post-creation upload (optimized render URLs improve Shopify fetch reliability)
+    const imageEntries: { originalUrl: string; uploadCandidates: string[]; alt: string; colorName?: string }[] = [];
     colorVariants.forEach((v) => {
       imageEntries.push({
-        url: v.imageUrl,
+        originalUrl: v.imageUrl,
+        uploadCandidates: getShopifyUploadCandidates(v.imageUrl),
         alt: `${product.title} - ${v.colorName}`,
         colorName: v.colorName,
       });
@@ -135,11 +136,16 @@ serve(async (req) => {
     // Fallback: if no mockups, use the design image
     if (imageEntries.length === 0 && imageUrl) {
       imageEntries.push({
-        url: imageUrl,
+        originalUrl: imageUrl,
+        uploadCandidates: getShopifyUploadCandidates(imageUrl),
         alt: shopifyListing?.alt_text || product.title,
       });
     }
-    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map(img => ({ url: img.url?.substring(0, 80), alt: img.alt }))));
+    console.log(`Images to upload (${imageEntries.length}):`, JSON.stringify(imageEntries.map((img) => ({
+      url: img.originalUrl?.substring(0, 80),
+      candidates: img.uploadCandidates.length,
+      alt: img.alt,
+    }))));
 
     // Build variants — no inventory tracking (print-on-demand via Printify)
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
