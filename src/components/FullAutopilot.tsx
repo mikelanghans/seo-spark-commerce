@@ -602,15 +602,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           </div>
 
           <div className="flex items-center gap-3">
-            <Label htmlFor="shopify-status" className="text-sm text-muted-foreground">Shopify status:</Label>
-            <div
-              id="shopify-status"
-              className="flex items-center gap-2 cursor-pointer select-none"
-              onClick={() => setShopifyStatus((s) => s === "active" ? "draft" : "active")}
-            >
-              <Switch checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
-              <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
-            </div>
+            <Label htmlFor="shopify-status-toggle" className="text-sm text-muted-foreground">Shopify status:</Label>
+            <Switch id="shopify-status-toggle" checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
+            <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
