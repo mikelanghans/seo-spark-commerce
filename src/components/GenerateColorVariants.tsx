@@ -10,6 +10,7 @@ import {
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
   compositeDesignOntoTemplate,
+  compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 
 interface AiUsage {
