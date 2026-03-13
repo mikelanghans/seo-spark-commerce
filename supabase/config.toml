@@ -44,3 +44,27 @@ verify_jwt = false
 
 [functions.import-shopify-catalog]
 verify_jwt = false
+
+[functions.generate-color-variants]
+verify_jwt = false
+
+[functions.generate-mockup]
+verify_jwt = false
+
+[functions.generate-listings]
+verify_jwt = false
+
+[functions.analyze-product]
+verify_jwt = false
+
+[functions.recommend-colors]
+verify_jwt = false
+
+[functions.generate-dark-design]
+verify_jwt = false
+
+[functions.printify-get-variants]
+verify_jwt = false
+
+[functions.update-shopify-product]
+verify_jwt = false
