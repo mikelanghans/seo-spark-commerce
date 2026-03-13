@@ -1470,92 +1470,102 @@ const Dashboard = () => {
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
-                {/* Marketplace Selection */}
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-sm font-medium">Generate listings for:</Label>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
-                      </button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateListingsForProduct(selectedProduct)}
-                        disabled={generating}
-                        className="gap-2"
-                      >
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                        {listings.length > 0 ? "Regenerate" : "Generate"}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {MARKETPLACES.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => toggleMarketplace(m)}
-                        className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
-                          selectedMarketplaces.includes(m)
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Marketplace Selection — only show enabled marketplaces */}
+                {(() => {
+                  const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
+                  return (
+                    <>
+                      <div className="rounded-xl border border-border bg-card p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-sm font-medium">Generate listings for:</Label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === orgMarketplaces.length ? [] : [...orgMarketplaces])}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              {selectedMarketplaces.length === orgMarketplaces.length ? "Deselect all" : "Select all"}
+                            </button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => generateListingsForProduct(selectedProduct)}
+                              disabled={generating}
+                              className="gap-2"
+                            >
+                              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                              {listings.length > 0 ? "Regenerate" : "Generate"}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {orgMarketplaces.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => toggleMarketplace(m)}
+                              className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
+                                selectedMarketplaces.includes(m)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                        {orgMarketplaces.length === 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">No marketplaces enabled. Edit your brand to enable marketplaces.</p>
+                        )}
+                      </div>
 
-                {generating ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
-                    <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
-                  </div>
-                ) : listings.length > 0 ? (
-                  <Tabs defaultValue="amazon">
-                    <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
-                      {MARKETPLACES.map((m) => (
-                        <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                          {m}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    {MARKETPLACES.map((m) => {
-                      const listing = listings.find((l) => l.marketplace === m);
-                      if (!listing) return null;
-                      return (
-                        <TabsContent key={m} value={m}>
-                          <ListingOutput
-                            marketplace={m}
-                            listing={{
-                              title: listing.title,
-                              description: listing.description,
-                              bulletPoints: listing.bullet_points as string[],
-                              tags: listing.tags as string[],
-                              seoTitle: listing.seo_title,
-                              seoDescription: listing.seo_description,
-                              urlHandle: listing.url_handle,
-                              altText: listing.alt_text,
-                            }}
-                          />
-                        </TabsContent>
-                      );
-                    })}
-                  </Tabs>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
-                    <p className="text-sm text-muted-foreground">No listings generated yet</p>
-                    <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
-                      Generate now
-                    </Button>
-                  </div>
-                )}
+                      {generating ? (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
+                          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
+                        </div>
+                      ) : listings.length > 0 ? (
+                        <Tabs defaultValue={orgMarketplaces[0] || "shopify"}>
+                          <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
+                            {orgMarketplaces.map((m) => (
+                              <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                {m}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                          {orgMarketplaces.map((m) => {
+                            const listing = listings.find((l) => l.marketplace === m);
+                            if (!listing) return null;
+                            return (
+                              <TabsContent key={m} value={m}>
+                                <ListingOutput
+                                  marketplace={m}
+                                  listing={{
+                                    title: listing.title,
+                                    description: listing.description,
+                                    bulletPoints: listing.bullet_points as string[],
+                                    tags: listing.tags as string[],
+                                    seoTitle: listing.seo_title,
+                                    seoDescription: listing.seo_description,
+                                    urlHandle: listing.url_handle,
+                                    altText: listing.alt_text,
+                                  }}
+                                />
+                              </TabsContent>
+                            );
+                          })}
+                        </Tabs>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
+                          <p className="text-sm text-muted-foreground">No listings generated yet</p>
+                          <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
+                            Generate now
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </TabsContent>
 
               {/* Push Tab */}
