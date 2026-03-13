@@ -45,7 +45,10 @@ type PushResult = {
   error?: string;
 };
 
-export const PushToMarketplace = ({ product, listings, images, userId }: Props) => {
+export const PushToMarketplace = ({ product, listings, images, userId, enabledChannels }: Props) => {
+  const showEtsy = !enabledChannels || enabledChannels.includes("etsy");
+  const showEbay = !enabledChannels || enabledChannels.includes("ebay");
+  const showMeta = !enabledChannels || enabledChannels.includes("meta");
   const [pushingEtsy, setPushingEtsy] = useState(false);
   const [pushingEbay, setPushingEbay] = useState(false);
   const [pushingMeta, setPushingMeta] = useState(false);
