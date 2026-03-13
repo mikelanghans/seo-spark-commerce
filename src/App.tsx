@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AcceptInvite from "./pages/AcceptInvite";
+import Features from "./pages/Features";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
