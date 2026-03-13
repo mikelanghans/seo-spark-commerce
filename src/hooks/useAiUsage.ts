@@ -51,8 +51,12 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
 
       if (count >= FREE_TIER_LIMIT) {
         toast.error("AI generation limit reached", {
-          description: `You've used all ${FREE_TIER_LIMIT} free AI generations this month. Upgrade to Pro for unlimited access.`,
+          description: `You've used all ${FREE_TIER_LIMIT} free AI generations this month.`,
           duration: 8000,
+          action: {
+            label: "Upgrade to Pro",
+            onClick: () => window.open(UPGRADE_URL, "_blank"),
+          },
         });
         setUsedCount(count);
         return false;
