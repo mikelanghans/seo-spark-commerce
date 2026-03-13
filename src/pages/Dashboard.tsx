@@ -110,7 +110,7 @@ const Dashboard = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[] });
   const [printifyShops, setPrintifyShops] = useState<{ id: number; title: string }[]>([]);
   const [loadingPrintifyShops, setLoadingPrintifyShops] = useState(false);
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
