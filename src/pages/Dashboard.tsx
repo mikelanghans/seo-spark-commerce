@@ -575,7 +575,8 @@ const Dashboard = () => {
 
         await supabase.from("listings").delete().eq("product_id", product.id);
 
-        const listingRows = (["amazon", "etsy", "ebay", "shopify"] as const).map((m) => ({
+        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["amazon", "etsy", "ebay", "shopify"];
+        const listingRows = bulkMarketplaces.map((m) => ({
           product_id: product.id,
           user_id: user!.id,
           marketplace: m,
