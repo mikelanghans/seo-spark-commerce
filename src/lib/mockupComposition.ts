@@ -242,11 +242,11 @@ export async function compositeDesignOntoTemplate(
   const designHeight = cleanedDesignCanvas.height;
 
   // Chest-print sizing/placement
-  const designScale = 0.75;
+  const designScale = 0.55;
   const drawWidth = w * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (w - drawWidth) / 2;
-  const dy = h * 0.24;
+  const dy = h * 0.22;
 
   ctx.drawImage(cleanedDesignCanvas, dx, dy, drawWidth, drawHeight);
 
