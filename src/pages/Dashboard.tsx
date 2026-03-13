@@ -125,7 +125,7 @@ const Dashboard = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
-  const aiUsage = useAiUsage(selectedOrg?.user_id ?? null, selectedOrg?.id ?? null);
+  const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
 
   useEffect(() => {
