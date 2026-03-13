@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AcceptInvite from "./pages/AcceptInvite";
+import Features from "./pages/Features";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -57,6 +58,7 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/invite/:token" element={<AcceptInvite />} />
+          <Route path="/features" element={<Features />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
