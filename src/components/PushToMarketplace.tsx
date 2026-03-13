@@ -36,6 +36,7 @@ interface Props {
   listings: Listing[];
   images: MockupImage[];
   userId: string;
+  enabledChannels?: string[];
 }
 
 type PushResult = {
@@ -44,7 +45,10 @@ type PushResult = {
   error?: string;
 };
 
-export const PushToMarketplace = ({ product, listings, images, userId }: Props) => {
+export const PushToMarketplace = ({ product, listings, images, userId, enabledChannels }: Props) => {
+  const showEtsy = !enabledChannels || enabledChannels.includes("etsy");
+  const showEbay = !enabledChannels || enabledChannels.includes("ebay");
+  const showMeta = !enabledChannels || enabledChannels.includes("meta");
   const [pushingEtsy, setPushingEtsy] = useState(false);
   const [pushingEbay, setPushingEbay] = useState(false);
   const [pushingMeta, setPushingMeta] = useState(false);
@@ -148,62 +152,68 @@ export const PushToMarketplace = ({ product, listings, images, userId }: Props) 
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={pushToEtsy}
-        disabled={pushingEtsy || listings.length === 0}
-        className="gap-2"
-      >
-        {pushingEtsy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : etsyResult?.success ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-        ) : etsyResult && !etsyResult.success ? (
-          <AlertCircle className="h-4 w-4 text-destructive" />
-        ) : (
-          <ShoppingBag className="h-4 w-4 text-orange-500" />
-        )}
-        {etsyResult?.success ? `Etsy ${etsyResult.action}` : "Push to Etsy"}
-      </Button>
+      {showEtsy && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={pushToEtsy}
+          disabled={pushingEtsy || listings.length === 0}
+          className="gap-2"
+        >
+          {pushingEtsy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : etsyResult?.success ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : etsyResult && !etsyResult.success ? (
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          ) : (
+            <ShoppingBag className="h-4 w-4 text-orange-500" />
+          )}
+          {etsyResult?.success ? `Etsy ${etsyResult.action}` : "Push to Etsy"}
+        </Button>
+      )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={pushToEbay}
-        disabled={pushingEbay || listings.length === 0}
-        className="gap-2"
-      >
-        {pushingEbay ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : ebayResult?.success ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-        ) : ebayResult && !ebayResult.success ? (
-          <AlertCircle className="h-4 w-4 text-destructive" />
-        ) : (
-          <Package className="h-4 w-4 text-blue-500" />
-        )}
-        {ebayResult?.success ? `eBay ${ebayResult.action}` : "Push to eBay"}
-      </Button>
+      {showEbay && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={pushToEbay}
+          disabled={pushingEbay || listings.length === 0}
+          className="gap-2"
+        >
+          {pushingEbay ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : ebayResult?.success ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : ebayResult && !ebayResult.success ? (
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          ) : (
+            <Package className="h-4 w-4 text-blue-500" />
+          )}
+          {ebayResult?.success ? `eBay ${ebayResult.action}` : "Push to eBay"}
+        </Button>
+      )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={pushToMeta}
-        disabled={pushingMeta || listings.length === 0}
-        className="gap-2"
-      >
-        {pushingMeta ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : metaResult?.success ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-        ) : metaResult && !metaResult.success ? (
-          <AlertCircle className="h-4 w-4 text-destructive" />
-        ) : (
-          <Facebook className="h-4 w-4 text-blue-600" />
-        )}
-        {metaResult?.success ? `Meta ${metaResult.action}` : "Push to Meta (Draft)"}
-      </Button>
+      {showMeta && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={pushToMeta}
+          disabled={pushingMeta || listings.length === 0}
+          className="gap-2"
+        >
+          {pushingMeta ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : metaResult?.success ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : metaResult && !metaResult.success ? (
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          ) : (
+            <Facebook className="h-4 w-4 text-blue-600" />
+          )}
+          {metaResult?.success ? `Meta ${metaResult.action}` : "Push to Meta (Draft)"}
+        </Button>
+      )}
     </div>
   );
 };

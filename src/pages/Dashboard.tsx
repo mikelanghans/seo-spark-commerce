@@ -49,6 +49,7 @@ interface Organization {
   design_styles?: string[];
   printify_shop_id?: number | null;
   deleted_at?: string | null;
+  enabled_marketplaces?: string[];
 }
 
 interface Product {
@@ -78,7 +79,8 @@ interface Listing {
   alt_text: string;
 }
 
-const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
+const ALL_MARKETPLACES = ["shopify", "amazon", "etsy", "ebay"] as const;
+const ALL_PUSH_CHANNELS = ["shopify", "printify", "etsy", "ebay", "meta"] as const;
 
 type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 
@@ -108,7 +110,7 @@ const Dashboard = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[] });
   const [printifyShops, setPrintifyShops] = useState<{ id: number; title: string }[]>([]);
   const [loadingPrintifyShops, setLoadingPrintifyShops] = useState(false);
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
@@ -252,7 +254,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setOrgLogoFile(null);
@@ -272,7 +274,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null, enabled_marketplaces: (org.enabled_marketplaces as string[]) || [] });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
@@ -573,7 +575,8 @@ const Dashboard = () => {
 
         await supabase.from("listings").delete().eq("product_id", product.id);
 
-        const listingRows = (["amazon", "etsy", "ebay", "shopify"] as const).map((m) => ({
+        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["amazon", "etsy", "ebay", "shopify"];
+        const listingRows = bulkMarketplaces.map((m) => ({
           product_id: product.id,
           user_id: user!.id,
           marketplace: m,
@@ -816,7 +819,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -1007,6 +1010,51 @@ const Dashboard = () => {
                   <p className="text-sm font-medium">Upload template image</p>
                   <p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
                 </label>
+              )}
+            </div>
+
+            {/* Enabled Marketplaces */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold">Enabled Marketplaces</h3>
+                <p className="text-xs text-muted-foreground">Select which marketplaces this brand sells on — only enabled ones appear in listing generation and push</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "shopify", label: "Shopify", icon: "🛍️" },
+                  { value: "printify", label: "Printify", icon: "🖨️" },
+                  { value: "amazon", label: "Amazon", icon: "📦" },
+                  { value: "etsy", label: "Etsy", icon: "🧶" },
+                  { value: "ebay", label: "eBay", icon: "🏷️" },
+                  { value: "meta", label: "Meta / Facebook", icon: "📘" },
+                ].map((mp) => {
+                  const isEnabled = orgForm.enabled_marketplaces.includes(mp.value);
+                  return (
+                    <label
+                      key={mp.value}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${
+                        isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {
+                          const newMp = isEnabled
+                            ? orgForm.enabled_marketplaces.filter((m) => m !== mp.value)
+                            : [...orgForm.enabled_marketplaces, mp.value];
+                          setOrgForm({ ...orgForm, enabled_marketplaces: newMp });
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-base">{mp.icon}</span>
+                      <span className="text-sm font-medium">{mp.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {orgForm.enabled_marketplaces.length === 0 && (
+                <p className="text-xs text-muted-foreground">None selected — all marketplaces will be shown by default</p>
               )}
             </div>
             <div className="flex justify-end">
@@ -1468,92 +1516,102 @@ const Dashboard = () => {
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
-                {/* Marketplace Selection */}
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label className="text-sm font-medium">Generate listings for:</Label>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === MARKETPLACES.length ? [] : [...MARKETPLACES])}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {selectedMarketplaces.length === MARKETPLACES.length ? "Deselect all" : "Select all"}
-                      </button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateListingsForProduct(selectedProduct)}
-                        disabled={generating}
-                        className="gap-2"
-                      >
-                        {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                        {listings.length > 0 ? "Regenerate" : "Generate"}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {MARKETPLACES.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => toggleMarketplace(m)}
-                        className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
-                          selectedMarketplaces.includes(m)
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Marketplace Selection — only show enabled marketplaces */}
+                {(() => {
+                  const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
+                  return (
+                    <>
+                      <div className="rounded-xl border border-border bg-card p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <Label className="text-sm font-medium">Generate listings for:</Label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMarketplaces(selectedMarketplaces.length === orgMarketplaces.length ? [] : [...orgMarketplaces])}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              {selectedMarketplaces.length === orgMarketplaces.length ? "Deselect all" : "Select all"}
+                            </button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => generateListingsForProduct(selectedProduct)}
+                              disabled={generating}
+                              className="gap-2"
+                            >
+                              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                              {listings.length > 0 ? "Regenerate" : "Generate"}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {orgMarketplaces.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => toggleMarketplace(m)}
+                              className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
+                                selectedMarketplaces.includes(m)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
+                        {orgMarketplaces.length === 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">No marketplaces enabled. Edit your brand to enable marketplaces.</p>
+                        )}
+                      </div>
 
-                {generating ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
-                    <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
-                  </div>
-                ) : listings.length > 0 ? (
-                  <Tabs defaultValue="amazon">
-                    <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
-                      {MARKETPLACES.map((m) => (
-                        <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                          {m}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    {MARKETPLACES.map((m) => {
-                      const listing = listings.find((l) => l.marketplace === m);
-                      if (!listing) return null;
-                      return (
-                        <TabsContent key={m} value={m}>
-                          <ListingOutput
-                            marketplace={m}
-                            listing={{
-                              title: listing.title,
-                              description: listing.description,
-                              bulletPoints: listing.bullet_points as string[],
-                              tags: listing.tags as string[],
-                              seoTitle: listing.seo_title,
-                              seoDescription: listing.seo_description,
-                              urlHandle: listing.url_handle,
-                              altText: listing.alt_text,
-                            }}
-                          />
-                        </TabsContent>
-                      );
-                    })}
-                  </Tabs>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
-                    <p className="text-sm text-muted-foreground">No listings generated yet</p>
-                    <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
-                      Generate now
-                    </Button>
-                  </div>
-                )}
+                      {generating ? (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20">
+                          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          <p className="text-sm text-muted-foreground">AI is crafting your optimized listings…</p>
+                        </div>
+                      ) : listings.length > 0 ? (
+                        <Tabs defaultValue={orgMarketplaces[0] || "shopify"}>
+                          <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
+                            {orgMarketplaces.map((m) => (
+                              <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                {m}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                          {orgMarketplaces.map((m) => {
+                            const listing = listings.find((l) => l.marketplace === m);
+                            if (!listing) return null;
+                            return (
+                              <TabsContent key={m} value={m}>
+                                <ListingOutput
+                                  marketplace={m}
+                                  listing={{
+                                    title: listing.title,
+                                    description: listing.description,
+                                    bulletPoints: listing.bullet_points as string[],
+                                    tags: listing.tags as string[],
+                                    seoTitle: listing.seo_title,
+                                    seoDescription: listing.seo_description,
+                                    urlHandle: listing.url_handle,
+                                    altText: listing.alt_text,
+                                  }}
+                                />
+                              </TabsContent>
+                            );
+                          })}
+                        </Tabs>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
+                          <p className="text-sm text-muted-foreground">No listings generated yet</p>
+                          <Button variant="link" onClick={() => generateListingsForProduct(selectedProduct)} className="mt-2">
+                            Generate now
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </TabsContent>
 
               {/* Push Tab */}
@@ -1562,55 +1620,57 @@ const Dashboard = () => {
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                     <p className="text-sm text-muted-foreground">Generate listings first before pushing to marketplaces</p>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <PushToShopify
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        bullet_points: l.bullet_points as string[],
-                        tags: l.tags as string[],
-                        seo_title: l.seo_title,
-                        seo_description: l.seo_description,
-                        url_handle: l.url_handle,
-                        alt_text: l.alt_text,
-                      }))}
-                      userId={user!.id}
-                    />
-                    <PushToPrintify
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        tags: l.tags as string[],
-                      }))}
-                      userId={user!.id}
-                      onProductUpdate={(updates) => {
-                        setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
-                        setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
-                      }}
-                      printifyShopId={selectedOrg?.printify_shop_id}
-                    />
-                    <PushToMarketplace
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        tags: l.tags as string[],
-                        seo_title: l.seo_title,
-                        seo_description: l.seo_description,
-                        url_handle: l.url_handle,
-                        alt_text: l.alt_text,
-                      }))}
-                      images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
-                      userId={user!.id}
-                    />
-                  </div>
-                )}
+                ) : (() => {
+                  const channels = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_PUSH_CHANNELS];
+                  const listingsMapped = listings.map((l) => ({
+                    marketplace: l.marketplace,
+                    title: l.title,
+                    description: l.description,
+                    bullet_points: l.bullet_points as string[],
+                    tags: l.tags as string[],
+                    seo_title: l.seo_title,
+                    seo_description: l.seo_description,
+                    url_handle: l.url_handle,
+                    alt_text: l.alt_text,
+                  }));
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {channels.includes("shopify") && (
+                        <PushToShopify
+                          product={selectedProduct}
+                          listings={listingsMapped}
+                          userId={user!.id}
+                        />
+                      )}
+                      {channels.includes("printify") && (
+                        <PushToPrintify
+                          product={selectedProduct}
+                          listings={listings.map((l) => ({
+                            marketplace: l.marketplace,
+                            title: l.title,
+                            description: l.description,
+                            tags: l.tags as string[],
+                          }))}
+                          userId={user!.id}
+                          onProductUpdate={(updates) => {
+                            setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
+                            setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
+                          }}
+                          printifyShopId={selectedOrg?.printify_shop_id}
+                        />
+                      )}
+                      {(channels.includes("etsy") || channels.includes("ebay") || channels.includes("meta")) && (
+                        <PushToMarketplace
+                          product={selectedProduct}
+                          listings={listingsMapped}
+                          images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
+                          userId={user!.id}
+                          enabledChannels={channels}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
               </TabsContent>
             </Tabs>
           </div>
