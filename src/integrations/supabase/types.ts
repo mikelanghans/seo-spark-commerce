@@ -422,6 +422,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           design_styles: Json
+          enabled_marketplaces: string[]
           id: string
           logo_url: string | null
           name: string
@@ -441,6 +442,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           design_styles?: Json
+          enabled_marketplaces?: string[]
           id?: string
           logo_url?: string | null
           name: string
@@ -460,6 +462,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           design_styles?: Json
+          enabled_marketplaces?: string[]
           id?: string
           logo_url?: string | null
           name?: string
