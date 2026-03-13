@@ -290,12 +290,12 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // If design already has transparency, don't alter it.
+  // If design already has significant transparency, don't alter it.
   let transparentPixels = 0;
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] < 250) transparentPixels++;
   }
-  if (transparentPixels > (canvas.width * canvas.height) * 0.002) {
+  if (transparentPixels > (canvas.width * canvas.height) * 0.05) {
     return canvas;
   }
 
