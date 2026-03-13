@@ -1769,7 +1769,7 @@ const Dashboard = () => {
         </div>
       )}
       {showTour && (
-        <OnboardingTour onClose={() => { setShowTour(false); localStorage.setItem("brand_aura_tour_seen", "1"); }} />
+        <OnboardingTour onClose={() => setShowTour(false)} />
       )}
     </div>
   );

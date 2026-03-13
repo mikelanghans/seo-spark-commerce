@@ -101,6 +101,7 @@ interface OnboardingTourProps {
 
 export function OnboardingTour({ onClose }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const step = TOUR_STEPS[currentStep];
   const isFirst = currentStep === 0;
   const isLast = currentStep === TOUR_STEPS.length - 1;
@@ -116,7 +117,7 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
 
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={() => { if (dontShowAgain) localStorage.setItem("brand_aura_tour_seen", "1"); onClose(); }}
           className="absolute right-3 top-4 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           <X className="h-4 w-4" />
@@ -169,19 +170,33 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
 
         {/* Navigation */}
         <div className="flex items-center justify-between px-6 py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentStep((s) => s - 1)}
-            disabled={isFirst}
-            className="gap-1.5"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentStep((s) => s - 1)}
+              disabled={isFirst}
+              className="gap-1.5"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </Button>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="rounded border-border h-3.5 w-3.5"
+              />
+              <span className="text-xs text-muted-foreground">Don't show again</span>
+            </label>
+          </div>
 
           <Button
             size="sm"
             onClick={() => {
+              if (dontShowAgain) {
+                localStorage.setItem("brand_aura_tour_seen", "1");
+              }
               if (isLast) onClose();
               else setCurrentStep((s) => s + 1);
             }}
