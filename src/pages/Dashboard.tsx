@@ -79,7 +79,8 @@ interface Listing {
   alt_text: string;
 }
 
-const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
+const ALL_MARKETPLACES = ["shopify", "amazon", "etsy", "ebay"] as const;
+const ALL_PUSH_CHANNELS = ["shopify", "printify", "etsy", "ebay", "meta"] as const;
 
 type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 
