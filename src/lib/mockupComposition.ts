@@ -389,7 +389,7 @@ function sampleEdgeColor(
   }, 0) / samples.length;
 
   // Only strip when edges are fairly uniform (solid background)
-  if (variance > 1200) return null;
+  if (variance > 2500) return null;
 
   return { r, g, b };
 }
