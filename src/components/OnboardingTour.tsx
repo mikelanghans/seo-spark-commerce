@@ -101,6 +101,7 @@ interface OnboardingTourProps {
 
 export function OnboardingTour({ onClose }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const step = TOUR_STEPS[currentStep];
   const isFirst = currentStep === 0;
   const isLast = currentStep === TOUR_STEPS.length - 1;
