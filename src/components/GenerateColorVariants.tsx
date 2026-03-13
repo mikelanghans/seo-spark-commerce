@@ -10,6 +10,7 @@ import {
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
   compositeDesignOntoTemplate,
+  compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 
 interface AiUsage {
@@ -331,6 +332,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       try {
         preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!);
       } catch { preCompositedLight = imageBase64; }
+    }
+
+    // Compress images to avoid edge function memory limits
+    try {
+      preCompositedDark = await compressForEdgeFunction(preCompositedDark, 1024, 0.8);
+      preCompositedLight = await compressForEdgeFunction(preCompositedLight, 1024, 0.8);
+    } catch (err) {
+      console.warn("Failed to compress images, using originals", err);
     }
 
     // Process with concurrency of 2

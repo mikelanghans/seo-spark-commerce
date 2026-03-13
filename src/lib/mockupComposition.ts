@@ -242,7 +242,7 @@ export async function compositeDesignOntoTemplate(
   const designHeight = cleanedDesignCanvas.height;
 
   // Chest-print sizing/placement
-  const designScale = 0.45;
+  const designScale = 0.75;
   const drawWidth = w * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (w - drawWidth) / 2;
@@ -251,6 +251,31 @@ export async function compositeDesignOntoTemplate(
   ctx.drawImage(cleanedDesignCanvas, dx, dy, drawWidth, drawHeight);
 
   return canvas.toDataURL("image/png");
+}
+
+/**
+ * Downscale an image data URL to fit within maxDim and compress as JPEG.
+ * This keeps payloads under edge function memory limits.
+ */
+export async function compressForEdgeFunction(
+  dataUrl: string,
+  maxDim = 1024,
+  quality = 0.8,
+): Promise<string> {
+  const img = await loadImage(dataUrl);
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  const nw = Math.round(w * scale);
+  const nh = Math.round(h * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = nw;
+  canvas.height = nh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
+  ctx.drawImage(img, 0, 0, nw, nh);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
