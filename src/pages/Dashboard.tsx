@@ -49,6 +49,7 @@ interface Organization {
   design_styles?: string[];
   printify_shop_id?: number | null;
   deleted_at?: string | null;
+  enabled_marketplaces?: string[];
 }
 
 interface Product {
