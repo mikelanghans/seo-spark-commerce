@@ -242,11 +242,11 @@ export async function compositeDesignOntoTemplate(
   const designHeight = cleanedDesignCanvas.height;
 
   // Chest-print sizing/placement
-  const designScale = 0.75;
+  const designScale = 0.55;
   const drawWidth = w * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (w - drawWidth) / 2;
-  const dy = h * 0.24;
+  const dy = h * 0.22;
 
   ctx.drawImage(cleanedDesignCanvas, dx, dy, drawWidth, drawHeight);
 
@@ -290,12 +290,12 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // If design already has transparency, don't alter it.
+  // If design already has significant transparency, don't alter it.
   let transparentPixels = 0;
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] < 250) transparentPixels++;
   }
-  if (transparentPixels > (canvas.width * canvas.height) * 0.002) {
+  if (transparentPixels > (canvas.width * canvas.height) * 0.05) {
     return canvas;
   }
 
@@ -389,7 +389,7 @@ function sampleEdgeColor(
   }, 0) / samples.length;
 
   // Only strip when edges are fairly uniform (solid background)
-  if (variance > 1200) return null;
+  if (variance > 2500) return null;
 
   return { r, g, b };
 }
