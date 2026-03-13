@@ -36,6 +36,7 @@ interface Props {
   listings: Listing[];
   images: MockupImage[];
   userId: string;
+  enabledChannels?: string[];
 }
 
 type PushResult = {
