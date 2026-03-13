@@ -1012,6 +1012,51 @@ const Dashboard = () => {
                 </label>
               )}
             </div>
+
+            {/* Enabled Marketplaces */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold">Enabled Marketplaces</h3>
+                <p className="text-xs text-muted-foreground">Select which marketplaces this brand sells on — only enabled ones appear in listing generation and push</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "shopify", label: "Shopify", icon: "🛍️" },
+                  { value: "printify", label: "Printify", icon: "🖨️" },
+                  { value: "amazon", label: "Amazon", icon: "📦" },
+                  { value: "etsy", label: "Etsy", icon: "🧶" },
+                  { value: "ebay", label: "eBay", icon: "🏷️" },
+                  { value: "meta", label: "Meta / Facebook", icon: "📘" },
+                ].map((mp) => {
+                  const isEnabled = orgForm.enabled_marketplaces.includes(mp.value);
+                  return (
+                    <label
+                      key={mp.value}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${
+                        isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {
+                          const newMp = isEnabled
+                            ? orgForm.enabled_marketplaces.filter((m) => m !== mp.value)
+                            : [...orgForm.enabled_marketplaces, mp.value];
+                          setOrgForm({ ...orgForm, enabled_marketplaces: newMp });
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-base">{mp.icon}</span>
+                      <span className="text-sm font-medium">{mp.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {orgForm.enabled_marketplaces.length === 0 && (
+                <p className="text-xs text-muted-foreground">None selected — all marketplaces will be shown by default</p>
+              )}
+            </div>
             <div className="flex justify-end">
               <Button type="submit" className="gap-2">
                 {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
