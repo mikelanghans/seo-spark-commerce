@@ -4,6 +4,9 @@ import { toast } from "sonner";
 
 const FREE_TIER_LIMIT = 20;
 
+// TODO: Replace with your Polar checkout URL when ready
+const UPGRADE_URL = "https://polar.sh";
+
 /** Count AI usage this month for a specific user (across all orgs) */
 async function countUsageForUser(userId: string): Promise<number> {
   const startOfMonth = new Date();
