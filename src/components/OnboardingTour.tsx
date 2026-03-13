@@ -169,19 +169,33 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
 
         {/* Navigation */}
         <div className="flex items-center justify-between px-6 py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentStep((s) => s - 1)}
-            disabled={isFirst}
-            className="gap-1.5"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentStep((s) => s - 1)}
+              disabled={isFirst}
+              className="gap-1.5"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </Button>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="rounded border-border h-3.5 w-3.5"
+              />
+              <span className="text-xs text-muted-foreground">Don't show again</span>
+            </label>
+          </div>
 
           <Button
             size="sm"
             onClick={() => {
+              if (dontShowAgain) {
+                localStorage.setItem("brand_aura_tour_seen", "1");
+              }
               if (isLast) onClose();
               else setCurrentStep((s) => s + 1);
             }}
