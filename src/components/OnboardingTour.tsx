@@ -184,7 +184,14 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
               <input
                 type="checkbox"
                 checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
+                onChange={(e) => {
+                  setDontShowAgain(e.target.checked);
+                  if (e.target.checked) {
+                    localStorage.setItem("brand_aura_tour_seen", "1");
+                  } else {
+                    localStorage.removeItem("brand_aura_tour_seen");
+                  }
+                }}
                 className="rounded border-border h-3.5 w-3.5"
               />
               <span className="text-xs text-muted-foreground">Don't show again</span>
