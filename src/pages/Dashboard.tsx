@@ -1575,55 +1575,57 @@ const Dashboard = () => {
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                     <p className="text-sm text-muted-foreground">Generate listings first before pushing to marketplaces</p>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <PushToShopify
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        bullet_points: l.bullet_points as string[],
-                        tags: l.tags as string[],
-                        seo_title: l.seo_title,
-                        seo_description: l.seo_description,
-                        url_handle: l.url_handle,
-                        alt_text: l.alt_text,
-                      }))}
-                      userId={user!.id}
-                    />
-                    <PushToPrintify
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        tags: l.tags as string[],
-                      }))}
-                      userId={user!.id}
-                      onProductUpdate={(updates) => {
-                        setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
-                        setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
-                      }}
-                      printifyShopId={selectedOrg?.printify_shop_id}
-                    />
-                    <PushToMarketplace
-                      product={selectedProduct}
-                      listings={listings.map((l) => ({
-                        marketplace: l.marketplace,
-                        title: l.title,
-                        description: l.description,
-                        tags: l.tags as string[],
-                        seo_title: l.seo_title,
-                        seo_description: l.seo_description,
-                        url_handle: l.url_handle,
-                        alt_text: l.alt_text,
-                      }))}
-                      images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
-                      userId={user!.id}
-                    />
-                  </div>
-                )}
+                ) : (() => {
+                  const channels = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_PUSH_CHANNELS];
+                  const listingsMapped = listings.map((l) => ({
+                    marketplace: l.marketplace,
+                    title: l.title,
+                    description: l.description,
+                    bullet_points: l.bullet_points as string[],
+                    tags: l.tags as string[],
+                    seo_title: l.seo_title,
+                    seo_description: l.seo_description,
+                    url_handle: l.url_handle,
+                    alt_text: l.alt_text,
+                  }));
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {channels.includes("shopify") && (
+                        <PushToShopify
+                          product={selectedProduct}
+                          listings={listingsMapped}
+                          userId={user!.id}
+                        />
+                      )}
+                      {channels.includes("printify") && (
+                        <PushToPrintify
+                          product={selectedProduct}
+                          listings={listings.map((l) => ({
+                            marketplace: l.marketplace,
+                            title: l.title,
+                            description: l.description,
+                            tags: l.tags as string[],
+                          }))}
+                          userId={user!.id}
+                          onProductUpdate={(updates) => {
+                            setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
+                            setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
+                          }}
+                          printifyShopId={selectedOrg?.printify_shop_id}
+                        />
+                      )}
+                      {(channels.includes("etsy") || channels.includes("ebay") || channels.includes("meta")) && (
+                        <PushToMarketplace
+                          product={selectedProduct}
+                          listings={listingsMapped}
+                          images={selectedProduct.image_url ? [{ id: "main", image_url: selectedProduct.image_url, color_name: "", position: 0 }] : []}
+                          userId={user!.id}
+                          enabledChannels={channels}
+                        />
+                      )}
+                    </div>
+                  );
+                })()}
               </TabsContent>
             </Tabs>
           </div>
