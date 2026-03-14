@@ -182,35 +182,11 @@ export async function recolorOpaquePixels(
     }
   }
 
-  // Step 2: Dilate by 1px to thicken thin strokes
-  const dilated = new Uint8Array(w * h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      if (filled[idx] >= 5) {
-        dilated[idx] = 255;
-        continue;
-      }
-      // Check 8-connected neighbors
-      let hasNeighbor = false;
-      for (let dy = -1; dy <= 1 && !hasNeighbor; dy++) {
-        const ny = y + dy;
-        if (ny < 0 || ny >= h) continue;
-        for (let dx = -1; dx <= 1 && !hasNeighbor; dx++) {
-          const nx = x + dx;
-          if (nx < 0 || nx >= w) continue;
-          if (filled[ny * w + nx] >= 30) hasNeighbor = true;
-        }
-      }
-      if (hasNeighbor) dilated[idx] = 200;
-    }
-  }
-
-  // Write recolored + dilated pixels
+  // Write recolored pixels (no dilation — preserves original stroke weight)
   const out = ctx.createImageData(w, h);
   const outData = out.data;
-  for (let i = 0; i < dilated.length; i++) {
-    const a = dilated[i];
+  for (let i = 0; i < filled.length; i++) {
+    const a = filled[i];
     if (a === 0) continue;
     const idx = i * 4;
     outData[idx] = targetColor.r;
