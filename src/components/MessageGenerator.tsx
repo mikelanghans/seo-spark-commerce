@@ -282,7 +282,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
   };
 
-  const handleGenerateDesign = async (msgId: string) => {
+  const handleGenerateDesign = async (msgId: string, style?: "text-only" | "minimalist") => {
+    const styleToUse = style || designStyle;
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     if (aiUsage) {
@@ -309,7 +310,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             messageId: msg.id,
             organizationId: organization.id,
             designVariant: v,
-            designStyle,
+            designStyle: styleToUse,
           },
         });
 
@@ -667,6 +668,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                     isGeneratingDesign={generatingDesignId === msg.id}
                     isRefining={refiningId === msg.id}
                     disableDesignActions={!!generatingDesignId}
+                    availableStyles={availableStyles}
                     onKeep={handleKeep}
                     onDiscard={handleDiscard}
                     onEdit={handleEdit}
@@ -699,6 +701,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                       isGeneratingDesign={generatingDesignId === msg.id}
                       isRefining={refiningId === msg.id}
                       disableDesignActions={!!generatingDesignId}
+                      availableStyles={availableStyles}
                       onKeep={handleKeep}
                       onDiscard={handleDiscard}
                       onEdit={handleEdit}
