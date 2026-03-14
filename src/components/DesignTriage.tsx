@@ -181,7 +181,7 @@ export const DesignTriage = ({ organization, userId, products, onViewProduct, on
       >
         <div className="flex items-center gap-2">
           <Store className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Ready to Push</h3>
+          <h3 className="text-sm font-semibold">Unprocessed Designs</h3>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             {unpushed.length}
           </span>
