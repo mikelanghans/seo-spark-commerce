@@ -326,8 +326,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     // derive one deterministically from the light design.
     if (!darkDesignBase64 && lightDesignBase64) {
       try {
-        const rawLight = lightDesignBase64.replace(/^data:image\/\w+;base64,/, "");
-        const rawDark = await recolorOpaquePixels(rawLight, { r: 24, g: 24, b: 24 });
+        const rawDark = await recolorOpaquePixels(lightDesignBase64, { r: 24, g: 24, b: 24 });
         darkDesignBase64 = ensureImageDataUrl(rawDark);
       } catch (err) {
         console.warn("Failed to derive dark design fallback:", err);
