@@ -513,6 +513,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               productId,
             );
 
+            // Append CC1717 size chart as the last image
+            shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
+
             const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
               body: {
                 product: {

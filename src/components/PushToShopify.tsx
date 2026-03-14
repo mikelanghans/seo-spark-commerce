@@ -59,6 +59,12 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
 
       const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
 
+      // Append size chart as the last image for tee products
+      const isTee = (product.category || "").toLowerCase().includes("t-shirt") || (product.category || "").toLowerCase().includes("tee");
+      if (isTee) {
+        optimizedVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
+      }
+
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           product: {
