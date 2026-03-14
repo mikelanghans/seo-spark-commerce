@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
@@ -109,6 +110,7 @@ const Dashboard = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
+  const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[] });
@@ -1462,7 +1464,7 @@ const Dashboard = () => {
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => window.open(selectedProduct.image_url!, "_blank")}
+                    onClick={() => setDesignPreviewOpen(true)}
                   >
                     <Eye className="h-4 w-4" />
                     Preview
@@ -1534,7 +1536,24 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Tabbed sections: Mockups | Listings | Push */}
+            {/* Design Preview Modal */}
+            {selectedProduct.image_url && (
+              <Dialog open={designPreviewOpen} onOpenChange={setDesignPreviewOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Design Preview</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4">
+                    <img
+                      src={selectedProduct.image_url}
+                      alt={selectedProduct.title}
+                      className="max-h-[70vh] object-contain"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
             <Tabs defaultValue="mockups" className="space-y-4">
               <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
                 <TabsTrigger value="mockups" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
