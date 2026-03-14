@@ -115,7 +115,6 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             audience: organization.audience,
           },
           count: generateCount,
-          designStyle,
           existingProducts: (allExisting || []).map((m: any) => m.message_text),
           ...(topic.trim() ? { topic: topic.trim() } : {}),
         },
