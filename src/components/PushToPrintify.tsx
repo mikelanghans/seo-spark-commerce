@@ -48,6 +48,14 @@ interface Props {
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
+// Product types mapped to Printify blueprint IDs
+const PRODUCT_TYPES = [
+  { label: "T-Shirt (Comfort Colors 1717)", blueprintId: 706, tag: "T-shirts", sizes: ["S", "M", "L", "XL", "2XL", "3XL"] },
+  // Future product types:
+  // { label: "Hoodie (Gildan 18500)", blueprintId: 77, tag: "Hoodies", sizes: ["S", "M", "L", "XL", "2XL"] },
+  // { label: "Mug (11oz)", blueprintId: 68, tag: "Mugs", sizes: [] },
+];
+
 // Comfort Colors 1717 light colors where white/light designs won't show well
 const LIGHT_COLORS = new Set([
   "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
@@ -63,7 +71,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
   const [shops, setShops] = useState<{ id: number; title: string }[]>([]);
   const [selectedShop, setSelectedShop] = useState<number | null>(null);
   const [loadingShops, setLoadingShops] = useState(false);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(["S", "M", "L", "XL"]);
+  const [selectedProductType, setSelectedProductType] = useState(PRODUCT_TYPES[0]);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(PRODUCT_TYPES[0].sizes.slice(0, 4));
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [loadingMockups, setLoadingMockups] = useState(false);
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
@@ -93,7 +102,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
-        body: { blueprintId: 706 },
+        body: { blueprintId: selectedProductType.blueprintId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -129,6 +138,14 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
       loadMockups();
     }
   }, [open]);
+
+  // Re-fetch print provider info when product type changes
+  useEffect(() => {
+    if (open) {
+      setPrintProviderId(null);
+      loadPrintifyInfo();
+    }
+  }, [selectedProductType]);
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) =>
@@ -233,6 +250,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           productId: product.id,
           printifyProductId: product.printify_product_id,
           printProviderId,
+          blueprintId: selectedProductType.blueprintId,
         },
       });
 
@@ -280,11 +298,32 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              Comfort Colors 1717. Colors are pulled from your generated mockups.
+              Colors are pulled from your generated mockups.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
+            {/* Product type selector */}
+            <div className="space-y-2">
+              <Label className="font-medium">Product Type</Label>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_TYPES.map((pt) => (
+                  <Button
+                    key={pt.blueprintId}
+                    type="button"
+                    variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProductType(pt);
+                      setSelectedSizes(pt.sizes.slice(0, 4));
+                    }}
+                  >
+                    {pt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Shop - just show the name, no picker */}
             {loadingShops ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -343,7 +382,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             <div className="space-y-2">
               <Label className="font-medium">Sizes</Label>
               <div className="flex flex-wrap gap-2">
-                {AVAILABLE_SIZES.map((size) => (
+                {selectedProductType.sizes.map((size) => (
                   <Button
                     key={size}
                     type="button"
