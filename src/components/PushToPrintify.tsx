@@ -374,8 +374,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading mockups...
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AlertTriangle className="h-4 w-4" /> No mockups found. Generate mockups first.
+                <div className="rounded-lg border border-dashed border-border p-3 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No mockups generated — all available Printify colors will be enabled.
+                  </p>
                 </div>
               )}
             </div>
