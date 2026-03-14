@@ -139,7 +139,7 @@ Before generating messages, apply your knowledge of what sells well in the print
    - Self-deprecating humor about adulting, burnout, overthinking, anxiety
    - Sarcastic motivational quotes that subvert toxic positivity
    - Niche identity statements ("I'm not lazy, I'm on energy-saving mode")
-   - Minimalist one-word or two-word statements with strong typography potential ({SIGH}, {NOPE}, {CHAOS})
+   - Minimalist one-word or two-word statements with strong typography potential
    - Pop-culture-adjacent vibes without IP infringement
    - "Seen on TikTok/Instagram" relatable humor
 
