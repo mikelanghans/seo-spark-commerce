@@ -210,6 +210,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       .from("shopify_connections")
       .select("access_token")
       .eq("user_id", userId)
+      .match(organizationId ? { organization_id: organizationId } : {})
       .maybeSingle();
     if (data?.access_token && data.access_token.length > 0) {
       toast.success("Shopify is connected!");
