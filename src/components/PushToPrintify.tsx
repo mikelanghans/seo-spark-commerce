@@ -406,9 +406,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Colors:</strong> {hasMockups ? uniqueMockupColors.join(", ") : "All available"}</p>
+              <p><strong>Colors:</strong> {colorsForPush.join(", ")}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
-              <p><strong>Variants:</strong> {hasMockups ? `~${uniqueMockupColors.length * selectedSizes.length}` : "All colors × " + selectedSizes.length + " sizes"}</p>
+              <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
               <p><strong>Price:</strong> {product.price || "$29.99"}</p>
               {product.printify_product_id && (
                 <p className="text-primary text-xs">Will update existing Printify product</p>
