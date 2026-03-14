@@ -1184,6 +1184,13 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
+                <DesignTriage
+                  organization={selectedOrg}
+                  userId={user!.id}
+                  onProductCreated={() => {
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
+                />
                 {products.length > 0 && (
                   <>
                     <div className="flex items-center gap-2">
