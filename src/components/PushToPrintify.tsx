@@ -302,7 +302,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — all available colors will be enabled."}
+              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — defaulting to Black only."}
             </DialogDescription>
           </DialogHeader>
 
