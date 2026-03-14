@@ -11,6 +11,7 @@ import {
   normalizeAndLockToTemplateBlob,
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
+} from "@/lib/mockupComposition";
 import { recolorOpaquePixels } from "@/lib/removeBackground";
 
 interface AiUsage {
