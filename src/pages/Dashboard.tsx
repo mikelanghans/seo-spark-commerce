@@ -89,6 +89,7 @@ type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail"
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [view, _setView] = useState<View>(() => {
