@@ -48,6 +48,7 @@ export const SwipeableMessageCard = ({
   const [refineFeedback, setRefineFeedback] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
+  const [activeStyle, setActiveStyle] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
   const wasRefining = useRef(false);
