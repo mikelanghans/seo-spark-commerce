@@ -398,17 +398,26 @@ async function uploadImage(base64: string, userId: string, serviceClient: any): 
   const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
   const fileName = `${userId}/${crypto.randomUUID()}.png`;
 
-  const { error: uploadError } = await serviceClient.storage
-    .from("product-images")
-    .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
+  let lastError: any = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt));
 
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+    const { error: uploadError } = await serviceClient.storage
+      .from("product-images")
+      .upload(fileName, binaryData, { contentType: "image/png", upsert: true });
 
-  const { data: publicUrl } = serviceClient.storage
-    .from("product-images")
-    .getPublicUrl(fileName);
+    if (!uploadError) {
+      const { data: publicUrl } = serviceClient.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+      return publicUrl.publicUrl;
+    }
 
-  return publicUrl.publicUrl;
+    lastError = uploadError;
+    console.error(`Upload attempt ${attempt + 1} failed: ${uploadError.message}`);
+  }
+
+  throw new Error(`Upload failed after 3 attempts: ${lastError?.message}`);
 }
 
 serve(async (req) => {
