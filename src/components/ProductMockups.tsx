@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { GenerateColorVariants } from "./GenerateColorVariants";
@@ -41,6 +42,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editColor, setEditColor] = useState("");
+  const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -176,8 +178,11 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((img) => (
             <div key={img.id} className="group relative rounded-lg border border-border bg-card overflow-hidden">
-              <div className="h-36 overflow-hidden bg-secondary">
+              <div className="relative h-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => setPreviewImage(img)}>
                 <img src={img.image_url} alt={img.color_name} className="h-full w-full object-contain p-2" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                  <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
               <div className="flex items-center gap-2 px-3 py-2">
                 {editingId === img.id ? (
@@ -219,6 +224,24 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
           ))}
         </div>
       )}
+
+      {/* Fullscreen preview dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {previewImage && (
+            <div className="space-y-2">
+              <img
+                src={previewImage.image_url}
+                alt={previewImage.color_name}
+                className="w-full rounded-lg object-contain max-h-[80vh]"
+              />
+              <p className="text-center text-sm font-medium text-muted-foreground">
+                {previewImage.color_name}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
