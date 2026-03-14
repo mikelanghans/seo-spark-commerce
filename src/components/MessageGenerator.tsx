@@ -310,7 +310,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             messageId: msg.id,
             organizationId: organization.id,
             designVariant: v,
-            designStyle,
+            designStyle: styleToUse,
           },
         });
 
