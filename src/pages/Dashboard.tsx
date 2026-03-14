@@ -1570,7 +1570,7 @@ const Dashboard = () => {
               <Button type="button" variant="outline" onClick={() => setView("products")} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
-              <Button type="submit" className="gap-2" disabled={isAnalyzing}>
+              <Button type="submit" className="gap-2" disabled={isAnalyzing || isProcessingDesign}>
                 <Sparkles className="h-4 w-4" /> Save & Generate Listings
               </Button>
             </div>
