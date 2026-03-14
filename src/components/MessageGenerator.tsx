@@ -66,8 +66,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
   const availableStyles = (organization.design_styles as string[]) || ["text-only"];
-  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">(
-    availableStyles.includes("text-only") ? "text-only" : "minimalist"
+  const [designStyle, setDesignStyle] = useState<string>(
+    availableStyles.includes("text-only") ? "text-only" : availableStyles[0] || "text-only"
   );
 
   useEffect(() => {
