@@ -34,6 +34,7 @@ export const SwipeableMessageCard = ({
   isGeneratingDesign,
   isRefining,
   disableDesignActions,
+  availableStyles = ["text-only"],
   onKeep,
   onDiscard,
   onEdit,
