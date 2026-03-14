@@ -48,6 +48,14 @@ interface Props {
 
 const AVAILABLE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
+// Product types mapped to Printify blueprint IDs
+const PRODUCT_TYPES = [
+  { label: "T-Shirt (Comfort Colors 1717)", blueprintId: 706, tag: "T-shirts", sizes: ["S", "M", "L", "XL", "2XL", "3XL"] },
+  // Future product types:
+  // { label: "Hoodie (Gildan 18500)", blueprintId: 77, tag: "Hoodies", sizes: ["S", "M", "L", "XL", "2XL"] },
+  // { label: "Mug (11oz)", blueprintId: 68, tag: "Mugs", sizes: [] },
+];
+
 // Comfort Colors 1717 light colors where white/light designs won't show well
 const LIGHT_COLORS = new Set([
   "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
