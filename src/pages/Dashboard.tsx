@@ -658,6 +658,7 @@ const Dashboard = () => {
 
         const { data, error } = await supabase.functions.invoke("push-to-shopify", {
           body: {
+            organizationId: selectedOrg!.id,
             userId: user!.id,
             productId: product.id,
             listing: {
