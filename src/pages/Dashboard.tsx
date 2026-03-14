@@ -24,6 +24,7 @@ import { SocialPostGenerator } from "@/components/SocialPostGenerator";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
+import { DesignTriage } from "@/components/DesignTriage";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket,
 } from "lucide-react";
@@ -1183,6 +1184,13 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
+                <DesignTriage
+                  organization={selectedOrg}
+                  userId={user!.id}
+                  onProductCreated={() => {
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
+                />
                 {products.length > 0 && (
                   <>
                     <div className="flex items-center gap-2">
