@@ -153,9 +153,11 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     );
   };
 
-  // Use mockup color names directly as the Printify colors (empty = all variants)
+  // Use mockup color names directly as the Printify colors; default to Black when no mockups
   const uniqueMockupColors = [...new Set(mockups.map((m) => m.color_name))];
   const hasMockups = uniqueMockupColors.length > 0;
+  const DEFAULT_NO_MOCKUP_COLORS = ["Black"];
+  const colorsForPush = hasMockups ? uniqueMockupColors : DEFAULT_NO_MOCKUP_COLORS;
 
   const handlePush = async () => {
     if (!selectedShop) {
