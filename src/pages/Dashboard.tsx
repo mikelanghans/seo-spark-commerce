@@ -1282,8 +1282,30 @@ const Dashboard = () => {
                           </div>
                         )}
                         {!product.image_url && (
-                          <div className="flex h-48 items-center justify-center bg-secondary">
+                          <div className="relative flex h-48 items-center justify-center bg-secondary">
                             <Package className="h-8 w-8 text-muted-foreground/40" />
+                            <label
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-secondary/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              <Upload className="h-6 w-6 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">Upload Design</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const url = await uploadImageToStorage(file);
+                                  if (url) {
+                                    await supabase.from("products").update({ image_url: url }).eq("id", product.id);
+                                    toast.success("Design uploaded!");
+                                    if (selectedOrg) loadProducts(selectedOrg.id);
+                                  }
+                                }}
+                              />
+                            </label>
                           </div>
                         )}
                         <div className="p-4">
