@@ -153,8 +153,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     );
   };
 
-  // Use mockup color names directly as the Printify colors
+  // Use mockup color names directly as the Printify colors (empty = all variants)
   const uniqueMockupColors = [...new Set(mockups.map((m) => m.color_name))];
+  const hasMockups = uniqueMockupColors.length > 0;
 
   const handlePush = async () => {
     if (!selectedShop) {
