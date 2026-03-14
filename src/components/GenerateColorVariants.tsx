@@ -603,19 +603,28 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         </div>
       )}
 
-      <Button
-        onClick={handleGenerate}
-        disabled={generating || colors.length === 0}
-        className="gap-2 w-full"
-        size="sm"
-      >
-        {generating ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Sparkles className="h-4 w-4" />
-        )}
-        {generating ? `Generating ${progress.done}/${progress.total}…` : `Generate ${colors.length} Color Variant${colors.length !== 1 ? "s" : ""}`}
-      </Button>
+      {(() => {
+        const newCount = colors.filter((c) => !existingColorSet.has(c.toLowerCase())).length;
+        const existingCount = colors.length - newCount;
+        const label = newCount === 0
+          ? "All selected colors already exist"
+          : `Generate ${newCount} New Color Variant${newCount !== 1 ? "s" : ""}${existingCount > 0 ? ` (${existingCount} already exist${existingCount === 1 ? "s" : ""})` : ""}`;
+        return (
+          <Button
+            onClick={handleGenerate}
+            disabled={generating || colors.length === 0 || newCount === 0}
+            className="gap-2 w-full"
+            size="sm"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {generating ? `Generating ${progress.done}/${progress.total}…` : label}
+          </Button>
+        );
+      })()}
     </div>
   );
 };
