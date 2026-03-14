@@ -195,15 +195,16 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     const generatedDataUrl = ensureImageDataUrl(generatedBase64);
     const templateDataUrl = preCompositedBase64;
-    const blob = targetSize
-      ? await normalizeAndLockToTemplateBlob({
-          templateDataUrl,
-          generatedDataUrl,
-          targetWidth: targetSize.width,
-          targetHeight: targetSize.height,
-          designDataUrl: designBase64,
-        })
-      : await dataUrlToBlob(generatedDataUrl);
+
+    console.log(`[ColorVariant] ${colorName}: designBase64=${designBase64 ? 'present' : 'MISSING'}, targetSize=${targetSize ? `${targetSize.width}x${targetSize.height}` : 'null'}`);
+
+    const blob = await normalizeAndLockToTemplateBlob({
+      templateDataUrl,
+      generatedDataUrl,
+      targetWidth: targetSize?.width || 1024,
+      targetHeight: targetSize?.height || 1024,
+      designDataUrl: designBase64,
+    });
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
@@ -290,8 +291,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       .eq("product_id", productId)
       .eq("image_type", "design");
 
+    console.log(`[ColorVariant] Design images found: ${designImages?.length || 0}`, designImages?.map(d => `${d.color_name}: ${d.image_url?.substring(0, 60)}`));
+    console.log(`[ColorVariant] designImageUrl prop: ${designImageUrl?.substring(0, 60) || 'NONE'}`);
+
     const lightDesignUrl = designImages?.find(d => d.color_name === "light-on-dark")?.image_url || designImageUrl;
     const darkDesignUrl = designImages?.find(d => d.color_name === "dark-on-light")?.image_url;
+
+    console.log(`[ColorVariant] lightDesignUrl: ${lightDesignUrl?.substring(0, 60) || 'NONE'}`);
+    console.log(`[ColorVariant] darkDesignUrl: ${darkDesignUrl?.substring(0, 60) || 'NONE'}`);
 
     const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
       try {
