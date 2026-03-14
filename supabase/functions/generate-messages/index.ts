@@ -159,7 +159,7 @@ Generate exactly ${batchSize} short, punchy messages that could be printed on t-
 - Written in the brand's tone: "${organization.tone}"
 - Short enough for a t-shirt print (ideally 2-8 words, max 12 words)
 - Memorable, quotable, and slightly irreverent
-- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Mix of formats: some with {curly braces}, some with attributions, some standalone"}
+- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Variety of formats: some with attributions, some standalone bold statements, and only occasionally {curly braces} when it truly fits (1-2 max per batch)"}
 - Optimized for SELLING — think about what someone would actually pay $29 to wear
 
 Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends and that authentically represent the "${organization.name}" brand.`;
