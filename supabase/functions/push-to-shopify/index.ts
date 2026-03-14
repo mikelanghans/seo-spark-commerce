@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
 
-    const { product, listings, imageUrl, variants, shopifyStatus } = await req.json();
+    const { product, listings, imageUrl, variants, shopifyStatus, organizationId } = await req.json();
 
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
 
