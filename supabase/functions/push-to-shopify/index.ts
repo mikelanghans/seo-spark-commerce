@@ -123,7 +123,7 @@ serve(async (req) => {
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
     if (hasVariants) {
       shopifyProduct.options = [{ name: "Color" }];
-      shopifyProduct.variants = colorVariants.map((v) => ({
+      shopifyProduct.variants = actualColorVariants.map((v) => ({
         option1: v.colorName,
         price,
         inventory_management: null,
