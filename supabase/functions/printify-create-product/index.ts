@@ -167,15 +167,16 @@ serve(async (req) => {
         console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
 
         if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
-          // Scale to keep full design visible while targeting chest-print footprint.
-          const widthFillScale = printAreaWidth / imgW;
-          const heightFitScale = printAreaHeight / imgH;
+          // Scale to keep full design visible with 5% safety margin on each side.
+          const safetyMargin = 0.90;
+          const widthFillScale = (printAreaWidth / imgW) * safetyMargin;
+          const heightFitScale = (printAreaHeight / imgH) * safetyMargin;
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
 
-          imageScale = Math.max(0.2, Math.min(1.5, targetChestScale));
+          imageScale = Math.max(0.2, Math.min(1.0, targetChestScale));
           console.log(
-            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, default=${DEFAULT_IMAGE_SCALE})`
+            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)})`
           );
         }
       } else {
