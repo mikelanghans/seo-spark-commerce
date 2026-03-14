@@ -668,6 +668,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                     isGeneratingDesign={generatingDesignId === msg.id}
                     isRefining={refiningId === msg.id}
                     disableDesignActions={!!generatingDesignId}
+                    availableStyles={availableStyles}
                     onKeep={handleKeep}
                     onDiscard={handleDiscard}
                     onEdit={handleEdit}
