@@ -139,7 +139,7 @@ export async function recolorOpaquePixels(
   // - White/light design pixels (the actual design — recolor these)
   // - Dark interior pixels (letter counters/holes — skip these, make transparent)
   const ALPHA_THRESHOLD = 100;
-  const BRIGHTNESS_THRESHOLD = 120; // skip dark pixels (counters still black from original)
+  const BRIGHTNESS_THRESHOLD = 40; // only skip near-black pixels (true holes/counters)
   const out = ctx.createImageData(w, h);
   const outData = out.data;
   for (let i = 0; i < w * h; i++) {
