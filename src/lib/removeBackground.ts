@@ -134,65 +134,19 @@ export async function recolorOpaquePixels(
   const imageData = ctx.getImageData(0, 0, w, h);
   const src = imageData.data;
 
-  // Build alpha mask from source
-  const alphaMap = new Uint8Array(w * h);
-  for (let i = 0; i < alphaMap.length; i++) {
-    alphaMap[i] = src[i * 4 + 3];
-  }
-
-  // Step 1: Fill interior holes via flood-fill from edges.
-  // Any transparent pixel NOT reachable from the image border is inside a letterform.
-  const reachable = new Uint8Array(w * h); // 0 = not visited
-  const queue = new Int32Array(w * h);
-  let head = 0;
-  let tail = 0;
-
-  const enqueue = (idx: number) => {
-    if (idx < 0 || idx >= w * h || reachable[idx]) return;
-    if (alphaMap[idx] >= 5) return; // opaque = boundary, don't cross
-    reachable[idx] = 1;
-    queue[tail++] = idx;
-  };
-
-  // Seed from all edge pixels
-  for (let x = 0; x < w; x++) {
-    enqueue(x);
-    enqueue((h - 1) * w + x);
-  }
-  for (let y = 1; y < h - 1; y++) {
-    enqueue(y * w);
-    enqueue(y * w + (w - 1));
-  }
-
-  while (head < tail) {
-    const pos = queue[head++];
-    const px = pos % w;
-    const py = Math.floor(pos / w);
-    if (px > 0) enqueue(pos - 1);
-    if (px < w - 1) enqueue(pos + 1);
-    if (py > 0) enqueue(pos - w);
-    if (py < h - 1) enqueue(pos + w);
-  }
-
-  // Fill interior holes: transparent pixels not reachable from edges
-  const filled = new Uint8Array(alphaMap);
-  for (let i = 0; i < w * h; i++) {
-    if (filled[i] < 5 && !reachable[i]) {
-      filled[i] = 255; // interior hole → fill solid
-    }
-  }
-
-  // Write recolored pixels (no dilation — preserves original stroke weight)
+  // Simple recolor: threshold alpha to avoid anti-aliased fringe pixels
+  // that make text appear thicker when recolored from light-on-dark to dark-on-light.
+  const ALPHA_THRESHOLD = 100; // only keep solidly opaque pixels
   const out = ctx.createImageData(w, h);
   const outData = out.data;
-  for (let i = 0; i < filled.length; i++) {
-    const a = filled[i];
-    if (a === 0) continue;
+  for (let i = 0; i < w * h; i++) {
+    const a = src[i * 4 + 3];
+    if (a < ALPHA_THRESHOLD) continue;
     const idx = i * 4;
     outData[idx] = targetColor.r;
     outData[idx + 1] = targetColor.g;
     outData[idx + 2] = targetColor.b;
-    outData[idx + 3] = a;
+    outData[idx + 3] = 255; // fully opaque — no semi-transparent fringe
   }
 
   ctx.putImageData(out, 0, 0);
