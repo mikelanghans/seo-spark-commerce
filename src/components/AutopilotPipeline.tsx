@@ -384,6 +384,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         const { data: shopifyResult, error: shopifyError } = await withRetry(
           () => supabase.functions.invoke("push-to-shopify", {
             body: {
+              organizationId,
               product: productData,
               listings: shopifyListing ? [shopifyListing] : [],
               imageUrl: designUrl,

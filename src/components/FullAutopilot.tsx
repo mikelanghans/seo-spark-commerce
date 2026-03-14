@@ -535,6 +535,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
               body: {
+                organizationId: organization.id,
                 product: {
                   id: productId,
                   title: shopifyListing?.title || productTitle,
