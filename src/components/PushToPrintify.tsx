@@ -153,9 +153,11 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     );
   };
 
-  // Use mockup color names directly as the Printify colors (empty = all variants)
+  // Use mockup color names directly as the Printify colors; default to Black when no mockups
   const uniqueMockupColors = [...new Set(mockups.map((m) => m.color_name))];
   const hasMockups = uniqueMockupColors.length > 0;
+  const DEFAULT_NO_MOCKUP_COLORS = ["Black"];
+  const colorsForPush = hasMockups ? uniqueMockupColors : DEFAULT_NO_MOCKUP_COLORS;
 
   const handlePush = async () => {
     if (!selectedShop) {
@@ -176,7 +178,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
     try {
       // Detect which selected colors are "light"
-      const colorsToUse = hasMockups ? uniqueMockupColors : [];
+      const colorsToUse = colorsForPush;
       const lightColorsSelected = colorsToUse.filter(
         (c) => LIGHT_COLORS.has(c.toLowerCase())
       );
@@ -245,7 +247,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           printifyImageId,
           darkPrintifyImageId,
           lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
-          selectedColors: colorsToUse.length > 0 ? colorsToUse : undefined,
+          selectedColors: colorsToUse,
           selectedSizes,
           price: product.price,
           mockupImages,
@@ -300,7 +302,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — all available colors will be enabled."}
+              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — defaulting to Black only."}
             </DialogDescription>
           </DialogHeader>
 
@@ -376,7 +378,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               ) : (
                 <div className="rounded-lg border border-dashed border-border p-3 text-center">
                   <p className="text-sm text-muted-foreground">
-                    No mockups generated — all available Printify colors will be enabled.
+                    No mockups generated — will push with Black only.
                   </p>
                 </div>
               )}
@@ -404,9 +406,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Colors:</strong> {hasMockups ? uniqueMockupColors.join(", ") : "All available"}</p>
+              <p><strong>Colors:</strong> {colorsForPush.join(", ")}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
-              <p><strong>Variants:</strong> {hasMockups ? `~${uniqueMockupColors.length * selectedSizes.length}` : "All colors × " + selectedSizes.length + " sizes"}</p>
+              <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
               <p><strong>Price:</strong> {product.price || "$29.99"}</p>
               {product.printify_product_id && (
                 <p className="text-primary text-xs">Will update existing Printify product</p>
