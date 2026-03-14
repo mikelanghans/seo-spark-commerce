@@ -378,7 +378,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               ) : (
                 <div className="rounded-lg border border-dashed border-border p-3 text-center">
                   <p className="text-sm text-muted-foreground">
-                    No mockups generated — all available Printify colors will be enabled.
+                    No mockups generated — will push with Black only.
                   </p>
                 </div>
               )}
