@@ -153,16 +153,17 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     );
   };
 
-  // Use mockup color names directly as the Printify colors
+  // Use mockup color names directly as the Printify colors (empty = all variants)
   const uniqueMockupColors = [...new Set(mockups.map((m) => m.color_name))];
+  const hasMockups = uniqueMockupColors.length > 0;
 
   const handlePush = async () => {
     if (!selectedShop) {
       toast.error("Please select a Printify shop");
       return;
     }
-    if (!uniqueMockupColors.length || !selectedSizes.length) {
-      toast.error("Need mockups and sizes to push");
+    if (!selectedSizes.length) {
+      toast.error("Please select at least one size");
       return;
     }
     if (!product.image_url) {
@@ -175,7 +176,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
     try {
       // Detect which selected colors are "light"
-      const lightColorsSelected = uniqueMockupColors.filter(
+      const colorsToUse = hasMockups ? uniqueMockupColors : [];
+      const lightColorsSelected = colorsToUse.filter(
         (c) => LIGHT_COLORS.has(c.toLowerCase())
       );
       const hasLightColors = lightColorsSelected.length > 0;
@@ -218,9 +220,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
         darkPrintifyImageId = darkUpload.image?.id || null;
       }
 
-      // Build mockup images using color names directly
+      // Build mockup images using color names directly (empty if no mockups)
       const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
-      for (const colorName of uniqueMockupColors) {
+      for (const colorName of colorsToUse) {
         const mockup = mockups.find((m) => m.color_name === colorName);
         if (mockup) {
           mockupImages.push({
@@ -243,7 +245,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           printifyImageId,
           darkPrintifyImageId,
           lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
-          selectedColors: uniqueMockupColors,
+          selectedColors: colorsToUse.length > 0 ? colorsToUse : undefined,
           selectedSizes,
           price: product.price,
           mockupImages,
@@ -298,7 +300,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              Colors are pulled from your generated mockups.
+              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — all available colors will be enabled."}
             </DialogDescription>
           </DialogHeader>
 
@@ -372,8 +374,10 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading mockups...
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AlertTriangle className="h-4 w-4" /> No mockups found. Generate mockups first.
+                <div className="rounded-lg border border-dashed border-border p-3 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No mockups generated — all available Printify colors will be enabled.
+                  </p>
                 </div>
               )}
             </div>
@@ -400,9 +404,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Colors:</strong> {uniqueMockupColors.join(", ") || "None"}</p>
+              <p><strong>Colors:</strong> {hasMockups ? uniqueMockupColors.join(", ") : "All available"}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
-              <p><strong>Variants:</strong> ~{uniqueMockupColors.length * selectedSizes.length}</p>
+              <p><strong>Variants:</strong> {hasMockups ? `~${uniqueMockupColors.length * selectedSizes.length}` : "All colors × " + selectedSizes.length + " sizes"}</p>
               <p><strong>Price:</strong> {product.price || "$29.99"}</p>
               {product.printify_product_id && (
                 <p className="text-primary text-xs">Will update existing Printify product</p>
@@ -411,7 +415,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
             <Button
               onClick={handlePush}
-              disabled={pushing || !selectedShop || !uniqueMockupColors.length || !selectedSizes.length}
+              disabled={pushing || !selectedShop || !selectedSizes.length}
               className="w-full gap-2"
             >
               {pushing ? (
