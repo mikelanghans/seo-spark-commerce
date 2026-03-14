@@ -225,7 +225,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
           printifyImageId,
           darkPrintifyImageId,
-          lightColors: lightColorsSelected,
+          lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
           selectedColors: uniqueMockupColors,
           selectedSizes,
           price: product.price,
