@@ -74,6 +74,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           .from("shopify_connections")
           .select("client_id")
           .eq("user_id", userId)
+          .match(organizationId ? { organization_id: organizationId } : {})
           .maybeSingle()
           .then(({ data }) => {
             if (data?.client_id) {
