@@ -473,8 +473,8 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedOrg) return;
 
-    let imageUrl: string | null = pendingDesignUrl || null;
-    if (imageFile) {
+    let imageUrl: string | null = pendingDesignUrl || pendingLightDesignUrl || null;
+    if (imageFile && !pendingLightDesignUrl) {
       imageUrl = await uploadImageToStorage(imageFile);
     }
 
@@ -486,11 +486,40 @@ const Dashboard = () => {
 
     if (error) { toast.error(error.message); return; }
 
+    // Save light & dark design variants to product_images
+    if (pendingLightDesignUrl || pendingDarkDesignUrl) {
+      const variantRows = [];
+      if (pendingLightDesignUrl) {
+        variantRows.push({
+          product_id: product.id,
+          user_id: user!.id,
+          image_url: pendingLightDesignUrl,
+          image_type: "design",
+          color_name: "light",
+          position: 0,
+        });
+      }
+      if (pendingDarkDesignUrl) {
+        variantRows.push({
+          product_id: product.id,
+          user_id: user!.id,
+          image_url: pendingDarkDesignUrl,
+          image_type: "design",
+          color_name: "dark",
+          position: 1,
+        });
+      }
+      const { error: imgErr } = await supabase.from("product_images").insert(variantRows);
+      if (imgErr) console.error("Failed to save design variants:", imgErr);
+    }
+
     toast.success("Product saved! Generating listings…");
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
     setImageFile(null);
     setPendingDesignUrl(null);
+    setPendingLightDesignUrl(null);
+    setPendingDarkDesignUrl(null);
 
     setSelectedProduct(product as Product);
     setView("product-detail");
