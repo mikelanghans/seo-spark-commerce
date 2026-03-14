@@ -220,9 +220,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
         darkPrintifyImageId = darkUpload.image?.id || null;
       }
 
-      // Build mockup images using color names directly
+      // Build mockup images using color names directly (empty if no mockups)
       const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
-      for (const colorName of uniqueMockupColors) {
+      for (const colorName of colorsToUse) {
         const mockup = mockups.find((m) => m.color_name === colorName);
         if (mockup) {
           mockupImages.push({
