@@ -41,7 +41,8 @@ serve(async (req) => {
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
 
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
-    const hasVariants = colorVariants.length > 0;
+    const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
+    const hasVariants = actualColorVariants.length > 0;
 
     const existingShopifyId = product.shopify_product_id;
     const isUpdate = !!existingShopifyId;
@@ -89,14 +90,27 @@ serve(async (req) => {
     };
 
     // Collect image URLs (already optimized client-side to ≤2048px JPEG)
-    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
+    // Separate color variant images from non-variant images (e.g. size chart)
+    const variantImages: { url: string; alt: string; colorName: string }[] = [];
+    const extraImages: { url: string; alt: string }[] = [];
     colorVariants.forEach((v) => {
-      imageEntries.push({
-        url: v.imageUrl,
-        alt: `${product.title} - ${v.colorName}`,
-        colorName: v.colorName,
-      });
+      if (v.colorName === "Size Chart") {
+        extraImages.push({ url: v.imageUrl, alt: "Size Chart" });
+      } else {
+        variantImages.push({
+          url: v.imageUrl,
+          alt: `${product.title} - ${v.colorName}`,
+          colorName: v.colorName,
+        });
+      }
     });
+
+    // Build final image list: variant images first, then extras (size chart last)
+    const imageEntries: { url: string; alt: string; colorName?: string }[] = [
+      ...variantImages,
+      ...extraImages,
+    ];
+
     if (imageEntries.length === 0 && imageUrl) {
       imageEntries.push({
         url: imageUrl,
@@ -109,7 +123,7 @@ serve(async (req) => {
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
     if (hasVariants) {
       shopifyProduct.options = [{ name: "Color" }];
-      shopifyProduct.variants = colorVariants.map((v) => ({
+      shopifyProduct.variants = actualColorVariants.map((v) => ({
         option1: v.colorName,
         price,
         inventory_management: null,
@@ -198,9 +212,9 @@ serve(async (req) => {
       console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
     }
 
-    // Associate images with variants
+    // Associate images with variants (only actual color variants, not size chart)
     if (hasVariants && createdProduct?.variants?.length && uploadedImages.some(Boolean)) {
-      for (let i = 0; i < colorVariants.length; i++) {
+      for (let i = 0; i < actualColorVariants.length; i++) {
         const variant = createdProduct.variants[i];
         const image = uploadedImages[i];
         if (variant && image) {

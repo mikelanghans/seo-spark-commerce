@@ -9,6 +9,7 @@ import {
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
+import { CC1717_SIZE_CHART_URL } from "@/lib/sizeChart";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -511,6 +512,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               userId,
               productId,
             );
+
+            // Append CC1717 size chart as the last image
+            shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
 
             const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
               body: {
