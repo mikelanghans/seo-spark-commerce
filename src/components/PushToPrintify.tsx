@@ -297,11 +297,32 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
               Push to Printify
             </DialogTitle>
             <DialogDescription>
-              Comfort Colors 1717. Colors are pulled from your generated mockups.
+              Colors are pulled from your generated mockups.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
+            {/* Product type selector */}
+            <div className="space-y-2">
+              <Label className="font-medium">Product Type</Label>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_TYPES.map((pt) => (
+                  <Button
+                    key={pt.blueprintId}
+                    type="button"
+                    variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProductType(pt);
+                      setSelectedSizes(pt.sizes.slice(0, 4));
+                    }}
+                  >
+                    {pt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Shop - just show the name, no picker */}
             {loadingShops ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
