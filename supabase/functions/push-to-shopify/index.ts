@@ -42,10 +42,7 @@ serve(async (req) => {
       });
     }
 
-    const { product, listings, imageUrl, variants, shopifyStatus, organizationId } = await req.json();
-
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
-
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
     const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
     const hasVariants = actualColorVariants.length > 0;
