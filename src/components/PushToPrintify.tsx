@@ -102,7 +102,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
-        body: { blueprintId: 706 },
+        body: { blueprintId: selectedProductType.blueprintId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
