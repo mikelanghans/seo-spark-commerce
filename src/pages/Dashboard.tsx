@@ -35,6 +35,7 @@ import brandAuraIcon from "@/assets/brand-aura-icon.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
+import { removeBackground, recolorOpaquePixels, upscaleBase64Png } from "@/lib/removeBackground";
 
 interface Organization {
   id: string;
@@ -129,6 +130,10 @@ const Dashboard = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [isProcessingDesign, setIsProcessingDesign] = useState(false);
+  const [designProcessingStep, setDesignProcessingStep] = useState("");
+  const [pendingLightDesignUrl, setPendingLightDesignUrl] = useState<string | null>(null);
+  const [pendingDarkDesignUrl, setPendingDarkDesignUrl] = useState<string | null>(null);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
@@ -349,17 +354,78 @@ const Dashboard = () => {
     loadArchivedOrgs();
   };
 
+  const processDesignVariants = async (base64: string) => {
+    if (!user) return;
+    setIsProcessingDesign(true);
+    try {
+      // Step 1: Remove background (auto-detect white vs black)
+      setDesignProcessingStep("Removing background…");
+      let transparentBase64: string;
+      try {
+        transparentBase64 = await removeBackground(base64, "white");
+      } catch {
+        transparentBase64 = await removeBackground(base64, "black");
+      }
+
+      // Step 2: Create dark variant
+      setDesignProcessingStep("Creating dark variant…");
+      const darkBase64 = await recolorOpaquePixels(transparentBase64);
+
+      // Step 3: Upscale both
+      setDesignProcessingStep("Upscaling to print quality…");
+      const [lightUpscaled, darkUpscaled] = await Promise.all([
+        upscaleBase64Png(transparentBase64, 4500),
+        upscaleBase64Png(darkBase64, 4500),
+      ]);
+
+      // Step 4: Upload both to storage
+      setDesignProcessingStep("Uploading variants…");
+      const lightPath = `${user.id}/design-variants/${crypto.randomUUID()}-light.png`;
+      const darkPath = `${user.id}/design-variants/${crypto.randomUUID()}-dark.png`;
+
+      const lightBlob = await fetch(`data:image/png;base64,${lightUpscaled}`).then(r => r.blob());
+      const darkBlob = await fetch(`data:image/png;base64,${darkUpscaled}`).then(r => r.blob());
+
+      const [lightUpload, darkUpload] = await Promise.all([
+        supabase.storage.from("product-images").upload(lightPath, lightBlob, { contentType: "image/png", upsert: true }),
+        supabase.storage.from("product-images").upload(darkPath, darkBlob, { contentType: "image/png", upsert: true }),
+      ]);
+
+      if (lightUpload.error) throw lightUpload.error;
+      if (darkUpload.error) throw darkUpload.error;
+
+      const lightUrl = supabase.storage.from("product-images").getPublicUrl(lightPath).data.publicUrl;
+      const darkUrl = supabase.storage.from("product-images").getPublicUrl(darkPath).data.publicUrl;
+
+      setPendingLightDesignUrl(lightUrl);
+      setPendingDarkDesignUrl(darkUrl);
+      toast.success("Light & dark design variants ready!");
+    } catch (err: any) {
+      console.error("Design processing error:", err);
+      toast.error("Design variant processing failed: " + (err.message || "Unknown error"));
+    } finally {
+      setIsProcessingDesign(false);
+      setDesignProcessingStep("");
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
 
     setImageFile(file);
+    setPendingLightDesignUrl(null);
+    setPendingDarkDesignUrl(null);
     const reader = new FileReader();
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setImagePreview(base64);
 
-      if (!aiAutoFill) return;
+      if (!aiAutoFill) {
+        // Still process design variants even without AI auto-fill
+        processDesignVariants(base64);
+        return;
+      }
 
       setIsAnalyzing(true);
       try {
@@ -387,6 +453,9 @@ const Dashboard = () => {
       } finally {
         setIsAnalyzing(false);
       }
+
+      // Process design variants in parallel (non-blocking)
+      processDesignVariants(base64);
     };
     reader.readAsDataURL(file);
   };
@@ -404,8 +473,8 @@ const Dashboard = () => {
     e.preventDefault();
     if (!selectedOrg) return;
 
-    let imageUrl: string | null = pendingDesignUrl || null;
-    if (imageFile) {
+    let imageUrl: string | null = pendingDesignUrl || pendingLightDesignUrl || null;
+    if (imageFile && !pendingLightDesignUrl) {
       imageUrl = await uploadImageToStorage(imageFile);
     }
 
@@ -417,11 +486,40 @@ const Dashboard = () => {
 
     if (error) { toast.error(error.message); return; }
 
+    // Save light & dark design variants to product_images
+    if (pendingLightDesignUrl || pendingDarkDesignUrl) {
+      const variantRows = [];
+      if (pendingLightDesignUrl) {
+        variantRows.push({
+          product_id: product.id,
+          user_id: user!.id,
+          image_url: pendingLightDesignUrl,
+          image_type: "design",
+          color_name: "light",
+          position: 0,
+        });
+      }
+      if (pendingDarkDesignUrl) {
+        variantRows.push({
+          product_id: product.id,
+          user_id: user!.id,
+          image_url: pendingDarkDesignUrl,
+          image_type: "design",
+          color_name: "dark",
+          position: 1,
+        });
+      }
+      const { error: imgErr } = await supabase.from("product_images").insert(variantRows);
+      if (imgErr) console.error("Failed to save design variants:", imgErr);
+    }
+
     toast.success("Product saved! Generating listings…");
     setProductForm({ title: "", description: "", keywords: "", category: "", price: "", features: "" });
     setImagePreview(null);
     setImageFile(null);
     setPendingDesignUrl(null);
+    setPendingLightDesignUrl(null);
+    setPendingDarkDesignUrl(null);
 
     setSelectedProduct(product as Product);
     setView("product-detail");
@@ -1379,17 +1477,51 @@ const Dashboard = () => {
               <Label className="mb-2 block">Product Image</Label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="product-image" />
               {imagePreview ? (
-                <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-                  <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 object-contain p-4" />
-                  {isAnalyzing && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                      <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm font-medium">Analyzing product…</p>
+                <div className="space-y-3">
+                  <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+                    <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 object-contain p-4" />
+                    {isAnalyzing && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium">Analyzing product…</p>
+                      </div>
+                    )}
+                    {isProcessingDesign && !isAnalyzing && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium">{designProcessingStep}</p>
+                        <p className="text-xs text-muted-foreground">Creating print-ready variants</p>
+                      </div>
+                    )}
+                    <label htmlFor="product-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground">
+                      Change image
+                    </label>
+                  </div>
+
+                  {/* Design variant previews */}
+                  {(pendingLightDesignUrl || pendingDarkDesignUrl) && (
+                    <div className="rounded-lg border border-border bg-card/50 p-4">
+                      <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Design Variants (4500px print-ready)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {pendingLightDesignUrl && (
+                          <div className="space-y-1">
+                            <div className="overflow-hidden rounded-lg border border-border bg-[hsl(var(--foreground))]">
+                              <img src={pendingLightDesignUrl} alt="Light variant" className="mx-auto h-32 object-contain p-2" />
+                            </div>
+                            <p className="text-center text-xs text-muted-foreground">Light (for dark garments)</p>
+                          </div>
+                        )}
+                        {pendingDarkDesignUrl && (
+                          <div className="space-y-1">
+                            <div className="overflow-hidden rounded-lg border border-border bg-background">
+                              <img src={pendingDarkDesignUrl} alt="Dark variant" className="mx-auto h-32 object-contain p-2" />
+                            </div>
+                            <p className="text-center text-xs text-muted-foreground">Dark (for light garments)</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                  <label htmlFor="product-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground">
-                    Change image
-                  </label>
                 </div>
               ) : (
                 <label
@@ -1401,7 +1533,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-sm font-medium">Upload product image</p>
                   <p className="text-xs text-muted-foreground">
-                    {aiAutoFill ? "AI will auto-fill all fields" : "Image only — fill in details below"}
+                    {aiAutoFill ? "AI will auto-fill all fields + generate light/dark variants" : "Image only — generates light/dark design variants"}
                   </p>
                 </label>
               )}
@@ -1438,7 +1570,7 @@ const Dashboard = () => {
               <Button type="button" variant="outline" onClick={() => setView("products")} className="gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
-              <Button type="submit" className="gap-2" disabled={isAnalyzing}>
+              <Button type="submit" className="gap-2" disabled={isAnalyzing || isProcessingDesign}>
                 <Sparkles className="h-4 w-4" /> Save & Generate Listings
               </Button>
             </div>
