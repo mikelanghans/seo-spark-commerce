@@ -7,6 +7,8 @@ interface CompositionLockParams {
   generatedDataUrl: string;
   targetWidth: number;
   targetHeight: number;
+  /** Original design to paste back on top after AI recoloring (guarantees design integrity) */
+  designDataUrl?: string;
 }
 
 export const ensureImageDataUrl = (value: string) =>
