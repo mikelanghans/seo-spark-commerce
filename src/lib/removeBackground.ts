@@ -130,11 +130,15 @@ export async function recolorOpaquePixels(
 
   for (let idx = 0; idx < pixels.length; idx += 4) {
     const alpha = pixels[idx + 3];
-    if (alpha === 0) continue;
+    if (alpha < 10) continue; // skip near-transparent noise
 
     pixels[idx] = targetColor.r;
     pixels[idx + 1] = targetColor.g;
     pixels[idx + 2] = targetColor.b;
+    // Boost semi-transparent pixels so thin strokes stay solid in dark ink
+    if (alpha < 200) {
+      pixels[idx + 3] = Math.min(255, Math.round(alpha * 1.8));
+    }
   }
 
   ctx.putImageData(imageData, 0, 0);
