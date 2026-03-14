@@ -291,8 +291,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       .eq("product_id", productId)
       .eq("image_type", "design");
 
+    console.log(`[ColorVariant] Design images found: ${designImages?.length || 0}`, designImages?.map(d => `${d.color_name}: ${d.image_url?.substring(0, 60)}`));
+    console.log(`[ColorVariant] designImageUrl prop: ${designImageUrl?.substring(0, 60) || 'NONE'}`);
+
     const lightDesignUrl = designImages?.find(d => d.color_name === "light-on-dark")?.image_url || designImageUrl;
     const darkDesignUrl = designImages?.find(d => d.color_name === "dark-on-light")?.image_url;
+
+    console.log(`[ColorVariant] lightDesignUrl: ${lightDesignUrl?.substring(0, 60) || 'NONE'}`);
+    console.log(`[ColorVariant] darkDesignUrl: ${darkDesignUrl?.substring(0, 60) || 'NONE'}`);
 
     const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
       try {
