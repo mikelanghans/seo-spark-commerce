@@ -50,7 +50,7 @@ export async function normalizeAndLockToTemplateBlob({
       const designWidth = cleanedDesign.width;
       const designHeight = cleanedDesign.height;
 
-      const designScale = 0.72;
+      const designScale = 0.62;
       const drawWidth = targetWidth * designScale;
       const drawHeight = drawWidth * (designHeight / designWidth);
       const dx = (targetWidth - drawWidth) / 2;
