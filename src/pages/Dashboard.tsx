@@ -1706,6 +1706,7 @@ const Dashboard = () => {
                           product={selectedProduct}
                           listings={listingsMapped}
                           userId={user!.id}
+                          organizationId={selectedOrg?.id}
                         />
                       )}
                       {channels.includes("printify") && (
