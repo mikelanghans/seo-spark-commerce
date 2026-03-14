@@ -212,9 +212,9 @@ serve(async (req) => {
       console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
     }
 
-    // Associate images with variants
+    // Associate images with variants (only actual color variants, not size chart)
     if (hasVariants && createdProduct?.variants?.length && uploadedImages.some(Boolean)) {
-      for (let i = 0; i < colorVariants.length; i++) {
+      for (let i = 0; i < actualColorVariants.length; i++) {
         const variant = createdProduct.variants[i];
         const image = uploadedImages[i];
         if (variant && image) {
