@@ -162,8 +162,8 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
       toast.error("Please select a Printify shop");
       return;
     }
-    if (!uniqueMockupColors.length || !selectedSizes.length) {
-      toast.error("Need mockups and sizes to push");
+    if (!selectedSizes.length) {
+      toast.error("Please select at least one size");
       return;
     }
     if (!product.image_url) {
