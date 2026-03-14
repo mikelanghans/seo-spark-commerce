@@ -41,7 +41,8 @@ serve(async (req) => {
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
 
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
-    const hasVariants = colorVariants.length > 0;
+    const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
+    const hasVariants = actualColorVariants.length > 0;
 
     const existingShopifyId = product.shopify_product_id;
     const isUpdate = !!existingShopifyId;
