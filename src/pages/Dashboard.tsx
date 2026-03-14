@@ -1463,7 +1463,7 @@ const Dashboard = () => {
                     variant="outline"
                     size="sm"
                     className="gap-2"
-                    onClick={() => window.open(selectedProduct.image_url!, "_blank")}
+                    onClick={() => setDesignPreviewOpen(true)}
                   >
                     <Eye className="h-4 w-4" />
                     Preview
