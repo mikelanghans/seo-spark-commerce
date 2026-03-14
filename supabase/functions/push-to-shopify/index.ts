@@ -31,9 +31,12 @@ serve(async (req) => {
 
     let connQuery = adminClient
       .from("shopify_connections")
-      .select("store_domain, access_token")
-      .eq("user_id", user.id);
-    if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
+      .select("store_domain, access_token");
+    if (organizationId) {
+      connQuery = connQuery.eq("organization_id", organizationId);
+    } else {
+      connQuery = connQuery.eq("user_id", user.id);
+    }
     const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection) {
