@@ -130,6 +130,10 @@ const Dashboard = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [isProcessingDesign, setIsProcessingDesign] = useState(false);
+  const [designProcessingStep, setDesignProcessingStep] = useState("");
+  const [pendingLightDesignUrl, setPendingLightDesignUrl] = useState<string | null>(null);
+  const [pendingDarkDesignUrl, setPendingDarkDesignUrl] = useState<string | null>(null);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
