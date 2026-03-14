@@ -203,7 +203,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       generatedDataUrl,
       targetWidth: targetSize?.width || 1024,
       targetHeight: targetSize?.height || 1024,
-      designDataUrl: designBase64,
+      // Don't pass designDataUrl — the design was already pre-composited into the
+      // template before AI processing. Re-pasting it causes double-image ghosting.
     });
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
