@@ -50,7 +50,7 @@ export async function normalizeAndLockToTemplateBlob({
       const designWidth = cleanedDesign.width;
       const designHeight = cleanedDesign.height;
 
-      const designScale = 0.55;
+      const designScale = 0.72;
       const drawWidth = targetWidth * designScale;
       const drawHeight = drawWidth * (designHeight / designWidth);
       const dx = (targetWidth - drawWidth) / 2;
@@ -263,7 +263,7 @@ export async function compositeDesignOntoTemplate(
   const designHeight = cleanedDesignCanvas.height;
 
   // Chest-print sizing/placement
-  const designScale = 0.55;
+  const designScale = 0.72;
   const drawWidth = w * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (w - drawWidth) / 2;
