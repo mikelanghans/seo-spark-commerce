@@ -506,6 +506,7 @@ const Dashboard = () => {
       .from("shopify_connections")
       .select("id")
       .eq("user_id", user!.id)
+      .eq("organization_id", selectedOrg.id)
       .maybeSingle();
 
     if (!shopifyConn) {
