@@ -703,6 +703,7 @@ export type Database = {
           client_secret: string | null
           created_at: string
           id: string
+          organization_id: string | null
           store_domain: string
           updated_at: string
           user_id: string
@@ -713,6 +714,7 @@ export type Database = {
           client_secret?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           store_domain: string
           updated_at?: string
           user_id: string
@@ -723,11 +725,20 @@ export type Database = {
           client_secret?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           store_domain?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shopify_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       social_posts: {
         Row: {
