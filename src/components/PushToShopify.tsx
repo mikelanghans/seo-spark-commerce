@@ -5,6 +5,7 @@ import { Store, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopifyPushPreview } from "./ShopifyPushPreview";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
+import { CC1717_SIZE_CHART_URL } from "@/lib/sizeChart";
 
 interface Product {
   id: string;
