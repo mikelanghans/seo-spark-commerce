@@ -415,7 +415,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
             <Button
               onClick={handlePush}
-              disabled={pushing || !selectedShop || !uniqueMockupColors.length || !selectedSizes.length}
+              disabled={pushing || !selectedShop || !selectedSizes.length}
               className="w-full gap-2"
             >
               {pushing ? (
