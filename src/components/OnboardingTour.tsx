@@ -117,7 +117,7 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
 
         {/* Close button */}
         <button
-          onClick={() => { if (dontShowAgain) localStorage.setItem("brand_aura_tour_seen", "1"); onClose(); }}
+          onClick={() => { localStorage.setItem("brand_aura_tour_seen", dontShowAgain ? "permanent" : "1"); onClose(); }}
           className="absolute right-3 top-4 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           <X className="h-4 w-4" />
