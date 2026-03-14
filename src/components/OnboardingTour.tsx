@@ -187,7 +187,7 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
                 onChange={(e) => {
                   setDontShowAgain(e.target.checked);
                   if (e.target.checked) {
-                    localStorage.setItem("brand_aura_tour_seen", "1");
+                    localStorage.setItem("brand_aura_tour_seen", "permanent");
                   } else {
                     localStorage.removeItem("brand_aura_tour_seen");
                   }
