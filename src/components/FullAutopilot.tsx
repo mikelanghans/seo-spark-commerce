@@ -204,7 +204,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 brandStyleNotes: organization.brand_style_notes || "",
                 organizationId: organization.id,
                 designVariant: "light-on-dark",
-                designStyle,
+                designStyle: styles[i % styles.length] || "text-only",
               },
             }),
             { label: `design-${i}` }
