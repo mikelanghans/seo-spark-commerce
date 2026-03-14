@@ -42,6 +42,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editColor, setEditColor] = useState("");
+  const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
