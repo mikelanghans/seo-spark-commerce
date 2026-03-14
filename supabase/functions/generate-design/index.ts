@@ -6,6 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Random layout directions to inject variety
+const LAYOUT_OPTIONS = [
+  "Center the text vertically and horizontally — classic centered composition",
+  "Align text to the LEFT with generous right margin — editorial asymmetry",
+  "Stack text VERTICALLY in a tall column — one word per line for maximum impact",
+  "Arrange text in an ARCHED or CURVED path — dynamic and energetic",
+  "Place text in the LOWER THIRD of the canvas — cinematic framing with breathing room above",
+  "Use a DIAGONAL baseline — text tilted 5-15° for edge and movement",
+  "Split the message across TOP and BOTTOM of the canvas — text frames negative space",
+  "STAGGER each word at different sizes — typographic hierarchy creates visual rhythm",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 function buildPrompt(
   messageText: string,
   variant: "light-on-dark" | "dark-on-light",
@@ -18,7 +34,6 @@ function buildPrompt(
 ) {
   const fontDirection = opts.brandFont || "bold sans-serif";
   const isLightOnDark = variant === "light-on-dark";
-  const isMinimalist = opts.designStyle === "minimalist";
   const defaultColor = isLightOnDark ? "#FFFFFF (white)" : "#000000 (black)";
   const colorDirection = isLightOnDark ? "#FFFFFF (white)" : (opts.brandColor || defaultColor);
   const bgColor = isLightOnDark ? "solid pure black (#000000)" : "solid pure white (#FFFFFF)";
@@ -34,21 +49,175 @@ function buildPrompt(
 
   const regenSuffix = `${noExtraTextRule}${opts.regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${opts.regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${opts.baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${opts.referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`;
 
-  if (isMinimalist) {
+  const randomLayout = pickRandom(LAYOUT_OPTIONS);
+
+  const brandContext = `BRAND CONTEXT:
+- Brand: ${opts.brandName || "lifestyle apparel"}
+- Tone: ${opts.brandTone || "sarcastic but motivational"}
+- Niche: ${opts.brandNiche || "lifestyle"}
+- Target Audience: ${opts.brandAudience || "general"}`;
+
+  const bgRule = `BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
+⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.`;
+
+  const outputRule = `OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
+
+  const style = opts.designStyle || "text-only";
+
+  // ─── RETRO / VINTAGE ───
+  if (style === "retro") {
+    return `Design a RETRO / VINTAGE style print-ready t-shirt graphic. Think 1970s concert posters, old signage, weathered Americana.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: RETRO / VINTAGE
+- Aged, worn, distressed texture overlays — ink that looks faded and imperfect
+- Vintage typography: slab serifs, condensed gothics, hand-painted lettering styles
+- Subtle halftone dots, grain, or screen-print registration mis-alignment for authenticity
+- Retro color accents: burnt orange, mustard yellow, faded teal, dusty rose (muted, not saturated)
+- The design should feel like it was pulled from a 1975 thrift store bin — NOT digitally perfect
+
+TYPOGRAPHY:
+- Font style: ${fontDirection} with a vintage twist — slightly weathered or textured edges
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be sharp and readable despite the distressed look
+- TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"}) — vintage accents only on graphic elements
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 65-75% of the canvas width.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── HAND-DRAWN / SKETCH ───
+  if (style === "hand-drawn") {
+    return `Design a HAND-DRAWN / SKETCH style print-ready t-shirt graphic. Think sketchbook doodles, pen & ink illustration, indie zine aesthetic.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: HAND-DRAWN / SKETCH
+- Loose, organic linework — slightly imperfect, charming, human-feeling
+- Pen & ink illustration quality: visible line weight variation, crosshatching for shading
+- Whimsical doodle elements that complement the message (small stars, arrows, underlines, squiggles)
+- The design should feel hand-made — like someone drew it in their notebook with a Micron pen
+- Do NOT make it look digitally generated or too clean/perfect
+
+TYPOGRAPHY:
+- Font style: Hand-lettered or ${fontDirection} with organic imperfections
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Even hand-drawn text must be perfectly readable
+- TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"})
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 60-75% of the canvas width.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── BOLD GRAPHIC ───
+  if (style === "bold-graphic") {
+    return `Design a BOLD GRAPHIC print-ready t-shirt graphic. Think heavy geometric shapes, stark contrast, graphic design poster aesthetic.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: BOLD GRAPHIC
+- Heavy geometric shapes: circles, rectangles, triangles used as compositional anchors
+- High contrast, stark silhouettes, dramatic negative space
+- Text integrated INTO or AROUND bold graphic elements — not floating separately
+- Think Swiss design / Bauhaus poster aesthetics meets modern streetwear
+- Graphic elements should be simple but impactful — 2-3 shapes maximum
+
+TYPOGRAPHY:
+- Font style: ${fontDirection} — EXTRA BOLD weights, compressed or extended for impact
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be perfectly sharp and readable
+- Text may interact with shapes (overlapping, clipping, contained within)
+
+COLOR: ${colorDirection} as primary ink on ${bgColor}. May use a single bold accent shape.
+${isLightOnDark ? "IMPORTANT: For dark garments. White/light ink." : "IMPORTANT: For light garments. Dark ink."}
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 70-85% of the canvas width — be BOLD and dominant.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── DISTRESSED / GRUNGE ───
+  if (style === "distressed") {
+    return `Design a DISTRESSED / GRUNGE style print-ready t-shirt graphic. Think punk rock flyers, worn stencil art, raw and unpolished.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: DISTRESSED / GRUNGE
+- Heavy texture: cracked paint, torn paper edges, spray paint drips, stencil artifacts
+- Raw, DIY punk aesthetic — like it was screen-printed in a garage
+- Ink splatter, rough edges, intentional imperfections
+- The design should feel aggressive and authentic — NOT clean or corporate
+- Think band merch, skateboard graphics, protest art
+
+TYPOGRAPHY:
+- Font style: ${fontDirection} — with heavy distress, stencil cuts, or spray-paint texture
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Distressed but still readable
+- TEXT must remain monochrome (${isLightOnDark ? "white/light" : "dark/black"})
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 65-80% of the canvas width.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── MINIMALIST (existing) ───
+  if (style === "minimalist") {
     return `Design a premium, print-ready t-shirt graphic with MINIMALIST ILLUSTRATION + TEXT. Think high-end streetwear brand quality.
 
 TEXT TO FEATURE: "${messageText}"
 
-BRAND CONTEXT:
-- Brand: ${opts.brandName || "lifestyle apparel"}
-- Tone: ${opts.brandTone || "sarcastic but motivational"}
-- Niche: ${opts.brandNiche || "lifestyle"}
-- Target Audience: ${opts.brandAudience || "general"}
+${brandContext}
 
 STRICT DESIGN RULES:
 
-BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
-⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.
+${bgRule}
 
 STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 - Create a simple, clean illustration or icon that pairs with the text message
@@ -74,8 +243,9 @@ COLOR PALETTE:
 - Background: ${bgColor}
 ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Text stays white. Illustration accents should be light/pastel tones that read well on dark fabric." : "IMPORTANT: This design is for LIGHT-colored garments. Text stays dark. Illustration accents should be deeper muted tones."}
 
-COMPOSITION:
-- Illustration centered, text below or integrated naturally
+LAYOUT: ${randomLayout}
+
+SIZE & FILL:
 - The design should FILL at least 65-75% of the canvas width — do NOT leave excessive empty margins
 - Scale the illustration and text to command attention on the garment
 - The design should feel like it belongs on a $45 streetwear tee
@@ -83,24 +253,20 @@ COMPOSITION:
 
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.
+${outputRule}
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
   }
 
+  // ─── TEXT-ONLY (default) ───
   return `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
 TEXT TO FEATURE: "${messageText}"
 
-BRAND CONTEXT:
-- Brand: ${opts.brandName || "lifestyle apparel"}
-- Tone: ${opts.brandTone || "sarcastic but motivational"}
-- Niche: ${opts.brandNiche || "lifestyle"}
-- Target Audience: ${opts.brandAudience || "general"}
+${brandContext}
 
 STRICT DESIGN RULES:
 
-BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
-⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.
+${bgRule}
 
 TYPOGRAPHY:
 - Font style: ${fontDirection}
@@ -111,7 +277,7 @@ TYPOGRAPHY:
 - ⚠️ TEXT LEGIBILITY IS CRITICAL: Every single letter must be perfectly sharp, crisp, and fully readable at arm's length. Use thick stroke weights. Do NOT use thin, wispy, or decorative fonts that sacrifice readability. If in doubt, go BOLDER.
 
 COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
-${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only. The design will be printed on black, navy, charcoal, or similar dark fabrics." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors. The design will be printed on white, cream, light gray, or similar light fabrics."}
+${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors."}
 
 KEEP IT ULTRA CLEAN:
 - NO decorative elements — no stars, no flourishes, no borders, no icons, no illustrations
@@ -119,18 +285,16 @@ KEEP IT ULTRA CLEAN:
 - Pure typography only — the power comes from the words and how they're set
 - Maximum 2-3 visual elements total (including the text lines)
 
+LAYOUT: ${randomLayout}
+
 SIZE & FILL:
 - ⚠️ CRITICAL: The design should FILL at least 70-80% of the canvas width. Do NOT leave excessive empty margins.
 - Text should be LARGE and DOMINANT — this is streetwear, not a whisper. Scale up the typography to command attention.
 - The design should feel dense and impactful, not floating in empty space.
 
-COMPOSITION:
-- Center the design vertically and horizontally
-- The design should feel like it belongs on a $45 streetwear tee, not a tourist shop
-
 ${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
 
-OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.
+${outputRule}
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
 }
 
