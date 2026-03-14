@@ -136,38 +136,69 @@ export async function recolorOpaquePixels(
     alphaMap[i] = src[i * 4 + 3];
   }
 
-  // Dilate: expand opaque regions by 2px radius to thicken thin strokes
+  // Step 1: Fill interior holes via flood-fill from edges.
+  // Any transparent pixel NOT reachable from the image border is inside a letterform.
+  const reachable = new Uint8Array(w * h); // 0 = not visited
+  const queue = new Int32Array(w * h);
+  let head = 0;
+  let tail = 0;
+
+  const enqueue = (idx: number) => {
+    if (idx < 0 || idx >= w * h || reachable[idx]) return;
+    if (alphaMap[idx] >= 5) return; // opaque = boundary, don't cross
+    reachable[idx] = 1;
+    queue[tail++] = idx;
+  };
+
+  // Seed from all edge pixels
+  for (let x = 0; x < w; x++) {
+    enqueue(x);
+    enqueue((h - 1) * w + x);
+  }
+  for (let y = 1; y < h - 1; y++) {
+    enqueue(y * w);
+    enqueue(y * w + (w - 1));
+  }
+
+  while (head < tail) {
+    const pos = queue[head++];
+    const px = pos % w;
+    const py = Math.floor(pos / w);
+    if (px > 0) enqueue(pos - 1);
+    if (px < w - 1) enqueue(pos + 1);
+    if (py > 0) enqueue(pos - w);
+    if (py < h - 1) enqueue(pos + w);
+  }
+
+  // Fill interior holes: transparent pixels not reachable from edges
+  const filled = new Uint8Array(alphaMap);
+  for (let i = 0; i < w * h; i++) {
+    if (filled[i] < 5 && !reachable[i]) {
+      filled[i] = 255; // interior hole → fill solid
+    }
+  }
+
+  // Step 2: Dilate by 1px to thicken thin strokes
   const dilated = new Uint8Array(w * h);
-  const RADIUS = 2;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = y * w + x;
-      if (alphaMap[idx] >= 5) {
+      if (filled[idx] >= 5) {
         dilated[idx] = 255;
         continue;
       }
-      // Check all pixels within RADIUS
-      let maxAlpha = 0;
-      let minDist = RADIUS + 1;
-      for (let dy = -RADIUS; dy <= RADIUS; dy++) {
+      // Check 8-connected neighbors
+      let hasNeighbor = false;
+      for (let dy = -1; dy <= 1 && !hasNeighbor; dy++) {
         const ny = y + dy;
         if (ny < 0 || ny >= h) continue;
-        for (let dx = -RADIUS; dx <= RADIUS; dx++) {
+        for (let dx = -1; dx <= 1 && !hasNeighbor; dx++) {
           const nx = x + dx;
           if (nx < 0 || nx >= w) continue;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > RADIUS) continue;
-          const na = alphaMap[ny * w + nx];
-          if (na >= 30 && dist < minDist) {
-            maxAlpha = na;
-            minDist = dist;
-          }
+          if (filled[ny * w + nx] >= 30) hasNeighbor = true;
         }
       }
-      if (maxAlpha >= 30) {
-        // Softer alpha for dilated edges based on distance
-        dilated[idx] = minDist <= 1 ? 255 : 180;
-      }
+      if (hasNeighbor) dilated[idx] = 200;
     }
   }
 
