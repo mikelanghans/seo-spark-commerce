@@ -506,6 +506,7 @@ const Dashboard = () => {
       .from("shopify_connections")
       .select("id")
       .eq("user_id", user!.id)
+      .eq("organization_id", selectedOrg.id)
       .maybeSingle();
 
     if (!shopifyConn) {
@@ -624,6 +625,7 @@ const Dashboard = () => {
       .from("shopify_connections")
       .select("id")
       .eq("user_id", user!.id)
+      .eq("organization_id", selectedOrg.id)
       .maybeSingle();
 
     if (!shopifyConn) {
@@ -656,6 +658,7 @@ const Dashboard = () => {
 
         const { data, error } = await supabase.functions.invoke("push-to-shopify", {
           body: {
+            organizationId: selectedOrg!.id,
             userId: user!.id,
             productId: product.id,
             listing: {
@@ -1703,6 +1706,7 @@ const Dashboard = () => {
                           product={selectedProduct}
                           listings={listingsMapped}
                           userId={user!.id}
+                          organizationId={selectedOrg?.id}
                         />
                       )}
                       {channels.includes("printify") && (
@@ -1764,7 +1768,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <ShopifySettings userId={user.id} />
+              <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />

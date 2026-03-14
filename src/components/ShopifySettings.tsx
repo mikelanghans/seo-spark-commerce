@@ -8,9 +8,10 @@ import { toast } from "sonner";
 
 interface Props {
   userId: string;
+  organizationId?: string;
 }
 
-export const ShopifySettings = ({ userId }: Props) => {
+export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [storeDomain, setStoreDomain] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -73,6 +74,7 @@ export const ShopifySettings = ({ userId }: Props) => {
           .from("shopify_connections")
           .select("client_id")
           .eq("user_id", userId)
+          .match(organizationId ? { organization_id: organizationId } : {})
           .maybeSingle()
           .then(({ data }) => {
             if (data?.client_id) {
@@ -120,6 +122,7 @@ export const ShopifySettings = ({ userId }: Props) => {
       .from("shopify_connections")
       .select("*")
       .eq("user_id", userId)
+      .match(organizationId ? { organization_id: organizationId } : {})
       .maybeSingle();
     if (data) {
       setExisting({
@@ -158,6 +161,7 @@ export const ShopifySettings = ({ userId }: Props) => {
           store_domain: domain,
           client_id: clientId.trim(),
           client_secret: clientSecret.trim(),
+          organization_id: organizationId || null,
         });
         if (error) throw error;
       }
@@ -206,6 +210,7 @@ export const ShopifySettings = ({ userId }: Props) => {
       .from("shopify_connections")
       .select("access_token")
       .eq("user_id", userId)
+      .match(organizationId ? { organization_id: organizationId } : {})
       .maybeSingle();
     if (data?.access_token && data.access_token.length > 0) {
       toast.success("Shopify is connected!");

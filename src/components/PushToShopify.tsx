@@ -41,9 +41,10 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
+  organizationId?: string;
 }
 
-export const PushToShopify = ({ product, listings, userId }: Props) => {
+export const PushToShopify = ({ product, listings, userId, organizationId }: Props) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
@@ -67,6 +68,7 @@ export const PushToShopify = ({ product, listings, userId }: Props) => {
 
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
+          organizationId,
           product: {
             id: product.id,
             title: product.title,

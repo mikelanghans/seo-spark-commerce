@@ -27,11 +27,12 @@ serve(async (req) => {
     if (!organizationId) throw new Error("organizationId is required");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: connection, error: connError } = await adminClient
+    let connQuery = adminClient
       .from("shopify_connections")
       .select("store_domain, access_token")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
+    connQuery = connQuery.eq("organization_id", organizationId);
+    const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection) {
       return new Response(JSON.stringify({ error: "No Shopify connection found. Please add your Shopify credentials in Settings." }), {

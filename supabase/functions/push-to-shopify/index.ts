@@ -24,11 +24,17 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: connection, error: connError } = await adminClient
+
+    // Read body first to get organizationId for scoped lookup
+    const body = await req.json();
+    const { product, listings, imageUrl, variants, shopifyStatus, organizationId } = body;
+
+    let connQuery = adminClient
       .from("shopify_connections")
       .select("store_domain, access_token")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
+    if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
+    const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection) {
       return new Response(JSON.stringify({ error: "No Shopify connection found. Please add your Shopify credentials in Settings." }), {
@@ -36,10 +42,7 @@ serve(async (req) => {
       });
     }
 
-    const { product, listings, imageUrl, variants, shopifyStatus } = await req.json();
-
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");
-
     const colorVariants: { colorName: string; imageUrl: string }[] = variants || [];
     const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
     const hasVariants = actualColorVariants.length > 0;

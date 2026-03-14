@@ -24,11 +24,13 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: connection, error: connError } = await adminClient
+    const { limit = 50, pageInfo, organizationId } = await req.json();
+    let connQuery = adminClient
       .from("shopify_connections")
       .select("store_domain, access_token")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
+    if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
+    const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection) {
       return new Response(JSON.stringify({ error: "No Shopify connection found. Please add your Shopify credentials in Settings." }), {
@@ -36,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { limit = 50, pageInfo } = await req.json();
+    const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     let url = `https://${domain}/admin/api/2024-01/products.json?limit=${limit}&fields=id,title,body_html,product_type,tags,handle,images,variants,status`;

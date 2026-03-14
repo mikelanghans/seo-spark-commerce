@@ -128,6 +128,7 @@ export const DesignTriage = ({ organization, userId, products, onViewProduct, on
 
         const { data, error } = await supabase.functions.invoke("push-to-shopify", {
           body: {
+            organizationId: organization.id,
             title: listing?.title || product.title,
             descriptionHtml: `<p>${listing?.description || product.description}</p>`,
             tags: uniqueTags,
