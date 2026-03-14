@@ -130,15 +130,14 @@ export async function recolorOpaquePixels(
 
   for (let idx = 0; idx < pixels.length; idx += 4) {
     const alpha = pixels[idx + 3];
-    if (alpha < 10) continue; // skip near-transparent noise
+    if (alpha < 5) continue; // skip fully transparent
 
     pixels[idx] = targetColor.r;
     pixels[idx + 1] = targetColor.g;
     pixels[idx + 2] = targetColor.b;
-    // Boost semi-transparent pixels so thin strokes stay solid in dark ink
-    if (alpha < 200) {
-      pixels[idx + 3] = Math.min(255, Math.round(alpha * 1.8));
-    }
+    // Force all visible pixels to full opacity — ensures thin strokes
+    // and antialiased edges render as solid dark ink, not faint dots
+    pixels[idx + 3] = 255;
   }
 
   ctx.putImageData(imageData, 0, 0);
