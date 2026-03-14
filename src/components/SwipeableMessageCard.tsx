@@ -14,11 +14,12 @@ interface SwipeableMessageCardProps {
   isGeneratingDesign: boolean;
   isRefining: boolean;
   disableDesignActions: boolean;
+  availableStyles?: string[];
   onKeep: (id: string) => void;
   onDiscard: (id: string) => void;
   onEdit: (id: string, newText: string) => void;
   onRefine: (id: string, feedback: string) => void;
-  onGenerateDesign: (id: string) => void;
+  onGenerateDesign: (id: string, style?: "text-only" | "minimalist") => void;
   onPreviewDesign: (id: string) => void;
 }
 
