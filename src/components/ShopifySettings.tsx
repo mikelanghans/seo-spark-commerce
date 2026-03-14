@@ -8,9 +8,10 @@ import { toast } from "sonner";
 
 interface Props {
   userId: string;
+  organizationId?: string;
 }
 
-export const ShopifySettings = ({ userId }: Props) => {
+export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [storeDomain, setStoreDomain] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
