@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +28,7 @@ import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon.png";
@@ -88,6 +89,7 @@ type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail"
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [view, _setView] = useState<View>(() => {
@@ -700,7 +702,7 @@ const Dashboard = () => {
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-14 w-14 object-contain mix-blend-screen -m-3" />
+            <img src={brandAuraIcon} alt="Brand Aura" className={`h-14 w-14 object-contain -m-3 ${theme === "dark" ? "mix-blend-screen" : ""}`} />
             <span className="text-lg font-bold tracking-tight leading-none">Brand Aura</span>
           </div>
           <div className="flex items-center gap-3">
@@ -708,6 +710,9 @@ const Dashboard = () => {
               <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
             )}
             <OnboardingTrigger onClick={() => setShowTour(true)} />
+            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
