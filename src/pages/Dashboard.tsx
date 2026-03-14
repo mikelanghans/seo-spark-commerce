@@ -1764,7 +1764,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <ShopifySettings userId={user.id} />
+              <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <MarketplaceSettings userId={user.id} />
