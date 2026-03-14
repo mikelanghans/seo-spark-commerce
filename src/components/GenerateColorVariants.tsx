@@ -414,7 +414,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   if (!open) {
     return (
       <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
-        <Palette className="h-3.5 w-3.5" /> AI Color Variants
+        <Palette className="h-3.5 w-3.5" /> Color Variants
       </Button>
     );
   }
@@ -426,7 +426,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Palette className="h-4 w-4 text-primary" />
-          <h4 className="text-sm font-semibold">Generate AI Color Variants</h4>
+          <h4 className="text-sm font-semibold">Generate Color Variants</h4>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setOpen(false); setRecommendations([]); }}>
           <X className="h-3.5 w-3.5" />
