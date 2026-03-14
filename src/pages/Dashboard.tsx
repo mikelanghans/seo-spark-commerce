@@ -369,7 +369,7 @@ const Dashboard = () => {
 
       // Step 2: Create dark variant
       setDesignProcessingStep("Creating dark variant…");
-      const darkBase64 = await recolorOpaquePixels(transparentBase64);
+      const darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
 
       // Step 3: Upscale both
       setDesignProcessingStep("Upscaling to print quality…");

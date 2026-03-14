@@ -115,6 +115,7 @@ export async function removeBackground(
 export async function recolorOpaquePixels(
   sourceImage: string,
   targetColor: { r: number; g: number; b: number } = { r: 24, g: 24, b: 24 },
+  options: { preserveAll?: boolean } = {},
 ): Promise<string> {
   const normalizedSource = sourceImage.startsWith("data:image/")
     ? sourceImage
@@ -134,13 +135,8 @@ export async function recolorOpaquePixels(
   const imageData = ctx.getImageData(0, 0, w, h);
   const src = imageData.data;
 
-  // Recolor using luminance-derived coverage to avoid dark edge fringing/ghosting.
-  // This preserves anti-aliased edges while suppressing near-black artifacts left from
-  // white-on-black rasterization.
   const ALPHA_THRESHOLD = 6;
   const MIN_COVERAGE = 0.08;
-  // Brightness floor: skip pixels that were originally dark (background remnants).
-  // In a white-on-black design, actual design content has high channel values.
   const MIN_BRIGHTNESS = 0.25;
   const out = ctx.createImageData(w, h);
   const outData = out.data;
@@ -150,16 +146,24 @@ export async function recolorOpaquePixels(
     const srcAlpha = src[idx + 3] / 255;
     if (srcAlpha * 255 < ALPHA_THRESHOLD) continue;
 
-    const maxChannel = Math.max(src[idx], src[idx + 1], src[idx + 2]) / 255;
-    // Skip dark remnant pixels that aren't part of the actual design
-    if (maxChannel < MIN_BRIGHTNESS) continue;
-    const coverage = srcAlpha * maxChannel;
-    if (coverage < MIN_COVERAGE) continue;
+    if (options.preserveAll) {
+      // For imported designs: recolor ALL non-transparent pixels, preserving alpha
+      outData[idx] = targetColor.r;
+      outData[idx + 1] = targetColor.g;
+      outData[idx + 2] = targetColor.b;
+      outData[idx + 3] = src[idx + 3];
+    } else {
+      // For AI-generated designs: filter by luminance to skip background remnants
+      const maxChannel = Math.max(src[idx], src[idx + 1], src[idx + 2]) / 255;
+      if (maxChannel < MIN_BRIGHTNESS) continue;
+      const coverage = srcAlpha * maxChannel;
+      if (coverage < MIN_COVERAGE) continue;
 
-    outData[idx] = targetColor.r;
-    outData[idx + 1] = targetColor.g;
-    outData[idx + 2] = targetColor.b;
-    outData[idx + 3] = Math.round(Math.min(1, coverage) * 255);
+      outData[idx] = targetColor.r;
+      outData[idx + 1] = targetColor.g;
+      outData[idx + 2] = targetColor.b;
+      outData[idx + 3] = Math.round(Math.min(1, coverage) * 255);
+    }
   }
 
   ctx.putImageData(out, 0, 0);
