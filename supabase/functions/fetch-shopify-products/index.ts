@@ -38,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { limit = 50, pageInfo } = await req.json();
+    const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     let url = `https://${domain}/admin/api/2024-01/products.json?limit=${limit}&fields=id,title,body_html,product_type,tags,handle,images,variants,status`;

@@ -38,7 +38,7 @@ serve(async (req) => {
       });
     }
 
-    const { shopifyProductId, updates } = await req.json();
+    const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     // Build the update payload
