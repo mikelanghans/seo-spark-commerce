@@ -923,10 +923,14 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <Label>Design Styles</Label>
                   <p className="text-xs text-muted-foreground">Which design styles are available for this brand</p>
-                  <div className="flex gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {[
                       { value: "text-only", label: "Text Only", desc: "Pure typography designs" },
                       { value: "minimalist", label: "Minimalist Art", desc: "Illustration + text" },
+                      { value: "retro", label: "Retro / Vintage", desc: "Aged, distressed textures" },
+                      { value: "hand-drawn", label: "Hand-Drawn", desc: "Sketch-style illustrations" },
+                      { value: "bold-graphic", label: "Bold Graphic", desc: "Heavy shapes & contrast" },
+                      { value: "distressed", label: "Distressed / Grunge", desc: "Raw, textured aesthetic" },
                     ].map((style) => {
                       const isChecked = orgForm.design_styles.includes(style.value);
                       return (

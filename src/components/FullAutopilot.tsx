@@ -113,9 +113,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       setOverallProgress(Math.min(100, Math.round((completedSteps / totalSteps) * 100)));
     };
 
-    // Determine design style
+    // Available design styles for rotation
     const styles = (organization.design_styles as string[]) || ["text-only"];
-    const designStyle = styles[0] || "text-only";
 
     try {
       // Step 0: Fetch existing products to avoid duplicates
@@ -146,7 +145,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               audience: organization.audience,
             },
             count,
-            designStyle,
+            designStyle: styles[0] || "text-only",
             existingProducts: existingTitles,
           },
         }),
@@ -205,7 +204,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 brandStyleNotes: organization.brand_style_notes || "",
                 organizationId: organization.id,
                 designVariant: "light-on-dark",
-                designStyle,
+                designStyle: styles[i % styles.length] || "text-only",
               },
             }),
             { label: `design-${i}` }
@@ -632,7 +631,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Design style: <strong>{(organization.design_styles as string[])?.[0] || "text-only"}</strong></p>
+            <p>• Design styles: <strong>{((organization.design_styles as string[]) || ["text-only"]).join(", ")}</strong> (auto-rotated)</p>
             <p>• Colors: <strong>AI recommended</strong></p>
             <p>• Listings: <strong>Shopify only</strong></p>
             <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify ({shopifyStatus === "active" ? "published" : "draft"})</strong></p>

@@ -66,8 +66,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
   const availableStyles = (organization.design_styles as string[]) || ["text-only"];
-  const [designStyle, setDesignStyle] = useState<"text-only" | "minimalist">(
-    availableStyles.includes("text-only") ? "text-only" : "minimalist"
+  const [designStyle, setDesignStyle] = useState<string>(
+    availableStyles.includes("text-only") ? "text-only" : availableStyles[0] || "text-only"
   );
 
   useEffect(() => {
@@ -282,7 +282,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
   };
 
-  const handleGenerateDesign = async (msgId: string, style?: "text-only" | "minimalist") => {
+  const handleGenerateDesign = async (msgId: string, style?: string) => {
     const styleToUse = style || designStyle;
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
