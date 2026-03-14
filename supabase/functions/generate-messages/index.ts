@@ -111,7 +111,7 @@ BAD examples (DO NOT generate these):
 
 `
   : `- Have natural typographic hierarchy (big word + small attribution works great)
-- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
+- Work in a variety of formats: "quotes — attribution", standalone bold statements, or occasionally {CURLY BRACES} when the word genuinely benefits from that framing (e.g., a single punchy word like {NOPE}). Do NOT overuse braces — most messages should NOT have them.`}
 - Think: the kind of text you'd see on a premium streetwear tee\n`;
 
       // Build existing products exclusion list
@@ -139,7 +139,7 @@ Before generating messages, apply your knowledge of what sells well in the print
    - Self-deprecating humor about adulting, burnout, overthinking, anxiety
    - Sarcastic motivational quotes that subvert toxic positivity
    - Niche identity statements ("I'm not lazy, I'm on energy-saving mode")
-   - Minimalist one-word or two-word statements with strong typography potential ({SIGH}, {NOPE}, {CHAOS})
+   - Minimalist one-word or two-word statements with strong typography potential
    - Pop-culture-adjacent vibes without IP infringement
    - "Seen on TikTok/Instagram" relatable humor
 
@@ -147,7 +147,7 @@ Before generating messages, apply your knowledge of what sells well in the print
    - ${isMinimalist ? "Messages that pair beautifully with a simple illustration or icon" : "Messages that look GREAT as minimalist typography (bold + thin font combos)"}
    - Short messages (2-5 words) consistently outsell longer ones
    - ${isMinimalist ? "Think about what visual would accompany each message" : "Messages with natural visual hierarchy (a bold word + a smaller attribution)"}
-   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Bracket/brace format {LIKE THIS} performs extremely well in the minimalist POD space"}
+   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Curly brace format {LIKE THIS} can work for single punchy words, but do NOT overuse — most messages should be plain text or quote-style"}
 
 3. AUDIENCE PSYCHOLOGY:
    - Gen Z/Millennial buyers want to feel "seen" — messages should feel like an inside joke
@@ -159,7 +159,7 @@ Generate exactly ${batchSize} short, punchy messages that could be printed on t-
 - Written in the brand's tone: "${organization.tone}"
 - Short enough for a t-shirt print (ideally 2-8 words, max 12 words)
 - Memorable, quotable, and slightly irreverent
-- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Mix of formats: some with {curly braces}, some with attributions, some standalone"}
+- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Variety of formats: some with attributions, some standalone bold statements, and only occasionally {curly braces} when it truly fits (1-2 max per batch)"}
 - Optimized for SELLING — think about what someone would actually pay $29 to wear
 
 Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends and that authentically represent the "${organization.name}" brand.`;
