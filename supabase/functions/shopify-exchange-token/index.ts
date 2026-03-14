@@ -37,8 +37,7 @@ serve(async (req) => {
       throw new Error("No Shopify connection with credentials found.");
     }
 
-    const { code } = await req.json();
-    if (!code) throw new Error("Missing authorization code");
+
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
