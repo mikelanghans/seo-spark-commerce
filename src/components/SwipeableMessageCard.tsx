@@ -330,7 +330,32 @@ export const SwipeableMessageCard = ({
               )}
             </Button>
           )}
-          {!hasProduct && (
+          {!hasProduct && availableStyles.length > 1 && !hasDesign && (
+            <div className="flex items-center rounded-md border border-input bg-background h-8 overflow-hidden shrink-0">
+              <button
+                type="button"
+                disabled={isGeneratingDesign || disableDesignActions}
+                onClick={() => onGenerateDesign(id, "text-only")}
+                className={`flex items-center gap-1 px-2 h-full text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50`}
+                title="Generate text-only design"
+              >
+                {isGeneratingDesign ? <Loader2 className="h-3 w-3 animate-spin" /> : <Type className="h-3 w-3" />}
+                Text
+              </button>
+              <div className="w-px h-4 bg-border" />
+              <button
+                type="button"
+                disabled={isGeneratingDesign || disableDesignActions}
+                onClick={() => onGenerateDesign(id, "minimalist")}
+                className={`flex items-center gap-1 px-2 h-full text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50`}
+                title="Generate art + text design"
+              >
+                <Image className="h-3 w-3" />
+                Art
+              </button>
+            </div>
+          )}
+          {!hasProduct && (availableStyles.length <= 1 || hasDesign) && (
             <Button
               variant="ghost"
               size="icon"
