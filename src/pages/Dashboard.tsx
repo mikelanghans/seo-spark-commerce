@@ -1535,7 +1535,24 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Tabbed sections: Mockups | Listings | Push */}
+            {/* Design Preview Modal */}
+            {selectedProduct.image_url && (
+              <Dialog open={designPreviewOpen} onOpenChange={setDesignPreviewOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Design Preview</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4">
+                    <img
+                      src={selectedProduct.image_url}
+                      alt={selectedProduct.title}
+                      className="max-h-[70vh] object-contain"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
             <Tabs defaultValue="mockups" className="space-y-4">
               <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
                 <TabsTrigger value="mockups" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
