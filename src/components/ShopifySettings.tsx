@@ -161,6 +161,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           store_domain: domain,
           client_id: clientId.trim(),
           client_secret: clientSecret.trim(),
+          organization_id: organizationId || null,
         });
         if (error) throw error;
       }
