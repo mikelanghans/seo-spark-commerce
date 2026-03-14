@@ -282,7 +282,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
   };
 
-  const handleGenerateDesign = async (msgId: string) => {
+  const handleGenerateDesign = async (msgId: string, style?: "text-only" | "minimalist") => {
+    const styleToUse = style || designStyle;
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
     if (aiUsage) {
