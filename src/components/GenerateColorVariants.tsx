@@ -203,8 +203,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       generatedDataUrl,
       targetWidth: targetSize?.width || 1024,
       targetHeight: targetSize?.height || 1024,
-      // Don't pass designDataUrl — the design was already pre-composited into the
-      // template before AI processing. Re-pasting it causes double-image ghosting.
+      // Paste the original design back on top after AI recoloring to guarantee
+      // design visibility/legibility — the AI may wash out text on light garments.
+      designDataUrl: designBase64,
     });
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
