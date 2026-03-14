@@ -27,19 +27,38 @@ export async function normalizeAndLockToTemplateBlob({
   generatedDataUrl,
   targetWidth,
   targetHeight,
+  designDataUrl,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
-  // Simply resize/crop the AI output to match template dimensions.
-  // The AI is already instructed to preserve framing, props, and composition —
-  // the old diff-mask approach was incorrectly reverting large color changes
-  // (e.g. black→white) because the shirt touched image edges.
+  // Resize/crop the AI output to match template dimensions.
   const canvas = document.createElement("canvas");
   canvas.width = targetWidth;
   canvas.height = targetHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context unavailable");
   drawCover(ctx, generatedImage, targetWidth, targetHeight);
+
+  // Post-generation design recomposite:
+  // Paste the ORIGINAL design back on top so AI can never alter text/graphics
+  if (designDataUrl) {
+    try {
+      const designImg = await loadImage(designDataUrl);
+      const cleanedDesign = stripSolidEdgeBackground(designImg);
+      const designWidth = cleanedDesign.width;
+      const designHeight = cleanedDesign.height;
+
+      const designScale = 0.55;
+      const drawWidth = targetWidth * designScale;
+      const drawHeight = drawWidth * (designHeight / designWidth);
+      const dx = (targetWidth - drawWidth) / 2;
+      const dy = targetHeight * 0.22;
+
+      ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
+    } catch (err) {
+      console.warn("Design recomposite failed, using AI output as-is:", err);
+    }
+  }
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
