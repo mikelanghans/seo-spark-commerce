@@ -381,7 +381,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             <div className="space-y-2">
               <Label className="font-medium">Sizes</Label>
               <div className="flex flex-wrap gap-2">
-                {AVAILABLE_SIZES.map((size) => (
+                {selectedProductType.sizes.map((size) => (
                   <Button
                     key={size}
                     type="button"
