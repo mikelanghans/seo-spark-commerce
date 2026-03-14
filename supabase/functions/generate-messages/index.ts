@@ -147,7 +147,7 @@ Before generating messages, apply your knowledge of what sells well in the print
    - ${isMinimalist ? "Messages that pair beautifully with a simple illustration or icon" : "Messages that look GREAT as minimalist typography (bold + thin font combos)"}
    - Short messages (2-5 words) consistently outsell longer ones
    - ${isMinimalist ? "Think about what visual would accompany each message" : "Messages with natural visual hierarchy (a bold word + a smaller attribution)"}
-   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Bracket/brace format {LIKE THIS} performs extremely well in the minimalist POD space"}
+   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Curly brace format {LIKE THIS} can work for single punchy words, but do NOT overuse — most messages should be plain text or quote-style"}
 
 3. AUDIENCE PSYCHOLOGY:
    - Gen Z/Millennial buyers want to feel "seen" — messages should feel like an inside joke
