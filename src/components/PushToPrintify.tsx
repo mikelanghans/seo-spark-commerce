@@ -247,7 +247,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           printifyImageId,
           darkPrintifyImageId,
           lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
-          selectedColors: colorsToUse.length > 0 ? colorsToUse : undefined,
+          selectedColors: colorsToUse,
           selectedSizes,
           price: product.price,
           mockupImages,
