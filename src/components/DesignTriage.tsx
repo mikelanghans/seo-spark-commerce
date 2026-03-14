@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
-import { Check, X, Eye, Loader2, Paintbrush, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, Loader2, Store, ChevronDown, ChevronUp, Eye, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -14,111 +13,164 @@ interface Organization {
   audience: string;
 }
 
-interface UnprocessedDesign {
+interface UnpushedProduct {
   id: string;
-  message_text: string;
-  design_url: string;
-  dark_design_url: string | null;
-  created_at: string;
+  title: string;
+  description: string;
+  image_url: string | null;
+  category: string;
+  price: string;
+  shopify_product_id: number | null;
 }
 
 interface Props {
   organization: Organization;
   userId: string;
-  onProductCreated?: () => void;
+  products: UnpushedProduct[];
+  onViewProduct?: (product: UnpushedProduct) => void;
+  onProductsPushed?: () => void;
 }
 
-export const DesignTriage = ({ organization, userId, onProductCreated }: Props) => {
-  const [designs, setDesigns] = useState<UnprocessedDesign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState<Set<string>>(new Set());
+export const DesignTriage = ({ organization, userId, products, onViewProduct, onProductsPushed }: Props) => {
   const [expanded, setExpanded] = useState(true);
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pushing, setPushing] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      const stored = sessionStorage.getItem(`triage_dismissed_${organization.id}`);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
 
-  const loadDesigns = async () => {
-    const { data } = await supabase
-      .from("generated_messages")
-      .select("id, message_text, design_url, dark_design_url, created_at")
-      .eq("organization_id", organization.id)
-      .not("design_url", "is", null)
-      .is("product_id", null)
-      .order("created_at", { ascending: false });
-    setDesigns((data as UnprocessedDesign[]) || []);
-    setLoading(false);
-  };
+  const unpushed = products.filter(
+    (p) => p.shopify_product_id === null && !dismissed.has(p.id)
+  );
 
   useEffect(() => {
-    loadDesigns();
-  }, [organization.id]);
+    // Clean selection when products change
+    setSelected((prev) => {
+      const validIds = new Set(unpushed.map((p) => p.id));
+      const next = new Set([...prev].filter((id) => validIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [products]);
 
-  const handleApprove = async (design: UnprocessedDesign) => {
-    setProcessing((p) => new Set(p).add(design.id));
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
-    const autoDescription = `${design.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
-    const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
-    const autoKeywords = design.message_text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, "")
-      .split(/\s+/)
-      .filter((w) => w.length > 2)
-      .join(", ") + ", t-shirt, print on demand, minimalist, typography";
+  const toggleAll = () => {
+    if (selected.size === unpushed.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(unpushed.map((p) => p.id)));
+    }
+  };
 
-    const { data: product, error } = await supabase
-      .from("products")
-      .insert({
-        title: design.message_text,
-        description: autoDescription,
-        keywords: autoKeywords,
-        category: "T-Shirt",
-        price: "29.99",
-        features: autoFeatures,
-        organization_id: organization.id,
-        user_id: userId,
-        image_url: design.design_url,
-      })
-      .select("id")
-      .single();
+  const handleDismiss = (id: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev).add(id);
+      sessionStorage.setItem(`triage_dismissed_${organization.id}`, JSON.stringify([...next]));
+      return next;
+    });
+    setSelected((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  };
 
-    if (error) {
-      toast.error("Failed to create product");
-      setProcessing((p) => { const n = new Set(p); n.delete(design.id); return n; });
+  const handlePushSelected = async () => {
+    if (selected.size === 0) {
+      toast.error("Select at least one product to push");
       return;
     }
+    setPushing(true);
+    let success = 0;
+    let failed = 0;
 
-    await supabase.from("generated_messages").update({ product_id: product.id }).eq("id", design.id);
+    for (const productId of selected) {
+      const product = unpushed.find((p) => p.id === productId);
+      if (!product) continue;
 
-    const designEntries: any[] = [
-      { product_id: product.id, user_id: userId, image_url: design.design_url, image_type: "design", color_name: "light-on-dark", position: 0 },
-    ];
-    if (design.dark_design_url) {
-      designEntries.push({ product_id: product.id, user_id: userId, image_url: design.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
+      try {
+        // Fetch listing data if available
+        const { data: listings } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("product_id", productId)
+          .eq("marketplace", "shopify")
+          .limit(1);
+
+        const listing = listings?.[0];
+
+        // Fetch product images
+        const { data: images } = await supabase
+          .from("product_images")
+          .select("image_url, color_name, position")
+          .eq("product_id", productId)
+          .order("position", { ascending: true });
+
+        const imageUrls = (images || []).map((img: any) => img.image_url).filter(Boolean);
+        if (product.image_url && !imageUrls.includes(product.image_url)) {
+          imageUrls.unshift(product.image_url);
+        }
+
+        const tags = listing?.tags
+          ? [...(listing.tags as string[]), "T-shirts"]
+          : product.description
+            .split(/[,\s]+/)
+            .filter((w: string) => w.length > 2)
+            .slice(0, 5)
+            .concat("T-shirts");
+        const uniqueTags = [...new Set(tags.map((t: string) => t.trim()).filter(Boolean))];
+
+        const { data, error } = await supabase.functions.invoke("push-to-shopify", {
+          body: {
+            title: listing?.title || product.title,
+            descriptionHtml: `<p>${listing?.description || product.description}</p>`,
+            tags: uniqueTags,
+            seoTitle: listing?.seo_title || product.title,
+            seoDescription: listing?.seo_description || product.description.slice(0, 160),
+            handle: listing?.url_handle || product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            imageUrls,
+            altText: listing?.alt_text || product.title,
+            status: "draft",
+          },
+        });
+
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+
+        const shopifyId = data?.productId;
+        if (shopifyId) {
+          await supabase
+            .from("products")
+            .update({ shopify_product_id: shopifyId })
+            .eq("id", productId);
+        }
+        success++;
+      } catch (err: any) {
+        console.error(`Failed to push ${product.title}:`, err);
+        failed++;
+      }
     }
-    await supabase.from("product_images").insert(designEntries);
 
-    toast.success("Product created from design!");
-    setDesigns((prev) => prev.filter((d) => d.id !== design.id));
-    setProcessing((p) => { const n = new Set(p); n.delete(design.id); return n; });
-    onProductCreated?.();
+    setPushing(false);
+    setSelected(new Set());
+
+    if (success > 0) {
+      toast.success(`Pushed ${success} product${success > 1 ? "s" : ""} to Shopify as drafts`);
+      onProductsPushed?.();
+    }
+    if (failed > 0) {
+      toast.error(`${failed} product${failed > 1 ? "s" : ""} failed to push`);
+    }
   };
 
-  const handleDiscard = async (design: UnprocessedDesign) => {
-    setProcessing((p) => new Set(p).add(design.id));
+  if (unpushed.length === 0) return null;
 
-    // Clear design but keep the message
-    await supabase
-      .from("generated_messages")
-      .update({ design_url: null, dark_design_url: null })
-      .eq("id", design.id);
-
-    toast.success("Design discarded — message kept in Ideas");
-    setDesigns((prev) => prev.filter((d) => d.id !== design.id));
-    setProcessing((p) => { const n = new Set(p); n.delete(design.id); return n; });
-  };
-
-  const previewDesign = designs.find((d) => d.id === previewId);
-
-  if (loading) return null;
-  if (designs.length === 0) return null;
+  const allSelected = selected.size === unpushed.length && unpushed.length > 0;
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
@@ -128,10 +180,10 @@ export const DesignTriage = ({ organization, userId, onProductCreated }: Props) 
         className="flex w-full items-center justify-between"
       >
         <div className="flex items-center gap-2">
-          <Paintbrush className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Design Triage</h3>
+          <Store className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Ready to Push</h3>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            {designs.length}
+            {unpushed.length}
           </span>
         </div>
         {expanded ? (
@@ -144,62 +196,104 @@ export const DesignTriage = ({ organization, userId, onProductCreated }: Props) 
       {expanded && (
         <>
           <p className="text-xs text-muted-foreground">
-            Designs ready for review — approve to create a product or discard to start fresh.
+            Products not yet on Shopify — select and push as drafts, or dismiss to hide.
           </p>
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 h-7 text-xs"
+              onClick={toggleAll}
+            >
+              {allSelected ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+              {allSelected ? "Deselect all" : "Select all"}
+            </Button>
+            {selected.size > 0 && (
+              <Button
+                size="sm"
+                className="gap-1.5 h-7 text-xs"
+                disabled={pushing}
+                onClick={handlePushSelected}
+              >
+                {pushing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Store className="h-3 w-3" />
+                )}
+                Push {selected.size} to Shopify
+              </Button>
+            )}
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {designs.map((design) => {
-              const isProcessing = processing.has(design.id);
+            {unpushed.map((product) => {
+              const isSelected = selected.has(product.id);
               return (
                 <div
-                  key={design.id}
-                  className="group relative rounded-lg border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
+                  key={product.id}
+                  className={cn(
+                    "group relative rounded-lg border bg-card overflow-hidden transition-all cursor-pointer",
+                    isSelected
+                      ? "border-primary ring-1 ring-primary/30"
+                      : "border-border hover:border-primary/40"
+                  )}
+                  onClick={() => toggleSelect(product.id)}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setPreviewId(design.id)}
-                    className="block w-full"
-                  >
-                    <div className="h-36 overflow-hidden bg-secondary">
+                  <div className="h-36 overflow-hidden bg-secondary relative">
+                    {product.image_url ? (
                       <img
-                        src={design.design_url}
-                        alt={design.message_text}
+                        src={product.image_url}
+                        alt={product.title}
                         className="h-full w-full object-contain p-2"
                       />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Store className="h-8 w-8 text-muted-foreground/30" />
+                      </div>
+                    )}
+                    {/* Selection indicator */}
+                    <div className={cn(
+                      "absolute top-2 left-2 rounded-md border p-0.5 transition-colors",
+                      isSelected
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "bg-card/80 border-border text-muted-foreground"
+                    )}>
+                      {isSelected ? <Check className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
                     </div>
-                  </button>
+                  </div>
                   <div className="p-3 space-y-2">
                     <p className="text-xs font-medium leading-snug line-clamp-2">
-                      {design.message_text}
+                      {product.title}
                     </p>
                     <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="flex-1 gap-1 h-7 text-xs"
-                        disabled={isProcessing}
-                        onClick={() => handleApprove(design)}
-                      >
-                        {isProcessing ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
-                        Approve
-                      </Button>
+                      {product.price && (
+                        <span className="text-xs text-muted-foreground">{product.price}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-xs text-muted-foreground">{product.category || "Uncategorized"}</span>
+                      <div className="flex-1" />
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 w-7 p-0"
-                        onClick={() => setPreviewId(design.id)}
+                        className="h-6 w-6 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewProduct?.(product);
+                        }}
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        disabled={isProcessing}
-                        onClick={() => handleDiscard(design)}
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDismiss(product.id);
+                        }}
+                        title="Dismiss from triage"
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
@@ -211,30 +305,6 @@ export const DesignTriage = ({ organization, userId, onProductCreated }: Props) 
           </div>
         </>
       )}
-
-      <DesignPreviewDialog
-        open={!!previewId}
-        onClose={() => setPreviewId(null)}
-        designUrl={previewDesign?.design_url || null}
-        darkDesignUrl={previewDesign?.dark_design_url || null}
-        messageText={previewDesign?.message_text || null}
-        messageId={previewId}
-        organizationId={organization.id}
-        userId={userId}
-        hasProduct={false}
-        onCreateProduct={previewDesign ? async () => {
-          if (previewDesign) {
-            await handleApprove(previewDesign);
-            setPreviewId(null);
-          }
-        } : undefined}
-        onDiscardDesign={previewDesign ? async () => {
-          if (previewDesign) {
-            await handleDiscard(previewDesign);
-            setPreviewId(null);
-          }
-        } : undefined}
-      />
     </div>
   );
 };
