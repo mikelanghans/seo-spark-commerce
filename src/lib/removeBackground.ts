@@ -134,24 +134,27 @@ export async function recolorOpaquePixels(
   const imageData = ctx.getImageData(0, 0, w, h);
   const src = imageData.data;
 
-  // Recolor only bright, opaque pixels. After background removal the source has:
-  // - Transparent outer background (already removed)
-  // - White/light design pixels (the actual design — recolor these)
-  // - Dark interior pixels (letter counters/holes — skip these, make transparent)
-  const ALPHA_THRESHOLD = 10; // include semi-transparent anti-aliased edges
-  const BRIGHTNESS_THRESHOLD = 30; // only skip near-black pixels (true holes/counters)
+  // Recolor using luminance-derived coverage to avoid dark edge fringing/ghosting.
+  // This preserves anti-aliased edges while suppressing near-black artifacts left from
+  // white-on-black rasterization.
+  const ALPHA_THRESHOLD = 6;
+  const MIN_COVERAGE = 0.04;
   const out = ctx.createImageData(w, h);
   const outData = out.data;
+
   for (let i = 0; i < w * h; i++) {
-    const a = src[i * 4 + 3];
-    if (a < ALPHA_THRESHOLD) continue;
     const idx = i * 4;
-    const brightness = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
-    if (brightness < BRIGHTNESS_THRESHOLD) continue; // skip dark pixels (counters)
+    const srcAlpha = src[idx + 3] / 255;
+    if (srcAlpha * 255 < ALPHA_THRESHOLD) continue;
+
+    const maxChannel = Math.max(src[idx], src[idx + 1], src[idx + 2]) / 255;
+    const coverage = srcAlpha * maxChannel;
+    if (coverage < MIN_COVERAGE) continue;
+
     outData[idx] = targetColor.r;
     outData[idx + 1] = targetColor.g;
     outData[idx + 2] = targetColor.b;
-    outData[idx + 3] = a; // preserve original alpha for smooth anti-aliased edges
+    outData[idx + 3] = Math.round(Math.min(1, coverage) * 255);
   }
 
   ctx.putImageData(out, 0, 0);
