@@ -134,19 +134,24 @@ export async function recolorOpaquePixels(
   const imageData = ctx.getImageData(0, 0, w, h);
   const src = imageData.data;
 
-  // Simple recolor: threshold alpha to avoid anti-aliased fringe pixels
-  // that make text appear thicker when recolored from light-on-dark to dark-on-light.
-  const ALPHA_THRESHOLD = 100; // only keep solidly opaque pixels
+  // Recolor only bright, opaque pixels. After background removal the source has:
+  // - Transparent outer background (already removed)
+  // - White/light design pixels (the actual design — recolor these)
+  // - Dark interior pixels (letter counters/holes — skip these, make transparent)
+  const ALPHA_THRESHOLD = 100;
+  const BRIGHTNESS_THRESHOLD = 120; // skip dark pixels (counters still black from original)
   const out = ctx.createImageData(w, h);
   const outData = out.data;
   for (let i = 0; i < w * h; i++) {
     const a = src[i * 4 + 3];
     if (a < ALPHA_THRESHOLD) continue;
     const idx = i * 4;
+    const brightness = 0.299 * src[idx] + 0.587 * src[idx + 1] + 0.114 * src[idx + 2];
+    if (brightness < BRIGHTNESS_THRESHOLD) continue; // skip dark pixels (counters)
     outData[idx] = targetColor.r;
     outData[idx + 1] = targetColor.g;
     outData[idx + 2] = targetColor.b;
-    outData[idx + 3] = 255; // fully opaque — no semi-transparent fringe
+    outData[idx + 3] = 255;
   }
 
   ctx.putImageData(out, 0, 0);
