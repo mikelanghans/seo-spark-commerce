@@ -48,6 +48,7 @@ export const SwipeableMessageCard = ({
   const [refineFeedback, setRefineFeedback] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [offsetX, setOffsetX] = useState(0);
+  const [activeStyle, setActiveStyle] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isExiting, setIsExiting] = useState<"left" | "right" | null>(null);
   const wasRefining = useRef(false);
@@ -349,11 +350,11 @@ export const SwipeableMessageCard = ({
                     <button
                       type="button"
                       disabled={isGeneratingDesign || disableDesignActions}
-                      onClick={() => onGenerateDesign(id, s)}
+                      onClick={() => { setActiveStyle(s); onGenerateDesign(id, s); }}
                       className="flex items-center gap-1 px-2 h-full text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50"
                       title={`${hasDesign ? "Regenerate" : "Generate"} ${info.label} design`}
                     >
-                      {isGeneratingDesign ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
+                      {isGeneratingDesign && activeStyle === s ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
                       {info.label}
                     </button>
                   </span>
