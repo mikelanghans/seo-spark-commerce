@@ -109,6 +109,7 @@ const Dashboard = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
+  const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
 
   // Form states
   const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[] });
