@@ -145,7 +145,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               audience: organization.audience,
             },
             count,
-            designStyle,
+            designStyle: styles[0] || "text-only",
             existingProducts: existingTitles,
           },
         }),
