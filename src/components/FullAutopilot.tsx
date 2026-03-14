@@ -458,11 +458,26 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             const printifyImageId = uploadData.image?.id;
             if (!printifyImageId) throw new Error("Failed to upload design to Printify");
 
+            // Upload dark-ink variant for light-colored shirts
+            const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+            const { data: darkUpload } = await supabase.functions.invoke("printify-upload-image", {
+              body: { base64Contents: darkBase64, fileName: `${productTitle}-dark-design.png` },
+            });
+            const darkPrintifyImageId = darkUpload?.image?.id || null;
+
             // Get print provider
             const { data: variantData } = await supabase.functions.invoke("printify-get-variants", {
               body: { blueprintId: 706 },
             });
             const printProviderId = variantData?.printProviderId;
+
+            // Known Comfort Colors 1717 light colors
+            const LIGHT_COLORS = [
+              "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+              "island reef", "chambray", "white", "flo blue", "watermelon",
+              "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+              "light green", "bay", "sage",
+            ];
 
             const { data: printifyResult, error: printifyErr } = await supabase.functions.invoke("printify-create-product", {
               body: {
@@ -471,6 +486,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 description: shopifyListing?.description || messageText,
                 tags: [...(shopifyListing?.tags || []), "T-shirts"],
                 printifyImageId,
+                darkPrintifyImageId,
+                lightColors: darkPrintifyImageId ? LIGHT_COLORS : [],
                 selectedColors: recommendedColors,
                 selectedSizes: ["S", "M", "L", "XL", "2XL"],
                 price: "29.99",
