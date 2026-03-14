@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const FREE_TIER_LIMIT = 20;
+const FREE_TIER_LIMIT = 50;
 
 // TODO: Replace with your Polar checkout URL when ready
 const UPGRADE_URL = "https://polar.sh";
