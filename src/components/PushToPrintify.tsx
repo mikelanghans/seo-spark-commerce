@@ -404,7 +404,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Colors:</strong> {uniqueMockupColors.join(", ") || "None"}</p>
+              <p><strong>Colors:</strong> {hasMockups ? uniqueMockupColors.join(", ") : "All available"}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
               <p><strong>Variants:</strong> ~{uniqueMockupColors.length * selectedSizes.length}</p>
               <p><strong>Price:</strong> {product.price || "$29.99"}</p>
