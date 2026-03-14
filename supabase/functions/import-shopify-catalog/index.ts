@@ -27,11 +27,10 @@ serve(async (req) => {
     if (!organizationId) throw new Error("organizationId is required");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    let connQuery = adminClient
+    const connQuery = adminClient
       .from("shopify_connections")
       .select("store_domain, access_token")
-      .eq("user_id", user.id);
-    connQuery = connQuery.eq("organization_id", organizationId);
+      .eq("organization_id", organizationId);
     const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection) {
