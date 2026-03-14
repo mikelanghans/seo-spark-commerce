@@ -110,12 +110,16 @@ export async function removeBackground(
 /**
  * Recolor every non-transparent pixel to a single target color.
  * Useful for generating a clean dark-ink variant for light garments.
+ * Accepts either a full data URL or raw base64 payload.
  */
 export async function recolorOpaquePixels(
-  sourceBase64Png: string,
+  sourceImage: string,
   targetColor: { r: number; g: number; b: number } = { r: 24, g: 24, b: 24 },
 ): Promise<string> {
-  const img = await loadImage(`data:image/png;base64,${sourceBase64Png}`);
+  const normalizedSource = sourceImage.startsWith("data:image/")
+    ? sourceImage
+    : `data:image/png;base64,${sourceImage.replace(/^data:image\/[^;]+;base64,/, "")}`;
+  const img = await loadImage(normalizedSource);
   const canvas = document.createElement("canvas");
   const w = img.width;
   const h = img.height;
