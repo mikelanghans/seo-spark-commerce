@@ -171,6 +171,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     colorName: string,
     preCompositedBase64: string,
     targetSize: { width: number; height: number } | null,
+    designBase64?: string,
   ): Promise<boolean> => {
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
@@ -199,6 +200,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           generatedDataUrl,
           targetWidth: targetSize.width,
           targetHeight: targetSize.height,
+          designDataUrl: designBase64,
         })
       : await dataUrlToBlob(generatedDataUrl);
 
