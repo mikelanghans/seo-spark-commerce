@@ -139,6 +139,14 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     }
   }, [open]);
 
+  // Re-fetch print provider info when product type changes
+  useEffect(() => {
+    if (open) {
+      setPrintProviderId(null);
+      loadPrintifyInfo();
+    }
+  }, [selectedProductType]);
+
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) =>
       prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
