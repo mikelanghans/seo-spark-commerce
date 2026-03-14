@@ -1187,7 +1187,12 @@ const Dashboard = () => {
                 <DesignTriage
                   organization={selectedOrg}
                   userId={user!.id}
-                  onProductCreated={() => {
+                  products={products as any}
+                  onViewProduct={(p) => {
+                    const prod = products.find((pr) => pr.id === p.id);
+                    if (prod) { setSelectedProduct(prod); setView("product-detail"); loadListings(prod.id); }
+                  }}
+                  onProductsPushed={() => {
                     if (selectedOrg) loadProducts(selectedOrg.id);
                   }}
                 />
