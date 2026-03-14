@@ -138,7 +138,10 @@ export async function recolorOpaquePixels(
   // This preserves anti-aliased edges while suppressing near-black artifacts left from
   // white-on-black rasterization.
   const ALPHA_THRESHOLD = 6;
-  const MIN_COVERAGE = 0.04;
+  const MIN_COVERAGE = 0.08;
+  // Brightness floor: skip pixels that were originally dark (background remnants).
+  // In a white-on-black design, actual design content has high channel values.
+  const MIN_BRIGHTNESS = 0.25;
   const out = ctx.createImageData(w, h);
   const outData = out.data;
 
@@ -148,6 +151,8 @@ export async function recolorOpaquePixels(
     if (srcAlpha * 255 < ALPHA_THRESHOLD) continue;
 
     const maxChannel = Math.max(src[idx], src[idx + 1], src[idx + 2]) / 255;
+    // Skip dark remnant pixels that aren't part of the actual design
+    if (maxChannel < MIN_BRIGHTNESS) continue;
     const coverage = srcAlpha * maxChannel;
     if (coverage < MIN_COVERAGE) continue;
 
