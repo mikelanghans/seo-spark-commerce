@@ -178,7 +178,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
 
     try {
       // Detect which selected colors are "light"
-      const colorsToUse = hasMockups ? uniqueMockupColors : [];
+      const colorsToUse = colorsForPush;
       const lightColorsSelected = colorsToUse.filter(
         (c) => LIGHT_COLORS.has(c.toLowerCase())
       );
