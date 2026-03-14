@@ -171,6 +171,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     colorName: string,
     preCompositedBase64: string,
     targetSize: { width: number; height: number } | null,
+    designBase64?: string,
   ): Promise<boolean> => {
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
@@ -199,6 +200,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           generatedDataUrl,
           targetWidth: targetSize.width,
           targetHeight: targetSize.height,
+          designDataUrl: designBase64,
         })
       : await dataUrlToBlob(generatedDataUrl);
 
@@ -365,7 +367,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         try {
           const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
           const preComposited = isLight ? preCompositedLight : preCompositedDark;
-          const ok = await generateSingleColor(colorName, preComposited, targetSize);
+          // Pass the correct design variant for post-AI recomposite
+          const designForRecomposite = isLight ? (darkDesign || lightDesign) : lightDesign;
+          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
