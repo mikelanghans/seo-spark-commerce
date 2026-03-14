@@ -313,8 +313,30 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     let darkDesignBase64: string | undefined;
     if (lightDesignUrl) lightDesignBase64 = await fetchAsBase64(lightDesignUrl);
     if (darkDesignUrl) darkDesignBase64 = await fetchAsBase64(darkDesignUrl);
+
+    // Reliability fallback: if dark-on-light design is missing/unreadable,
+    // derive one deterministically from the light design.
+    if (!darkDesignBase64 && lightDesignBase64) {
+      try {
+        const rawLight = lightDesignBase64.replace(/^data:image\/\w+;base64,/, "");
+        const rawDark = await recolorOpaquePixels(rawLight, { r: 24, g: 24, b: 24 });
+        darkDesignBase64 = ensureImageDataUrl(rawDark);
+      } catch (err) {
+        console.warn("Failed to derive dark design fallback:", err);
+      }
+    }
+
     if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
       lightDesignBase64 = await fetchAsBase64(designImageUrl);
+      if (!darkDesignBase64 && lightDesignBase64) {
+        try {
+          const rawLight = lightDesignBase64.replace(/^data:image\/\w+;base64,/, "");
+          const rawDark = await recolorOpaquePixels(rawLight, { r: 24, g: 24, b: 24 });
+          darkDesignBase64 = ensureImageDataUrl(rawDark);
+        } catch (err) {
+          console.warn("Failed to derive dark design from fallback design:", err);
+        }
+      }
     }
 
     // Pre-composite: bake the appropriate design into the template for each color group
