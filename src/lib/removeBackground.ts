@@ -117,30 +117,60 @@ export async function recolorOpaquePixels(
 ): Promise<string> {
   const img = await loadImage(`data:image/png;base64,${sourceBase64Png}`);
   const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
+  const w = img.width;
+  const h = img.height;
+  canvas.width = w;
+  canvas.height = h;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
   ctx.drawImage(img, 0, 0);
 
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const pixels = imageData.data;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const src = imageData.data;
 
-  for (let idx = 0; idx < pixels.length; idx += 4) {
-    const alpha = pixels[idx + 3];
-    if (alpha < 5) continue; // skip fully transparent
-
-    pixels[idx] = targetColor.r;
-    pixels[idx + 1] = targetColor.g;
-    pixels[idx + 2] = targetColor.b;
-    // Force all visible pixels to full opacity — ensures thin strokes
-    // and antialiased edges render as solid dark ink, not faint dots
-    pixels[idx + 3] = 255;
+  // Build alpha mask from source
+  const alphaMap = new Uint8Array(w * h);
+  for (let i = 0; i < alphaMap.length; i++) {
+    alphaMap[i] = src[i * 4 + 3];
   }
 
-  ctx.putImageData(imageData, 0, 0);
+  // Dilate: expand opaque regions by 1px to thicken thin strokes
+  const dilated = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      if (alphaMap[idx] >= 5) {
+        dilated[idx] = 255;
+        continue;
+      }
+      // Check 4-connected neighbors
+      let neighborAlpha = 0;
+      if (x > 0) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx - 1]);
+      if (x < w - 1) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx + 1]);
+      if (y > 0) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx - w]);
+      if (y < h - 1) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx + w]);
+      if (neighborAlpha >= 30) {
+        dilated[idx] = 200; // slightly softer for dilated edges
+      }
+    }
+  }
+
+  // Write recolored + dilated pixels
+  const out = ctx.createImageData(w, h);
+  const outData = out.data;
+  for (let i = 0; i < dilated.length; i++) {
+    const a = dilated[i];
+    if (a === 0) continue;
+    const idx = i * 4;
+    outData[idx] = targetColor.r;
+    outData[idx + 1] = targetColor.g;
+    outData[idx + 2] = targetColor.b;
+    outData[idx + 3] = a;
+  }
+
+  ctx.putImageData(out, 0, 0);
   return canvasToPngBase64(canvas);
 }
 
