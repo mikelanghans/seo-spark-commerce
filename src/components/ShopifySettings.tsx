@@ -122,6 +122,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       .from("shopify_connections")
       .select("*")
       .eq("user_id", userId)
+      .match(organizationId ? { organization_id: organizationId } : {})
       .maybeSingle();
     if (data) {
       setExisting({
