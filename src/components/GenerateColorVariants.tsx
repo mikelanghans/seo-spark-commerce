@@ -195,15 +195,16 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     const generatedDataUrl = ensureImageDataUrl(generatedBase64);
     const templateDataUrl = preCompositedBase64;
-    const blob = targetSize
-      ? await normalizeAndLockToTemplateBlob({
-          templateDataUrl,
-          generatedDataUrl,
-          targetWidth: targetSize.width,
-          targetHeight: targetSize.height,
-          designDataUrl: designBase64,
-        })
-      : await dataUrlToBlob(generatedDataUrl);
+
+    console.log(`[ColorVariant] ${colorName}: designBase64=${designBase64 ? 'present' : 'MISSING'}, targetSize=${targetSize ? `${targetSize.width}x${targetSize.height}` : 'null'}`);
+
+    const blob = await normalizeAndLockToTemplateBlob({
+      templateDataUrl,
+      generatedDataUrl,
+      targetWidth: targetSize?.width || 1024,
+      targetHeight: targetSize?.height || 1024,
+      designDataUrl: designBase64,
+    });
 
     const path = `${userId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
