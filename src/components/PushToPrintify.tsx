@@ -250,6 +250,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
           productId: product.id,
           printifyProductId: product.printify_product_id,
           printProviderId,
+          blueprintId: selectedProductType.blueprintId,
         },
       });
 
