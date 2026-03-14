@@ -201,11 +201,12 @@ export function OnboardingTour({ onClose }: OnboardingTourProps) {
           <Button
             size="sm"
             onClick={() => {
-              if (dontShowAgain) {
-                localStorage.setItem("brand_aura_tour_seen", "1");
+              if (isLast) {
+                localStorage.setItem("brand_aura_tour_seen", dontShowAgain ? "permanent" : "1");
+                onClose();
+              } else {
+                setCurrentStep((s) => s + 1);
               }
-              if (isLast) onClose();
-              else setCurrentStep((s) => s + 1);
             }}
             className="gap-1.5"
           >
