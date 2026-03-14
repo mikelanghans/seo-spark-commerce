@@ -89,14 +89,27 @@ serve(async (req) => {
     };
 
     // Collect image URLs (already optimized client-side to ≤2048px JPEG)
-    const imageEntries: { url: string; alt: string; colorName?: string }[] = [];
+    // Separate color variant images from non-variant images (e.g. size chart)
+    const variantImages: { url: string; alt: string; colorName: string }[] = [];
+    const extraImages: { url: string; alt: string }[] = [];
     colorVariants.forEach((v) => {
-      imageEntries.push({
-        url: v.imageUrl,
-        alt: `${product.title} - ${v.colorName}`,
-        colorName: v.colorName,
-      });
+      if (v.colorName === "Size Chart") {
+        extraImages.push({ url: v.imageUrl, alt: "Size Chart" });
+      } else {
+        variantImages.push({
+          url: v.imageUrl,
+          alt: `${product.title} - ${v.colorName}`,
+          colorName: v.colorName,
+        });
+      }
     });
+
+    // Build final image list: variant images first, then extras (size chart last)
+    const imageEntries: { url: string; alt: string; colorName?: string }[] = [
+      ...variantImages,
+      ...extraImages,
+    ];
+
     if (imageEntries.length === 0 && imageUrl) {
       imageEntries.push({
         url: imageUrl,
