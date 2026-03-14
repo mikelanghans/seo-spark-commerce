@@ -224,6 +224,24 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
           ))}
         </div>
       )}
+
+      {/* Fullscreen preview dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {previewImage && (
+            <div className="space-y-2">
+              <img
+                src={previewImage.image_url}
+                alt={previewImage.color_name}
+                className="w-full rounded-lg object-contain max-h-[80vh]"
+              />
+              <p className="text-center text-sm font-medium text-muted-foreground">
+                {previewImage.color_name}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
