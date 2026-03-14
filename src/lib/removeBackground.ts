@@ -136,8 +136,9 @@ export async function recolorOpaquePixels(
     alphaMap[i] = src[i * 4 + 3];
   }
 
-  // Dilate: expand opaque regions by 1px to thicken thin strokes
+  // Dilate: expand opaque regions by 2px radius to thicken thin strokes
   const dilated = new Uint8Array(w * h);
+  const RADIUS = 2;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const idx = y * w + x;
@@ -145,14 +146,27 @@ export async function recolorOpaquePixels(
         dilated[idx] = 255;
         continue;
       }
-      // Check 4-connected neighbors
-      let neighborAlpha = 0;
-      if (x > 0) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx - 1]);
-      if (x < w - 1) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx + 1]);
-      if (y > 0) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx - w]);
-      if (y < h - 1) neighborAlpha = Math.max(neighborAlpha, alphaMap[idx + w]);
-      if (neighborAlpha >= 30) {
-        dilated[idx] = 200; // slightly softer for dilated edges
+      // Check all pixels within RADIUS
+      let maxAlpha = 0;
+      let minDist = RADIUS + 1;
+      for (let dy = -RADIUS; dy <= RADIUS; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= h) continue;
+        for (let dx = -RADIUS; dx <= RADIUS; dx++) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w) continue;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > RADIUS) continue;
+          const na = alphaMap[ny * w + nx];
+          if (na >= 30 && dist < minDist) {
+            maxAlpha = na;
+            minDist = dist;
+          }
+        }
+      }
+      if (maxAlpha >= 30) {
+        // Softer alpha for dilated edges based on distance
+        dilated[idx] = minDist <= 1 ? 255 : 180;
       }
     }
   }
