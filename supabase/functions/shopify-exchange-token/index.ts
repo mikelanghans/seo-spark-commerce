@@ -24,11 +24,14 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { data: connection, error: connError } = await adminClient
+    const { code, organizationId } = await req.json();
+    if (!code) throw new Error("Missing authorization code");
+    let connQuery = adminClient
       .from("shopify_connections")
       .select("id, store_domain, client_id, client_secret")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
+    if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
+    const { data: connection, error: connError } = await connQuery.maybeSingle();
 
     if (connError || !connection?.client_id || !connection?.client_secret) {
       throw new Error("No Shopify connection with credentials found.");
