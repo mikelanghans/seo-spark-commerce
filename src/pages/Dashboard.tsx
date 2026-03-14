@@ -1477,17 +1477,51 @@ const Dashboard = () => {
               <Label className="mb-2 block">Product Image</Label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="product-image" />
               {imagePreview ? (
-                <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-                  <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 object-contain p-4" />
-                  {isAnalyzing && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                      <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm font-medium">Analyzing product…</p>
+                <div className="space-y-3">
+                  <div className="relative overflow-hidden rounded-xl border border-border bg-card">
+                    <img src={imagePreview} alt="Preview" className="mx-auto max-h-64 object-contain p-4" />
+                    {isAnalyzing && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium">Analyzing product…</p>
+                      </div>
+                    )}
+                    {isProcessingDesign && !isAnalyzing && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium">{designProcessingStep}</p>
+                        <p className="text-xs text-muted-foreground">Creating print-ready variants</p>
+                      </div>
+                    )}
+                    <label htmlFor="product-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground">
+                      Change image
+                    </label>
+                  </div>
+
+                  {/* Design variant previews */}
+                  {(pendingLightDesignUrl || pendingDarkDesignUrl) && (
+                    <div className="rounded-lg border border-border bg-card/50 p-4">
+                      <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Design Variants (4500px print-ready)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {pendingLightDesignUrl && (
+                          <div className="space-y-1">
+                            <div className="overflow-hidden rounded-lg border border-border bg-[hsl(var(--foreground))]">
+                              <img src={pendingLightDesignUrl} alt="Light variant" className="mx-auto h-32 object-contain p-2" />
+                            </div>
+                            <p className="text-center text-xs text-muted-foreground">Light (for dark garments)</p>
+                          </div>
+                        )}
+                        {pendingDarkDesignUrl && (
+                          <div className="space-y-1">
+                            <div className="overflow-hidden rounded-lg border border-border bg-background">
+                              <img src={pendingDarkDesignUrl} alt="Dark variant" className="mx-auto h-32 object-contain p-2" />
+                            </div>
+                            <p className="text-center text-xs text-muted-foreground">Dark (for light garments)</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                  <label htmlFor="product-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground">
-                    Change image
-                  </label>
                 </div>
               ) : (
                 <label
@@ -1499,7 +1533,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-sm font-medium">Upload product image</p>
                   <p className="text-xs text-muted-foreground">
-                    {aiAutoFill ? "AI will auto-fill all fields" : "Image only — fill in details below"}
+                    {aiAutoFill ? "AI will auto-fill all fields + generate light/dark variants" : "Image only — generates light/dark design variants"}
                   </p>
                 </label>
               )}
