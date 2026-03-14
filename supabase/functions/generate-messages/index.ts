@@ -111,7 +111,7 @@ BAD examples (DO NOT generate these):
 
 `
   : `- Have natural typographic hierarchy (big word + small attribution works great)
-- Work in formats like {BRACKETS}, "quotes — attribution", or standalone bold statements`}
+- Work in a variety of formats: "quotes — attribution", standalone bold statements, or occasionally {CURLY BRACES} when the word genuinely benefits from that framing (e.g., a single punchy word like {NOPE}). Do NOT overuse braces — most messages should NOT have them.`}
 - Think: the kind of text you'd see on a premium streetwear tee\n`;
 
       // Build existing products exclusion list
