@@ -234,14 +234,16 @@ export const DesignTriage = ({ organization, userId, products, onViewProduct, on
                 <div
                   key={product.id}
                   className={cn(
-                    "group relative rounded-lg border bg-card overflow-hidden transition-all cursor-pointer",
+                    "group relative rounded-lg border bg-card overflow-hidden transition-all",
                     isSelected
                       ? "border-primary ring-1 ring-primary/30"
                       : "border-border hover:border-primary/40"
                   )}
-                  onClick={() => toggleSelect(product.id)}
                 >
-                  <div className="h-36 overflow-hidden bg-secondary relative">
+                  <div
+                    className="h-36 overflow-hidden bg-secondary relative cursor-pointer"
+                    onClick={() => onViewProduct?.(product)}
+                  >
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -253,16 +255,20 @@ export const DesignTriage = ({ organization, userId, products, onViewProduct, on
                         <Store className="h-8 w-8 text-muted-foreground/30" />
                       </div>
                     )}
-                    {/* Selection indicator */}
-                    <div className={cn(
-                      "absolute top-2 left-2 rounded-md border p-0.5 transition-colors",
+                  </div>
+                  {/* Selection indicator */}
+                  <button
+                    type="button"
+                    className={cn(
+                      "absolute top-2 left-2 rounded-md border p-0.5 transition-colors cursor-pointer",
                       isSelected
                         ? "bg-primary border-primary text-primary-foreground"
-                        : "bg-card/80 border-border text-muted-foreground"
-                    )}>
-                      {isSelected ? <Check className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-                    </div>
-                  </div>
+                        : "bg-card/80 border-border text-muted-foreground hover:border-primary/40"
+                    )}
+                    onClick={(e) => { e.stopPropagation(); toggleSelect(product.id); }}
+                  >
+                    {isSelected ? <Check className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+                  </button>
                   <div className="p-3 space-y-2">
                     <p className="text-xs font-medium leading-snug line-clamp-2">
                       {product.title}
