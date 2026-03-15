@@ -103,32 +103,66 @@ function drawDesignWithUnderbase(
   const dx = (targetWidth - drawWidth) / 2;
   const dy = targetHeight * 0.22;
 
-  // For dark garments, draw a subtle white underbase behind the design
-  // so dark elements (text, outlines) remain visible
+  const designToDraw = isDarkGarment
+    ? enhanceDarkPixelsForDarkGarment(cleanedDesign)
+    : cleanedDesign;
+
+  // For dark garments, draw a stronger white underbase behind the design
+  // so dark elements (text, outlines) remain visible.
   if (isDarkGarment) {
-    // Create an off-screen canvas with the design silhouette in white
     const underCanvas = document.createElement("canvas");
-    underCanvas.width = cleanedDesign.width;
-    underCanvas.height = cleanedDesign.height;
+    underCanvas.width = designToDraw.width;
+    underCanvas.height = designToDraw.height;
     const underCtx = underCanvas.getContext("2d");
     if (underCtx) {
-      // Draw original design
-      underCtx.drawImage(cleanedDesign, 0, 0);
-      // Make all opaque pixels white
+      underCtx.drawImage(designToDraw, 0, 0);
       underCtx.globalCompositeOperation = "source-in";
-      underCtx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      underCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
       underCtx.fillRect(0, 0, underCanvas.width, underCanvas.height);
       underCtx.globalCompositeOperation = "source-over";
 
-      // Draw the semi-transparent white underbase slightly blurred
-      ctx.filter = "blur(2px)";
+      ctx.filter = "blur(1.5px)";
       ctx.drawImage(underCanvas, dx - 1, dy - 1, drawWidth + 2, drawHeight + 2);
       ctx.filter = "none";
     }
   }
 
-  ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
+  ctx.drawImage(designToDraw, dx, dy, drawWidth, drawHeight);
 }
+
+function enhanceDarkPixelsForDarkGarment(source: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return source;
+
+  ctx.drawImage(source, 0, 0);
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = image.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha < 20) continue;
+
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+    // Lift only dark pixels so text/outlines don't disappear on black fabric.
+    if (luma < 0.42) {
+      const lift = Math.min(1, (0.42 - luma) / 0.42);
+      const blend = 0.72 * lift;
+      data[i] = Math.round(r * (1 - blend) + 245 * blend);
+      data[i + 1] = Math.round(g * (1 - blend) + 245 * blend);
+      data[i + 2] = Math.round(b * (1 - blend) + 245 * blend);
+      data[i + 3] = Math.max(alpha, Math.round(170 + 85 * lift));
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+  return canvas;
 
 function buildRawChangeMask(template: Uint8ClampedArray, generated: Uint8ClampedArray): Uint8Array {
   const totalPixels = template.length / 4;
