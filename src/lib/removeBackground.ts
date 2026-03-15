@@ -108,6 +108,168 @@ export async function removeBackground(
 }
 
 /**
+ * Smart background removal for imported designs.
+ * 1. If the image already has significant transparency (>5%), skip removal entirely.
+ * 2. Auto-detects background color from edge pixels (handles any solid color, not just B/W).
+ * 3. Falls back to standard white/black removal if edge detection fails.
+ */
+export async function smartRemoveBackground(imageUrl: string): Promise<string> {
+  const img = await loadImage(imageUrl);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+  const width = canvas.width;
+  const height = canvas.height;
+  const totalPixels = width * height;
+
+  // 1. Check if already has significant transparency → return as-is
+  let transparentCount = 0;
+  for (let i = 0; i < totalPixels; i++) {
+    if (pixels[i * 4 + 3] < 250) transparentCount++;
+  }
+  if (transparentCount > totalPixels * 0.05) {
+    console.log("[smartRemoveBackground] Image already has transparency, skipping removal");
+    return canvasToPngBase64(canvas);
+  }
+
+  // 2. Sample edge pixels to detect dominant background color
+  const edgeColor = sampleEdgeColorFromPixels(pixels, width, height);
+  if (edgeColor) {
+    console.log(`[smartRemoveBackground] Detected edge bg color: rgb(${edgeColor.r},${edgeColor.g},${edgeColor.b})`);
+    // Flood-fill from edges using detected color
+    const tolerance = 35;
+    const isBackground = (idx: number): boolean => {
+      return (
+        Math.abs(pixels[idx] - edgeColor.r) < tolerance &&
+        Math.abs(pixels[idx + 1] - edgeColor.g) < tolerance &&
+        Math.abs(pixels[idx + 2] - edgeColor.b) < tolerance
+      );
+    };
+
+    const visited = new Uint8Array(totalPixels);
+    const queue: number[] = [];
+
+    for (let x = 0; x < width; x++) {
+      queue.push(x);
+      queue.push((height - 1) * width + x);
+    }
+    for (let y = 1; y < height - 1; y++) {
+      queue.push(y * width);
+      queue.push(y * width + (width - 1));
+    }
+
+    let head = 0;
+    while (head < queue.length) {
+      const pos = queue[head++];
+      if (pos < 0 || pos >= totalPixels || visited[pos]) continue;
+      if (!isBackground(pos * 4)) continue;
+      visited[pos] = 1;
+      const x = pos % width;
+      const y = Math.floor(pos / width);
+      if (x > 0) queue.push(pos - 1);
+      if (x < width - 1) queue.push(pos + 1);
+      if (y > 0) queue.push(pos - width);
+      if (y < height - 1) queue.push(pos + width);
+    }
+
+    let removedCount = 0;
+    for (let i = 0; i < totalPixels; i++) {
+      if (visited[i]) {
+        pixels[i * 4 + 3] = 0;
+        removedCount++;
+      }
+    }
+
+    // Clean up checkerboard artifacts
+    cleanCheckerboardArtifacts(pixels, width, height, totalPixels);
+
+    ctx.putImageData(imageData, 0, 0);
+    console.log(`[smartRemoveBackground] Removed ${removedCount} bg pixels (${((removedCount / totalPixels) * 100).toFixed(1)}%)`);
+    return canvasToPngBase64(canvas);
+  }
+
+  // 3. Fallback: try white, then black
+  console.log("[smartRemoveBackground] Edge detection failed, falling back to white/black");
+  try {
+    return await removeBackground(imageUrl, "white");
+  } catch {
+    return await removeBackground(imageUrl, "black");
+  }
+}
+
+function sampleEdgeColorFromPixels(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { r: number; g: number; b: number } | null {
+  const samples: Array<{ r: number; g: number; b: number }> = [];
+  const read = (x: number, y: number) => {
+    const idx = (y * width + x) * 4;
+    samples.push({ r: pixels[idx], g: pixels[idx + 1], b: pixels[idx + 2] });
+  };
+
+  for (let x = 0; x < width; x++) {
+    read(x, 0);
+    read(x, height - 1);
+  }
+  for (let y = 1; y < height - 1; y++) {
+    read(0, y);
+    read(width - 1, y);
+  }
+
+  if (samples.length === 0) return null;
+
+  const avg = samples.reduce(
+    (acc, s) => ({ r: acc.r + s.r, g: acc.g + s.g, b: acc.b + s.b }),
+    { r: 0, g: 0, b: 0 },
+  );
+  const r = Math.round(avg.r / samples.length);
+  const g = Math.round(avg.g / samples.length);
+  const b = Math.round(avg.b / samples.length);
+
+  // Check edge uniformity — only proceed if edges are consistent
+  const variance = samples.reduce((acc, s) => {
+    const dr = s.r - r;
+    const dg = s.g - g;
+    const db = s.b - b;
+    return acc + dr * dr + dg * dg + db * db;
+  }, 0) / samples.length;
+
+  if (variance > 2500) return null;
+  return { r, g, b };
+}
+
+function cleanCheckerboardArtifacts(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  totalPixels: number,
+) {
+  for (let i = 0; i < totalPixels; i++) {
+    const idx = i * 4;
+    if (pixels[idx + 3] === 0) continue;
+    const r = pixels[idx];
+    const g = pixels[idx + 1];
+    const b = pixels[idx + 2];
+    const isGray = Math.abs(r - g) < 5 && Math.abs(g - b) < 5 && r > 180 && r < 220;
+    if (!isGray) continue;
+    const x = i % width;
+    const y = Math.floor(i / width);
+    let transparentNeighbors = 0;
+    if (y > 0 && pixels[(i - width) * 4 + 3] === 0) transparentNeighbors++;
+    if (y < height - 1 && pixels[(i + width) * 4 + 3] === 0) transparentNeighbors++;
+    if (x > 0 && pixels[(i - 1) * 4 + 3] === 0) transparentNeighbors++;
+    if (x < width - 1 && pixels[(i + 1) * 4 + 3] === 0) transparentNeighbors++;
+    if (transparentNeighbors >= 2) pixels[idx + 3] = 0;
+  }
+}
+
+/**
  * Recolor every non-transparent pixel to a single target color.
  * Useful for generating a clean dark-ink variant for light garments.
  * Accepts either a full data URL or raw base64 payload.
