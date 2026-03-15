@@ -82,8 +82,55 @@ function drawCover(
   ctx.clearRect(0, 0, targetWidth, targetHeight);
   ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
 }
+/**
+ * Draw a design onto a canvas with optional white underbase for dark garments.
+ * The underbase ensures dark design elements (text outlines, shadows) remain
+ * visible on dark-colored garments — similar to DTG white ink underbase.
+ */
+function drawDesignWithUnderbase(
+  ctx: CanvasRenderingContext2D,
+  cleanedDesign: HTMLCanvasElement,
+  targetWidth: number,
+  targetHeight: number,
+  isDarkGarment?: boolean,
+) {
+  const designWidth = cleanedDesign.width;
+  const designHeight = cleanedDesign.height;
 
-function buildRawChangeMask(template: Uint8ClampedArray, generated: Uint8ClampedArray): Uint8Array {
+  const designScale = 0.62;
+  const drawWidth = targetWidth * designScale;
+  const drawHeight = drawWidth * (designHeight / designWidth);
+  const dx = (targetWidth - drawWidth) / 2;
+  const dy = targetHeight * 0.22;
+
+  // For dark garments, draw a subtle white underbase behind the design
+  // so dark elements (text, outlines) remain visible
+  if (isDarkGarment) {
+    // Create an off-screen canvas with the design silhouette in white
+    const underCanvas = document.createElement("canvas");
+    underCanvas.width = cleanedDesign.width;
+    underCanvas.height = cleanedDesign.height;
+    const underCtx = underCanvas.getContext("2d");
+    if (underCtx) {
+      // Draw original design
+      underCtx.drawImage(cleanedDesign, 0, 0);
+      // Make all opaque pixels white
+      underCtx.globalCompositeOperation = "source-in";
+      underCtx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      underCtx.fillRect(0, 0, underCanvas.width, underCanvas.height);
+      underCtx.globalCompositeOperation = "source-over";
+
+      // Draw the semi-transparent white underbase slightly blurred
+      ctx.filter = "blur(2px)";
+      ctx.drawImage(underCanvas, dx - 1, dy - 1, drawWidth + 2, drawHeight + 2);
+      ctx.filter = "none";
+    }
+  }
+
+  ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
+}
+
+
   const totalPixels = template.length / 4;
   const mask = new Uint8Array(totalPixels);
 
