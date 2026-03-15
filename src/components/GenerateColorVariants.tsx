@@ -208,6 +208,13 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       designDataUrl: designBase64,
     });
 
+    // Refresh session before upload to prevent RLS failures during long runs
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Session expired. Please sign in again.");
+    }
+
     const path = `${userId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
     if (uploadError) throw uploadError;
