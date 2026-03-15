@@ -32,6 +32,7 @@ export async function normalizeAndLockToTemplateBlob({
   targetWidth,
   targetHeight,
   designDataUrl,
+  isDarkGarment,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -49,16 +50,7 @@ export async function normalizeAndLockToTemplateBlob({
     try {
       const designImg = await loadImage(designDataUrl);
       const cleanedDesign = stripSolidEdgeBackground(designImg);
-      const designWidth = cleanedDesign.width;
-      const designHeight = cleanedDesign.height;
-
-      const designScale = 0.62;
-      const drawWidth = targetWidth * designScale;
-      const drawHeight = drawWidth * (designHeight / designWidth);
-      const dx = (targetWidth - drawWidth) / 2;
-      const dy = targetHeight * 0.22;
-
-      ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
+      drawDesignWithUnderbase(ctx, cleanedDesign, targetWidth, targetHeight, isDarkGarment);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
