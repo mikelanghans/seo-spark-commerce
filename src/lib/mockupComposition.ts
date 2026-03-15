@@ -9,6 +9,8 @@ interface CompositionLockParams {
   targetHeight: number;
   /** Original design to paste back on top after AI recoloring (guarantees design integrity) */
   designDataUrl?: string;
+  /** If true, adds a white underbase behind the design for visibility on dark garments */
+  isDarkGarment?: boolean;
 }
 
 export const ensureImageDataUrl = (value: string) =>
