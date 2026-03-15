@@ -362,9 +362,17 @@ const Dashboard = () => {
       setDesignProcessingStep("Removing background…");
       const transparentBase64 = await smartRemoveBackground(base64);
 
-      // Step 2: Create dark variant
-      setDesignProcessingStep("Creating dark variant…");
-      const darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
+      // Step 2: Create dark variant (skip recoloring for multi-color imported designs)
+      setDesignProcessingStep("Analyzing design colors…");
+      const multiColor = await isMultiColorDesign(transparentBase64);
+      let darkBase64: string;
+      if (multiColor) {
+        console.log("[processDesignVariants] Multi-color design detected — using original for both variants");
+        darkBase64 = transparentBase64;
+      } else {
+        setDesignProcessingStep("Creating dark variant…");
+        darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
+      }
 
       // Step 3: Upscale both
       setDesignProcessingStep("Upscaling to print quality…");
