@@ -356,6 +356,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                     })
                   : await dataUrlToBlob(generatedDataUrl);
 
+                const { data: sess } = await supabase.auth.getSession();
+                if (!sess.session) await supabase.auth.refreshSession();
+
                 const path = `${userId}/${crypto.randomUUID()}.png`;
                 await supabase.storage.from("product-images").upload(path, blob);
                 const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);

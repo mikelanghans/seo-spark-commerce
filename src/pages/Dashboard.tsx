@@ -373,8 +373,12 @@ const Dashboard = () => {
         upscaleBase64Png(darkBase64, 4500),
       ]);
 
-      // Step 4: Upload both to storage
+      // Step 4: Upload both to storage (refresh session first)
       setDesignProcessingStep("Uploading variants…");
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) {
+        await supabase.auth.refreshSession();
+      }
       const lightPath = `${user.id}/design-variants/${crypto.randomUUID()}-light.png`;
       const darkPath = `${user.id}/design-variants/${crypto.randomUUID()}-dark.png`;
 
