@@ -380,6 +380,8 @@ export async function isMultiColorDesign(base64: string): Promise<boolean> {
   return hueBuckets.size >= 3 && chromaRatio > 0.15;
 }
 
+/**
+ * Upscale a base64 PNG (without data URL prefix) to a target width using canvas.
  * Maintains aspect ratio. Returns base64 string without data URL prefix.
  */
 export async function upscaleBase64Png(
