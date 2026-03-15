@@ -163,6 +163,7 @@ function enhanceDarkPixelsForDarkGarment(source: HTMLCanvasElement): HTMLCanvasE
 
   ctx.putImageData(image, 0, 0);
   return canvas;
+}
 
 function buildRawChangeMask(template: Uint8ClampedArray, generated: Uint8ClampedArray): Uint8Array {
   const totalPixels = template.length / 4;
