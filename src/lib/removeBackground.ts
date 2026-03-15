@@ -309,10 +309,14 @@ export async function recolorOpaquePixels(
     if (srcAlpha * 255 < ALPHA_THRESHOLD) continue;
 
     if (options.preserveAll) {
-      // For imported designs: recolor ALL non-transparent pixels, preserving alpha
-      outData[idx] = targetColor.r;
-      outData[idx + 1] = targetColor.g;
-      outData[idx + 2] = targetColor.b;
+      // For imported designs: recolor ALL non-transparent pixels,
+      // preserving luminance gradients so shading/depth is visible
+      const luma = (0.2126 * src[idx] + 0.7152 * src[idx + 1] + 0.0722 * src[idx + 2]) / 255;
+      // Mix target color with luminance to preserve shading
+      const shade = Math.max(0.15, luma); // floor so nothing disappears entirely
+      outData[idx] = Math.round(targetColor.r * shade);
+      outData[idx + 1] = Math.round(targetColor.g * shade);
+      outData[idx + 2] = Math.round(targetColor.b * shade);
       outData[idx + 3] = src[idx + 3];
     } else {
       // For AI-generated designs: filter by luminance to skip background remnants

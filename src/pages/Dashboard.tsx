@@ -358,14 +358,9 @@ const Dashboard = () => {
     if (!user) return;
     setIsProcessingDesign(true);
     try {
-      // Step 1: Remove background (auto-detect white vs black)
+      // Step 1: Smart background removal (auto-detects color, skips if already transparent)
       setDesignProcessingStep("Removing background…");
-      let transparentBase64: string;
-      try {
-        transparentBase64 = await removeBackground(base64, "white");
-      } catch {
-        transparentBase64 = await removeBackground(base64, "black");
-      }
+      const transparentBase64 = await smartRemoveBackground(base64);
 
       // Step 2: Create dark variant
       setDesignProcessingStep("Creating dark variant…");
