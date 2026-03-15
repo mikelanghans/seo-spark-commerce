@@ -421,7 +421,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           const preComposited = isLight ? preCompositedLight : preCompositedDark;
           // Pass the correct design variant for post-AI recomposite
           const designForRecomposite = isLight ? (darkDesign || lightDesign) : lightDesign;
-          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite);
+          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite, !isLight);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {

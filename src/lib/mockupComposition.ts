@@ -280,6 +280,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
   designDataUrl: string,
+  isDarkGarment?: boolean,
 ): Promise<string> {
   const [templateImg, designImg] = await Promise.all([
     loadImage(templateDataUrl),
@@ -300,17 +301,7 @@ export async function compositeDesignOntoTemplate(
 
   // Clean design (remove solid edge bg if needed)
   const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
-  const designWidth = cleanedDesignCanvas.width;
-  const designHeight = cleanedDesignCanvas.height;
-
-  // Chest-print sizing/placement
-  const designScale = 0.62;
-  const drawWidth = w * designScale;
-  const drawHeight = drawWidth * (designHeight / designWidth);
-  const dx = (w - drawWidth) / 2;
-  const dy = h * 0.22;
-
-  ctx.drawImage(cleanedDesignCanvas, dx, dy, drawWidth, drawHeight);
+  drawDesignWithUnderbase(ctx, cleanedDesignCanvas, w, h, isDarkGarment);
 
   return canvas.toDataURL("image/png");
 }
