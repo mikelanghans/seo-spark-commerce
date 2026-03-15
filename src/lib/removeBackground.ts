@@ -337,7 +337,49 @@ export async function recolorOpaquePixels(
 }
 
 /**
- * Upscale a base64 PNG (without data URL prefix) to a target width using canvas.
+ * Detect whether a transparent design image contains multiple distinct colors
+ * (i.e. an imported multi-color design vs a monochrome AI-generated one).
+ * If true, the design should NOT be recolored for light garments — use as-is.
+ */
+export async function isMultiColorDesign(base64: string): Promise<boolean> {
+  const src = base64.startsWith("data:image/") ? base64 : `data:image/png;base64,${base64}`;
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // Collect unique hue buckets from opaque pixels (bucket by 30° slices = 12 buckets)
+  const hueBuckets = new Set<number>();
+  let opaqueCount = 0;
+  let chromaCount = 0; // pixels with meaningful saturation
+
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 30) continue; // skip transparent
+    opaqueCount++;
+    const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const delta = max - min;
+    if (delta < 0.12) continue; // near-gray, skip
+    chromaCount++;
+    let hue = 0;
+    if (delta > 0) {
+      if (max === r) hue = ((g - b) / delta) % 6;
+      else if (max === g) hue = (b - r) / delta + 2;
+      else hue = (r - g) / delta + 4;
+      hue = Math.round(((hue * 60 + 360) % 360) / 30); // 12 buckets
+    }
+    hueBuckets.add(hue);
+  }
+
+  // Multi-color if ≥3 distinct hue buckets AND ≥15% of opaque pixels are chromatic
+  const chromaRatio = opaqueCount > 0 ? chromaCount / opaqueCount : 0;
+  return hueBuckets.size >= 3 && chromaRatio > 0.15;
+}
+
  * Maintains aspect ratio. Returns base64 string without data URL prefix.
  */
 export async function upscaleBase64Png(
