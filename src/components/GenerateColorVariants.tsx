@@ -355,9 +355,14 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       lightDesignBase64 = await fetchAsBase64(designImageUrl);
       if (!darkDesignBase64 && lightDesignBase64) {
         try {
-          const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
-          const rawDark = await recolorOpaquePixels(bgRemovedBase64, { r: 24, g: 24, b: 24 });
-          darkDesignBase64 = ensureImageDataUrl(rawDark);
+          const multiColor = await isMultiColorDesign(lightDesignBase64);
+          if (multiColor) {
+            darkDesignBase64 = lightDesignBase64;
+          } else {
+            const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
+            const rawDark = await recolorOpaquePixels(bgRemovedBase64, { r: 24, g: 24, b: 24 });
+            darkDesignBase64 = ensureImageDataUrl(rawDark);
+          }
         } catch (err) {
           console.warn("Failed to derive dark design from fallback design:", err);
         }
