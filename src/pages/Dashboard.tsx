@@ -35,7 +35,7 @@ import brandAuraIcon from "@/assets/brand-aura-icon.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
-import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png } from "@/lib/removeBackground";
+import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
   id: string;
