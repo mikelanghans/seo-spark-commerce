@@ -173,6 +173,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     preCompositedBase64: string,
     targetSize: { width: number; height: number } | null,
     designBase64?: string,
+    isDarkGarment?: boolean,
   ): Promise<boolean> => {
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
@@ -196,16 +197,15 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     const generatedDataUrl = ensureImageDataUrl(generatedBase64);
     const templateDataUrl = preCompositedBase64;
 
-    console.log(`[ColorVariant] ${colorName}: designBase64=${designBase64 ? 'present' : 'MISSING'}, targetSize=${targetSize ? `${targetSize.width}x${targetSize.height}` : 'null'}`);
+    console.log(`[ColorVariant] ${colorName}: designBase64=${designBase64 ? 'present' : 'MISSING'}, isDark=${isDarkGarment}`);
 
     const blob = await normalizeAndLockToTemplateBlob({
       templateDataUrl,
       generatedDataUrl,
       targetWidth: targetSize?.width || 1024,
       targetHeight: targetSize?.height || 1024,
-      // Paste the original design back on top after AI recoloring to guarantee
-      // design visibility/legibility — the AI may wash out text on light garments.
       designDataUrl: designBase64,
+      isDarkGarment,
     });
 
     // Refresh session before upload to prevent RLS failures during long runs
