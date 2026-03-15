@@ -130,7 +130,7 @@ function drawDesignWithUnderbase(
   ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
 }
 
-
+function buildRawChangeMask(template: Uint8ClampedArray, generated: Uint8ClampedArray): Uint8Array {
   const totalPixels = template.length / 4;
   const mask = new Uint8Array(totalPixels);
 
