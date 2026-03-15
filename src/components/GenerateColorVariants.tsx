@@ -335,11 +335,17 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     // derive one deterministically from the light design.
     if (!darkDesignBase64 && lightDesignBase64) {
       try {
-        // The light design likely has a solid black background — strip it first,
-        // then recolor remaining opaque (design) pixels to dark ink.
-        const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
-        const rawDark = await recolorOpaquePixels(bgRemovedBase64, { r: 24, g: 24, b: 24 });
-        darkDesignBase64 = ensureImageDataUrl(rawDark);
+        const multiColor = await isMultiColorDesign(lightDesignBase64);
+        if (multiColor) {
+          // Multi-color imported design: use original transparent version on all garments
+          console.log("[ColorVariant] Multi-color design — skipping dark recolor");
+          darkDesignBase64 = lightDesignBase64;
+        } else {
+          // Monochrome/AI design: recolor to dark ink for light garments
+          const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
+          const rawDark = await recolorOpaquePixels(bgRemovedBase64, { r: 24, g: 24, b: 24 });
+          darkDesignBase64 = ensureImageDataUrl(rawDark);
+        }
       } catch (err) {
         console.warn("Failed to derive dark design fallback:", err);
       }
