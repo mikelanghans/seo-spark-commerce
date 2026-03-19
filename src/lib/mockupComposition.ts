@@ -388,8 +388,24 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   }
 
   const edge = sampleEdgeColor(data, canvas.width, canvas.height);
-  if (!edge) return canvas;
+  if (!edge) {
+    // Fallback: try corner-only sampling for designs where text touches edges
+    const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
+    if (!cornerEdge) return canvas;
+    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 42);
+  }
 
+  return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+}
+
+function floodFillBackground(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  imgData: ImageData,
+  data: Uint8ClampedArray,
+  edge: { r: number; g: number; b: number },
+  tolerance: number,
+): HTMLCanvasElement {
   const totalPixels = canvas.width * canvas.height;
   const visited = new Uint8Array(totalPixels);
   const queue = new Int32Array(totalPixels);
@@ -410,8 +426,6 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
     enqueue(y * canvas.width);
     enqueue(y * canvas.width + (canvas.width - 1));
   }
-
-  const tolerance = 32;
 
   while (head < tail) {
     const pos = queue[head++];
@@ -476,8 +490,56 @@ function sampleEdgeColor(
     return acc + dr * dr + dg * dg + db * db;
   }, 0) / samples.length;
 
-  // Only strip when edges are fairly uniform (solid background)
-  if (variance > 2500) return null;
+  // Allow higher variance since text/graphics may touch edges
+  if (variance > 4500) return null;
 
+  return { r, g, b };
+}
+
+/**
+ * Fallback: sample only the 4 corners to detect background color
+ * when text/design elements extend along full edges.
+ */
+function sampleCornerColor(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { r: number; g: number; b: number } | null {
+  const samples: Array<{ r: number; g: number; b: number }> = [];
+  const cornerSize = Math.max(4, Math.min(20, Math.floor(Math.min(width, height) * 0.05)));
+
+  const read = (x: number, y: number) => {
+    const idx = (y * width + x) * 4;
+    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+  };
+
+  for (let dy = 0; dy < cornerSize; dy++) {
+    for (let dx = 0; dx < cornerSize; dx++) {
+      read(dx, dy);
+      read(width - 1 - dx, dy);
+      read(dx, height - 1 - dy);
+      read(width - 1 - dx, height - 1 - dy);
+    }
+  }
+
+  if (samples.length === 0) return null;
+
+  const avg = samples.reduce(
+    (acc, s) => ({ r: acc.r + s.r, g: acc.g + s.g, b: acc.b + s.b }),
+    { r: 0, g: 0, b: 0 },
+  );
+
+  const r = Math.round(avg.r / samples.length);
+  const g = Math.round(avg.g / samples.length);
+  const b = Math.round(avg.b / samples.length);
+
+  const variance = samples.reduce((acc, s) => {
+    const dr = s.r - r;
+    const dg = s.g - g;
+    const db = s.b - b;
+    return acc + dr * dr + dg * dg + db * db;
+  }, 0) / samples.length;
+
+  if (variance > 3000) return null;
   return { r, g, b };
 }
