@@ -538,7 +538,7 @@ function floodFillBackground(
       const max = Math.max(r, g, b);
       const min = Math.min(r, g, b);
       const sat = max === 0 ? 0 : (max - min) / max;
-      if (sat > 0.15 && max > 8) continue;
+      if (sat > 0.08 && max > 5) continue;
     }
 
     data[p + 3] = 0;
