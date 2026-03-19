@@ -378,12 +378,10 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // If design already has significant transparency, don't alter it.
-  let transparentPixels = 0;
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] < 250) transparentPixels++;
-  }
-  if (transparentPixels > (canvas.width * canvas.height) * 0.05) {
+  // Only skip stripping when the OUTER border is already mostly transparent.
+  // Some designs (like watercolor art) contain internal transparency while still
+  // having an opaque rectangular background — global alpha checks miss that case.
+  if (hasTransparentBorder(data, canvas.width, canvas.height)) {
     return canvas;
   }
 
