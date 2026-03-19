@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 import { removeBackground, recolorOpaquePixels } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -493,7 +494,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           .update({ product_id: product.id })
           .eq("id", msg.id);
 
-        // Insert both design variants into product_images
+        // Insert both design variants into product_images (deduplicated)
         const designEntries = [];
         if (msg.design_url) {
           designEntries.push({
@@ -516,7 +517,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           });
         }
         if (designEntries.length > 0) {
-          await supabase.from("product_images").insert(designEntries);
+          await insertProductImagesDeduped(designEntries);
         }
 
         created++;
@@ -827,7 +828,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
           }
           if (designEntries.length > 0) {
-            await supabase.from("product_images").insert(designEntries);
+            await insertProductImagesDeduped(designEntries);
           }
 
           toast.success("Product created!");

@@ -5,6 +5,7 @@ import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2 } from "lucide
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
@@ -221,7 +222,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
-    await supabase.from("product_images").insert({
+    await insertProductImageIfNotExists({
       product_id: productId,
       user_id: userId,
       image_url: urlData.publicUrl,

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -493,7 +494,7 @@ const Dashboard = () => {
 
     if (error) { toast.error(error.message); return; }
 
-    // Save light & dark design variants to product_images
+    // Save light & dark design variants to product_images (deduplicated)
     if (pendingLightDesignUrl || pendingDarkDesignUrl) {
       const variantRows = [];
       if (pendingLightDesignUrl) {
@@ -502,7 +503,7 @@ const Dashboard = () => {
           user_id: user!.id,
           image_url: pendingLightDesignUrl,
           image_type: "design",
-          color_name: "light",
+          color_name: "light-on-dark",
           position: 0,
         });
       }
@@ -512,12 +513,11 @@ const Dashboard = () => {
           user_id: user!.id,
           image_url: pendingDarkDesignUrl,
           image_type: "design",
-          color_name: "dark",
+          color_name: "dark-on-light",
           position: 1,
         });
       }
-      const { error: imgErr } = await supabase.from("product_images").insert(variantRows);
-      if (imgErr) console.error("Failed to save design variants:", imgErr);
+      await insertProductImagesDeduped(variantRows);
     }
 
     toast.success("Product saved! Generating listings…");
