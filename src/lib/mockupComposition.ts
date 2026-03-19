@@ -63,7 +63,7 @@ export async function normalizeAndLockToTemplateBlob({
         return;
       }
       resolve(blob);
-    }, "image/png");
+    }, "image/jpeg", 0.88);
   });
 }
 
