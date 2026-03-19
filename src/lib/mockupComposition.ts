@@ -48,9 +48,10 @@ export async function normalizeAndLockToTemplateBlob({
   // Paste the ORIGINAL design back on top so AI can never alter text/graphics
   if (designDataUrl) {
     try {
-      const designImg = await loadImage(designDataUrl);
-      const cleanedDesign = stripSolidEdgeBackground(designImg);
-      drawDesignWithUnderbase(ctx, cleanedDesign, targetWidth, targetHeight, isDarkGarment);
+        const designImg = await loadImage(designDataUrl);
+        const cleanedDesign = stripSolidEdgeBackground(designImg);
+        const preparedDesign = prepareDesignForCompositing(cleanedDesign);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
