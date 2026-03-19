@@ -554,3 +554,56 @@ function sampleCornerColor(
   if (variance > 3000) return null;
   return { r, g, b };
 }
+
+/**
+ * Sample only the outermost 2-pixel border — handles cases where
+ * corners have artwork but the very edge is still background.
+ */
+function sampleThinBorderColor(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { r: number; g: number; b: number } | null {
+  const samples: Array<{ r: number; g: number; b: number }> = [];
+
+  const read = (x: number, y: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    const idx = (y * width + x) * 4;
+    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+  };
+
+  // Sample only the outermost 2 rows/columns
+  for (let x = 0; x < width; x += 3) {
+    read(x, 0);
+    read(x, 1);
+    read(x, height - 1);
+    read(x, height - 2);
+  }
+  for (let y = 2; y < height - 2; y += 3) {
+    read(0, y);
+    read(1, y);
+    read(width - 1, y);
+    read(width - 2, y);
+  }
+
+  if (samples.length === 0) return null;
+
+  const avg = samples.reduce(
+    (acc, s) => ({ r: acc.r + s.r, g: acc.g + s.g, b: acc.b + s.b }),
+    { r: 0, g: 0, b: 0 },
+  );
+
+  const r = Math.round(avg.r / samples.length);
+  const g = Math.round(avg.g / samples.length);
+  const b = Math.round(avg.b / samples.length);
+
+  const variance = samples.reduce((acc, s) => {
+    const dr = s.r - r;
+    const dg = s.g - g;
+    const db = s.b - b;
+    return acc + dr * dr + dg * dg + db * db;
+  }, 0) / samples.length;
+
+  if (variance > 5000) return null;
+  return { r, g, b };
+}
