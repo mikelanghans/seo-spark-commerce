@@ -179,7 +179,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
           {images.map((img) => (
             <div key={img.id} className="group relative rounded-lg border border-border bg-card overflow-hidden">
               <div className="relative h-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => setPreviewImage(img)}>
-                <img src={img.image_url} alt={img.color_name} className="h-full w-full object-contain p-2" />
+                <img src={img.image_url} alt={img.color_name} loading="lazy" decoding="async" className="h-full w-full object-contain p-2" />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
                   <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
