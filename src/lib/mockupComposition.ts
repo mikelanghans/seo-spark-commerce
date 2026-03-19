@@ -388,8 +388,24 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   }
 
   const edge = sampleEdgeColor(data, canvas.width, canvas.height);
-  if (!edge) return canvas;
+  if (!edge) {
+    // Fallback: try corner-only sampling for designs where text touches edges
+    const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
+    if (!cornerEdge) return canvas;
+    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 42);
+  }
 
+  return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+}
+
+function floodFillBackground(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  imgData: ImageData,
+  data: Uint8ClampedArray,
+  edge: { r: number; g: number; b: number },
+  tolerance: number,
+): HTMLCanvasElement {
   const totalPixels = canvas.width * canvas.height;
   const visited = new Uint8Array(totalPixels);
   const queue = new Int32Array(totalPixels);
@@ -410,8 +426,6 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
     enqueue(y * canvas.width);
     enqueue(y * canvas.width + (canvas.width - 1));
   }
-
-  const tolerance = 32;
 
   while (head < tail) {
     const pos = queue[head++];
