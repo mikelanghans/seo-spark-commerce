@@ -118,7 +118,7 @@ function drawDesignWithUnderbase(
     if (underCtx) {
       underCtx.drawImage(designToDraw, 0, 0);
       underCtx.globalCompositeOperation = "source-in";
-      underCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
+      underCtx.fillStyle = "rgba(255, 255, 255, 0.25)";
       underCtx.fillRect(0, 0, underCanvas.width, underCanvas.height);
       underCtx.globalCompositeOperation = "source-over";
 
