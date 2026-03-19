@@ -387,15 +387,26 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
     return canvas;
   }
 
+  // Strategy 1: Try full-edge sampling (works for solid bg designs)
   const edge = sampleEdgeColor(data, canvas.width, canvas.height);
-  if (!edge) {
-    // Fallback: try corner-only sampling for designs where text touches edges
-    const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
-    if (!cornerEdge) return canvas;
+  if (edge) {
+    return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+  }
+
+  // Strategy 2: Corner sampling (works for designs with text/art touching edges)
+  const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
+  if (cornerEdge) {
     return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 42);
   }
 
-  return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+  // Strategy 3: Try just the very outermost 2-pixel border
+  // This handles complex designs where corners also have artwork
+  const borderEdge = sampleThinBorderColor(data, canvas.width, canvas.height);
+  if (borderEdge) {
+    return floodFillBackground(canvas, ctx, imgData, data, borderEdge, 48);
+  }
+
+  return canvas;
 }
 
 function floodFillBackground(
