@@ -378,12 +378,10 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // If design already has significant transparency, don't alter it.
-  let transparentPixels = 0;
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] < 250) transparentPixels++;
-  }
-  if (transparentPixels > (canvas.width * canvas.height) * 0.05) {
+  // Only skip stripping when the OUTER border is already mostly transparent.
+  // Some designs (like watercolor art) contain internal transparency while still
+  // having an opaque rectangular background — global alpha checks miss that case.
+  if (hasTransparentBorder(data, canvas.width, canvas.height)) {
     return canvas;
   }
 
@@ -407,6 +405,36 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   }
 
   return canvas;
+}
+
+function hasTransparentBorder(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+): boolean {
+  let total = 0;
+  let transparent = 0;
+
+  const sample = (x: number, y: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    const idx = (y * width + x) * 4 + 3;
+    total++;
+    if (data[idx] < 20) transparent++;
+  };
+
+  const step = Math.max(1, Math.floor(Math.min(width, height) / 120));
+
+  for (let x = 0; x < width; x += step) {
+    sample(x, 0);
+    sample(x, height - 1);
+  }
+  for (let y = 0; y < height; y += step) {
+    sample(0, y);
+    sample(width - 1, y);
+  }
+
+  if (total === 0) return false;
+  return transparent / total > 0.65;
 }
 
 function floodFillBackground(
