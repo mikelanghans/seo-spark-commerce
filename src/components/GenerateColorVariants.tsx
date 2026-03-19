@@ -215,8 +215,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       if (refreshError) throw new Error("Session expired. Please sign in again.");
     }
 
-    const path = `${userId}/${crypto.randomUUID()}.png`;
-    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob);
+    const path = `${userId}/${crypto.randomUUID()}.jpg`;
+    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, blob, { contentType: "image/jpeg" });
     if (uploadError) throw uploadError;
 
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
