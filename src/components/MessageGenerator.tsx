@@ -493,7 +493,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           .update({ product_id: product.id })
           .eq("id", msg.id);
 
-        // Insert both design variants into product_images
+        // Insert both design variants into product_images (deduplicated)
         const designEntries = [];
         if (msg.design_url) {
           designEntries.push({
@@ -516,7 +516,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           });
         }
         if (designEntries.length > 0) {
-          await supabase.from("product_images").insert(designEntries);
+          await insertProductImagesDeduped(designEntries);
         }
 
         created++;
