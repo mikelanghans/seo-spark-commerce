@@ -104,30 +104,11 @@ function drawDesignWithUnderbase(
   const dx = (targetWidth - drawWidth) / 2;
   const dy = targetHeight * 0.20;
 
-  const designToDraw = isDarkGarment
-    ? enhanceDarkPixelsForDarkGarment(cleanedDesign)
-    : cleanedDesign;
+  const designToDraw = cleanedDesign;
 
-  // For dark garments, draw a stronger white underbase behind the design
-  // so dark elements (text, outlines) remain visible.
-  if (isDarkGarment) {
-    const underCanvas = document.createElement("canvas");
-    underCanvas.width = designToDraw.width;
-    underCanvas.height = designToDraw.height;
-    const underCtx = underCanvas.getContext("2d");
-    if (underCtx) {
-      underCtx.drawImage(designToDraw, 0, 0);
-      underCtx.globalCompositeOperation = "source-in";
-      underCtx.fillStyle = "rgba(255, 255, 255, 0.25)";
-      underCtx.fillRect(0, 0, underCanvas.width, underCanvas.height);
-      underCtx.globalCompositeOperation = "source-over";
-
-      ctx.filter = "blur(1.5px)";
-      ctx.drawImage(underCanvas, dx - 1, dy - 1, drawWidth + 2, drawHeight + 2);
-      ctx.filter = "none";
-    }
-  }
-
+  // Skip underbase and dark-pixel enhancement for multi-color designs —
+  // they already have sufficient contrast through their colorful elements.
+  // Only draw the design directly.
   ctx.drawImage(designToDraw, dx, dy, drawWidth, drawHeight);
 }
 
