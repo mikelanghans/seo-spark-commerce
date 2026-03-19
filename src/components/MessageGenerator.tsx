@@ -827,7 +827,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
           }
           if (designEntries.length > 0) {
-            await supabase.from("product_images").insert(designEntries);
+            await insertProductImagesDeduped(designEntries);
           }
 
           toast.success("Product created!");

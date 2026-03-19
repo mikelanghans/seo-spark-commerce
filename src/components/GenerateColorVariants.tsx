@@ -221,7 +221,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
-    await supabase.from("product_images").insert({
+    await insertProductImageIfNotExists({
       product_id: productId,
       user_id: userId,
       image_url: urlData.publicUrl,
