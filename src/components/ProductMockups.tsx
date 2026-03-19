@@ -230,7 +230,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         <DialogContent className="max-w-3xl p-2">
           {previewImage && (
             <div className="space-y-2">
-              <img
+                <img loading="lazy" decoding="async"
                 src={previewImage.image_url}
                 alt={previewImage.color_name}
                 className="w-full rounded-lg object-contain max-h-[80vh]"
