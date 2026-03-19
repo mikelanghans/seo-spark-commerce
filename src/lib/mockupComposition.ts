@@ -102,7 +102,7 @@ function drawDesignWithUnderbase(
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
-  const dy = targetHeight * 0.18;
+  const dy = targetHeight * 0.20;
 
   const designToDraw = isDarkGarment
     ? enhanceDarkPixelsForDarkGarment(cleanedDesign)
