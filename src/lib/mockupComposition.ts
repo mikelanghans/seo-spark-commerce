@@ -538,15 +538,27 @@ function floodFillBackground(
     enqueue(y * canvas.width + (canvas.width - 1));
   }
 
+  const edgeLuma = (edge.r + edge.g + edge.b) / 3;
+  const isDarkBg = edgeLuma < 50;
+
   while (head < tail) {
     const pos = queue[head++];
     const p = pos * 4;
 
-    const dr = Math.abs(data[p] - edge.r);
-    const dg = Math.abs(data[p + 1] - edge.g);
-    const db = Math.abs(data[p + 2] - edge.b);
+    const r = data[p], g = data[p + 1], b = data[p + 2];
+    const dr = Math.abs(r - edge.r);
+    const dg = Math.abs(g - edge.g);
+    const db = Math.abs(b - edge.b);
 
     if (dr > tolerance || dg > tolerance || db > tolerance) continue;
+
+    // Protect dark pixels with meaningful chrominance (e.g. dark nebula edges)
+    if (isDarkBg) {
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const sat = max === 0 ? 0 : (max - min) / max;
+      if (sat > 0.15 && max > 8) continue;
+    }
 
     data[p + 3] = 0;
 
