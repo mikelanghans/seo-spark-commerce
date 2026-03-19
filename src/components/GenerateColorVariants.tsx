@@ -303,8 +303,18 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     console.log(`[ColorVariant] Design images found: ${designImages?.length || 0}`, designImages?.map(d => `${d.color_name}: ${d.image_url?.substring(0, 60)}`));
     console.log(`[ColorVariant] designImageUrl prop: ${designImageUrl?.substring(0, 60) || 'NONE'}`);
 
-    const lightDesignUrl = designImages?.find(d => d.color_name === "light-on-dark")?.image_url || designImageUrl;
-    const darkDesignUrl = designImages?.find(d => d.color_name === "dark-on-light")?.image_url;
+    const normalizeVariantKey = (value?: string | null) =>
+      (value || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
+
+    const lightDesignUrl = designImages?.find((d) => {
+      const key = normalizeVariantKey(d.color_name);
+      return key === "light-on-dark" || key === "light";
+    })?.image_url || designImageUrl;
+
+    const darkDesignUrl = designImages?.find((d) => {
+      const key = normalizeVariantKey(d.color_name);
+      return key === "dark-on-light" || key === "dark";
+    })?.image_url;
 
     console.log(`[ColorVariant] lightDesignUrl: ${lightDesignUrl?.substring(0, 60) || 'NONE'}`);
     console.log(`[ColorVariant] darkDesignUrl: ${darkDesignUrl?.substring(0, 60) || 'NONE'}`);
@@ -326,6 +336,55 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       }
     };
 
+    const deriveDarkInkVariantForLightGarments = async (sourceDataUrl: string): Promise<string> => {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Failed to load design for dark-ink fallback"));
+        img.src = sourceDataUrl;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth || image.width;
+      canvas.height = image.naturalHeight || image.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context unavailable");
+
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imgData.data;
+
+      for (let i = 0; i < pixels.length; i += 4) {
+        const alpha = pixels[i + 3];
+        if (alpha < 14) continue;
+
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        const saturation = max === 0 ? 0 : (max - min) / max;
+
+        // Darken near-neutral bright ink (typically white/light text) while preserving colorful artwork.
+        const isLightInk = luma > 0.68 && (saturation < 0.32 || (r > 182 && g > 182 && b > 182));
+        if (!isLightInk) continue;
+
+        const strength = Math.min(1, (luma - 0.68) / 0.32);
+        const target = 28;
+
+        pixels[i] = Math.round(r * (1 - strength) + target * strength);
+        pixels[i + 1] = Math.round(g * (1 - strength) + target * strength);
+        pixels[i + 2] = Math.round(b * (1 - strength) + target * strength);
+        pixels[i + 3] = Math.max(alpha, 190);
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      return canvas.toDataURL("image/png");
+    };
+
     let lightDesignBase64: string | undefined;
     let darkDesignBase64: string | undefined;
     if (lightDesignUrl) lightDesignBase64 = await fetchAsBase64(lightDesignUrl);
@@ -337,9 +396,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       try {
         const multiColor = await isMultiColorDesign(lightDesignBase64);
         if (multiColor) {
-          // Multi-color imported design: use original transparent version on all garments
-          console.log("[ColorVariant] Multi-color design — skipping dark recolor");
-          darkDesignBase64 = lightDesignBase64;
+          console.log("[ColorVariant] Multi-color design — deriving contrast-safe dark variant");
+          darkDesignBase64 = await deriveDarkInkVariantForLightGarments(lightDesignBase64);
         } else {
           // Monochrome/AI design: recolor to dark ink for light garments
           const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
@@ -357,7 +415,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         try {
           const multiColor = await isMultiColorDesign(lightDesignBase64);
           if (multiColor) {
-            darkDesignBase64 = lightDesignBase64;
+            darkDesignBase64 = await deriveDarkInkVariantForLightGarments(lightDesignBase64);
           } else {
             const bgRemovedBase64 = await removeBackground(lightDesignBase64, "black");
             const rawDark = await recolorOpaquePixels(bgRemovedBase64, { r: 24, g: 24, b: 24 });
