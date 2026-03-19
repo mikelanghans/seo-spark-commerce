@@ -5,6 +5,7 @@ import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2 } from "lucide
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
