@@ -439,6 +439,68 @@ function hasTransparentBorder(
   return transparent / total > 0.65;
 }
 
+function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasElement {
+  const srcCtx = source.getContext("2d");
+  if (!srcCtx) return source;
+
+  const srcImage = srcCtx.getImageData(0, 0, source.width, source.height);
+  const srcData = srcImage.data;
+  const ALPHA_KEEP_THRESHOLD = 28;
+
+  // 1) Drop ultra-faint alpha haze that creates square/box artifacts.
+  for (let i = 0; i < srcData.length; i += 4) {
+    if (srcData[i + 3] < ALPHA_KEEP_THRESHOLD) srcData[i + 3] = 0;
+  }
+
+  // 2) Tight-crop to visible pixels after thresholding.
+  let minX = source.width;
+  let minY = source.height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < source.height; y++) {
+    for (let x = 0; x < source.width; x++) {
+      const idx = (y * source.width + x) * 4;
+      if (srcData[idx + 3] === 0) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  // If nothing left, return original source to avoid hard failure.
+  if (maxX < minX || maxY < minY) {
+    return source;
+  }
+
+  const pad = 6;
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(source.width - 1, maxX + pad);
+  maxY = Math.min(source.height - 1, maxY + pad);
+
+  const cw = maxX - minX + 1;
+  const ch = maxY - minY + 1;
+
+  const cropped = document.createElement("canvas");
+  cropped.width = cw;
+  cropped.height = ch;
+  const cctx = cropped.getContext("2d");
+  if (!cctx) return source;
+
+  // Apply thresholded alpha to a temp canvas before cropping.
+  const temp = document.createElement("canvas");
+  temp.width = source.width;
+  temp.height = source.height;
+  const tctx = temp.getContext("2d");
+  if (!tctx) return source;
+  tctx.putImageData(srcImage, 0, 0);
+
+  cctx.drawImage(temp, minX, minY, cw, ch, 0, 0, cw, ch);
+  return cropped;
+}
+
 function floodFillBackground(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
