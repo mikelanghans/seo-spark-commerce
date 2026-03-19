@@ -160,7 +160,7 @@ export async function smartRemoveBackground(imageUrl: string): Promise<string> {
         const min = Math.min(r, g, b);
         const sat = max === 0 ? 0 : (max - min) / max;
         // If the pixel has noticeable chroma, it's likely part of artwork
-        if (sat > 0.15 && max > 8) return false;
+        if (sat > 0.08 && max > 5) return false;
       }
 
       return true;
