@@ -139,14 +139,31 @@ export async function smartRemoveBackground(imageUrl: string): Promise<string> {
   const edgeColor = sampleEdgeColorFromPixels(pixels, width, height);
   if (edgeColor) {
     console.log(`[smartRemoveBackground] Detected edge bg color: rgb(${edgeColor.r},${edgeColor.g},${edgeColor.b})`);
-    // Flood-fill from edges using detected color
+    // Flood-fill from edges using detected color.
+    // For dark backgrounds, also check chrominance: preserve dark pixels
+    // that have meaningful color (e.g. dark purple nebula edges).
     const tolerance = 35;
+    const edgeLuma = (edgeColor.r + edgeColor.g + edgeColor.b) / 3;
+    const isDarkBg = edgeLuma < 50;
+
     const isBackground = (idx: number): boolean => {
-      return (
-        Math.abs(pixels[idx] - edgeColor.r) < tolerance &&
-        Math.abs(pixels[idx + 1] - edgeColor.g) < tolerance &&
-        Math.abs(pixels[idx + 2] - edgeColor.b) < tolerance
-      );
+      const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+      if (
+        Math.abs(r - edgeColor.r) >= tolerance ||
+        Math.abs(g - edgeColor.g) >= tolerance ||
+        Math.abs(b - edgeColor.b) >= tolerance
+      ) return false;
+
+      // For dark backgrounds, protect pixels with meaningful color/saturation
+      if (isDarkBg) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const sat = max === 0 ? 0 : (max - min) / max;
+        // If the pixel has noticeable chroma, it's likely part of artwork
+        if (sat > 0.15 && max > 8) return false;
+      }
+
+      return true;
     };
 
     const visited = new Uint8Array(totalPixels);
