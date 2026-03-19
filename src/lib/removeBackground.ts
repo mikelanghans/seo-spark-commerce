@@ -31,7 +31,14 @@ export async function removeBackground(
     if (bgColor === "white") {
       return r > 255 - tolerance && g > 255 - tolerance && b > 255 - tolerance;
     } else {
-      return r < tolerance && g < tolerance && b < tolerance;
+      // Basic darkness check
+      if (r >= tolerance || g >= tolerance || b >= tolerance) return false;
+      // Protect dark pixels with meaningful chrominance (nebula edges, glows)
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const sat = max === 0 ? 0 : (max - min) / max;
+      if (sat > 0.08 && max > 5) return false;
+      return true;
     }
   };
 
