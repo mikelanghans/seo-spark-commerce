@@ -337,7 +337,8 @@ export async function compositeDesignOntoTemplate(
 
   // Clean design (remove solid edge bg if needed)
   const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
-  drawDesignWithUnderbase(ctx, cleanedDesignCanvas, w, h, isDarkGarment);
+  const preparedDesignCanvas = prepareDesignForCompositing(cleanedDesignCanvas);
+  drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment);
 
   return canvas.toDataURL("image/png");
 }
