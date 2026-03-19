@@ -118,7 +118,7 @@ function drawDesignWithUnderbase(
     if (underCtx) {
       underCtx.drawImage(designToDraw, 0, 0);
       underCtx.globalCompositeOperation = "source-in";
-      underCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
+      underCtx.fillStyle = "rgba(255, 255, 255, 0.25)";
       underCtx.fillRect(0, 0, underCanvas.width, underCanvas.height);
       underCtx.globalCompositeOperation = "source-over";
 
@@ -151,13 +151,21 @@ function enhanceDarkPixelsForDarkGarment(source: HTMLCanvasElement): HTMLCanvasE
     const b = data[i + 2];
     const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
-    // Lift only dark pixels so text/outlines don't disappear on black fabric.
-    if (luma < 0.42) {
-      const lift = Math.min(1, (0.42 - luma) / 0.42);
-      const blend = 0.72 * lift;
-      data[i] = Math.round(r * (1 - blend) + 245 * blend);
-      data[i + 1] = Math.round(g * (1 - blend) + 245 * blend);
-      data[i + 2] = Math.round(b * (1 - blend) + 245 * blend);
+    // Only lift near-NEUTRAL dark pixels (text outlines, black strokes).
+    // Leave chromatic/colorful dark pixels alone — they're intentional
+    // design colors (dark blue, purple, etc.) that are already visible
+    // through their chromaticity on dark garments.
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const saturation = max === 0 ? 0 : (max - min) / max;
+
+    if (luma < 0.18 && saturation < 0.15) {
+      // Only lift truly black/near-black neutral pixels
+      const lift = Math.min(1, (0.18 - luma) / 0.18);
+      const blend = 0.5 * lift;
+      data[i] = Math.round(r * (1 - blend) + 200 * blend);
+      data[i + 1] = Math.round(g * (1 - blend) + 200 * blend);
+      data[i + 2] = Math.round(b * (1 - blend) + 200 * blend);
       data[i + 3] = Math.max(alpha, Math.round(170 + 85 * lift));
     }
   }
