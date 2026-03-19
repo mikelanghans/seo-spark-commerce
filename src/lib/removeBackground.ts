@@ -127,13 +127,11 @@ export async function smartRemoveBackground(imageUrl: string): Promise<string> {
   const height = canvas.height;
   const totalPixels = width * height;
 
-  // 1. Check if already has significant transparency → return as-is
-  let transparentCount = 0;
-  for (let i = 0; i < totalPixels; i++) {
-    if (pixels[i * 4 + 3] < 250) transparentCount++;
-  }
-  if (transparentCount > totalPixels * 0.05) {
-    console.log("[smartRemoveBackground] Image already has transparency, skipping removal");
+  // 1. Check if the OUTER BORDER is already mostly transparent → return as-is
+  // (Don't use global transparency — designs with watercolor/splash art have internal
+  //  transparency but still need their rectangular background stripped.)
+  if (hasMostlyTransparentBorder(pixels, width, height)) {
+    console.log("[smartRemoveBackground] Border already transparent, skipping removal");
     return canvasToPngBase64(canvas);
   }
 
@@ -242,6 +240,39 @@ function sampleEdgeColorFromPixels(
 
   if (variance > 2500) return null;
   return { r, g, b };
+}
+
+/**
+ * Check if the outermost border of an image is already mostly transparent.
+ * This prevents skipping bg removal for designs that have internal transparency
+ * (e.g. watercolor splashes) but still have an opaque rectangular background.
+ */
+function hasMostlyTransparentBorder(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+): boolean {
+  let total = 0;
+  let transparent = 0;
+  const step = Math.max(1, Math.floor(Math.min(width, height) / 120));
+
+  for (let x = 0; x < width; x += step) {
+    const topIdx = x * 4 + 3;
+    const botIdx = ((height - 1) * width + x) * 4 + 3;
+    total += 2;
+    if (pixels[topIdx] < 20) transparent++;
+    if (pixels[botIdx] < 20) transparent++;
+  }
+  for (let y = 1; y < height - 1; y += step) {
+    const leftIdx = (y * width) * 4 + 3;
+    const rightIdx = (y * width + width - 1) * 4 + 3;
+    total += 2;
+    if (pixels[leftIdx] < 20) transparent++;
+    if (pixels[rightIdx] < 20) transparent++;
+  }
+
+  if (total === 0) return false;
+  return transparent / total > 0.65;
 }
 
 function cleanCheckerboardArtifacts(
