@@ -411,7 +411,16 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
 
     if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
-      lightDesignBase64 = await fetchAsBase64(designImageUrl);
+      try {
+        // Critical fallback when product_images has no design rows:
+        // force transparent PNG from the source design URL to avoid rectangular halos.
+        const cleanedBase64 = await smartRemoveBackground(designImageUrl);
+        lightDesignBase64 = ensureImageDataUrl(cleanedBase64);
+      } catch (err) {
+        console.warn("smartRemoveBackground fallback failed, using raw design URL:", err);
+        lightDesignBase64 = await fetchAsBase64(designImageUrl);
+      }
+
       if (!darkDesignBase64 && lightDesignBase64) {
         try {
           const multiColor = await isMultiColorDesign(lightDesignBase64);
