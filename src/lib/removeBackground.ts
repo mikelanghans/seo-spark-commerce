@@ -127,13 +127,11 @@ export async function smartRemoveBackground(imageUrl: string): Promise<string> {
   const height = canvas.height;
   const totalPixels = width * height;
 
-  // 1. Check if already has significant transparency → return as-is
-  let transparentCount = 0;
-  for (let i = 0; i < totalPixels; i++) {
-    if (pixels[i * 4 + 3] < 250) transparentCount++;
-  }
-  if (transparentCount > totalPixels * 0.05) {
-    console.log("[smartRemoveBackground] Image already has transparency, skipping removal");
+  // 1. Check if the OUTER BORDER is already mostly transparent → return as-is
+  // (Don't use global transparency — designs with watercolor/splash art have internal
+  //  transparency but still need their rectangular background stripped.)
+  if (hasMostlyTransparentBorder(pixels, width, height)) {
+    console.log("[smartRemoveBackground] Border already transparent, skipping removal");
     return canvasToPngBase64(canvas);
   }
 
