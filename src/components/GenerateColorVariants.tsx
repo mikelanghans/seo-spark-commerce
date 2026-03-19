@@ -13,7 +13,7 @@ import {
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign } from "@/lib/removeBackground";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
