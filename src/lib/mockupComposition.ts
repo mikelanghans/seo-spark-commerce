@@ -453,7 +453,7 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
 
   const srcImage = srcCtx.getImageData(0, 0, source.width, source.height);
   const srcData = srcImage.data;
-  const ALPHA_KEEP_THRESHOLD = 28;
+  const ALPHA_KEEP_THRESHOLD = 10;
 
   // 1) Drop ultra-faint alpha haze that creates square/box artifacts.
   for (let i = 0; i < srcData.length; i += 4) {
