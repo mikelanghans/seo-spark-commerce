@@ -618,8 +618,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
                   }`}>
                     {isSelected && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
                   </div>
-                  <span className="text-xs font-medium flex-1">
-                    {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1 text-muted-foreground" />}
+                  <span className="text-xs font-medium flex-1 flex items-center gap-1.5">
+                    {isExisting && <CheckCircle2 className="inline h-3 w-3 text-muted-foreground" />}
+                    <span
+                      className="inline-block h-3.5 w-3.5 rounded-full border border-border shrink-0"
+                      style={{ backgroundColor: COLOR_HEX[rec.color.toLowerCase()] || "#ccc" }}
+                    />
                     {rec.color}
                   </span>
                   <span className="text-[10px] text-muted-foreground">{rec.reason}</span>
