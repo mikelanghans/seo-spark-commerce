@@ -690,7 +690,11 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       {colors.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {colors.map((c) => (
-            <span key={c} className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span key={c} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-primary/30 shrink-0"
+                style={{ backgroundColor: COLOR_HEX[c.toLowerCase()] || "#ccc" }}
+              />
               {c}
               {!generating && (
                 <button onClick={() => removeColor(c)} className="ml-0.5 hover:text-destructive">
