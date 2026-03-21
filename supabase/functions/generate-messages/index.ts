@@ -172,7 +172,7 @@ Make each one distinct in style and energy. Some funny, some surprisingly deep, 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: "You are a creative copywriter. You MUST call the generate_messages function with your output." },
           { role: "user", content: prompt },

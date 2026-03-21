@@ -41,6 +41,24 @@ const SUGGESTED_COLORS = [
   "Crimson", "Espresso", "Midnight", "Sage", "Chambray",
 ];
 
+const COLOR_HEX: Record<string, string> = {
+  black: "#1a1a1a",
+  white: "#f5f5f0",
+  "true navy": "#1e2d4a",
+  red: "#b22234",
+  moss: "#5a6e3c",
+  grey: "#9a9a96",
+  "blue jean": "#6b8cae",
+  pepper: "#3d3a38",
+  "island green": "#5a9e8f",
+  ivory: "#f0e8d8",
+  crimson: "#8b1a2b",
+  espresso: "#3b2a20",
+  midnight: "#1a1a2e",
+  sage: "#a3b09e",
+  chambray: "#8ba3c4",
+};
+
 interface ColorRecommendation {
   color: string;
   reason: string;
@@ -600,8 +618,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
                   }`}>
                     {isSelected && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
                   </div>
-                  <span className="text-xs font-medium flex-1">
-                    {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1 text-muted-foreground" />}
+                  <span className="text-xs font-medium flex-1 flex items-center gap-1.5">
+                    {isExisting && <CheckCircle2 className="inline h-3 w-3 text-muted-foreground" />}
+                    <span
+                      className="inline-block h-3.5 w-3.5 rounded-full border border-border shrink-0"
+                      style={{ backgroundColor: COLOR_HEX[rec.color.toLowerCase()] || "#ccc" }}
+                    />
                     {rec.color}
                   </span>
                   <span className="text-[10px] text-muted-foreground">{rec.reason}</span>
@@ -628,7 +650,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
               type="button"
               onClick={() => isSelected ? removeColor(color) : addColor(color)}
               disabled={generating}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 isSelected
                   ? isExisting
                     ? "bg-primary/70 text-primary-foreground"
@@ -639,6 +661,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
               }`}
             >
               {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1" />}
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-white/30 shrink-0"
+                style={{ backgroundColor: COLOR_HEX[color.toLowerCase()] || "#ccc" }}
+              />
               {color}
             </button>
           );
@@ -664,7 +690,11 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       {colors.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {colors.map((c) => (
-            <span key={c} className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span key={c} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-primary/30 shrink-0"
+                style={{ backgroundColor: COLOR_HEX[c.toLowerCase()] || "#ccc" }}
+              />
               {c}
               {!generating && (
                 <button onClick={() => removeColor(c)} className="ml-0.5 hover:text-destructive">

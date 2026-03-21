@@ -73,7 +73,7 @@ For EACH marketplace listing, also generate:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: "You are an expert e-commerce SEO copywriter. You MUST call the generate_listings function with your output." },
           { role: "user", content: prompt }
