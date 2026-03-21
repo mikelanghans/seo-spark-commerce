@@ -56,7 +56,7 @@ For each color, provide a brief reason specific to THIS design (reference its co
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: "You are a merchandising expert. You MUST call the recommend_colors function. Always include Black and White. Return 6-8 total colors. When a design image is provided, your recommendations MUST be specifically tailored to that design's visual characteristics." },
           { role: "user", content: designImageBase64 ? userContent : prompt },
