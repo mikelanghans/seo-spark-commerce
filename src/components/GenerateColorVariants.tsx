@@ -650,7 +650,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
               type="button"
               onClick={() => isSelected ? removeColor(color) : addColor(color)}
               disabled={generating}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1.5 ${
                 isSelected
                   ? isExisting
                     ? "bg-primary/70 text-primary-foreground"
