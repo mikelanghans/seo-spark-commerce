@@ -41,6 +41,24 @@ const SUGGESTED_COLORS = [
   "Crimson", "Espresso", "Midnight", "Sage", "Chambray",
 ];
 
+const COLOR_HEX: Record<string, string> = {
+  black: "#1a1a1a",
+  white: "#f5f5f0",
+  "true navy": "#1e2d4a",
+  red: "#b22234",
+  moss: "#5a6e3c",
+  grey: "#9a9a96",
+  "blue jean": "#6b8cae",
+  pepper: "#3d3a38",
+  "island green": "#5a9e8f",
+  ivory: "#f0e8d8",
+  crimson: "#8b1a2b",
+  espresso: "#3b2a20",
+  midnight: "#1a1a2e",
+  sage: "#a3b09e",
+  chambray: "#8ba3c4",
+};
+
 interface ColorRecommendation {
   color: string;
   reason: string;
