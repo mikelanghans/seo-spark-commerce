@@ -59,7 +59,7 @@ Each post must feel native to its platform. Hashtags should be platform-appropri
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: "You are an expert social media marketer. You MUST call the generate_social_posts function with your output." },
           { role: "user", content: prompt },
