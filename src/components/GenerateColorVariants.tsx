@@ -661,6 +661,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
               }`}
             >
               {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1" />}
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-white/30 shrink-0"
+                style={{ backgroundColor: COLOR_HEX[color.toLowerCase()] || "#ccc" }}
+              />
               {color}
             </button>
           );
