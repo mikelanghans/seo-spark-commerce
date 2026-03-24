@@ -1776,10 +1776,12 @@ const Dashboard = () => {
                 <TabsTrigger value="listings" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Package className="h-3.5 w-3.5" />
                   Listings
+                  {!canAccess(subscription.tier, "ai-listings") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="push" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Store className="h-3.5 w-3.5" />
                   Push
+                  {!canAccess(subscription.tier, "marketplace-push") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
               </TabsList>
 
