@@ -97,15 +97,23 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
         {tiers.map(({ key, icon: Icon, features, equivalents }) => {
           const config = TIER_CONFIG[key];
           const isCurrent = currentTier === key;
+          const isRecommended = key === "starter";
           return (
             <div
               key={key}
               className={`relative flex flex-col rounded-lg border p-5 transition-all ${
                 isCurrent
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : isRecommended
+                  ? "border-primary/50 bg-primary/[0.03] ring-1 ring-primary/10"
                   : "border-border bg-card hover:border-primary/30"
               }`}
             >
+              {isRecommended && !isCurrent && (
+                <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+                  Most Popular
+                </span>
+              )}
               {isCurrent && (
                 <span className="absolute -top-2.5 left-3 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
                   {isFf ? "F&F" : "Current"}
