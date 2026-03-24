@@ -32,7 +32,7 @@ import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon,
 } from "lucide-react";
 import { toast } from "sonner";
-import brandAuraLogo from "@/assets/brand-aura-logo.png";
+import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
@@ -825,7 +825,8 @@ const Dashboard = () => {
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={brandAuraLogo} alt="Brand Aura" className="h-14 object-contain" />
+            <img src={brandAuraIcon} alt="Brand Aura" className="h-10 w-10 object-contain" />
+            <span className="text-xl font-bold tracking-tight text-foreground">Brand Aura</span>
           </div>
           <div className="flex items-center gap-3">
             {selectedOrg && (
