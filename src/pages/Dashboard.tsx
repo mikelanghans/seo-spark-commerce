@@ -1245,11 +1245,19 @@ const Dashboard = () => {
                       <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2">
                         <Plus className="h-4 w-4" /> Add Manually
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setView("bulk-upload")} className="gap-2">
+                      <DropdownMenuItem onClick={() => {
+                        if (canAccess(subscription.tier, "bulk-upload")) {
+                          setView("bulk-upload");
+                        } else {
+                          toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } });
+                        }
+                      }} className="gap-2">
                         <Upload className="h-4 w-4" /> AI from Images / CSV
+                        {!canAccess(subscription.tier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
+                        {!canAccess(subscription.tier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
