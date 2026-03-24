@@ -1959,6 +1959,14 @@ const Dashboard = () => {
             <div className="rounded-xl border border-border bg-card p-6">
               <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
             </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <SupportForm
+                userId={user.id}
+                userEmail={user.email || ""}
+                tier={subscription.tier}
+                organizationId={selectedOrg?.id}
+              />
+            </div>
           </div>
         )}
         {view === "autopilot" && selectedOrg && (
