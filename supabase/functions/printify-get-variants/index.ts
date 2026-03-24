@@ -24,11 +24,25 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
-    if (!printifyToken) throw new Error("Printify API token not configured");
-
-    const { blueprintId } = await req.json();
+    const { blueprintId, organizationId } = await req.json();
     const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
+
+    // Try org-level token first, then fall back to env var
+    let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
+    if (organizationId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: org } = await adminClient
+        .from("organizations")
+        .select("printify_api_token")
+        .eq("id", organizationId)
+        .single();
+      if (org?.printify_api_token) printifyToken = org.printify_api_token;
+    }
+
+    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
 
     // Get print providers
     const providersRes = await fetch(
@@ -56,7 +70,6 @@ serve(async (req) => {
     const variantsData = await variantsRes.json();
     const allVariants = variantsData.variants || [];
 
-    // Parse printing specs for print area dimensions (schema differs by provider)
     let printAreaSpecs: any = null;
     if (printingRes.ok) {
       const printingData = await printingRes.json();
@@ -80,7 +93,6 @@ serve(async (req) => {
       }
     }
 
-    // Extract unique colors and sizes
     const colorsSet = new Map<string, number>();
     const sizesSet = new Set<string>();
     for (const v of allVariants) {

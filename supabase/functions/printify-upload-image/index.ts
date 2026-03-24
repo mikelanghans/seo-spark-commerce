@@ -22,21 +22,33 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
-    if (!printifyToken) throw new Error("Printify API token not configured");
-
-    const { imageUrl, fileName, base64Contents } = await req.json();
+    const { imageUrl, fileName, base64Contents, organizationId } = await req.json();
     if (!imageUrl && !base64Contents) throw new Error("imageUrl or base64Contents is required");
+
+    // Try org-level token first, then fall back to env var
+    let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
+    if (organizationId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: org } = await adminClient
+        .from("organizations")
+        .select("printify_api_token")
+        .eq("id", organizationId)
+        .single();
+      if (org?.printify_api_token) printifyToken = org.printify_api_token;
+    }
+
+    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
 
     let uploadBody: any;
     if (base64Contents) {
-      // Upload via base64 (used for client-processed transparent PNGs)
       uploadBody = {
         file_name: fileName || "design.png",
         contents: base64Contents,
       };
     } else {
-      // Upload via URL (default, no processing)
       uploadBody = {
         file_name: fileName || "design.png",
         url: imageUrl,

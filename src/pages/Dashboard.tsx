@@ -295,8 +295,9 @@ const Dashboard = () => {
   const loadPrintifyShops = async () => {
     setLoadingPrintifyShops(true);
     try {
-      const { data } = await supabase.functions.invoke("printify-get-shops");
-      setPrintifyShops(data?.shops || []);
+      const { data } = await supabase.functions.invoke("printify-get-shops", {
+        body: { organizationId: selectedOrg?.id },
+      });
     } catch { /* silent */ }
     setLoadingPrintifyShops(false);
   };
@@ -1106,7 +1107,9 @@ const Dashboard = () => {
                   <Button type="button" variant="outline" size="sm" onClick={async () => {
                     setLoadingPrintifyShops(true);
                     try {
-                      const { data } = await supabase.functions.invoke("printify-get-shops");
+                      const { data } = await supabase.functions.invoke("printify-get-shops", {
+                        body: { organizationId: selectedOrg?.id },
+                      });
                       setPrintifyShops(data?.shops || []);
                     } catch { /* silent */ }
                     setLoadingPrintifyShops(false);
@@ -1885,6 +1888,7 @@ const Dashboard = () => {
                             tags: l.tags as string[],
                           }))}
                           userId={user!.id}
+                          organizationId={selectedOrg?.id}
                           onProductUpdate={(updates) => {
                             setSelectedProduct((prev) => prev ? { ...prev, ...updates } : prev);
                             setProducts((prev) => prev.map((p) => p.id === selectedProduct.id ? { ...p, ...updates } : p));
@@ -1937,7 +1941,7 @@ const Dashboard = () => {
               <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <MarketplaceSettings userId={user.id} />
+              <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />

@@ -22,8 +22,24 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
-    if (!printifyToken) throw new Error("Printify API token not configured");
+    const { organizationId } = await req.json().catch(() => ({}));
+
+    // Try org-level token first, then fall back to env var
+    let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
+    if (organizationId) {
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: org } = await adminClient
+        .from("organizations")
+        .select("printify_api_token")
+        .eq("id", organizationId)
+        .single();
+      if (org?.printify_api_token) printifyToken = org.printify_api_token;
+    }
+
+    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
 
     const res = await fetch("https://api.printify.com/v1/shops.json", {
       headers: { Authorization: `Bearer ${printifyToken}` },
