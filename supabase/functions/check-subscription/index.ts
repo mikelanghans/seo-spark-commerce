@@ -9,8 +9,8 @@ const corsHeaders = {
 };
 
 const TIERS: Record<string, { name: string; credits: number }> = {
-  prod_UD3S6uDlK4MVKO: { name: "starter", credits: 200 },
-  prod_UD3SXkUfbBbDNn: { name: "pro", credits: 1000 },
+  prod_UD3S6uDlK4MVKO: { name: "starter", credits: 175 },
+  prod_UD3SXkUfbBbDNn: { name: "pro", credits: 700 },
 };
 
 serve(async (req) => {
@@ -42,8 +42,8 @@ serve(async (req) => {
 
     if (ffRedemption) {
       const tierInfo = ffRedemption.tier === "pro"
-        ? { name: "pro", credits: 1000 }
-        : { name: "starter", credits: 200 };
+        ? { name: "pro", credits: 700 }
+        : { name: "starter", credits: 175 };
       return new Response(JSON.stringify({
         subscribed: true,
         tier: tierInfo.name,
@@ -64,7 +64,7 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       return new Response(JSON.stringify({
-        subscribed: false, tier: "free", credits_limit: 50,
+        subscribed: false, tier: "free", credits_limit: 40,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,7 +77,7 @@ serve(async (req) => {
 
     if (subscriptions.data.length === 0) {
       return new Response(JSON.stringify({
-        subscribed: false, tier: "free", credits_limit: 50,
+        subscribed: false, tier: "free", credits_limit: 40,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -85,7 +85,7 @@ serve(async (req) => {
 
     const sub = subscriptions.data[0];
     const productId = sub.items.data[0].price.product as string;
-    const tierInfo = TIERS[productId] || { name: "starter", credits: 200 };
+    const tierInfo = TIERS[productId] || { name: "starter", credits: 175 };
 
     return new Response(JSON.stringify({
       subscribed: true,

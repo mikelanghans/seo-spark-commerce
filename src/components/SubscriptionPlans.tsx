@@ -70,9 +70,9 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
   };
 
   const tiers = [
-    { key: "free" as const, icon: Sparkles, features: ["50 AI credits/month", "Basic features"] },
-    { key: "starter" as const, icon: Zap, features: ["200 AI credits/month", "All features", "Email support"] },
-    { key: "pro" as const, icon: Crown, features: ["1,000 AI credits/month", "All features", "Shopify sync", "Priority support"] },
+    { key: "free" as const, icon: Sparkles, features: ["40 AI credits/month", "Limited features"] },
+    { key: "starter" as const, icon: Zap, features: ["175 AI credits/month", "All core features", "Email support"] },
+    { key: "pro" as const, icon: Crown, features: ["700 AI credits/month", "All features", "Shopify sync", "Priority support"] },
   ];
 
   return (
