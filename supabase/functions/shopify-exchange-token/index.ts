@@ -16,6 +16,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const clientId = Deno.env.get("SHOPIFY_CLIENT_ID")!;
+    const clientSecret = Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
@@ -26,28 +28,27 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { code, organizationId } = await req.json();
     if (!code) throw new Error("Missing authorization code");
+
     let connQuery = adminClient
       .from("shopify_connections")
-      .select("id, store_domain, client_id, client_secret")
+      .select("id, store_domain")
       .eq("user_id", user.id);
     if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
     const { data: connection, error: connError } = await connQuery.maybeSingle();
 
-    if (connError || !connection?.client_id || !connection?.client_secret) {
-      throw new Error("No Shopify connection with credentials found.");
+    if (connError || !connection) {
+      throw new Error("No Shopify connection found.");
     }
-
-
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-    // Exchange the authorization code for an access token
+    // Exchange the authorization code for an access token using shared app credentials
     const tokenResponse = await fetch(`https://${domain}/admin/oauth/access_token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_id: connection.client_id,
-        client_secret: connection.client_secret,
+        client_id: clientId,
+        client_secret: clientSecret,
         code,
       }),
     });
