@@ -25,15 +25,30 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
-    if (!printifyToken) throw new Error("Printify API token not configured");
-
     const {
       shopId, title, description, tags, printifyImageId,
       darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price,
       blueprintId, printProviderId, productId, printifyProductId,
+      organizationId,
     } = await req.json();
+
+    // Try org-level token first, then fall back to env var
+    let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
+    if (organizationId) {
+      const tokenLookup = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: org } = await tokenLookup
+        .from("organizations")
+        .select("printify_api_token")
+        .eq("id", organizationId)
+        .single();
+      if (org?.printify_api_token) printifyToken = org.printify_api_token;
+    }
+
+    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
 
     if (!shopId || !title || !printifyImageId) {
       throw new Error("shopId, title, and printifyImageId are required");
