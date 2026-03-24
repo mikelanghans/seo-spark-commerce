@@ -159,30 +159,78 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
   };
 
-  const saveEtsy = async () => {
-    if (!etsyApiKey.trim() || !etsyShopId.trim()) {
-      toast.error("API key and Shop ID are required");
-      return;
-    }
+  const connectEtsy = async () => {
     setSavingEtsy(true);
     try {
-      if (etsyConn) {
-        const { error } = await supabase
-          .from("etsy_connections")
-          .update({ api_key: etsyApiKey, shop_id: etsyShopId, shop_name: etsyShopName || etsyShopId, updated_at: new Date().toISOString() } as any)
-          .eq("id", etsyConn.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("etsy_connections")
-          .insert({ user_id: userId, api_key: etsyApiKey, shop_id: etsyShopId, shop_name: etsyShopName || etsyShopId } as any);
-        if (error) throw error;
-      }
-      toast.success("Etsy connection saved!");
-      loadConnections();
+      // Generate PKCE code_verifier and code_challenge
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      const codeVerifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(codeVerifier);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+      // Store verifier for later token exchange
+      localStorage.setItem("etsy_code_verifier", codeVerifier);
+
+      const clientId = "3ww8h9ip1bp9fhtwcwqa123b";
+      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback`;
+      const scopes = "shops_r%20shops_w%20listings_r%20listings_w";
+      const state = encodeURIComponent(window.location.origin);
+
+      const authUrl = `https://www.etsy.com/oauth/connect?response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&client_id=${clientId}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+
+      const popup = window.open(authUrl, "etsy-oauth", "width=600,height=700");
+
+      const handler = async (e: MessageEvent) => {
+        if (e.data?.type !== "etsy-oauth") return;
+        window.removeEventListener("message", handler);
+
+        if (e.data.error) {
+          toast.error("Etsy authorization failed");
+          setSavingEtsy(false);
+          return;
+        }
+
+        try {
+          const storedVerifier = localStorage.getItem("etsy_code_verifier");
+          localStorage.removeItem("etsy_code_verifier");
+
+          const { data: result, error } = await supabase.functions.invoke("etsy-exchange-token", {
+            body: {
+              code: e.data.code,
+              codeVerifier: storedVerifier,
+              redirectUri,
+            },
+          });
+
+          if (error) throw error;
+          if (result?.error) throw new Error(result.error);
+
+          toast.success(`Etsy connected! ${result.shopName ? `Shop: ${result.shopName}` : ""}`);
+          loadConnections();
+        } catch (err: any) {
+          toast.error(err.message || "Failed to connect Etsy");
+        } finally {
+          setSavingEtsy(false);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      // Fallback if popup is closed without completing
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          setSavingEtsy(false);
+        }
+      }, 1000);
     } catch (e: any) {
-      toast.error(e.message || "Failed to save");
-    } finally {
+      toast.error(e.message || "Failed to start Etsy OAuth");
       setSavingEtsy(false);
     }
   };
@@ -339,33 +387,16 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         {etsyConn ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            <p>API Key: <span className="text-foreground font-mono text-xs">{etsyConn.api_key.slice(0, 8)}…</span></p>
+            <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your Etsy shop to push AI-generated listings directly.
-              <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary ml-1">
-                Get API key <ExternalLink className="h-3 w-3" />
-              </a>
+              Connect your Etsy shop to push AI-generated listings directly. Click below to authorize via Etsy.
             </p>
-            <div className="grid gap-3">
-              <div>
-                <Label>API Key (Keystring)</Label>
-                <Input value={etsyApiKey} onChange={(e) => setEtsyApiKey(e.target.value)} placeholder="Your Etsy API keystring" />
-              </div>
-              <div>
-                <Label>Shop ID</Label>
-                <Input value={etsyShopId} onChange={(e) => setEtsyShopId(e.target.value)} placeholder="e.g. 12345678 or YourShopName" />
-              </div>
-              <div>
-                <Label>Shop Name (optional)</Label>
-                <Input value={etsyShopName} onChange={(e) => setEtsyShopName(e.target.value)} placeholder="Display name for your shop" />
-              </div>
-            </div>
-            <Button onClick={saveEtsy} disabled={savingEtsy} className="gap-2">
-              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Connect Etsy
+            <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
+              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+              {savingEtsy ? "Connecting..." : "Connect Etsy Shop"}
             </Button>
           </div>
         )}
