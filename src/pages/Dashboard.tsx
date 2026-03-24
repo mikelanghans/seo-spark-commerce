@@ -1993,7 +1993,11 @@ const Dashboard = () => {
               <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+              {canAccess(subscription.tier, "team-collaboration") ? (
+                <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+              ) : (
+                <UpgradePrompt feature="team-collaboration" onUpgrade={() => {}} />
+              )}
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SupportForm
