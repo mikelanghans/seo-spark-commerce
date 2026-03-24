@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import brandAuraIcon from "@/assets/brand-aura-icon.png";
+import brandAuraLogo from "@/assets/brand-aura-logo.png";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="space-y-4 print:break-inside-avoid">
@@ -38,7 +38,7 @@ const Features = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-7 w-7" />
+            <img src={brandAuraLogo} alt="Brand Aura" className="h-8 object-contain" />
             <h1 className="text-lg font-bold">Feature Guide</h1>
           </div>
           <Button onClick={handlePrint} className="gap-2">
