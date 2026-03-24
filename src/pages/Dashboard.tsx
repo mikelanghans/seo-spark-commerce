@@ -148,6 +148,13 @@ const Dashboard = () => {
       
       const params = new URLSearchParams(window.location.search);
 
+      // Handle subscription activation redirect
+      if (params.get("subscription_activated")) {
+        window.history.replaceState({}, "", window.location.pathname);
+        toast.success("Subscription activated! Your plan has been upgraded.");
+        subscription.refresh();
+      }
+
       // Handle credit purchase redirect
       const creditsPurchased = params.get("credits_purchased");
       if (creditsPurchased) {
@@ -155,7 +162,6 @@ const Dashboard = () => {
         const credits = parseInt(creditsPurchased, 10);
         if (credits > 0) {
           toast.success(`Payment received! ${credits} AI credits are being added to your account.`);
-          // Poll for credits to appear (webhook may take a moment)
           const pollCredits = (attempts = 0) => {
             setTimeout(() => {
               aiUsage.refetch();
