@@ -107,10 +107,55 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           has_token: !!d.access_token,
         });
       }
+
+      if ((orgRes as any)?.data?.printify_api_token) {
+        setPrintifyHasToken(true);
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to load connections");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const savePrintify = async () => {
+    if (!printifyToken.trim()) {
+      toast.error("Printify API token is required");
+      return;
+    }
+    if (!organizationId) {
+      toast.error("No brand selected");
+      return;
+    }
+    setSavingPrintify(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ printify_api_token: printifyToken } as any)
+        .eq("id", organizationId);
+      if (error) throw error;
+      setPrintifyHasToken(true);
+      setPrintifyToken("");
+      toast.success("Printify token saved!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSavingPrintify(false);
+    }
+  };
+
+  const disconnectPrintify = async () => {
+    if (!organizationId) return;
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ printify_api_token: "" } as any)
+        .eq("id", organizationId);
+      if (error) throw error;
+      setPrintifyHasToken(false);
+      toast.success("Printify disconnected");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to disconnect");
     }
   };
 
