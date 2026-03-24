@@ -92,9 +92,30 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
         user_id: userId,
         function_name: functionName,
       });
-      setUsedCount((prev) => prev + 1);
+
+      setUsedCount((prev) => {
+        const newUsed = prev + 1;
+        const limit = tierLimit + purchasedCredits;
+        const left = Math.max(0, limit - newUsed);
+
+        if (left === 0) {
+          toast.warning("You've used all your AI credits!", {
+            description: "Purchase more credits or upgrade your plan to continue.",
+            duration: 8000,
+          });
+        } else if (left <= 3) {
+          toast.warning(`Only ${left} AI credit${left === 1 ? "" : "s"} remaining`, {
+            description: "Consider topping up soon.",
+            duration: 5000,
+          });
+        } else if (left <= 10) {
+          toast.info(`${left} AI credits remaining`, { duration: 3000 });
+        }
+
+        return newUsed;
+      });
     },
-    [userId, organizationId]
+    [userId, organizationId, tierLimit, purchasedCredits]
   );
 
   return { usedCount, remaining, limit: totalLimit, canUseAi, loading, checkAndLog, logUsage, refetch: fetchUsage, purchasedCredits };
