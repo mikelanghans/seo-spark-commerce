@@ -4,10 +4,8 @@ import { toast } from "sonner";
 
 const FREE_TIER_LIMIT = 50;
 
-// TODO: Replace with your Polar checkout URL when ready
 const UPGRADE_URL = "https://polar.sh";
 
-/** Count AI usage this month for a specific user (across all orgs) */
 async function countUsageForUser(userId: string): Promise<number> {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -22,46 +20,59 @@ async function countUsageForUser(userId: string): Promise<number> {
   return count ?? 0;
 }
 
-/**
- * Per-user AI usage tracking.
- * Each user gets their own pool of FREE_TIER_LIMIT credits per month,
- * regardless of which brand they're working on.
- *
- * @param userId - The authenticated user's id
- * @param organizationId - The org for logging purposes (analytics)
- */
+async function getPurchasedCredits(userId: string): Promise<number> {
+  const { data } = await (supabase as any)
+    .from("user_credits")
+    .select("credits")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return data?.credits ?? 0;
+}
+
 export function useAiUsage(userId: string | null, organizationId?: string | null) {
   const [usedCount, setUsedCount] = useState(0);
+  const [purchasedCredits, setPurchasedCredits] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchUsage = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
-    const count = await countUsageForUser(userId);
+    const [count, purchased] = await Promise.all([
+      countUsageForUser(userId),
+      getPurchasedCredits(userId),
+    ]);
     setUsedCount(count);
+    setPurchasedCredits(purchased);
     setLoading(false);
   }, [userId]);
 
   useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
-  const canUseAi = usedCount < FREE_TIER_LIMIT;
-  const remaining = Math.max(0, FREE_TIER_LIMIT - usedCount);
+  const totalLimit = FREE_TIER_LIMIT + purchasedCredits;
+  const canUseAi = usedCount < totalLimit;
+  const remaining = Math.max(0, totalLimit - usedCount);
 
   const checkAndLog = useCallback(
     async (functionName: string, _userId: string): Promise<boolean> => {
       if (!userId) return false;
 
-      const count = await countUsageForUser(userId);
+      const [count, purchased] = await Promise.all([
+        countUsageForUser(userId),
+        getPurchasedCredits(userId),
+      ]);
+      const limit = FREE_TIER_LIMIT + purchased;
 
-      if (count >= FREE_TIER_LIMIT) {
+      if (count >= limit) {
         toast.error("AI generation limit reached", {
-          description: `You've used all ${FREE_TIER_LIMIT} free AI generations this month.`,
+          description: `You've used all ${limit} AI generations this month.`,
           duration: 8000,
           action: {
-            label: "Upgrade to Pro",
+            label: "Buy Credits",
             onClick: () => window.open(UPGRADE_URL, "_blank"),
           },
         });
         setUsedCount(count);
+        setPurchasedCredits(purchased);
         return false;
       }
 
@@ -84,5 +95,5 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
     [userId, organizationId]
   );
 
-  return { usedCount, remaining, limit: FREE_TIER_LIMIT, canUseAi, loading, checkAndLog, logUsage, refetch: fetchUsage };
+  return { usedCount, remaining, limit: totalLimit, canUseAi, loading, checkAndLog, logUsage, refetch: fetchUsage, purchasedCredits };
 }
