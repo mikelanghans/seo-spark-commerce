@@ -1941,7 +1941,7 @@ const Dashboard = () => {
               <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <MarketplaceSettings userId={user.id} />
+              <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />

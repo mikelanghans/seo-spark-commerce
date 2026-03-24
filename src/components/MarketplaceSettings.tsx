@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Trash2, ExternalLink, ShoppingBag, Package, Facebook } from "lucide-react";
+import { Loader2, Check, Trash2, ExternalLink, ShoppingBag, Package, Facebook, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
   userId: string;
+  organizationId?: string;
 }
 
 interface EtsyConn {
@@ -33,7 +34,7 @@ interface MetaConn {
   has_token: boolean;
 }
 
-export const MarketplaceSettings = ({ userId }: Props) => {
+export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
 
   // Etsy state
