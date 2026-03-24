@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import brandAuraLogo from "@/assets/brand-aura-logo.png";
+import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -44,7 +44,8 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-2">
-          <img src={brandAuraLogo} alt="Brand Aura" className="h-20 object-contain" />
+          <img src={brandAuraIcon} alt="Brand Aura" className="h-24 w-24 object-contain" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Brand Aura</h1>
           <p className="text-xs text-muted-foreground tracking-widest uppercase">AI-Powered Brand Studio</p>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
