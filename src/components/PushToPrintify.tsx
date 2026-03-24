@@ -194,7 +194,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       base64Contents = await upscaleBase64Png(base64Contents, 4500);
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
-        { body: { base64Contents, fileName: `${product.title}-design.png` } }
+        { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
       );
       if (uploadError) throw uploadError;
       if (uploadData?.error) throw new Error(uploadData.error);
@@ -216,7 +216,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
 
         const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
           "printify-upload-image",
-          { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png` } }
+          { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png`, organizationId } }
         );
 
         if (darkUploadError) throw darkUploadError;
@@ -258,6 +258,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           printifyProductId: product.printify_product_id,
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
+          organizationId,
         },
       });
 
