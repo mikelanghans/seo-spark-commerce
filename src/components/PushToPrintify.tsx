@@ -42,6 +42,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
+  organizationId?: string;
   onProductUpdate?: (updates: Partial<Product>) => void;
   printifyShopId?: number | null;
 }
@@ -64,7 +65,7 @@ const LIGHT_COLORS = new Set([
   "light green", "bay", "sage",
 ]);
 
-export const PushToPrintify = ({ product, listings, userId, onProductUpdate, printifyShopId }: Props) => {
+export const PushToPrintify = ({ product, listings, userId, organizationId, onProductUpdate, printifyShopId }: Props) => {
   const [open, setOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
@@ -81,7 +82,9 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
   const loadShops = async () => {
     setLoadingShops(true);
     try {
-      const { data, error } = await supabase.functions.invoke("printify-get-shops");
+      const { data, error } = await supabase.functions.invoke("printify-get-shops", {
+        body: { organizationId },
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setShops(data.shops || []);
@@ -102,7 +105,7 @@ export const PushToPrintify = ({ product, listings, userId, onProductUpdate, pri
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
-        body: { blueprintId: selectedProductType.blueprintId },
+        body: { blueprintId: selectedProductType.blueprintId, organizationId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
