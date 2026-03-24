@@ -78,33 +78,33 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-foreground">Subscription Plans</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {tiers.map(({ key, icon: Icon, features }) => {
           const config = TIER_CONFIG[key];
           const isCurrent = currentTier === key;
           return (
             <div
               key={key}
-              className={`relative rounded-lg border p-4 transition-all ${
+              className={`relative flex flex-col rounded-lg border p-5 transition-all ${
                 isCurrent
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                   : "border-border bg-card hover:border-primary/30"
               }`}
             >
               {isCurrent && (
-                <span className="absolute -top-2 left-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                <span className="absolute -top-2.5 left-3 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
                   {isFf ? "F&F" : "Current"}
                 </span>
               )}
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <Icon className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-foreground">{config.name}</span>
               </div>
-              <div className="text-lg font-bold text-foreground mb-2">{config.price}</div>
-              <ul className="space-y-1 mb-3">
+              <div className="text-2xl font-bold text-foreground mb-4">{config.price}</div>
+              <ul className="space-y-2 mb-auto pb-5">
                 {features.map((f) => (
-                  <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Check className="h-3 w-3 text-primary" />
+                  <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                     {f}
                   </li>
                 ))}
