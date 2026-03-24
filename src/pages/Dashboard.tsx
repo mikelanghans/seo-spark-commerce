@@ -1297,33 +1297,50 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="autopilot" forceMount className="mt-4 data-[state=inactive]:hidden">
-                <FullAutopilot
-                  organization={selectedOrg}
-                  userId={user!.id}
-                  onProductsCreated={() => {
-                    if (selectedOrg) loadProducts(selectedOrg.id);
-                  }}
-                />
-              </TabsContent>
+                {canAccess(subscription.tier, "autopilot") ? (
+                  <FullAutopilot
+                    organization={selectedOrg}
+                    userId={user!.id}
+                    onProductsCreated={() => {
+                      if (selectedOrg) loadProducts(selectedOrg.id);
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="autopilot" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
 
               <TabsContent value="social" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <SocialPostGenerator
-                    organization={selectedOrg}
-                    products={products}
-                    userId={user!.id}
-                    aiUsage={aiUsage}
-                  />
-                </div>
+                {canAccess(subscription.tier, "social-posts") ? (
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <SocialPostGenerator
+                      organization={selectedOrg}
+                      products={products}
+                      userId={user!.id}
+                      aiUsage={aiUsage}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="social-posts" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="calendar" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <ContentCalendar
-                    organizationId={selectedOrg.id}
-                    products={products}
-                  />
-                </div>
+                {canAccess(subscription.tier, "content-calendar") ? (
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <ContentCalendar
+                      organizationId={selectedOrg.id}
+                      products={products}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="content-calendar" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="sync" className="mt-4">
