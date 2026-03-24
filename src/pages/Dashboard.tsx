@@ -1895,7 +1895,9 @@ const Dashboard = () => {
 
               {/* Push Tab */}
               <TabsContent value="push" className="space-y-3">
-                {listings.length === 0 ? (
+                {!canAccess(subscription.tier, "marketplace-push") ? (
+                  <UpgradePrompt feature="marketplace-push" onUpgrade={() => setView("settings")} />
+                ) : listings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                     <p className="text-sm text-muted-foreground">Generate listings first before pushing to marketplaces</p>
                   </div>
