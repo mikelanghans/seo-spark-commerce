@@ -202,6 +202,65 @@ export type Database = {
         }
         Relationships: []
       }
+      ff_codes: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          id: string
+          max_uses: number
+          tier: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          id?: string
+          max_uses?: number
+          tier?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          id?: string
+          max_uses?: number
+          tier?: string
+        }
+        Relationships: []
+      }
+      ff_redemptions: {
+        Row: {
+          code_id: string
+          id: string
+          redeemed_at: string
+          tier: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          id?: string
+          redeemed_at?: string
+          tier?: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          id?: string
+          redeemed_at?: string
+          tier?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ff_redemptions_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "ff_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_messages: {
         Row: {
           created_at: string

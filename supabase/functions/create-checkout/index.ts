@@ -31,9 +31,8 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
-    const { pack } = await req.json();
-    const packInfo = CREDIT_PACKS[pack];
-    if (!packInfo) throw new Error("Invalid credit pack");
+    const body = await req.json();
+    const { pack, priceId, mode } = body;
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -45,18 +44,39 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: packInfo.priceId, quantity: 1 }],
-      mode: "payment",
-      success_url: `${req.headers.get("origin")}/?credits_purchased=${packInfo.credits}`,
-      cancel_url: `${req.headers.get("origin")}/`,
-      metadata: {
-        user_id: user.id,
-        credits: String(packInfo.credits),
-      },
-    });
+    let session;
+
+    if (mode === "subscription" && priceId) {
+      // Subscription checkout
+      session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        success_url: `${req.headers.get("origin")}/?subscription_activated=true`,
+        cancel_url: `${req.headers.get("origin")}/`,
+        metadata: { user_id: user.id },
+      });
+    } else if (pack) {
+      // Credit pack checkout
+      const packInfo = CREDIT_PACKS[pack];
+      if (!packInfo) throw new Error("Invalid credit pack");
+
+      session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : user.email,
+        line_items: [{ price: packInfo.priceId, quantity: 1 }],
+        mode: "payment",
+        success_url: `${req.headers.get("origin")}/?credits_purchased=${packInfo.credits}`,
+        cancel_url: `${req.headers.get("origin")}/`,
+        metadata: {
+          user_id: user.id,
+          credits: String(packInfo.credits),
+        },
+      });
+    } else {
+      throw new Error("Invalid checkout parameters");
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -4,8 +4,6 @@ import { toast } from "sonner";
 
 const FREE_TIER_LIMIT = 50;
 
-const UPGRADE_URL = "https://polar.sh";
-
 async function countUsageForUser(userId: string): Promise<number> {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -30,10 +28,12 @@ async function getPurchasedCredits(userId: string): Promise<number> {
   return data?.credits ?? 0;
 }
 
-export function useAiUsage(userId: string | null, organizationId?: string | null) {
+export function useAiUsage(userId: string | null, organizationId?: string | null, subscriptionCreditsLimit?: number) {
   const [usedCount, setUsedCount] = useState(0);
   const [purchasedCredits, setPurchasedCredits] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const tierLimit = subscriptionCreditsLimit ?? FREE_TIER_LIMIT;
 
   const fetchUsage = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
@@ -48,7 +48,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
 
   useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
-  const totalLimit = FREE_TIER_LIMIT + purchasedCredits;
+  const totalLimit = tierLimit + purchasedCredits;
   const canUseAi = usedCount < totalLimit;
   const remaining = Math.max(0, totalLimit - usedCount);
 
@@ -60,15 +60,17 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
         countUsageForUser(userId),
         getPurchasedCredits(userId),
       ]);
-      const limit = FREE_TIER_LIMIT + purchased;
+      const limit = tierLimit + purchased;
 
       if (count >= limit) {
         toast.error("AI generation limit reached", {
           description: `You've used all ${limit} AI generations this month.`,
           duration: 8000,
           action: {
-            label: "Buy Credits",
-            onClick: () => window.open(UPGRADE_URL, "_blank"),
+            label: "Upgrade",
+            onClick: () => {
+              // Scroll to subscription plans or open settings
+            },
           },
         });
         setUsedCount(count);
@@ -78,7 +80,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
 
       return true;
     },
-    [userId]
+    [userId, tierLimit]
   );
 
   const logUsage = useCallback(

@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
+import { useSubscription } from "@/hooks/useSubscription";
+import { SubscriptionPlans } from "@/components/SubscriptionPlans";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
@@ -136,7 +138,8 @@ const Dashboard = () => {
   const [pendingLightDesignUrl, setPendingLightDesignUrl] = useState<string | null>(null);
   const [pendingDarkDesignUrl, setPendingDarkDesignUrl] = useState<string | null>(null);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
-  const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null);
+  const subscription = useSubscription(user?.id ?? null);
+  const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
 
   useEffect(() => {
@@ -145,6 +148,13 @@ const Dashboard = () => {
       
       const params = new URLSearchParams(window.location.search);
 
+      // Handle subscription activation redirect
+      if (params.get("subscription_activated")) {
+        window.history.replaceState({}, "", window.location.pathname);
+        toast.success("Subscription activated! Your plan has been upgraded.");
+        subscription.refresh();
+      }
+
       // Handle credit purchase redirect
       const creditsPurchased = params.get("credits_purchased");
       if (creditsPurchased) {
@@ -152,7 +162,6 @@ const Dashboard = () => {
         const credits = parseInt(creditsPurchased, 10);
         if (credits > 0) {
           toast.success(`Payment received! ${credits} AI credits are being added to your account.`);
-          // Poll for credits to appear (webhook may take a moment)
           const pollCredits = (attempts = 0) => {
             setTimeout(() => {
               aiUsage.refetch();
@@ -1936,6 +1945,9 @@ const Dashboard = () => {
                 <h2 className="text-2xl font-bold">Settings</h2>
                 <p className="text-sm text-muted-foreground">Manage your connections, integrations and team</p>
               </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6">
+              <SubscriptionPlans currentTier={subscription.tier} isFf={subscription.isFf} onRefresh={subscription.refresh} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
