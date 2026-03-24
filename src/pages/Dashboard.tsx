@@ -825,7 +825,7 @@ const Dashboard = () => {
       <header className="border-b border-border/50 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={brandAuraLogo} alt="Brand Aura" className="h-10 object-contain" />
+            <img src={brandAuraLogo} alt="Brand Aura" className="h-14 object-contain" />
           </div>
           <div className="flex items-center gap-3">
             {selectedOrg && (
