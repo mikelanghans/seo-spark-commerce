@@ -143,8 +143,28 @@ const Dashboard = () => {
     if (user) {
       loadOrgs();
       
-      // Check for Shopify OAuth code in URL params or localStorage
       const params = new URLSearchParams(window.location.search);
+
+      // Handle credit purchase redirect
+      const creditsPurchased = params.get("credits_purchased");
+      if (creditsPurchased) {
+        window.history.replaceState({}, "", window.location.pathname);
+        const credits = parseInt(creditsPurchased, 10);
+        if (credits > 0) {
+          supabase.functions.invoke("verify-payment", {
+            body: { credits },
+          }).then(({ data, error }) => {
+            if (error || data?.error) {
+              toast.error("Could not verify payment. Please contact support.");
+            } else {
+              toast.success(`${credits} AI credits added to your account!`);
+              aiUsage.refetch();
+            }
+          });
+        }
+      }
+
+      // Check for Shopify OAuth code in URL params or localStorage
       let code = params.get("code");
       
       console.log("[Shopify OAuth] URL search:", window.location.search);
@@ -158,7 +178,6 @@ const Dashboard = () => {
           localStorage.removeItem("shopify_oauth_shop");
         }
       } else {
-        // Clean URL
         window.history.replaceState({}, "", window.location.pathname);
       }
       
