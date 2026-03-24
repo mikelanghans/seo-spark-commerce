@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const FREE_TIER_LIMIT = 50;
+const FREE_TIER_LIMIT = 40;
 
 async function countUsageForUser(userId: string): Promise<number> {
   const startOfMonth = new Date();
