@@ -73,19 +73,19 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
     {
       key: "free" as const,
       icon: Sparkles,
-      features: ["25 AI credits/month", "Limited features"],
+      features: ["25 AI credits/month", "Products & AI messages", "Basic design generation"],
       equivalents: ["~6 product generations", "~12 SEO descriptions", "~3 full workflows"],
     },
     {
       key: "starter" as const,
       icon: Zap,
-      features: ["175 AI credits/month", "All core features", "Email support"],
+      features: ["175 AI credits/month", "AI SEO listings", "Color variant mockups", "Social posts & calendar", "Bulk upload / CSV import", "24h email support"],
       equivalents: ["~40 product generations", "~80 SEO descriptions", "~25 full workflows"],
     },
     {
       key: "pro" as const,
       icon: Crown,
-      features: ["700 AI credits/month", "All features", "Shopify sync", "Priority support"],
+      features: ["700 AI credits/month", "Everything in Starter", "Autopilot pipeline", "Shopify sync & push", "Marketplace push (Etsy/eBay/Meta)", "Team collaboration", "12h priority support"],
       equivalents: ["~160 product generations", "~400+ outputs", "~100 full workflows"],
     },
   ];

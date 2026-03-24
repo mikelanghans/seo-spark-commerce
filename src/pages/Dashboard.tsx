@@ -29,8 +29,10 @@ import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
 import { SupportForm } from "@/components/SupportForm";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
@@ -1243,11 +1245,19 @@ const Dashboard = () => {
                       <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2">
                         <Plus className="h-4 w-4" /> Add Manually
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setView("bulk-upload")} className="gap-2">
+                      <DropdownMenuItem onClick={() => {
+                        if (canAccess(subscription.tier, "bulk-upload")) {
+                          setView("bulk-upload");
+                        } else {
+                          toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } });
+                        }
+                      }} className="gap-2">
                         <Upload className="h-4 w-4" /> AI from Images / CSV
+                        {!canAccess(subscription.tier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
+                        {!canAccess(subscription.tier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1265,12 +1275,15 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="autopilot" className="gap-2">
                   <Rocket className="h-4 w-4" /> Autopilot
+                  {!canAccess(subscription.tier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
+                  {!canAccess(subscription.tier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-2">
                   <CalendarDays className="h-4 w-4" /> Calendar
+                  {!canAccess(subscription.tier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
@@ -1292,33 +1305,51 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="autopilot" forceMount className="mt-4 data-[state=inactive]:hidden">
-                <FullAutopilot
-                  organization={selectedOrg}
-                  userId={user!.id}
-                  onProductsCreated={() => {
-                    if (selectedOrg) loadProducts(selectedOrg.id);
-                  }}
-                />
+                {canAccess(subscription.tier, "autopilot") ? (
+                  <FullAutopilot
+                    organization={selectedOrg}
+                    userId={user!.id}
+                    onProductsCreated={() => {
+                      if (selectedOrg) loadProducts(selectedOrg.id);
+                    }}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="autopilot" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="social" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <SocialPostGenerator
-                    organization={selectedOrg}
-                    products={products}
-                    userId={user!.id}
-                    aiUsage={aiUsage}
-                  />
-                </div>
+                {canAccess(subscription.tier, "social-posts") ? (
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <SocialPostGenerator
+                      organization={selectedOrg}
+                      products={products}
+                      userId={user!.id}
+                      aiUsage={aiUsage}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="social-posts" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="calendar" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <ContentCalendar
-                    organizationId={selectedOrg.id}
-                    products={products}
-                  />
-                </div>
+                {canAccess(subscription.tier, "content-calendar") ? (
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <ContentCalendar
+                      organizationId={selectedOrg.id}
+                      products={products}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card">
+                    <UpgradePrompt feature="content-calendar" onUpgrade={() => setView("settings")} />
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="sync" className="mt-4">
@@ -1745,10 +1776,12 @@ const Dashboard = () => {
                 <TabsTrigger value="listings" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Package className="h-3.5 w-3.5" />
                   Listings
+                  {!canAccess(subscription.tier, "ai-listings") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="push" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Store className="h-3.5 w-3.5" />
                   Push
+                  {!canAccess(subscription.tier, "marketplace-push") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
               </TabsList>
 
@@ -1761,8 +1794,9 @@ const Dashboard = () => {
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
-                {/* Marketplace Selection — only show enabled marketplaces */}
-                {(() => {
+                {!canAccess(subscription.tier, "ai-listings") ? (
+                  <UpgradePrompt feature="ai-listings" onUpgrade={() => setView("settings")} />
+                ) : (() => {
                   const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
                   return (
                     <>
@@ -1861,7 +1895,9 @@ const Dashboard = () => {
 
               {/* Push Tab */}
               <TabsContent value="push" className="space-y-3">
-                {listings.length === 0 ? (
+                {!canAccess(subscription.tier, "marketplace-push") ? (
+                  <UpgradePrompt feature="marketplace-push" onUpgrade={() => setView("settings")} />
+                ) : listings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
                     <p className="text-sm text-muted-foreground">Generate listings first before pushing to marketplaces</p>
                   </div>
@@ -1957,7 +1993,11 @@ const Dashboard = () => {
               <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+              {canAccess(subscription.tier, "team-collaboration") ? (
+                <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+              ) : (
+                <UpgradePrompt feature="team-collaboration" onUpgrade={() => {}} />
+              )}
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SupportForm
