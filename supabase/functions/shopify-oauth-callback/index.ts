@@ -16,26 +16,28 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const clientId = Deno.env.get("SHOPIFY_CLIENT_ID")!;
+    const clientSecret = Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Find the connection by store domain
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
-      .select("id, client_id, client_secret, user_id")
+      .select("id, user_id")
       .eq("store_domain", domain)
       .single();
 
-    if (connError || !connection?.client_id || !connection?.client_secret) {
+    if (connError || !connection) {
       throw new Error("No matching Shopify connection found for this store domain.");
     }
 
-    // Exchange the authorization code for an access token
+    // Exchange the authorization code for an access token using shared app credentials
     const tokenResponse = await fetch(`https://${domain}/admin/oauth/access_token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_id: connection.client_id,
-        client_secret: connection.client_secret,
+        client_id: clientId,
+        client_secret: clientSecret,
         code,
       }),
     });
