@@ -37,6 +37,11 @@ interface MetaConn {
 export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
 
+  // Printify state
+  const [printifyToken, setPrintifyToken] = useState("");
+  const [printifyHasToken, setPrintifyHasToken] = useState(false);
+  const [savingPrintify, setSavingPrintify] = useState(false);
+
   // Etsy state
   const [etsyConn, setEtsyConn] = useState<EtsyConn | null>(null);
   const [etsyApiKey, setEtsyApiKey] = useState("");
