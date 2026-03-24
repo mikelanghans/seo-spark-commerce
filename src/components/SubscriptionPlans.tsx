@@ -70,16 +70,31 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
   };
 
   const tiers = [
-    { key: "free" as const, icon: Sparkles, features: ["40 AI credits/month", "Limited features"] },
-    { key: "starter" as const, icon: Zap, features: ["175 AI credits/month", "All core features", "Email support"] },
-    { key: "pro" as const, icon: Crown, features: ["700 AI credits/month", "All features", "Shopify sync", "Priority support"] },
+    {
+      key: "free" as const,
+      icon: Sparkles,
+      features: ["40 AI credits/month", "Limited features"],
+      equivalents: ["~10 product generations", "~20 SEO descriptions", "~5 full workflows"],
+    },
+    {
+      key: "starter" as const,
+      icon: Zap,
+      features: ["175 AI credits/month", "All core features", "Email support"],
+      equivalents: ["~40 product generations", "~80 SEO descriptions", "~25 full workflows"],
+    },
+    {
+      key: "pro" as const,
+      icon: Crown,
+      features: ["700 AI credits/month", "All features", "Shopify sync", "Priority support"],
+      equivalents: ["~160 product generations", "~400+ outputs", "~100 full workflows"],
+    },
   ];
 
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-foreground">Subscription Plans</h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {tiers.map(({ key, icon: Icon, features }) => {
+        {tiers.map(({ key, icon: Icon, features, equivalents }) => {
           const config = TIER_CONFIG[key];
           const isCurrent = currentTier === key;
           return (
@@ -101,7 +116,7 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
                 <span className="font-semibold text-foreground">{config.name}</span>
               </div>
               <div className="text-2xl font-bold text-foreground mb-4">{config.price}</div>
-              <ul className="space-y-2 mb-auto pb-5">
+              <ul className="space-y-2 mb-3">
                 {features.map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Check className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -109,6 +124,12 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
                   </li>
                 ))}
               </ul>
+              <div className="rounded-lg bg-muted/50 border border-border/50 px-3 py-2.5 mb-auto pb-5 space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">That's roughly</p>
+                {equivalents.map((eq) => (
+                  <p key={eq} className="text-xs text-foreground/80">{eq}</p>
+                ))}
+              </div>
               {isCurrent ? (
                 currentTier !== "free" && !isFf ? (
                   <Button
