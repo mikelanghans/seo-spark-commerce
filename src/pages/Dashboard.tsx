@@ -1310,6 +1310,7 @@ const Dashboard = () => {
                     <UpgradePrompt feature="autopilot" onUpgrade={() => setView("settings")} />
                   </div>
                 )}
+              </TabsContent>
 
               <TabsContent value="social" className="mt-4">
                 {canAccess(subscription.tier, "social-posts") ? (
