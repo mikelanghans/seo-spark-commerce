@@ -444,8 +444,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             // Get shop ID — prefer brand-level mapping, fallback to first shop
             let shopId = organization.printify_shop_id;
             if (!shopId) {
-              const { data: shopsData } = await supabase.functions.invoke("printify-get-shops");
-              shopId = shopsData?.shops?.[0]?.id;
+              const { data: shopsData } = await supabase.functions.invoke("printify-get-shops", {
+                body: { organizationId: organization.id },
+              });
             }
             if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
@@ -454,7 +455,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             let base64Contents = await removeBackground(designUrl, "black");
             base64Contents = await upscaleBase64Png(base64Contents, 4500);
             const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {
-              body: { base64Contents, fileName: `${productTitle}-design.png` },
+              body: { base64Contents, fileName: `${productTitle}-design.png`, organizationId: organization.id },
             });
             if (uploadErr || uploadData?.error) throw new Error(uploadData?.error || uploadErr?.message);
             const printifyImageId = uploadData.image?.id;
@@ -463,13 +464,13 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             // Upload dark-ink variant for light-colored shirts
             const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
             const { data: darkUpload } = await supabase.functions.invoke("printify-upload-image", {
-              body: { base64Contents: darkBase64, fileName: `${productTitle}-dark-design.png` },
+              body: { base64Contents: darkBase64, fileName: `${productTitle}-dark-design.png`, organizationId: organization.id },
             });
             const darkPrintifyImageId = darkUpload?.image?.id || null;
 
             // Get print provider
             const { data: variantData } = await supabase.functions.invoke("printify-get-variants", {
-              body: { blueprintId: 706 },
+              body: { blueprintId: 706, organizationId: organization.id },
             });
             const printProviderId = variantData?.printProviderId;
 
@@ -496,6 +497,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 mockupImages: [],
                 productId,
                 printProviderId,
+                organizationId: organization.id,
               },
             });
 
