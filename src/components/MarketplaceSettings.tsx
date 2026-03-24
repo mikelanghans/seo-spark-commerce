@@ -68,10 +68,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const loadConnections = async () => {
     setLoading(true);
     try {
-      const [etsyRes, ebayRes, metaRes] = await Promise.all([
+      const [etsyRes, ebayRes, metaRes, orgRes] = await Promise.all([
         supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("meta_connections").select("*").eq("user_id", userId).maybeSingle(),
+        organizationId
+          ? supabase.from("organizations").select("printify_api_token").eq("id", organizationId).single()
+          : Promise.resolve({ data: null }),
       ]);
 
       if (etsyRes.data) {
