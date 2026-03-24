@@ -64,7 +64,7 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       return new Response(JSON.stringify({
-        subscribed: false, tier: "free", credits_limit: 40,
+        subscribed: false, tier: "free", credits_limit: 25,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,7 +77,7 @@ serve(async (req) => {
 
     if (subscriptions.data.length === 0) {
       return new Response(JSON.stringify({
-        subscribed: false, tier: "free", credits_limit: 40,
+        subscribed: false, tier: "free", credits_limit: 25,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

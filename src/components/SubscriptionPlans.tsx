@@ -73,8 +73,8 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
     {
       key: "free" as const,
       icon: Sparkles,
-      features: ["40 AI credits/month", "Limited features"],
-      equivalents: ["~10 product generations", "~20 SEO descriptions", "~5 full workflows"],
+      features: ["25 AI credits/month", "Limited features"],
+      equivalents: ["~6 product generations", "~12 SEO descriptions", "~3 full workflows"],
     },
     {
       key: "starter" as const,
