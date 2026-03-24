@@ -387,33 +387,16 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         {etsyConn ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            <p>API Key: <span className="text-foreground font-mono text-xs">{etsyConn.api_key.slice(0, 8)}…</span></p>
+            <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your Etsy shop to push AI-generated listings directly.
-              <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary ml-1">
-                Get API key <ExternalLink className="h-3 w-3" />
-              </a>
+              Connect your Etsy shop to push AI-generated listings directly. Click below to authorize via Etsy.
             </p>
-            <div className="grid gap-3">
-              <div>
-                <Label>API Key (Keystring)</Label>
-                <Input value={etsyApiKey} onChange={(e) => setEtsyApiKey(e.target.value)} placeholder="Your Etsy API keystring" />
-              </div>
-              <div>
-                <Label>Shop ID</Label>
-                <Input value={etsyShopId} onChange={(e) => setEtsyShopId(e.target.value)} placeholder="e.g. 12345678 or YourShopName" />
-              </div>
-              <div>
-                <Label>Shop Name (optional)</Label>
-                <Input value={etsyShopName} onChange={(e) => setEtsyShopName(e.target.value)} placeholder="Display name for your shop" />
-              </div>
-            </div>
-            <Button onClick={saveEtsy} disabled={savingEtsy} className="gap-2">
-              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Connect Etsy
+            <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
+              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+              {savingEtsy ? "Connecting..." : "Connect Etsy Shop"}
             </Button>
           </div>
         )}
