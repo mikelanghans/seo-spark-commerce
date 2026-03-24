@@ -65,7 +65,7 @@ export function SupportForm({ userId, userEmail, userName, tier, organizationId 
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <h4 className="font-semibold text-foreground">Request Received!</h4>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          We'll respond to <strong>{userEmail}</strong> within{" "}
+          We'll respond from <strong>support@syncopateddynamics.com</strong> within{" "}
           <strong>{responseTime.label}</strong>.
         </p>
         <Button
@@ -125,7 +125,7 @@ export function SupportForm({ userId, userEmail, userName, tier, organizationId 
         </div>
         <div className="flex items-center justify-between">
           <p className="text-[11px] text-muted-foreground">
-            We'll reply to {userEmail}
+            We'll reply from support@syncopateddynamics.com
           </p>
           <Button type="submit" size="sm" disabled={submitting || !subject.trim() || !message.trim()} className="gap-1.5">
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
