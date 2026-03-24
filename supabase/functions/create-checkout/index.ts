@@ -50,8 +50,8 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: packInfo.priceId, quantity: 1 }],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?credits_purchased=${packInfo.credits}`,
-      cancel_url: `${req.headers.get("origin")}/dashboard`,
+      success_url: `${req.headers.get("origin")}/?credits_purchased=${packInfo.credits}`,
+      cancel_url: `${req.headers.get("origin")}/`,
       metadata: {
         user_id: user.id,
         credits: String(packInfo.credits),
