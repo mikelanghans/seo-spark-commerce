@@ -29,6 +29,8 @@ import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
 import { SupportForm } from "@/components/SupportForm";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon,
 } from "lucide-react";
@@ -1265,12 +1267,15 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="autopilot" className="gap-2">
                   <Rocket className="h-4 w-4" /> Autopilot
+                  {!canAccess(subscription.tier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="social" className="gap-2">
                   <Share2 className="h-4 w-4" /> Social Posts
+                  {!canAccess(subscription.tier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-2">
                   <CalendarDays className="h-4 w-4" /> Calendar
+                  {!canAccess(subscription.tier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
