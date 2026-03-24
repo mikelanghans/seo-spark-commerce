@@ -1794,6 +1794,9 @@ const Dashboard = () => {
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
+                {!canAccess(subscription.tier, "ai-listings") ? (
+                  <UpgradePrompt feature="ai-listings" onUpgrade={() => setView("settings")} />
+                ) :
                 {/* Marketplace Selection — only show enabled marketplaces */}
                 {(() => {
                   const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
