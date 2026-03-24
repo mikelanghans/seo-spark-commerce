@@ -151,16 +151,15 @@ const Dashboard = () => {
         window.history.replaceState({}, "", window.location.pathname);
         const credits = parseInt(creditsPurchased, 10);
         if (credits > 0) {
-          supabase.functions.invoke("verify-payment", {
-            body: { credits },
-          }).then(({ data, error }) => {
-            if (error || data?.error) {
-              toast.error("Could not verify payment. Please contact support.");
-            } else {
-              toast.success(`${credits} AI credits added to your account!`);
+          toast.success(`Payment received! ${credits} AI credits are being added to your account.`);
+          // Poll for credits to appear (webhook may take a moment)
+          const pollCredits = (attempts = 0) => {
+            setTimeout(() => {
               aiUsage.refetch();
-            }
-          });
+              if (attempts < 5) pollCredits(attempts + 1);
+            }, 2000);
+          };
+          pollCredits();
         }
       }
 
