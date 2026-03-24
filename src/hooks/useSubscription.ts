@@ -12,7 +12,7 @@ export interface SubscriptionState {
 }
 
 export const TIER_CONFIG = {
-  free: { name: "Free", credits: 40, price: "$0" },
+  free: { name: "Free", credits: 25, price: "$0" },
   starter: { name: "Starter", credits: 175, price: "$9/mo", priceId: "price_1TEdLUJJmvlin3UXUBU44XE8", productId: "prod_UD3S6uDlK4MVKO" },
   pro: { name: "Pro", credits: 700, price: "$29/mo", priceId: "price_1TEdLrJJmvlin3UX00I7FbQX", productId: "prod_UD3SXkUfbBbDNn" },
 } as const;
@@ -21,7 +21,7 @@ export function useSubscription(userId: string | null) {
   const [state, setState] = useState<Omit<SubscriptionState, "refresh" | "loading">>({
     subscribed: false,
     tier: "free",
-    creditsLimit: 40,
+    creditsLimit: 25,
     subscriptionEnd: null,
     isFf: false,
   });
@@ -36,7 +36,7 @@ export function useSubscription(userId: string | null) {
       setState({
         subscribed: data.subscribed ?? false,
         tier: (data.tier as "free" | "starter" | "pro") ?? "free",
-        creditsLimit: data.credits_limit ?? 40,
+        creditsLimit: data.credits_limit ?? 25,
         subscriptionEnd: data.subscription_end ?? null,
         isFf: data.is_ff ?? false,
       });

@@ -33,7 +33,7 @@ const TOUR_STEPS: TourStep[] = [
     title: "Message Ideas (AI Designs)",
     description:
       "Generate marketing messages and AI designs for your products. Swipe right to keep a design, left to skip. Each message can get a matching promotional graphic generated automatically.",
-    tip: "Free accounts get 40 AI credits/month. Upgrade to Starter (175) or Pro (700) for more.",
+    tip: "Free accounts get 25 AI credits/month. Upgrade to Starter (175) or Pro (700) for more.",
   },
   {
     icon: <ImageIcon className="h-6 w-6" />,
