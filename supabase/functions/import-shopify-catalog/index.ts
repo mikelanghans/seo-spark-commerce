@@ -61,7 +61,7 @@ serve(async (req) => {
     let pageInfo: string | null = null;
 
     do {
-      let url = `https://${domain}/admin/api/2024-01/products.json?limit=50&fields=id,title,body_html,product_type,tags,handle,images,variants,status`;
+      let url = `https://${domain}/admin/api/2024-01/products.json?limit=50&status=active&fields=id,title,body_html,product_type,tags,handle,images,variants,status`;
       if (pageInfo) {
         url = `https://${domain}/admin/api/2024-01/products.json?limit=50&page_info=${pageInfo}`;
       }
