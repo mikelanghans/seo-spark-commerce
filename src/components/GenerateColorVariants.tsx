@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { supabase } from "@/integrations/supabase/client";
