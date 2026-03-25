@@ -121,6 +121,7 @@ const Dashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
