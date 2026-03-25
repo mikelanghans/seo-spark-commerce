@@ -101,7 +101,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const clientId = "c7c3d792101f944f3c3486949ff0bc05";
     const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
     const scopes = "read_products,write_products,read_files,write_files";
-    const state = encodeURIComponent(window.location.origin);
+    const statePayload = JSON.stringify({ origin: window.location.origin, organizationId: organizationId || null });
+    const state = encodeURIComponent(statePayload);
     return `https://${domain}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
   };
 

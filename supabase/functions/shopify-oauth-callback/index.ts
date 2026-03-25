@@ -6,7 +6,7 @@ serve(async (req) => {
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const shop = url.searchParams.get("shop");
-    const state = url.searchParams.get("state") || "";
+    const stateRaw = url.searchParams.get("state") || "";
 
     if (!code || !shop) {
       throw new Error("Missing code or shop parameter from Shopify");
@@ -14,24 +14,42 @@ serve(async (req) => {
 
     const domain = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
+    // Parse state - supports both legacy (plain origin string) and new JSON format
+    let origin = "";
+    let organizationId: string | null = null;
+    try {
+      const decoded = decodeURIComponent(stateRaw);
+      const parsed = JSON.parse(decoded);
+      origin = parsed.origin || "";
+      organizationId = parsed.organizationId || null;
+    } catch {
+      // Legacy format: state is just the origin string
+      origin = decodeURIComponent(stateRaw);
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const clientId = Deno.env.get("SHOPIFY_CLIENT_ID")!;
     const clientSecret = Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find the connection by store domain
-    const { data: connection, error: connError } = await adminClient
+    // Find the connection by store domain + organization_id for precision
+    let query = adminClient
       .from("shopify_connections")
       .select("id, user_id")
-      .eq("store_domain", domain)
-      .single();
+      .eq("store_domain", domain);
+
+    if (organizationId) {
+      query = query.eq("organization_id", organizationId);
+    }
+
+    const { data: connection, error: connError } = await query.maybeSingle();
 
     if (connError || !connection) {
       throw new Error("No matching Shopify connection found for this store domain.");
     }
 
-    // Exchange the authorization code for an access token using shared app credentials
+    // Exchange the authorization code for an access token
     const tokenResponse = await fetch(`https://${domain}/admin/oauth/access_token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -64,7 +82,6 @@ serve(async (req) => {
     if (updateError) throw updateError;
 
     // Return an HTML page that posts a message to the opener and closes itself
-    const origin = decodeURIComponent(state);
     const html = `<!DOCTYPE html>
 <html><head><title>Shopify Connected</title></head>
 <body>
