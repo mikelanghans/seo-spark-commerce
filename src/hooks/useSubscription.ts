@@ -30,6 +30,24 @@ export function useSubscription(userId: string | null) {
   const refresh = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
     try {
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (adminRole) {
+        setState({
+          subscribed: true,
+          tier: "pro",
+          creditsLimit: 700,
+          subscriptionEnd: null,
+          isFf: true,
+        });
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
