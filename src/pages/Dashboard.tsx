@@ -1020,7 +1020,10 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Shopify & Integrations">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => {
+              if (selectedOrg) setView("settings");
+              else toast.info("Select a brand first to access its settings.");
+            }} title={selectedOrg ? `${selectedOrg.name} Settings` : "Settings"}>
               <Settings className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
@@ -2237,12 +2240,12 @@ const Dashboard = () => {
         {view === "settings" && user && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setView("orgs")}>
+              <Button variant="ghost" size="icon" onClick={() => setView("products")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">Settings</h2>
-                <p className="text-sm text-muted-foreground">Manage your connections, integrations and team</p>
+                <h2 className="text-2xl font-bold">{selectedOrg?.name || "Brand"} Settings</h2>
+                <p className="text-sm text-muted-foreground">Connections, integrations & team for <strong>{selectedOrg?.name}</strong></p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
