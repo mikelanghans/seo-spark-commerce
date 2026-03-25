@@ -1,0 +1,2 @@
+ALTER TABLE public.shopify_connections DROP CONSTRAINT shopify_connections_user_id_key;
+ALTER TABLE public.shopify_connections ADD CONSTRAINT shopify_connections_user_org_unique UNIQUE (user_id, organization_id);
