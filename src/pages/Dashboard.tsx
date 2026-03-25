@@ -995,15 +995,17 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 px-6 py-4">
+      <header className="border-b border-border/50 px-3 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-10 w-10 object-contain" />
-            <span className="text-xl font-bold tracking-tight text-foreground">Brand Aura</span>
+          <div className="flex items-center gap-2">
+            <img src={brandAuraIcon} alt="Brand Aura" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground hidden xs:inline">Brand Aura</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             {selectedOrg && (
-              <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+              <div className="hidden sm:block">
+                <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+              </div>
             )}
             <NotificationBell
               notifications={notifs.notifications}
@@ -1013,25 +1015,25 @@ const Dashboard = () => {
               onDismiss={notifs.dismiss}
             />
             <OnboardingTrigger onClick={() => setShowTour(true)} />
-            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} title="Admin Console">
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/admin")} title="Admin Console">
                 <Shield className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" /> Sign Out
+            <Button variant="outline" size="sm" onClick={signOut} className="gap-2 h-8 sm:h-9 px-2 sm:px-3">
+              <LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
         {/* Organizations List */}
         {view === "orgs" && (
           <div className="space-y-6">
@@ -1051,12 +1053,12 @@ const Dashboard = () => {
                 }}
               />
             )}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold">Your Brands</h2>
-                <p className="text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
+                <h2 className="text-xl sm:text-2xl font-bold">Your Brands</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
               </div>
-              <Button onClick={() => setView("org-form")} className="gap-2">
+              <Button onClick={() => setView("org-form")} className="gap-2 self-start sm:self-auto">
                 <Plus className="h-4 w-4" /> New Brand
               </Button>
             </div>
@@ -1409,12 +1411,12 @@ const Dashboard = () => {
         {/* Products List */}
         {view === "products" && selectedOrg && (
           <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => { setView("orgs"); setSelectedOrg(null); }}>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Button variant="ghost" size="icon" className="self-start" onClick={() => { setView("orgs"); setSelectedOrg(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold">{selectedOrg.name}</h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{selectedOrg.name}</h2>
                 <p className="text-sm text-muted-foreground">{products.length} products</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1454,30 +1456,30 @@ const Dashboard = () => {
             </div>
 
             <Tabs defaultValue="messages" className="w-full" onValueChange={(v) => { if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }}>
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="messages" className="gap-2">
-                  <Sparkles className="h-4 w-4" /> Message Ideas
+              <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
+                <TabsTrigger value="messages" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Message</span> Ideas
                 </TabsTrigger>
-                <TabsTrigger value="products" className="gap-2">
-                  <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
+                <TabsTrigger value="products" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
-                <TabsTrigger value="autopilot" className="gap-2">
-                  <Rocket className="h-4 w-4" /> Autopilot
+                <TabsTrigger value="autopilot" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Autopilot
                   {!canAccess(subscription.tier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="social" className="gap-2">
-                  <Share2 className="h-4 w-4" /> Social Posts
+                <TabsTrigger value="social" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Social
                   {!canAccess(subscription.tier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="calendar" className="gap-2">
-                  <CalendarDays className="h-4 w-4" /> Calendar
+                <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Calendar
                   {!canAccess(subscription.tier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="sync" className="gap-2">
-                  <GitCompare className="h-4 w-4" /> Sync
+                <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2">
-                  <BarChart3 className="h-4 w-4" /> Analytics
+                <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics
                 </TabsTrigger>
               </TabsList>
 
@@ -1594,23 +1596,25 @@ const Dashboard = () => {
                   <>
                     {/* Bulk Action Bar */}
                     {selectedProductIds.size > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
-                        <Checkbox
-                          checked={selectedProductIds.size === getFilteredProducts().length}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                        <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
-                        <div className="ml-auto flex flex-wrap items-center gap-2">
-                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkRegenerateListings}>
-                            {bulkAction === "regenerate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                            {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate Listings"}
+                      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 sm:px-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedProductIds.size === getFilteredProducts().length}
+                            onCheckedChange={toggleSelectAll}
+                          />
+                          <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkRegenerateListings}>
+                            {bulkAction === "regenerate" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate"}
                           </Button>
-                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
-                            {bulkAction === "push" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-                            {bulkAction === "push" ? "Pushing…" : "Push to Shopify"}
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
+                            {bulkAction === "push" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />}
+                            {bulkAction === "push" ? "Pushing…" : "Push"}
                           </Button>
-                          <Button size="sm" variant="destructive" className="gap-2" disabled={!!bulkAction} onClick={handleBulkDelete}>
-                            <Trash2 className="h-4 w-4" /> Delete
+                          <Button size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkDelete}>
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setSelectedProductIds(new Set())}>
                             <X className="h-4 w-4" />
@@ -1619,35 +1623,37 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2">
-                      {selectedProductIds.size === 0 && (
-                        <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1" />
-                      )}
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        {selectedProductIds.size === 0 && (
+                          <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1 hidden sm:block" />
+                        )}
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                        </div>
                       </div>
                       {selectedProductIds.size === 0 && (
-                        <>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {generatingAll ? (
-                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                              <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
+                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
                             </Button>
                           ) : (
-                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
-                              <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span>
                             </Button>
                           )}
                           {pushingAllShopify ? (
-                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                              <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
+                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
                             </Button>
                           ) : (
-                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
-                              <Store className="h-4 w-4" /> Push All to Shopify
+                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span>
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -1881,16 +1887,16 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold truncate">{selectedProduct.title}</h2>
-                <p className="text-sm text-muted-foreground">{selectedProduct.category} {selectedProduct.price && `• ${selectedProduct.price}`}</p>
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{selectedProduct.title}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">{selectedProduct.category} {selectedProduct.price && `• ${selectedProduct.price}`}</p>
               </div>
             </div>
 
             {/* Design File Download & Replace */}
             {selectedProduct.image_url && (
-              <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center">
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center shrink-0">
                     <img src={selectedProduct.image_url} alt="Design file" className="h-full w-full object-contain" />
                   </div>
                   <div>
@@ -1898,7 +1904,7 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"

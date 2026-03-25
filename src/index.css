@@ -130,3 +130,12 @@
 .animate-slide-out-right {
   animation: slide-out-right 0.25s ease forwards;
 }
+
+/* Hide scrollbar for tabs */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
