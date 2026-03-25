@@ -1020,10 +1020,7 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => {
-              if (selectedOrg) setView("settings");
-              else toast.info("Select a brand first to access its settings.");
-            }} title={selectedOrg ? `${selectedOrg.name} Settings` : "Settings"}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Account & Subscription">
               <Settings className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
