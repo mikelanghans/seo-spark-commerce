@@ -1020,10 +1020,7 @@ const Dashboard = () => {
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => {
-              if (selectedOrg) setView("settings");
-              else toast.info("Select a brand first to access its settings.");
-            }} title={selectedOrg ? `${selectedOrg.name} Settings` : "Settings"}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Account & Subscription">
               <Settings className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
@@ -1489,6 +1486,9 @@ const Dashboard = () => {
                 <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics
                 </TabsTrigger>
+                <TabsTrigger value="brand-settings" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Settings
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -1584,6 +1584,22 @@ const Dashboard = () => {
                     organization={selectedOrg}
                     userId={user!.id}
                   />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="brand-settings" className="mt-4 space-y-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  {canAccess(effectiveTier, "team-collaboration") ? (
+                    <CollaborationHub userId={user!.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+                  ) : (
+                    <UpgradePrompt feature="team-collaboration" onUpgrade={() => setView("settings")} />
+                  )}
                 </div>
               </TabsContent>
 
@@ -2236,33 +2252,20 @@ const Dashboard = () => {
             aiUsage={aiUsage}
           />
         )}
-        {/* Settings */}
+        {/* Account Settings (Subscription & Support only) */}
         {view === "settings" && user && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setView("products")}>
+              <Button variant="ghost" size="icon" onClick={() => selectedOrg ? setView("products") : setView("orgs")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">{selectedOrg?.name || "Brand"} Settings</h2>
-                <p className="text-sm text-muted-foreground">Connections, integrations & team for <strong>{selectedOrg?.name}</strong></p>
+                <h2 className="text-2xl font-bold">Account</h2>
+                <p className="text-sm text-muted-foreground">Subscription & support — brand-specific settings are in each brand's <strong>Settings</strong> tab</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SubscriptionPlans currentTier={effectiveTier} isFf={subscription.isFf} onRefresh={subscription.refresh} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              {canAccess(effectiveTier, "team-collaboration") ? (
-                <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
-              ) : (
-                <UpgradePrompt feature="team-collaboration" onUpgrade={() => {}} />
-              )}
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SupportForm
