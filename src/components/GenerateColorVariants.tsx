@@ -203,6 +203,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         productTitle,
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
+        customInstructions: customInstructions.trim() || undefined,
       },
     });
     if (error || data?.error) {
