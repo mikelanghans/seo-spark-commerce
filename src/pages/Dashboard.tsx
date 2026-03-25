@@ -43,6 +43,7 @@ import { SubscriptionPlans } from "@/components/SubscriptionPlans";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
@@ -1395,7 +1396,13 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="analytics" className="mt-4">
+              <TabsContent value="analytics" className="mt-4 space-y-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ListingRefreshQueue
+                    organizationId={selectedOrg!.id}
+                    userId={user!.id}
+                  />
+                </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <AnalyticsDashboard
                     organization={selectedOrg}
