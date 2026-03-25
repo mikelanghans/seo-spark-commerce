@@ -390,16 +390,25 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         const saturation = max === 0 ? 0 : (max - min) / max;
 
         // Darken near-neutral bright ink (typically white/light text) while preserving colorful artwork.
-        const isLightInk = luma > 0.68 && (saturation < 0.32 || (r > 182 && g > 182 && b > 182));
+        // Two tiers: very light neutrals get full inversion, moderately light get partial darkening.
+        const isVeryLightNeutral = luma > 0.82 && saturation < 0.18;
+        const isLightInk = luma > 0.55 && (saturation < 0.25 || (r > 160 && g > 160 && b > 160));
         if (!isLightInk) continue;
 
-        const strength = Math.min(1, (luma - 0.68) / 0.32);
-        const target = 28;
+        const target = 24;
+        let strength: number;
+        if (isVeryLightNeutral) {
+          // Near-white pixels (text) → fully darken
+          strength = 1;
+        } else {
+          // Gradual darkening for lighter mid-tones
+          strength = Math.min(1, (luma - 0.55) / 0.35);
+        }
 
         pixels[i] = Math.round(r * (1 - strength) + target * strength);
         pixels[i + 1] = Math.round(g * (1 - strength) + target * strength);
         pixels[i + 2] = Math.round(b * (1 - strength) + target * strength);
-        pixels[i + 3] = Math.max(alpha, 190);
+        pixels[i + 3] = Math.max(alpha, 210);
       }
 
       ctx.putImageData(imgData, 0, 0);
