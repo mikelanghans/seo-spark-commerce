@@ -155,6 +155,8 @@ const Dashboard = () => {
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
   const [isAdmin, setIsAdmin] = useState(false);
+  const notifs = useNotifications(user?.id ?? null);
+  const [lowCreditNotified, setLowCreditNotified] = useState(false);
 
   useEffect(() => {
     if (user) {
