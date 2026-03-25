@@ -972,6 +972,9 @@ const Dashboard = () => {
         successCount++;
       } catch (err: any) {
         console.error(`Failed to push ${product.title} to Shopify:`, err);
+        if (user && selectedOrg) {
+          notifySyncFailure(user.id, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+        }
       }
 
       if (i < products.length - 1) {
