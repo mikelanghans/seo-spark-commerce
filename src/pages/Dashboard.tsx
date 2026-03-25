@@ -1360,6 +1360,13 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
                 </label>
               )}
+              {editingOrg?.template_image_url && (
+                <RegenerateAllMockups
+                  organizationId={editingOrg.id}
+                  userId={user!.id}
+                  templateImageUrl={editingOrg.template_image_url}
+                />
+              )}
             </div>
 
             {/* Enabled Marketplaces */}
