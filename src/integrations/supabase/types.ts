@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_test_variants: {
+        Row: {
+          alt_text: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          listing_id: string | null
+          revenue: number
+          sales_count: number
+          seo_description: string
+          seo_title: string
+          tags: Json
+          test_id: string
+          title: string
+          url_handle: string
+          variant_label: string
+          views: number
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          listing_id?: string | null
+          revenue?: number
+          sales_count?: number
+          seo_description?: string
+          seo_title?: string
+          tags?: Json
+          test_id: string
+          title?: string
+          url_handle?: string
+          variant_label?: string
+          views?: number
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          listing_id?: string | null
+          revenue?: number
+          sales_count?: number
+          seo_description?: string
+          seo_title?: string
+          tags?: Json
+          test_id?: string
+          title?: string
+          url_handle?: string
+          variant_label?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_test_variants_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_test_variants_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ab_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_tests: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          organization_id: string
+          product_id: string
+          started_at: string
+          status: string
+          test_duration_days: number
+          user_id: string
+          winner_variant: string | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          organization_id: string
+          product_id: string
+          started_at?: string
+          status?: string
+          test_duration_days?: number
+          user_id: string
+          winner_variant?: string | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          organization_id?: string
+          product_id?: string
+          started_at?: string
+          status?: string
+          test_duration_days?: number
+          user_id?: string
+          winner_variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_tests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_tests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_log: {
         Row: {
           created_at: string
