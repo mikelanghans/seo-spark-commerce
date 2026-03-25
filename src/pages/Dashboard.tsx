@@ -1623,35 +1623,37 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2">
-                      {selectedProductIds.size === 0 && (
-                        <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1" />
-                      )}
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        {selectedProductIds.size === 0 && (
+                          <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1 hidden sm:block" />
+                        )}
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                        </div>
                       </div>
                       {selectedProductIds.size === 0 && (
-                        <>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {generatingAll ? (
-                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                              <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
+                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
                             </Button>
                           ) : (
-                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
-                              <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span>
                             </Button>
                           )}
                           {pushingAllShopify ? (
-                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                              <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
+                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
                             </Button>
                           ) : (
-                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
-                              <Store className="h-4 w-4" /> Push All to Shopify
+                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none">
+                              <Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span>
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
 
