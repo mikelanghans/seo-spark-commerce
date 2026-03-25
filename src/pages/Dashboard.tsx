@@ -995,15 +995,17 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 px-6 py-4">
+      <header className="border-b border-border/50 px-3 py-3 sm:px-6 sm:py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-10 w-10 object-contain" />
-            <span className="text-xl font-bold tracking-tight text-foreground">Brand Aura</span>
+          <div className="flex items-center gap-2">
+            <img src={brandAuraIcon} alt="Brand Aura" className="h-8 w-8 sm:h-10 sm:w-10 object-contain" />
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground hidden xs:inline">Brand Aura</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             {selectedOrg && (
-              <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+              <div className="hidden sm:block">
+                <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
+              </div>
             )}
             <NotificationBell
               notifications={notifs.notifications}
@@ -1013,25 +1015,25 @@ const Dashboard = () => {
               onDismiss={notifs.dismiss}
             />
             <OnboardingTrigger onClick={() => setShowTour(true)} />
-            <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setView("settings")} title="Shopify & Integrations">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
             </Button>
             {isAdmin && (
-              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")} title="Admin Console">
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/admin")} title="Admin Console">
                 <Shield className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" /> Sign Out
+            <Button variant="outline" size="sm" onClick={signOut} className="gap-2 h-8 sm:h-9 px-2 sm:px-3">
+              <LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
         {/* Organizations List */}
         {view === "orgs" && (
           <div className="space-y-6">
