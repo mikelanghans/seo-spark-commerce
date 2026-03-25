@@ -27,7 +27,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight } = await req.json();
+    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight, customInstructions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
