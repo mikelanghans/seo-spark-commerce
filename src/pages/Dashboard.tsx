@@ -1656,20 +1656,15 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {products
-                      .filter((p) => {
-                        const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
-                        const matchesFilter = !activeFilter || 
-                          p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
-                          p.category.toLowerCase().includes(activeFilter.toLowerCase());
-                        return matchesSearch && matchesFilter;
-                      })
-                      .map((product) => (
+                    {getFilteredProducts().map((product) => (
                       <div
                         key={product.id}
-                        className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40"
+                        className={`group relative cursor-pointer rounded-xl border bg-card overflow-hidden transition-colors hover:border-primary/40 ${selectedProductIds.has(product.id) ? "border-primary ring-1 ring-primary/30" : "border-border"}`}
                         onClick={() => handleViewProduct(product)}
                       >
+                        <div className={`absolute top-2 left-2 z-10 transition-opacity ${selectedProductIds.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} onClick={(e) => e.stopPropagation()}>
+                          <Checkbox checked={selectedProductIds.has(product.id)} onCheckedChange={() => toggleProductSelection(product.id)} className="bg-background/80 backdrop-blur-sm" />
+                        </div>
                         {product.image_url && (
                           <div className="h-48 overflow-hidden bg-secondary">
                             <img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" />
@@ -1678,37 +1673,26 @@ const Dashboard = () => {
                         {!product.image_url && (
                           <div className="relative flex h-48 items-center justify-center bg-secondary">
                             <Package className="h-8 w-8 text-muted-foreground/40" />
-                            <label
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-secondary/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            >
+                            <label onClick={(e) => e.stopPropagation()} className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-secondary/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                               <Upload className="h-6 w-6 text-muted-foreground" />
                               <span className="text-xs font-medium text-muted-foreground">Upload Design</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  const url = await uploadImageToStorage(file);
-                                  if (url) {
-                                    await supabase.from("products").update({ image_url: url }).eq("id", product.id);
-                                    toast.success("Design uploaded!");
-                                    if (selectedOrg) loadProducts(selectedOrg.id);
-                                  }
-                                }}
-                              />
+                              <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const url = await uploadImageToStorage(file);
+                                if (url) {
+                                  await supabase.from("products").update({ image_url: url }).eq("id", product.id);
+                                  toast.success("Design uploaded!");
+                                  if (selectedOrg) loadProducts(selectedOrg.id);
+                                }
+                              }} />
                             </label>
                           </div>
                         )}
                         <div className="p-4">
                           <div className="flex items-start justify-between">
                             <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }}
-                              className="ml-2 shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }} className="ml-2 shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100">
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
