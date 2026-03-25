@@ -1053,12 +1053,12 @@ const Dashboard = () => {
                 }}
               />
             )}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold">Your Brands</h2>
-                <p className="text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
+                <h2 className="text-xl sm:text-2xl font-bold">Your Brands</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
               </div>
-              <Button onClick={() => setView("org-form")} className="gap-2">
+              <Button onClick={() => setView("org-form")} className="gap-2 self-start sm:self-auto">
                 <Plus className="h-4 w-4" /> New Brand
               </Button>
             </div>
@@ -1887,8 +1887,8 @@ const Dashboard = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold truncate">{selectedProduct.title}</h2>
-                <p className="text-sm text-muted-foreground">{selectedProduct.category} {selectedProduct.price && `• ${selectedProduct.price}`}</p>
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{selectedProduct.title}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">{selectedProduct.category} {selectedProduct.price && `• ${selectedProduct.price}`}</p>
               </div>
             </div>
 
