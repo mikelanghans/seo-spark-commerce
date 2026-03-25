@@ -59,6 +59,8 @@ Color target (must match): ${swatchHint}.
 
 ${sizeHint}
 
+${customInstructions ? `ADDITIONAL USER INSTRUCTIONS (apply these while still following all rules above):\n${customInstructions}` : ""}
+
 The output must look like the exact same photo with only the shirt fabric recolored to the target tone.`;
 
     const imageContent: any[] = [
