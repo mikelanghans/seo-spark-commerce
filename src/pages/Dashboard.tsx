@@ -1410,6 +1410,7 @@ const Dashboard = () => {
                     userId={user!.id}
                     products={products as any}
                   />
+                </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <AnalyticsDashboard
                     organization={selectedOrg}
