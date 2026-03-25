@@ -152,6 +152,8 @@ const Dashboard = () => {
   const [pendingDarkDesignUrl, setPendingDarkDesignUrl] = useState<string | null>(null);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const subscription = useSubscription(user?.id ?? null);
+  // While subscription is loading, assume full access to prevent upgrade prompt flash
+  const effectiveTier = subscription.loading ? "pro" as const : subscription.tier;
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
   const [isAdmin, setIsAdmin] = useState(false);
