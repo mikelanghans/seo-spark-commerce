@@ -1441,18 +1441,18 @@ const Dashboard = () => {
                         <Plus className="h-4 w-4" /> Add Manually
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
-                        if (canAccess(subscription.tier, "bulk-upload")) {
+                        if (canAccess(effectiveTier, "bulk-upload")) {
                           setView("bulk-upload");
                         } else {
                           toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } });
                         }
                       }} className="gap-2">
                         <Upload className="h-4 w-4" /> AI from Images / CSV
-                        {!canAccess(subscription.tier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
-                        {!canAccess(subscription.tier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1470,15 +1470,15 @@ const Dashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="autopilot" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Autopilot
-                  {!canAccess(subscription.tier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  {!canAccess(effectiveTier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="social" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Social
-                  {!canAccess(subscription.tier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  {!canAccess(effectiveTier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Calendar
-                  {!canAccess(subscription.tier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  {!canAccess(effectiveTier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync
@@ -1503,7 +1503,7 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="autopilot" forceMount className="mt-4 data-[state=inactive]:hidden">
-                {canAccess(subscription.tier, "autopilot") ? (
+                {canAccess(effectiveTier, "autopilot") ? (
                   <FullAutopilot
                     organization={selectedOrg}
                     userId={user!.id}
@@ -1519,7 +1519,7 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="social" className="mt-4">
-                {canAccess(subscription.tier, "social-posts") ? (
+                {canAccess(effectiveTier, "social-posts") ? (
                   <div className="rounded-xl border border-border bg-card p-5">
                     <SocialPostGenerator
                       organization={selectedOrg}
@@ -1536,7 +1536,7 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="calendar" className="mt-4">
-                {canAccess(subscription.tier, "content-calendar") ? (
+                {canAccess(effectiveTier, "content-calendar") ? (
                   <div className="rounded-xl border border-border bg-card p-5">
                     <ContentCalendar
                       organizationId={selectedOrg.id}
@@ -2013,12 +2013,12 @@ const Dashboard = () => {
                 <TabsTrigger value="listings" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Package className="h-3.5 w-3.5" />
                   Listings
-                  {!canAccess(subscription.tier, "ai-listings") && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  {!canAccess(effectiveTier, "ai-listings") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
                 <TabsTrigger value="push" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   <Store className="h-3.5 w-3.5" />
                   Push
-                  {!canAccess(subscription.tier, "marketplace-push") && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  {!canAccess(effectiveTier, "marketplace-push") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
               </TabsList>
 
@@ -2056,7 +2056,7 @@ const Dashboard = () => {
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
-                {!canAccess(subscription.tier, "ai-listings") ? (
+                {!canAccess(effectiveTier, "ai-listings") ? (
                   <UpgradePrompt feature="ai-listings" onUpgrade={() => setView("settings")} />
                 ) : (() => {
                   const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
@@ -2157,7 +2157,7 @@ const Dashboard = () => {
 
               {/* Push Tab */}
               <TabsContent value="push" className="space-y-3">
-                {!canAccess(subscription.tier, "marketplace-push") ? (
+                {!canAccess(effectiveTier, "marketplace-push") ? (
                   <UpgradePrompt feature="marketplace-push" onUpgrade={() => setView("settings")} />
                 ) : listings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
@@ -2246,7 +2246,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              <SubscriptionPlans currentTier={subscription.tier} isFf={subscription.isFf} onRefresh={subscription.refresh} />
+              <SubscriptionPlans currentTier={effectiveTier} isFf={subscription.isFf} onRefresh={subscription.refresh} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
@@ -2255,7 +2255,7 @@ const Dashboard = () => {
               <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
-              {canAccess(subscription.tier, "team-collaboration") ? (
+              {canAccess(effectiveTier, "team-collaboration") ? (
                 <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
               ) : (
                 <UpgradePrompt feature="team-collaboration" onUpgrade={() => {}} />
@@ -2265,7 +2265,7 @@ const Dashboard = () => {
               <SupportForm
                 userId={user.id}
                 userEmail={user.email || ""}
-                tier={subscription.tier}
+                tier={effectiveTier}
                 organizationId={selectedOrg?.id}
               />
             </div>
