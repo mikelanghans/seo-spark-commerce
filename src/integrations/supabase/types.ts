@@ -312,6 +312,73 @@ export type Database = {
           },
         ]
       }
+      listing_refresh_queue: {
+        Row: {
+          created_at: string
+          id: string
+          new_listing_id: string | null
+          organization_id: string
+          product_id: string
+          reason: string
+          reviewed_at: string | null
+          sales_current: number
+          sales_previous: number
+          status: string
+          user_id: string
+          velocity_drop_pct: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_listing_id?: string | null
+          organization_id: string
+          product_id: string
+          reason?: string
+          reviewed_at?: string | null
+          sales_current?: number
+          sales_previous?: number
+          status?: string
+          user_id: string
+          velocity_drop_pct?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_listing_id?: string | null
+          organization_id?: string
+          product_id?: string
+          reason?: string
+          reviewed_at?: string | null
+          sales_current?: number
+          sales_previous?: number
+          status?: string
+          user_id?: string
+          velocity_drop_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_refresh_queue_new_listing_id_fkey"
+            columns: ["new_listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_refresh_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_refresh_queue_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           alt_text: string
