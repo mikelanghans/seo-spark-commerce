@@ -33,7 +33,7 @@ import { SupportForm } from "@/components/SupportForm";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
@@ -1020,6 +1020,9 @@ const Dashboard = () => {
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => setView("settings")} title="Shopify & Integrations">
               <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
+              <BookOpen className="h-4 w-4" />
             </Button>
             {isAdmin && (
               <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/admin")} title="Admin Console">
