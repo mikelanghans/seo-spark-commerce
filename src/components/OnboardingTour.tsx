@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Building2, Package, Sparkles, ImageIcon, Store, Share2,
   CalendarDays, GitCompare, Rocket, Upload, Users, Settings,
-  ArrowRight, ArrowLeft, X, BookOpen, Zap,
+  ArrowRight, ArrowLeft, X, BookOpen, Zap, Bell, FlaskConical,
 } from "lucide-react";
 
 interface TourStep {
@@ -33,7 +33,7 @@ const TOUR_STEPS: TourStep[] = [
     title: "Message Ideas (AI Designs)",
     description:
       "Generate marketing messages and AI designs for your products. Swipe right to keep a design, left to skip. Each message can get a matching promotional graphic generated automatically.",
-    tip: "Free accounts get 25 AI credits/month. Upgrade to Starter (175) or Pro (700) for more.",
+    tip: "Free: 25 credits/mo • Starter ($9): 175 • Pro ($29): 700. Buy credit packs anytime for extra.",
   },
   {
     icon: <ImageIcon className="h-6 w-6" />,
@@ -86,6 +86,19 @@ const TOUR_STEPS: TourStep[] = [
     description:
       "Invite team members to your brands with different roles: Owner, Editor, or Viewer. Collaborators share the brand's AI credits from the owner's account pool.",
     tip: "Go to Settings → Collaboration to manage invites and team members.",
+  },
+  {
+    icon: <FlaskConical className="h-6 w-6" />,
+    title: "A/B Testing",
+    description:
+      "Generate two listing variants and let the system track views and sales via Shopify. Promote the winner to your live storefront automatically or manually.",
+    tip: "A/B tests run for 14 days by default. You can end them early and pick a winner anytime.",
+  },
+  {
+    icon: <Bell className="h-6 w-6" />,
+    title: "Notifications",
+    description:
+      "Stay informed with in-app and email alerts for sync failures, low credits, team invites, and pipeline completions. Check the bell icon in the header or the sidebar.",
   },
   {
     icon: <Settings className="h-6 w-6" />,
