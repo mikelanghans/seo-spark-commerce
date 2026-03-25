@@ -10,17 +10,44 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceKey);
+
+    const { organizationId } = await req.json();
+    if (!organizationId) throw new Error("organizationId required");
+
+    // For scheduled "all" mode, scan every org with a Shopify connection
+    if (organizationId === "all") {
+      const { data: connections } = await adminClient
+        .from("shopify_connections")
+        .select("organization_id, user_id, store_domain, access_token")
+        .not("access_token", "is", null);
+
+      let totalFlagged = 0;
+      for (const conn of connections || []) {
+        if (!conn.organization_id || !conn.access_token) continue;
+        try {
+          const result = await scanOrganization(adminClient, conn.organization_id, conn.user_id, conn.store_domain, conn.access_token);
+          totalFlagged += result;
+        } catch (e) {
+          console.error(`Scan failed for org ${conn.organization_id}:`, e);
+        }
+      }
+
+      return new Response(JSON.stringify({ flagged: totalFlagged, message: `Scanned all orgs, flagged ${totalFlagged}` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Single-org mode: validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const token = authHeader.replace("Bearer ", "");
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -32,11 +59,6 @@ Deno.serve(async (req) => {
       });
     }
     const userId = claimsData.claims.sub as string;
-
-    const { organizationId } = await req.json();
-    if (!organizationId) throw new Error("organizationId required");
-
-    const adminClient = createClient(supabaseUrl, serviceKey);
 
     // Find Shopify connection (org-first, then user)
     let connection = null;
