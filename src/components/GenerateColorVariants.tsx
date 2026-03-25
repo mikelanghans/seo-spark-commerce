@@ -218,13 +218,15 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
     console.log(`[ColorVariant] ${colorName}: designBase64=${designBase64 ? 'present' : 'MISSING'}, isDark=${isDarkGarment}`);
 
-    // Skip design recomposite — the AI output already contains the design
-    // from the pre-composited input. Re-pasting causes ghosting/double text.
+    // Re-composite the ORIGINAL crisp design on top of AI-recolored garment.
+    // This guarantees text/graphics are pixel-perfect regardless of AI drift.
     const blob = await normalizeAndLockToTemplateBlob({
       templateDataUrl,
       generatedDataUrl,
       targetWidth: targetSize?.width || 1024,
       targetHeight: targetSize?.height || 1024,
+      designDataUrl: designBase64,
+      isDarkGarment,
     });
 
     // Refresh session before upload to prevent RLS failures during long runs
