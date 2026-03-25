@@ -41,6 +41,7 @@ import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionPlans } from "@/components/SubscriptionPlans";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
@@ -863,6 +864,22 @@ const Dashboard = () => {
         {/* Organizations List */}
         {view === "orgs" && (
           <div className="space-y-6">
+            {user && (
+              <OnboardingChecklist
+                userId={user.id}
+                onNavigate={(target) => {
+                  if (target === "org-form") setView("org-form");
+                  else if (target === "product-form") {
+                    if (selectedOrg) setView("product-form");
+                    else toast.info("Create a brand first, then add products.");
+                  }
+                  else if (target === "settings") {
+                    if (selectedOrg) setView("settings");
+                    else toast.info("Create a brand first, then connect a store.");
+                  }
+                }}
+              />
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold">Your Brands</h2>
