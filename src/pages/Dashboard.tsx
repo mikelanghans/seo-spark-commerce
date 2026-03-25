@@ -778,6 +778,9 @@ const Dashboard = () => {
         success++;
       } catch (err: any) {
         console.error(`Failed push ${product.title}:`, err);
+        if (user && selectedOrg) {
+          notifySyncFailure(user.id, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+        }
       }
       if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1000));
     }
