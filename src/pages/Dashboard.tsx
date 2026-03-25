@@ -1596,23 +1596,25 @@ const Dashboard = () => {
                   <>
                     {/* Bulk Action Bar */}
                     {selectedProductIds.size > 0 && (
-                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
-                        <Checkbox
-                          checked={selectedProductIds.size === getFilteredProducts().length}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                        <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
-                        <div className="ml-auto flex flex-wrap items-center gap-2">
-                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkRegenerateListings}>
-                            {bulkAction === "regenerate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                            {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate Listings"}
+                      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 sm:px-4">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedProductIds.size === getFilteredProducts().length}
+                            onCheckedChange={toggleSelectAll}
+                          />
+                          <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkRegenerateListings}>
+                            {bulkAction === "regenerate" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate"}
                           </Button>
-                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
-                            {bulkAction === "push" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-                            {bulkAction === "push" ? "Pushing…" : "Push to Shopify"}
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
+                            {bulkAction === "push" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />}
+                            {bulkAction === "push" ? "Pushing…" : "Push"}
                           </Button>
-                          <Button size="sm" variant="destructive" className="gap-2" disabled={!!bulkAction} onClick={handleBulkDelete}>
-                            <Trash2 className="h-4 w-4" /> Delete
+                          <Button size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkDelete}>
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setSelectedProductIds(new Set())}>
                             <X className="h-4 w-4" />
