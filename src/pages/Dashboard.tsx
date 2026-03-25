@@ -1316,6 +1316,9 @@ const Dashboard = () => {
                 <TabsTrigger value="sync" className="gap-2">
                   <GitCompare className="h-4 w-4" /> Sync
                 </TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-2">
+                  <BarChart3 className="h-4 w-4" /> Analytics
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
