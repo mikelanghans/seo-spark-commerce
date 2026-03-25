@@ -1892,9 +1892,9 @@ const Dashboard = () => {
 
             {/* Design File Download & Replace */}
             {selectedProduct.image_url && (
-              <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+              <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center">
+                  <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center shrink-0">
                     <img src={selectedProduct.image_url} alt="Design file" className="h-full w-full object-contain" />
                   </div>
                   <div>
@@ -1902,7 +1902,7 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"

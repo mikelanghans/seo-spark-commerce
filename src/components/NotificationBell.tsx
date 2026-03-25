@@ -46,7 +46,7 @@ export function NotificationBell({ notifications, unreadCount, onMarkRead, onMar
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end" sideOffset={8}>
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0" align="end" sideOffset={8}>
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
           {unreadCount > 0 && (
