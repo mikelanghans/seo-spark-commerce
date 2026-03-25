@@ -1489,6 +1489,9 @@ const Dashboard = () => {
                 <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
                   <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics
                 </TabsTrigger>
+                <TabsTrigger value="brand-settings" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Settings
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
