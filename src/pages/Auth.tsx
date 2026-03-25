@@ -12,6 +12,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -25,6 +26,17 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
+        // Validate beta invite code first
+        const { data: isValid, error: rpcError } = await supabase.rpc("validate_beta_code", {
+          _code: inviteCode.trim(),
+        });
+        if (rpcError) throw rpcError;
+        if (!isValid) {
+          toast.error("Invalid or expired invite code");
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -76,6 +88,22 @@ const Auth = () => {
               minLength={6}
             />
           </div>
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="invite-code">Invite Code</Label>
+              <Input
+                id="invite-code"
+                type="text"
+                placeholder="Enter your beta invite code"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Brand Aura is currently in private beta. You need an invite code to sign up.
+              </p>
+            </div>
+          )}
           <Button type="submit" className="w-full gap-2" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {isLogin ? "Sign In" : "Sign Up"}
