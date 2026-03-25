@@ -999,6 +999,13 @@ const Dashboard = () => {
             {selectedOrg && (
               <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
             )}
+            <NotificationBell
+              notifications={notifs.notifications}
+              unreadCount={notifs.unreadCount}
+              onMarkRead={notifs.markAsRead}
+              onMarkAllRead={notifs.markAllRead}
+              onDismiss={notifs.dismiss}
+            />
             <OnboardingTrigger onClick={() => setShowTour(true)} />
             <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
