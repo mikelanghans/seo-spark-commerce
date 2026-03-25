@@ -39,6 +39,9 @@ import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 import { useAiUsage } from "@/hooks/useAiUsage";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBell } from "@/components/NotificationBell";
+import { notifyLowCredits, notifySyncFailure } from "@/lib/notificationHelpers";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionPlans } from "@/components/SubscriptionPlans";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
@@ -152,6 +155,8 @@ const Dashboard = () => {
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
   const [isAdmin, setIsAdmin] = useState(false);
+  const notifs = useNotifications(user?.id ?? null);
+  const [lowCreditNotified, setLowCreditNotified] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -223,6 +228,17 @@ const Dashboard = () => {
       }
     }
   }, [user]);
+
+  // Low credits notification
+  useEffect(() => {
+    if (!user || aiUsage.loading || lowCreditNotified) return;
+    const remaining = aiUsage.limit - aiUsage.usedCount;
+    const threshold = Math.max(1, Math.floor(aiUsage.limit * 0.2));
+    if (remaining > 0 && remaining <= threshold) {
+      setLowCreditNotified(true);
+      notifyLowCredits(user.id, remaining);
+    }
+  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified]);
 
   // Persist selected org/product IDs for state restoration
   useEffect(() => {
@@ -762,6 +778,9 @@ const Dashboard = () => {
         success++;
       } catch (err: any) {
         console.error(`Failed push ${product.title}:`, err);
+        if (user && selectedOrg) {
+          notifySyncFailure(user.id, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+        }
       }
       if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1000));
     }
@@ -956,6 +975,9 @@ const Dashboard = () => {
         successCount++;
       } catch (err: any) {
         console.error(`Failed to push ${product.title} to Shopify:`, err);
+        if (user && selectedOrg) {
+          notifySyncFailure(user.id, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+        }
       }
 
       if (i < products.length - 1) {
@@ -983,6 +1005,13 @@ const Dashboard = () => {
             {selectedOrg && (
               <AiUsageMeter used={aiUsage.usedCount} limit={aiUsage.limit} loading={aiUsage.loading} />
             )}
+            <NotificationBell
+              notifications={notifs.notifications}
+              unreadCount={notifs.unreadCount}
+              onMarkRead={notifs.markAsRead}
+              onMarkAllRead={notifs.markAllRead}
+              onDismiss={notifs.dismiss}
+            />
             <OnboardingTrigger onClick={() => setShowTour(true)} />
             <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
