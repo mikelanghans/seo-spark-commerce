@@ -44,6 +44,7 @@ import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
+import { ABTestDashboard } from "@/components/ABTestDashboard";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
@@ -1403,6 +1404,12 @@ const Dashboard = () => {
                     userId={user!.id}
                   />
                 </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ABTestDashboard
+                    organizationId={selectedOrg!.id}
+                    userId={user!.id}
+                    products={products as any}
+                  />
                 <div className="rounded-xl border border-border bg-card p-5">
                   <AnalyticsDashboard
                     organization={selectedOrg}
