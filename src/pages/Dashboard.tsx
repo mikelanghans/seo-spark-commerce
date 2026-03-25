@@ -1563,15 +1563,40 @@ const Dashboard = () => {
                 />
                 {products.length > 0 && (
                   <>
+                    {/* Bulk Action Bar */}
+                    {selectedProductIds.size > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+                        <Checkbox
+                          checked={selectedProductIds.size === getFilteredProducts().length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                        <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
+                        <div className="ml-auto flex flex-wrap items-center gap-2">
+                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkRegenerateListings}>
+                            {bulkAction === "regenerate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate Listings"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="gap-2" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
+                            {bulkAction === "push" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
+                            {bulkAction === "push" ? "Pushing…" : "Push to Shopify"}
+                          </Button>
+                          <Button size="sm" variant="destructive" className="gap-2" disabled={!!bulkAction} onClick={handleBulkDelete}>
+                            <Trash2 className="h-4 w-4" /> Delete
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setSelectedProductIds(new Set())}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2">
+                      {selectedProductIds.size === 0 && (
+                        <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1" />
+                      )}
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search products…"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-9"
-                        />
+                        <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                       </div>
                       {generatingAll ? (
                         <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
