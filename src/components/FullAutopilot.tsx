@@ -158,7 +158,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
         return;
       }
 
-      const messages: { text: string }[] = msgData.messages || [];
+      const allMessages: { text: string }[] = msgData.messages || [];
+      // AI may return more than requested — enforce the exact count
+      const messages = allMessages.slice(0, count);
       if (messages.length === 0) {
         log("❌ No messages generated", "error");
         setRunning(false);
@@ -652,7 +654,12 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               <h3 className="font-semibold">Autopilot Running</h3>
             </div>
             {running && (
-              <Button variant="destructive" size="sm" onClick={() => { cancelRef.current = true; abortRef.current?.abort(); }} className="gap-1.5">
+              <Button variant="destructive" size="sm" onClick={() => {
+                cancelRef.current = true;
+                abortRef.current?.abort();
+                setRunning(false);
+                log("⚠️ Cancelling — stopping after current step...", "error");
+              }} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
                 Cancel
               </Button>
