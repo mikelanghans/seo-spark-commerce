@@ -27,17 +27,20 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
-    const token = authHeader.replace("Bearer ", "");
 
-    // Use anon client to validate the JWT and extract claims
-    const anonClient = createClient(
+    // Create a user-context client with the auth header passed through
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) throw new Error("Auth session missing!");
-    const user = claimsData.user;
-    if (!user?.email) throw new Error("User not authenticated");
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      console.error("Auth error:", userError?.message);
+      throw new Error("Auth session missing!");
+    }
+    if (!user.email) throw new Error("User not authenticated");
 
     // Check F&F redemption first
     const { data: ffRedemption } = await supabaseClient
