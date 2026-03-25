@@ -1598,23 +1598,27 @@ const Dashboard = () => {
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
                       </div>
-                      {generatingAll ? (
-                        <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                          <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
-                        </Button>
-                      ) : (
-                        <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
-                          <Sparkles className="h-4 w-4" /> Generate SEO Listings
-                        </Button>
-                      )}
-                      {pushingAllShopify ? (
-                        <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
-                          <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
-                        </Button>
-                      ) : (
-                        <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
-                          <Store className="h-4 w-4" /> Push All to Shopify
-                        </Button>
+                      {selectedProductIds.size === 0 && (
+                        <>
+                          {generatingAll ? (
+                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                              <X className="h-4 w-4" /> Cancel ({genAllProgress.done}/{genAllProgress.total})
+                            </Button>
+                          ) : (
+                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-2">
+                              <Sparkles className="h-4 w-4" /> Generate SEO Listings
+                            </Button>
+                          )}
+                          {pushingAllShopify ? (
+                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-2">
+                              <X className="h-4 w-4" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})
+                            </Button>
+                          ) : (
+                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-2">
+                              <Store className="h-4 w-4" /> Push All to Shopify
+                            </Button>
+                          )}
+                        </>
                       )}
                     </div>
 
