@@ -26,27 +26,45 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
 
-    // Create a user-context client with the auth header passed through
-    const userClient = createClient(
+    const token = authHeader.replace("Bearer ", "");
+    const anonClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      console.error("Auth error:", userError?.message);
-      throw new Error("Auth session missing!");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error("Claims auth error:", claimsError?.message);
+      return new Response(JSON.stringify({ error: "Auth session missing!" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
-    if (!user.email) throw new Error("User not authenticated");
+
+    const userId = claimsData.claims.sub as string;
+    let userEmail = typeof claimsData.claims.email === "string" ? claimsData.claims.email : null;
+
+    if (!userEmail) {
+      const { data: userLookup, error: userLookupError } = await supabaseClient.auth.admin.getUserById(userId);
+      if (userLookupError || !userLookup?.user?.email) {
+        throw new Error("User email not available");
+      }
+      userEmail = userLookup.user.email;
+    }
 
     // Check F&F redemption first
     const { data: ffRedemption } = await supabaseClient
       .from("ff_redemptions")
       .select("tier")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (ffRedemption) {
@@ -69,7 +87,7 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
 
     if (customers.data.length === 0) {
       return new Response(JSON.stringify({
