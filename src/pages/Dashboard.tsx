@@ -45,6 +45,7 @@ import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
 import { ABTestDashboard } from "@/components/ABTestDashboard";
+import { SmartPricing } from "@/components/SmartPricing";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
@@ -1846,6 +1847,31 @@ const Dashboard = () => {
                   <ProductMockups productId={selectedProduct.id} userId={user!.id} productTitle={selectedProduct.title} sourceImageUrl={selectedOrg?.template_image_url || selectedProduct.image_url || null} designImageUrl={selectedProduct.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={selectedProduct.category} aiUsage={aiUsage} />
                 </div>
               </TabsContent>
+
+              {/* Smart Pricing */}
+              <div className="rounded-xl border border-border bg-card p-5">
+                <SmartPricing
+                  product={{
+                    title: selectedProduct.title,
+                    description: selectedProduct.description,
+                    category: selectedProduct.category,
+                    keywords: selectedProduct.keywords,
+                    price: selectedProduct.price,
+                    features: selectedProduct.features || "",
+                  }}
+                  business={{
+                    name: selectedOrg?.name || "",
+                    niche: selectedOrg?.niche || "",
+                    audience: selectedOrg?.audience || "",
+                    tone: selectedOrg?.tone || "",
+                  }}
+                  onApplyPrice={async (price) => {
+                    await supabase.from("products").update({ price }).eq("id", selectedProduct.id);
+                    setSelectedProduct({ ...selectedProduct, price });
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
+                />
+              </div>
 
               {/* Listings Tab */}
               <TabsContent value="listings" className="space-y-4">
