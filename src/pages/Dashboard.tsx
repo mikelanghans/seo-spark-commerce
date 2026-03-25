@@ -822,8 +822,8 @@ const Dashboard = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
-      const { imported, updated, total } = data;
-      toast.success(`Imported ${imported} new, updated ${updated} existing — ${total} total from Shopify`);
+      const { imported, updated, failed = 0, total } = data;
+      toast.success(`Imported ${imported} new, updated ${updated} existing${failed ? `, failed ${failed}` : ""} — ${total} total from Shopify`);
       await loadProducts(selectedOrg.id);
     } catch (err: any) {
       if (controller.signal.aborted) {
