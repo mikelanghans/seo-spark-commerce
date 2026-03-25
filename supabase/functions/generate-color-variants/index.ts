@@ -45,16 +45,17 @@ IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. 
 - Same shirt geometry (collar, sleeves, hem, fold silhouette)
 - Same background texture, color, lighting, props, and prop positions
 - Same wrinkles and shadow geometry on the shirt
-- Same overall framing and composition
-- Do NOT zoom, reframe, or alter composition in any way
-- The print/design on the shirt MUST remain fully visible and unchanged
+- Same overall framing and composition — do NOT zoom, pan, reframe, or shift ANY element
+- The print/design on the shirt MUST remain in the EXACT same position, size, and orientation
+- Do NOT move, resize, shift, distort, or alter the print/design in any way
+- The design text must remain 100% legible and crisp
 
 Your edit scope is ONLY fabric recoloring.
 Color target (must match): ${swatchHint}.
 - Preserve natural fabric texture and shadows while changing only hue/saturation/lightness of shirt fabric
 - Keep white balance neutral; do not add color casts
 - Do NOT over-darken or over-wash the garment
-- Do NOT change print/design colors or contrast
+- Do NOT change print/design colors, contrast, position, or clarity
 
 ${sizeHint}
 
