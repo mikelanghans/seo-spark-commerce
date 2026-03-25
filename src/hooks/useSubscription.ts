@@ -30,7 +30,16 @@ export function useSubscription(userId: string | null) {
   const refresh = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("No active auth session");
+      }
+
+      const { data, error } = await supabase.functions.invoke("check-subscription", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setState({
