@@ -644,6 +644,132 @@ const Dashboard = () => {
     if (selectedOrg) loadProducts(selectedOrg.id);
   };
 
+  const toggleProductSelection = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const filtered = getFilteredProducts();
+    if (selectedProductIds.size === filtered.length) {
+      setSelectedProductIds(new Set());
+    } else {
+      setSelectedProductIds(new Set(filtered.map((p) => p.id)));
+    }
+  };
+
+  const getFilteredProducts = () =>
+    products.filter((p) => {
+      const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = !activeFilter ||
+        p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
+        p.category.toLowerCase().includes(activeFilter.toLowerCase());
+      return matchesSearch && matchesFilter;
+    });
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.size === 0) return;
+    const count = selectedProductIds.size;
+    for (const id of selectedProductIds) {
+      await supabase.from("products").delete().eq("id", id);
+    }
+    setSelectedProductIds(new Set());
+    toast.success(`Deleted ${count} products`);
+    if (selectedOrg) loadProducts(selectedOrg.id);
+  };
+
+  const [bulkAction, setBulkAction] = useState<string | null>(null);
+
+  const handleBulkRegenerateListings = async () => {
+    if (!selectedOrg || selectedProductIds.size === 0) return;
+    setBulkAction("regenerate");
+    const ids = Array.from(selectedProductIds);
+    let success = 0;
+    for (const id of ids) {
+      const product = products.find((p) => p.id === id);
+      if (!product) continue;
+      try {
+        if (aiUsage) {
+          const allowed = await aiUsage.checkAndLog("generate-listings", user!.id);
+          if (!allowed) { toast.error("AI limit reached"); break; }
+        }
+        const { data: result, error } = await supabase.functions.invoke("generate-listings", {
+          body: {
+            business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
+            product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
+          },
+        });
+        if (error) throw error;
+        if (result?.error) throw new Error(result.error);
+
+        await supabase.from("listings").delete().eq("product_id", product.id);
+        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["amazon", "etsy", "ebay", "shopify"];
+        const listingRows = bulkMarketplaces.map((m) => ({
+          product_id: product.id,
+          user_id: user!.id,
+          marketplace: m,
+          title: result[m].title,
+          description: result[m].description,
+          bullet_points: result[m].bulletPoints,
+          tags: result[m].tags,
+          seo_title: result[m].seoTitle || "",
+          seo_description: result[m].seoDescription || "",
+          url_handle: result[m].urlHandle || "",
+          alt_text: result[m].altText || "",
+        }));
+        await supabase.from("listings").insert(listingRows);
+        if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
+        success++;
+      } catch (err: any) {
+        console.error(`Failed listings for ${product.title}:`, err);
+      }
+      if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+    setBulkAction(null);
+    setSelectedProductIds(new Set());
+    toast.success(`Regenerated listings for ${success}/${ids.length} products`);
+  };
+
+  const handleBulkPushToShopify = async () => {
+    if (!selectedOrg || selectedProductIds.size === 0) return;
+    setBulkAction("push");
+    const ids = Array.from(selectedProductIds);
+    let success = 0;
+    for (const id of ids) {
+      const product = products.find((p) => p.id === id);
+      if (!product) continue;
+      try {
+        const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
+        if (!productListings?.length) continue;
+        const shopifyListing = productListings.find((l) => l.marketplace === "shopify") || productListings[0];
+        const { data, error } = await supabase.functions.invoke("push-to-shopify", {
+          body: {
+            organizationId: selectedOrg.id,
+            product: { id: product.id, title: product.title, description: product.description, category: product.category, price: product.price, keywords: product.keywords, shopify_product_id: product.shopify_product_id },
+            listings: [{ marketplace: "shopify", title: shopifyListing.title, description: shopifyListing.description, bullet_points: shopifyListing.bullet_points, tags: shopifyListing.tags, seo_title: shopifyListing.seo_title, seo_description: shopifyListing.seo_description, url_handle: shopifyListing.url_handle, alt_text: shopifyListing.alt_text }],
+            imageUrl: product.image_url,
+            variants: [],
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        success++;
+      } catch (err: any) {
+        console.error(`Failed push ${product.title}:`, err);
+      }
+      if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1000));
+    }
+    setBulkAction(null);
+    setSelectedProductIds(new Set());
+    toast.success(`Pushed ${success}/${ids.length} products to Shopify`);
+    if (selectedOrg) loadProducts(selectedOrg.id);
+  };
+
   const [importingShopify, setImportingShopify] = useState(false);
   const importAbortRef = useRef<AbortController | null>(null);
 
