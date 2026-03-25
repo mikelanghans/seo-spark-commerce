@@ -32,7 +32,7 @@ import { SupportForm } from "@/components/SupportForm";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
@@ -42,6 +42,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionPlans } from "@/components/SubscriptionPlans";
 import { OnboardingTour, OnboardingTrigger } from "@/components/OnboardingTour";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBase64Png, isMultiColorDesign } from "@/lib/removeBackground";
 
 interface Organization {
