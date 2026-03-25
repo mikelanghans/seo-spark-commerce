@@ -27,26 +27,11 @@ serve(async (req) => {
     if (!organizationId) throw new Error("organizationId is required");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    let connection = null;
-    let connError = null;
-    {
-      const res = await adminClient
-        .from("shopify_connections")
-        .select("store_domain, access_token")
-        .eq("organization_id", organizationId)
-        .maybeSingle();
-      connection = res.data;
-      connError = res.error;
-    }
-    if (!connection) {
-      const res = await adminClient
-        .from("shopify_connections")
-        .select("store_domain, access_token")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      connection = res.data;
-      connError = res.error;
-    }
+    const { data: connection, error: connError } = await adminClient
+      .from("shopify_connections")
+      .select("store_domain, access_token")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
 
     if (connError || !connection) {
       return new Response(JSON.stringify({ error: "No Shopify connection found. Please add your Shopify credentials in Settings." }), {
