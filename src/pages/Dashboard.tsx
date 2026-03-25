@@ -1426,9 +1426,13 @@ const Dashboard = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {importingShopify ? (
-                  <Button variant="destructive" size="sm" onClick={handleCancelImport} className="gap-2">
-                    <X className="h-4 w-4" /> Cancel Import
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">Importing from Shopify…</span>
+                    <Button variant="destructive" size="sm" onClick={handleCancelImport} className="gap-2">
+                      <X className="h-4 w-4" /> Cancel
+                    </Button>
+                  </div>
                 ) : (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
