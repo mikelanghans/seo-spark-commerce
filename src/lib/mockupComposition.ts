@@ -104,12 +104,14 @@ function drawDesignWithUnderbase(
   const dx = (targetWidth - drawWidth) / 2;
   const dy = targetHeight * 0.25;
 
-  const designToDraw = cleanedDesign;
-
-  // Skip underbase and dark-pixel enhancement for multi-color designs —
-  // they already have sufficient contrast through their colorful elements.
-  // Only draw the design directly.
-  ctx.drawImage(designToDraw, dx, dy, drawWidth, drawHeight);
+  // For dark garments, add a subtle white underbase behind the design
+  // so dark outlines / shadows in the artwork remain visible on dark fabric.
+  if (isDarkGarment) {
+    const designToDraw = enhanceDarkPixelsForDarkGarment(cleanedDesign);
+    ctx.drawImage(designToDraw, dx, dy, drawWidth, drawHeight);
+  } else {
+    ctx.drawImage(cleanedDesign, dx, dy, drawWidth, drawHeight);
+  }
 }
 
 function enhanceDarkPixelsForDarkGarment(source: HTMLCanvasElement): HTMLCanvasElement {
