@@ -229,6 +229,17 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Low credits notification
+  useEffect(() => {
+    if (!user || aiUsage.loading || lowCreditNotified) return;
+    const remaining = aiUsage.limit - aiUsage.usedCount;
+    const threshold = Math.max(1, Math.floor(aiUsage.limit * 0.2));
+    if (remaining > 0 && remaining <= threshold) {
+      setLowCreditNotified(true);
+      notifyLowCredits(user.id, remaining);
+    }
+  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified]);
+
   // Persist selected org/product IDs for state restoration
   useEffect(() => {
     if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
