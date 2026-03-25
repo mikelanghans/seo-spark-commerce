@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Palette, Plus, Loader2, X, Sparkles, CheckCircle2, Wand2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,6 +77,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   const [avgTime, setAvgTime] = useState<number | null>(null);
   const [recommendations, setRecommendations] = useState<ColorRecommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [customInstructions, setCustomInstructions] = useState("");
+  const [showCustomInstructions, setShowCustomInstructions] = useState(false);
 
   const loadExistingColors = async () => {
     const { data } = await supabase
@@ -201,6 +204,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         productTitle,
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
+        customInstructions: customInstructions.trim() || undefined,
       },
     });
     if (error || data?.error) {
@@ -717,7 +721,28 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         </div>
       )}
 
-      {/* Progress */}
+      {/* Custom Instructions */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setShowCustomInstructions(!showCustomInstructions)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Settings2 className="h-3 w-3" />
+          {showCustomInstructions ? "Hide" : "Custom instructions"} (optional)
+        </button>
+        {showCustomInstructions && (
+          <Textarea
+            placeholder="e.g. &quot;Use a lifestyle background with plants&quot; or &quot;Make the shirt look more wrinkled&quot; or &quot;Show the shirt on a wooden table&quot;"
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            disabled={generating}
+            rows={2}
+            className="text-xs"
+          />
+        )}
+      </div>
+
       {generating && (
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
