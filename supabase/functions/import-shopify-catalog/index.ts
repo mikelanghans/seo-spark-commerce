@@ -63,7 +63,7 @@ serve(async (req) => {
     do {
       let url = `https://${domain}/admin/api/2024-01/products.json?limit=50&status=active&fields=id,title,body_html,product_type,tags,handle,images,variants,status`;
       if (pageInfo) {
-        url = `https://${domain}/admin/api/2024-01/products.json?limit=50&page_info=${pageInfo}`;
+        url = `https://${domain}/admin/api/2024-01/products.json?limit=50&status=active&fields=id,title,body_html,product_type,tags,handle,images,variants,status&page_info=${pageInfo}`;
       }
 
       const shopifyResponse = await fetch(url, {
@@ -87,7 +87,7 @@ serve(async (req) => {
     } while (pageInfo);
 
     if (allShopifyProducts.length === 0) {
-      return new Response(JSON.stringify({ imported: 0, updated: 0, products: [] }), {
+      return new Response(JSON.stringify({ imported: 0, updated: 0, failed: 0, products: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -109,13 +109,14 @@ serve(async (req) => {
 
     let imported = 0;
     let updated = 0;
+    let failed = 0;
     const resultProducts: any[] = [];
 
     for (const sp of allShopifyProducts) {
       const imageUrl = sp.images?.[0]?.src || null;
       const price = sp.variants?.[0]?.price || "";
       const description = (sp.body_html || "").replace(/<[^>]*>/g, "");
-      
+
       const productData = {
         title: sp.title,
         description,
@@ -128,29 +129,44 @@ serve(async (req) => {
         user_id: user.id,
       };
 
-      if (existingMap.has(sp.id)) {
-        // Update existing
-        const localId = existingMap.get(sp.id)!;
-        const { title, description, category, keywords, price, image_url } = productData;
-        await supabaseClient
-          .from("products")
-          .update({ title, description, category, keywords, price, image_url })
-          .eq("id", localId);
-        updated++;
-        resultProducts.push({ ...productData, id: localId, action: "updated" });
-      } else {
-        // Insert new
-        const { data: inserted } = await supabaseClient
-          .from("products")
-          .insert(productData)
-          .select("id")
-          .single();
-        imported++;
-        resultProducts.push({ ...productData, id: inserted?.id, action: "imported" });
+      try {
+        if (existingMap.has(sp.id)) {
+          // Update existing
+          const localId = existingMap.get(sp.id)!;
+          const { title, description, category, keywords, price, image_url } = productData;
+          const { error: updateError } = await supabaseClient
+            .from("products")
+            .update({ title, description, category, keywords, price, image_url })
+            .eq("id", localId);
+
+          if (updateError) throw updateError;
+
+          updated++;
+          resultProducts.push({ ...productData, id: localId, action: "updated" });
+        } else {
+          // Insert new
+          const { data: inserted, error: insertError } = await supabaseClient
+            .from("products")
+            .insert(productData)
+            .select("id")
+            .single();
+
+          if (insertError) throw insertError;
+
+          imported++;
+          resultProducts.push({ ...productData, id: inserted?.id, action: "imported" });
+        }
+      } catch (productError) {
+        failed++;
+        resultProducts.push({
+          ...productData,
+          action: "failed",
+          error: productError instanceof Error ? productError.message : "Failed to save product",
+        });
       }
     }
 
-    return new Response(JSON.stringify({ imported, updated, total: allShopifyProducts.length, products: resultProducts }), {
+    return new Response(JSON.stringify({ imported, updated, failed, total: allShopifyProducts.length, products: resultProducts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
