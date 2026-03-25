@@ -343,9 +343,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl 
             </div>
           ) : (
             <div className="space-y-4 py-2">
-              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <p className="text-xs text-amber-800 dark:text-amber-200">
+              <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                <p className="text-xs text-destructive">
                   This will regenerate mockups for <strong>every product</strong> that currently has color variants, using the new template image. This uses AI credits for each mockup.
                 </p>
               </div>
