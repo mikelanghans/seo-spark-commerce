@@ -1456,30 +1456,30 @@ const Dashboard = () => {
             </div>
 
             <Tabs defaultValue="messages" className="w-full" onValueChange={(v) => { if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }}>
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="messages" className="gap-2">
-                  <Sparkles className="h-4 w-4" /> Message Ideas
+              <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
+                <TabsTrigger value="messages" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Message</span> Ideas
                 </TabsTrigger>
-                <TabsTrigger value="products" className="gap-2">
-                  <Package className="h-4 w-4" /> Products {products.length > 0 && `(${products.length})`}
+                <TabsTrigger value="products" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Products {products.length > 0 && `(${products.length})`}
                 </TabsTrigger>
-                <TabsTrigger value="autopilot" className="gap-2">
-                  <Rocket className="h-4 w-4" /> Autopilot
+                <TabsTrigger value="autopilot" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Autopilot
                   {!canAccess(subscription.tier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="social" className="gap-2">
-                  <Share2 className="h-4 w-4" /> Social Posts
+                <TabsTrigger value="social" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Social
                   {!canAccess(subscription.tier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="calendar" className="gap-2">
-                  <CalendarDays className="h-4 w-4" /> Calendar
+                <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Calendar
                   {!canAccess(subscription.tier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}
                 </TabsTrigger>
-                <TabsTrigger value="sync" className="gap-2">
-                  <GitCompare className="h-4 w-4" /> Sync
+                <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync
                 </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-2">
-                  <BarChart3 className="h-4 w-4" /> Analytics
+                <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2">
+                  <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics
                 </TabsTrigger>
               </TabsList>
 
