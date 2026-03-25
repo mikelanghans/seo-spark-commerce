@@ -2255,33 +2255,20 @@ const Dashboard = () => {
             aiUsage={aiUsage}
           />
         )}
-        {/* Settings */}
+        {/* Account Settings (Subscription & Support only) */}
         {view === "settings" && user && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => setView("products")}>
+              <Button variant="ghost" size="icon" onClick={() => selectedOrg ? setView("products") : setView("orgs")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-bold">{selectedOrg?.name || "Brand"} Settings</h2>
-                <p className="text-sm text-muted-foreground">Connections, integrations & team for <strong>{selectedOrg?.name}</strong></p>
+                <h2 className="text-2xl font-bold">Account</h2>
+                <p className="text-sm text-muted-foreground">Subscription & support — brand-specific settings are in each brand's <strong>Settings</strong> tab</p>
               </div>
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SubscriptionPlans currentTier={effectiveTier} isFf={subscription.isFf} onRefresh={subscription.refresh} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <ShopifySettings userId={user.id} organizationId={selectedOrg?.id} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              <MarketplaceSettings userId={user.id} organizationId={selectedOrg?.id} />
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6">
-              {canAccess(effectiveTier, "team-collaboration") ? (
-                <CollaborationHub userId={user.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
-              ) : (
-                <UpgradePrompt feature="team-collaboration" onUpgrade={() => {}} />
-              )}
             </div>
             <div className="rounded-xl border border-border bg-card p-6">
               <SupportForm
