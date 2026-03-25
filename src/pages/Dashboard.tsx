@@ -1590,7 +1590,22 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
+              <TabsContent value="brand-settings" className="mt-4 space-y-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  {canAccess(effectiveTier, "team-collaboration") ? (
+                    <CollaborationHub userId={user!.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+                  ) : (
+                    <UpgradePrompt feature="team-collaboration" onUpgrade={() => setView("settings")} />
+                  )}
+                </div>
+              </TabsContent>
+
                 <DesignTriage
                   organization={selectedOrg}
                   userId={user!.id}
