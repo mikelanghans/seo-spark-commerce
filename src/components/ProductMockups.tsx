@@ -159,6 +159,10 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         aiUsage={aiUsage}
       />
 
+      <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+        <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
+      </p>
+
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
