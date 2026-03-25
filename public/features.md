@@ -196,21 +196,26 @@ Schedule and organize social posts on a visual calendar view.
 
 ## 10. AI Credits & Usage
 
-### Free Tier
-- **20 AI generations per month** per account
-- Credits are pooled across **all brands you own**
-- Usage is tracked in the `ai_usage_log` table with granular data (org, user, function)
+### Subscription Tiers
+- **Free** — 25 AI credits/month
+- **Starter** ($9/month) — 175 AI credits/month
+- **Pro** ($29/month) — 700 AI credits/month + Shopify sync
+
+### Credit Packs (One-Time Top-Ups)
+- 10 credits for $3
+- 50 credits for $10
+- 200 credits for $29
 
 ### Usage Meter
-A progress bar in the dashboard header shows remaining credits at a glance.
+A progress bar in the dashboard sidebar shows remaining credits at a glance, with a "What costs credits?" breakdown (1 action = 1 credit).
 
 ### Credit Flow
 1. Owner has credits → deducts from owner's pool
 2. Owner exhausted + collaborator has credits → deducts from collaborator's pool (with notification)
 3. Both exhausted → blocked with upgrade prompt
 
-### Pro Tier (Coming Soon)
-$19/month for unlimited AI generations and full Shopify sync.
+### Low-Credit Warnings
+Toast notifications fire at ~20% remaining, at 10, 3, and 0 credits left. An in-app notification is also created when credits drop below 20%.
 
 ---
 
@@ -229,7 +234,64 @@ Centralized view to manage team members and pending invitations across all brand
 
 ---
 
-## 12. Onboarding Tour
+## 12. A/B Testing
+
+### How It Works
+Generate two listing variants (Original vs. AI challenger) for any product. The system tracks performance metrics like views and sales via the Shopify API.
+
+### Dashboard
+A dedicated A/B test dashboard shows active and completed tests with a visual comparison of key metrics. Tests can be ended manually or automatically after the configured duration. Winners can be promoted to the live storefront.
+
+---
+
+## 13. Notifications
+
+### In-App Notifications
+- Bell icon in the top nav bar with unread badge count
+- Full notification list in the sidebar
+- Type-specific icons for sync failures, low credits, team invites, and general info
+- Real-time delivery via database subscriptions
+- Mark as read, dismiss individual, or clear all
+
+### Email Alerts
+- Email notifications for critical events (sync failures, low credits)
+- Requires email domain configuration in project settings
+
+### Notification Triggers
+- Sync failures (Shopify push errors, marketplace issues)
+- Low AI credits (below 20% threshold)
+- Team invitations
+- Pipeline completion
+
+---
+
+## 14. Bulk Actions
+
+### Multi-Select Operations
+Select multiple products from the product list to perform batch actions:
+- **Bulk Push** — push selected products to Shopify or other marketplaces
+- **Bulk Delete** — remove selected products
+- **Bulk Regenerate Listings** — regenerate SEO listings for all selected products at once
+
+---
+
+## 15. Listing Health & Refresh Queue
+
+### Listing Health Check
+AI-powered analysis of listing quality, identifying products with declining sales velocity that may benefit from refreshed content.
+
+### Refresh Queue
+Products flagged for refresh appear in a queue with reason codes and velocity drop percentages. Editors can review and approve AI-generated replacement listings.
+
+---
+
+## 16. Smart Pricing
+
+AI-powered pricing suggestions based on product category, market trends, and competitor analysis.
+
+---
+
+## 17. Onboarding Tour
 
 An interactive 12-step guided tour walks new users through all key features:
 - Auto-launches on first visit

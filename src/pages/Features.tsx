@@ -215,8 +215,15 @@ const Features = () => {
 
         {/* 10. AI Credits */}
         <Section title="10. AI Credits & Usage">
-          <Sub title="Free Tier">
-            <p>20 AI generations per month per account, pooled across all brands you own. A progress bar in the dashboard header shows remaining credits.</p>
+          <Sub title="Subscription Tiers">
+            <ul className="space-y-1 mt-1">
+              <Li><strong>Free</strong> — 25 AI credits/month</Li>
+              <Li><strong>Starter</strong> ($9/mo) — 175 AI credits/month</Li>
+              <Li><strong>Pro</strong> ($29/mo) — 700 AI credits/month + Shopify sync</Li>
+            </ul>
+          </Sub>
+          <Sub title="Credit Packs (One-Time Top-Ups)">
+            <p>10 credits for $3 • 50 credits for $10 • 200 credits for $29. Packs stack with your monthly balance.</p>
           </Sub>
           <Sub title="Credit Flow">
             <ol className="mt-2 space-y-1 list-decimal list-inside text-sm text-secondary-foreground print:text-gray-700">
@@ -225,8 +232,8 @@ const Features = () => {
               <li>Both exhausted → blocked with upgrade prompt</li>
             </ol>
           </Sub>
-          <Sub title="Pro Tier (Coming Soon)">
-            <p>$19/month for unlimited AI generations and full Shopify sync.</p>
+          <Sub title="Usage Transparency">
+            <p>Every AI action costs exactly 1 credit. The sidebar usage meter shows remaining credits with a "What costs credits?" breakdown.</p>
           </Sub>
         </Section>
 
@@ -241,10 +248,42 @@ const Features = () => {
           </ul>
         </Section>
 
-        {/* 12. Onboarding */}
-        <Section title="12. Onboarding Tour">
+        {/* 12. A/B Testing */}
+        <Section title="12. A/B Testing">
+          <Sub title="How It Works">
+            <p>Generate two listing variants (Original vs. AI challenger) for any product. The system tracks views and sales via the Shopify API.</p>
+          </Sub>
+          <Sub title="Dashboard">
+            <p>Visual comparison of key metrics. Tests run for a configurable duration and winners can be promoted to the live storefront.</p>
+          </Sub>
+        </Section>
+
+        {/* 13. Notifications */}
+        <Section title="13. Notifications">
+          <Sub title="In-App Alerts">
+            <ul className="space-y-1 mt-1">
+              <Li>Bell icon in top nav with unread badge + full list in sidebar</Li>
+              <Li>Type-specific icons for sync failures, low credits, team invites</Li>
+              <Li>Real-time delivery via database subscriptions</Li>
+              <Li>Mark as read, dismiss, or clear all</Li>
+            </ul>
+          </Sub>
+          <Sub title="Email Alerts">
+            <p>Email notifications for critical events like sync failures and low credits. Requires email domain configuration.</p>
+          </Sub>
+        </Section>
+
+        {/* 14. Bulk Actions */}
+        <Section title="14. Bulk Actions">
           <p className="text-sm text-secondary-foreground print:text-gray-700">
-            An interactive 12-step guided tour walks new users through all key features. Auto-launches on first visit, accessible anytime via the "Tour" button, with a "Don't show again" checkbox.
+            Select multiple products to perform batch operations: bulk push to marketplaces, bulk delete, or bulk regenerate SEO listings — all from the product list toolbar.
+          </p>
+        </Section>
+
+        {/* 15. Onboarding */}
+        <Section title="15. Onboarding Tour">
+          <p className="text-sm text-secondary-foreground print:text-gray-700">
+            An interactive guided tour walks new users through all key features. Auto-launches on first visit, accessible anytime via the "Tour" button, with a "Don't show again" checkbox.
           </p>
         </Section>
 
