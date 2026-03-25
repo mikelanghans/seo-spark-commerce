@@ -134,13 +134,9 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       setStoreDomain(domain);
       await loadConnection();
 
-      // Open Shopify OAuth in a popup
+      // Redirect to Shopify OAuth
       const installUrl = buildInstallUrl(domain);
-      const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
-      if (!popup) {
-        // Fallback: redirect
-        window.location.href = installUrl;
-      }
+      window.location.href = installUrl;
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -151,10 +147,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const handleReauthorize = () => {
     if (!existing) return;
     const installUrl = buildInstallUrl(existing.store_domain);
-    const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
-    if (!popup) {
-      window.location.href = installUrl;
-    }
+    window.location.href = installUrl;
   };
 
   const handleDisconnect = async () => {
