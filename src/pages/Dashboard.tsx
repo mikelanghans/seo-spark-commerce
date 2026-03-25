@@ -31,6 +31,7 @@ import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
 import { SupportForm } from "@/components/SupportForm";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
   Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen,
@@ -1358,6 +1359,13 @@ const Dashboard = () => {
                   <p className="text-sm font-medium">Upload template image</p>
                   <p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
                 </label>
+              )}
+              {editingOrg?.template_image_url && (
+                <RegenerateAllMockups
+                  organizationId={editingOrg.id}
+                  userId={user!.id}
+                  templateImageUrl={editingOrg.template_image_url}
+                />
               )}
             </div>
 
