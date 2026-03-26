@@ -87,21 +87,26 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Return an HTML page that posts a message to the opener and closes itself
+    // Return a silent HTML page that posts to opener and closes/redirects immediately
+    const targetOrigin = (origin || "*").replace(/"/g, "");
     const html = `<!DOCTYPE html>
-<html><head><title>Shopify Connected</title></head>
-<body>
-<h2>Shopify connected successfully!</h2>
-<p>This window will close automatically.</p>
-<script>
-  if (window.opener) {
-    window.opener.postMessage({ type: "shopify-oauth-success" }, "${origin || "*"}");
-    setTimeout(() => window.close(), 1500);
-  } else {
-    window.location.href = "${origin || "/"}?shopify_oauth=success";
-  }
-</script>
-</body></html>`;
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Connecting...</title>
+  <script>
+    (function () {
+      if (window.opener) {
+        window.opener.postMessage({ type: "shopify-oauth-success" }, "${targetOrigin}");
+        window.close();
+      } else {
+        window.location.replace("${origin || "/"}?shopify_oauth=success");
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>`;
 
     return new Response(html, {
       status: 200,
@@ -110,18 +115,25 @@ serve(async (req) => {
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
     const errorMsg = e instanceof Error ? e.message : "Unknown error";
+    const safeError = errorMsg.replace(/"/g, "\\\"").replace(/\n/g, " ");
     const html = `<!DOCTYPE html>
-<html><head><title>Shopify Error</title></head>
-<body>
-<h2>Connection failed</h2>
-<p>${errorMsg}</p>
-<script>
-  if (window.opener) {
-    window.opener.postMessage({ type: "shopify-oauth-error", error: "${errorMsg.replace(/"/g, '\\"')}" }, "*");
-    setTimeout(() => window.close(), 3000);
-  }
-</script>
-</body></html>`;
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Connection Error</title>
+  <script>
+    (function () {
+      if (window.opener) {
+        window.opener.postMessage({ type: "shopify-oauth-error", error: "${safeError}" }, "*");
+        window.close();
+      } else {
+        window.location.replace("/?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}");
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>`;
 
     return new Response(html, {
       status: 200,
