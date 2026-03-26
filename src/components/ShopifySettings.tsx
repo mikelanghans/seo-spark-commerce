@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,18 +25,38 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const SHOPIFY_REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
 
   useEffect(() => {
     loadConnection();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
   }, []);
 
   // Listen for OAuth callback messages
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "shopify-oauth-success") {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
         toast.success("Shopify connected successfully!");
         loadConnection();
       } else if (event.data?.type === "shopify-oauth-error") {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
         toast.error(event.data.error || "OAuth failed");
       }
     };
@@ -117,11 +137,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   const buildInstallUrl = (domain: string, appClientId: string) => {
-    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
     const scopes = "read_products,write_products,read_files,write_files";
     const statePayload = JSON.stringify({ origin: window.location.origin, organizationId: organizationId || null });
     const state = encodeURIComponent(statePayload);
-    return `https://${domain}/admin/oauth/authorize?client_id=${appClientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+    return `https://${domain}/admin/oauth/authorize?client_id=${appClientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(SHOPIFY_REDIRECT_URI)}&state=${state}`;
   };
 
   const saveCredentialsViaEdgeFunction = async (domain: string, appClientId: string, appClientSecret: string) => {
@@ -139,24 +158,47 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   // Poll for connection status after opening OAuth popup
   const startPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     let attempts = 0;
     const maxAttempts = 60; // poll for up to 2 minutes
-    const interval = setInterval(async () => {
+
+    pollIntervalRef.current = setInterval(async () => {
       attempts++;
       if (attempts > maxAttempts) {
-        clearInterval(interval);
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        toast.error("Authorization timed out. Verify your Shopify app allows this redirect URL: " + SHOPIFY_REDIRECT_URI);
         return;
       }
-      const { data } = await supabase.functions.invoke("save-shopify-credentials", {
+
+      const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
         body: { action: "check", organizationId: organizationId || null },
       });
+
+      if (error || data?.error) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        toast.error(data?.error || error?.message || "Failed to verify Shopify authorization status");
+        return;
+      }
+
       if (data?.connection?.has_token) {
-        clearInterval(interval);
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
         toast.success("Shopify connected successfully!");
         loadConnection();
       }
     }, 2000);
-    return interval;
   };
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -181,7 +223,12 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       // Redirect to Shopify OAuth
       const installUrl = buildInstallUrl(domain, clientId.trim());
-      window.open(installUrl, "shopify-oauth", "width=600,height=700");
+      const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
+
+      if (!popup) {
+        toast.error("Popup blocked. Please allow popups and try Install & Connect again.");
+        return;
+      }
 
       // Start polling as fallback in case postMessage doesn't work
       toast.info("Waiting for Shopify authorization...");
@@ -196,7 +243,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const handleReauthorize = () => {
     if (!existing || !existing.client_id) return;
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
-    window.open(installUrl, "shopify-oauth", "width=600,height=700");
+    const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
+    if (!popup) {
+      toast.error("Popup blocked. Please allow popups and try again.");
+      return;
+    }
     toast.info("Waiting for Shopify authorization...");
     startPolling();
   };
@@ -259,9 +310,14 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       {!existing?.has_token && (
         <form onSubmit={handleConnect} className="space-y-4">
           {existing && existing.has_credentials && (
-            <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
-              <RefreshCw className="h-4 w-4" />
-              Credentials saved for <span className="font-medium">{existing.store_domain}</span> but authorization is incomplete. Re-enter your Client Secret and click Install &amp; Connect to finish.
+            <div className="space-y-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Credentials saved for <span className="font-medium">{existing.store_domain}</span> but authorization is incomplete. Re-enter your Client Secret and click Install &amp; Connect to finish.
+              </div>
+              <p className="text-xs text-amber-700/90">
+                If this keeps repeating, verify your app redirect URL is exactly: <span className="font-mono">{SHOPIFY_REDIRECT_URI}</span>
+              </p>
             </div>
           )}
           <div className="space-y-2">
