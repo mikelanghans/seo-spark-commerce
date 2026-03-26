@@ -232,21 +232,38 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             design_url: designUrl,
           }).select("id").single();
 
-          // Create product
+          // Create product (skip if one with same title already exists)
           const productTitle = messageText.length > 60 ? messageText.substring(0, 57) + "..." : messageText;
-          const { data: productData, error: productError } = await supabase.from("products").insert({
-            title: productTitle,
-            description: messageText,
-            category: "T-Shirt",
-            price: "29.99",
-            organization_id: organization.id,
-            user_id: userId,
-            image_url: designUrl,
-            keywords: organization.niche,
-          }).select("id").single();
+          
+          const { data: existingProduct } = await supabase
+            .from("products")
+            .select("id")
+            .eq("organization_id", organization.id)
+            .eq("title", productTitle)
+            .maybeSingle();
 
-          if (productError) throw productError;
-          const productId = productData.id;
+          let productId: string;
+          if (existingProduct) {
+            productId = existingProduct.id;
+            // Update design URL if it changed
+            await supabase.from("products").update({ image_url: designUrl }).eq("id", productId);
+            log(`  ♻️ Reusing existing product`, "info");
+          } else {
+            const { data: productData, error: productError } = await supabase.from("products").insert({
+              title: productTitle,
+              description: messageText,
+              category: "T-Shirt",
+              price: "29.99",
+              organization_id: organization.id,
+              user_id: userId,
+              image_url: designUrl,
+              keywords: organization.niche,
+            }).select("id").single();
+
+            if (productError) throw productError;
+            productId = productData.id;
+          }
+          
 
           // Link message to product so it's filtered from Message Ideas
           if (savedMsg?.id) {
