@@ -25,6 +25,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const oauthWindowRef = useRef<Window | null>(null);
   const waitingToastRef = useRef<string | number | null>(null);
@@ -189,17 +190,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     oauthWindowRef.current = null;
   };
 
-  const isOauthPopupClosed = () => {
-    if (!oauthWindowRef.current) return false;
-    try {
-      return oauthWindowRef.current.closed;
-    } catch {
-      // Some OAuth providers/pages enforce COOP and block cross-window closed checks.
-      // In that case, keep polling backend status instead of crashing the poll loop.
-      return false;
-    }
-  };
-
   // Poll for connection status after opening OAuth popup
   const startPolling = () => {
     if (pollIntervalRef.current) {
@@ -237,10 +227,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           return;
         }
 
-        if (isOauthPopupClosed()) {
-          clearOauthUiState();
-          toast.error("Authorization window was closed before completion.");
-        }
       } catch (err) {
         console.warn("Shopify OAuth polling check failed:", err);
       }
@@ -252,38 +238,15 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }, 2000);
   };
 
-  const openShopifyPopup = (url: string) => {
-    const w = 600;
-    const h = 700;
-    const left = window.screenX + (window.outerWidth - w) / 2;
-    const top = window.screenY + (window.outerHeight - h) / 2;
-
-    // Try popup first; if it fails or gets blocked, fall back to a new tab
-    const popup = window.open(
-      url,
-      "shopify_oauth",
-      `width=${w},height=${h},left=${left},top=${top},popup=yes`
-    );
-
-    if (popup) {
-      oauthWindowRef.current = popup;
-      return popup;
-    }
-
-    // Fallback: open as a plain new tab (works in Safari / embedded iframes)
-    const tab = window.open(url, "_blank");
+  const openShopifyAuthTab = (url: string) => {
+    // Top-level tab avoids Safari/COOP popup failures inside preview iframe.
+    const tab = window.open(url, "_blank", "noopener,noreferrer");
     oauthWindowRef.current = tab;
-    return tab;
   };
 
   const launchShopifyOauth = (installUrl: string) => {
-    const popup = openShopifyPopup(installUrl);
-
-    if (!popup) {
-      toast.error("Could not open Shopify authorization window. Please allow popups and try again.");
-      return;
-    }
-
+    setPendingAuthUrl(installUrl);
+    openShopifyAuthTab(installUrl);
     if (waitingToastRef.current !== null) {
       toast.dismiss(waitingToastRef.current);
     }
@@ -307,33 +270,23 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
     const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
     const installUrl = buildInstallUrl(domain, clientId.trim());
-    const popup = openShopifyPopup(installUrl);
-
-    if (!popup) {
-      toast.error("Could not open Shopify authorization window. Please allow popups and try again.");
-      return;
-    }
-
-    if (waitingToastRef.current !== null) {
-      toast.dismiss(waitingToastRef.current);
-    }
-    waitingToastRef.current = toast.info(
-      "Waiting for Shopify authorization — complete the process in the new window...",
-      { duration: 120000 }
-    );
 
     setSaving(true);
     try {
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
       setStoreDomain(domain);
+      setPendingAuthUrl(installUrl);
+      openShopifyAuthTab(installUrl);
+      if (waitingToastRef.current !== null) {
+        toast.dismiss(waitingToastRef.current);
+      }
+      waitingToastRef.current = toast.info(
+        "Waiting for Shopify authorization — complete the process in the new tab...",
+        { duration: 120000 }
+      );
       await loadConnection();
       startPolling();
     } catch (err: any) {
-      try {
-        popup?.close();
-      } catch {
-        // no-op
-      }
       clearOauthUiState();
       toast.error(err.message || "Failed to save");
     } finally {
@@ -460,6 +413,18 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
             Install & Connect
           </Button>
+
+          {pendingAuthUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => launchShopifyOauth(pendingAuthUrl)}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Open Shopify Authorization
+            </Button>
+          )}
         </form>
       )}
 
