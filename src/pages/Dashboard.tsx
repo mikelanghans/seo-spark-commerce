@@ -21,6 +21,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
+import { SizePricingSettings } from "@/components/SizePricingSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
@@ -1647,6 +1648,9 @@ const Dashboard = () => {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <ProductTypeSettings organizationId={selectedOrg!.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <SizePricingSettings organizationId={selectedOrg!.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
