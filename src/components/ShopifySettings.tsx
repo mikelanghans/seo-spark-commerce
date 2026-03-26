@@ -185,7 +185,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       // Start polling as fallback in case postMessage doesn't work
       toast.info("Waiting for Shopify authorization...");
-      startPolling(domain);
+      startPolling();
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -198,7 +198,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
     window.open(installUrl, "shopify-oauth", "width=600,height=700");
     toast.info("Waiting for Shopify authorization...");
-    startPolling(existing.store_domain);
+    startPolling();
   };
 
   const handleDisconnect = async () => {
