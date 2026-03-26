@@ -284,7 +284,7 @@ const Dashboard = () => {
         setView("products");
       }
     });
-  }, [orgs]);
+  }, [orgs, orgsLoaded]);
 
   const loadOrgs = async () => {
     setLoading(true);
