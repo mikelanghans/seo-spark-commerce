@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
+import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY, type ProductTypeKey } from "@/lib/productTypes";
 import { recolorOpaquePixels, removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -80,7 +80,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
-  const [loadingColors, setLoadingColors] = useState(false);
 
   const loadShops = async () => {
     setLoadingShops(true);
