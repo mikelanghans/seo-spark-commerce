@@ -73,7 +73,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("meta_connections").select("*").eq("user_id", userId).maybeSingle(),
         organizationId
-          ? supabase.from("organizations").select("printify_api_token").eq("id", organizationId).single()
+          ? supabase.from("organizations").select("id").eq("id", organizationId).single()
           : Promise.resolve({ data: null }),
       ]);
 
@@ -108,8 +108,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         });
       }
 
-      if ((orgRes as any)?.data?.printify_api_token) {
-        setPrintifyHasToken(true);
+      // Token presence is checked via edge function now; if org exists, check separately
+      if ((orgRes as any)?.data) {
+        // We can't read the token directly anymore; use a lightweight check
+        const { data: checkData } = await supabase.functions.invoke("save-printify-credentials", {
+          body: { organizationId, action: "check" },
+        });
+        if (checkData?.hasToken) setPrintifyHasToken(true);
       }
     } catch (e: any) {
       toast.error(e.message || "Failed to load connections");
@@ -129,11 +134,11 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
     setSavingPrintify(true);
     try {
-      const { error } = await supabase
-        .from("organizations")
-        .update({ printify_api_token: printifyToken } as any)
-        .eq("id", organizationId);
+      const { data, error } = await supabase.functions.invoke("save-printify-credentials", {
+        body: { organizationId, printifyToken },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       setPrintifyHasToken(true);
       setPrintifyToken("");
       toast.success("Printify token saved!");
@@ -147,11 +152,11 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const disconnectPrintify = async () => {
     if (!organizationId) return;
     try {
-      const { error } = await supabase
-        .from("organizations")
-        .update({ printify_api_token: "" } as any)
-        .eq("id", organizationId);
+      const { data, error } = await supabase.functions.invoke("save-printify-credentials", {
+        body: { organizationId, action: "disconnect" },
+      });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       setPrintifyHasToken(false);
       toast.success("Printify disconnected");
     } catch (e: any) {

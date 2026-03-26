@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.admin-metrics]
 verify_jwt = false
+
+[functions.save-printify-credentials]
+verify_jwt = false
