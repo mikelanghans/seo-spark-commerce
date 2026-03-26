@@ -16,8 +16,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const clientId = Deno.env.get("SHOPIFY_CLIENT_ID")!;
-    const clientSecret = Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
@@ -31,7 +29,7 @@ serve(async (req) => {
 
     let connQuery = adminClient
       .from("shopify_connections")
-      .select("id, store_domain")
+      .select("id, store_domain, client_id, client_secret")
       .eq("user_id", user.id);
     if (organizationId) connQuery = connQuery.eq("organization_id", organizationId);
     const { data: connection, error: connError } = await connQuery.maybeSingle();
@@ -40,9 +38,17 @@ serve(async (req) => {
       throw new Error("No Shopify connection found.");
     }
 
+    // Use per-org credentials from the connection row, fall back to env vars for legacy
+    const clientId = connection.client_id || Deno.env.get("SHOPIFY_CLIENT_ID");
+    const clientSecret = connection.client_secret || Deno.env.get("SHOPIFY_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      throw new Error("No Shopify app credentials configured for this brand. Please add your Client ID and Client Secret in Shopify settings.");
+    }
+
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-    // Exchange the authorization code for an access token using shared app credentials
+    // Exchange the authorization code for an access token using per-org app credentials
     const tokenResponse = await fetch(`https://${domain}/admin/oauth/access_token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
