@@ -103,23 +103,25 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Printer className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Printify</h3>
-        </div>
-        {printifyHasToken ? (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
-              <Check className="h-3 w-3 mr-1" /> Connected
-            </Badge>
-            <Button variant="ghost" size="icon" onClick={() => { setEditing(!editing); setPrintifyToken(""); }}>
-              <Pencil className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center gap-2">
+        <Printer className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-semibold">Printify Connection</h3>
+      </div>
+
+      {printifyHasToken && !editing ? (
+        <>
+          <div className="rounded-md bg-green-500/10 border border-green-500/30 px-4 py-3 flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-green-700 dark:text-green-300">Connected to Printify</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => { setEditing(true); setPrintifyToken(""); }}>
+              <Pencil className="h-4 w-4" /> Edit App Credentials
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" /> Disconnect
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -138,13 +140,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        ) : (
-          <Badge variant="secondary">Not connected</Badge>
-        )}
-      </div>
-
-      {printifyHasToken && !editing ? (
-        <p className="text-sm text-muted-foreground">Your Printify API token is saved. Products will be created in your Printify account.</p>
+        </>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
