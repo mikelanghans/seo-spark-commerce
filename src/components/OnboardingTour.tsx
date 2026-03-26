@@ -39,7 +39,7 @@ const TOUR_STEPS: TourStep[] = [
     icon: <ImageIcon className="h-6 w-6" />,
     title: "Color Variant Mockups",
     description:
-      "Inside any product, generate color variant mockups with AI. Each mockup becomes a Shopify color variant. You can also upload your own mockup images manually.",
+      "Inside any product, generate color variant mockups with AI. Each mockup becomes a marketplace color variant. Use AI color recommendations or pick your own palette.",
     tip: "Name your uploaded files with the color name (e.g. 'Ocean Blue.png') and it'll auto-set the variant name.",
   },
   {
@@ -47,7 +47,7 @@ const TOUR_STEPS: TourStep[] = [
     title: "AI Listings & Push to Marketplaces",
     description:
       "Generate SEO-optimized listings for Etsy, eBay, and Shopify with one click. Then push your products directly to Shopify, Printify, eBay, Etsy, or Meta.",
-    tip: "Connect your Shopify store in Settings to enable direct product pushing.",
+    tip: "Connect your marketplace accounts in Settings to enable direct product pushing.",
   },
   {
     icon: <Upload className="h-6 w-6" />,
@@ -76,9 +76,9 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     icon: <GitCompare className="h-6 w-6" />,
-    title: "Sync Dashboard",
+    title: "Sync Dashboard & Listing Health",
     description:
-      "See which products are synced to which marketplaces at a glance. Track Shopify, Printify, eBay, Etsy, and Meta connections in one place.",
+      "See which products are synced to which marketplaces at a glance. Listing Health flags underperforming products for AI-powered content refreshes with a review queue.",
   },
   {
     icon: <Users className="h-6 w-6" />,
@@ -98,13 +98,14 @@ const TOUR_STEPS: TourStep[] = [
     icon: <Bell className="h-6 w-6" />,
     title: "Notifications",
     description:
-      "Stay informed with in-app and email alerts for sync failures, low credits, team invites, and pipeline completions. Check the bell icon in the header or the sidebar.",
+      "Stay informed with in-app alerts for sync failures, low credits, team invites, and pipeline completions. Check the bell icon in the header or the sidebar.",
   },
   {
     icon: <Settings className="h-6 w-6" />,
     title: "Settings & Integrations",
     description:
-      "Connect your Shopify store, set up eBay/Etsy/Meta marketplace credentials, and manage your team — all from the Settings page.",
+      "Connect Shopify, Etsy, eBay, Printify, and Meta. Configure product types, size pricing, social platforms, and manage your team — all from the Settings page.",
+    tip: "Brand Aura is in beta — check the Terms of Service for details on usage and limitations.",
   },
 ];
 

@@ -56,6 +56,16 @@ const Features = () => {
 
       <main className="mx-auto max-w-4xl space-y-10 px-6 py-10 print:space-y-8 print:py-0">
 
+        {/* Beta Notice */}
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 print:border-gray-300 print:bg-gray-50">
+          <p className="text-sm font-medium text-foreground print:text-black">
+            🚧 Brand Aura is currently in <strong>public beta</strong>. Features and availability may change.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 print:text-gray-500">
+            By using this service you agree to our <a href="/terms" className="text-primary hover:underline print:text-black">Terms of Service</a>.
+          </p>
+        </div>
+
         {/* Overview */}
         <div className="rounded-xl border border-border bg-card p-6 print:border-gray-300 print:bg-white">
           <p className="text-sm leading-relaxed text-secondary-foreground print:text-gray-700">
@@ -78,12 +88,13 @@ const Features = () => {
             </ul>
           </Sub>
           <Sub title="Enabled Marketplaces (per brand)">
-            <p>Choose which marketplaces this brand sells on: Shopify, Printify, Etsy, eBay, Meta/Facebook. Only enabled marketplaces appear in listing generation and the push tab. If none are selected, all are shown by default.</p>
+            <p>Choose which marketplaces this brand sells on: Shopify, Printify, Etsy, eBay, Meta/Facebook. Only enabled marketplaces appear in listing generation and the push tab.</p>
           </Sub>
           <Sub title="Other">
             <ul className="space-y-1 mt-1">
               <Li>Default mockup template — fallback image for AI color variant generation</Li>
               <Li>Printify shop mapping — route products to the correct fulfillment shop</Li>
+              <Li>Product type settings — configure available product types per brand</Li>
               <Li>Archiving & restoring — soft-delete brands and restore within 30 days</Li>
             </ul>
           </Sub>
@@ -104,12 +115,18 @@ const Features = () => {
           <Sub title="Product Detail View">
             <p>Each product has three tabs: <strong>Mockups</strong> (color variants), <strong>Listings</strong> (marketplace SEO), and <strong>Push</strong> (send to connected stores).</p>
           </Sub>
+          <Sub title="Size & Pricing">
+            <p>Configure size-based pricing per product (e.g. S/M/L/XL). Default size pricing can be set at the brand level and overridden per product.</p>
+          </Sub>
         </Section>
 
         {/* 3. AI Design Generation */}
         <Section title="3. AI Design Generation">
           <Sub title="Message Ideas">
             <p>Generate marketing messages and promotional designs. Swipe right to keep, left to skip. Light and dark design variants are generated automatically.</p>
+          </Sub>
+          <Sub title="Design Feedback & History">
+            <p>Rate and annotate designs to improve future AI output. Upload reference images for style guidance. Full design history tracked per brand.</p>
           </Sub>
           <Sub title="Design Processing">
             <ul className="space-y-1 mt-1">
@@ -129,12 +146,14 @@ const Features = () => {
               <Li>Produces consistent results across all color variants</Li>
             </ul>
           </Sub>
+          <Sub title="AI Color Recommendations">
+            <p>AI suggests optimal colors based on your design's palette, brand identity, and market trends.</p>
+          </Sub>
           <Sub title="Smart Features">
             <ul className="space-y-1 mt-1">
-              <Li>Design scale: 75% of template width, positioned ~22% from top</Li>
               <Li>Dynamic ink color: light garments get dark ink, dark garments get bright white</Li>
               <Li>Black variant always generated first as the hero image</Li>
-              <Li>Color accuracy via COLOR_SWATCH_HINTS dictionary with descriptive targets</Li>
+              <Li>Color accuracy via COLOR_SWATCH_HINTS dictionary</Li>
               <Li>Composition lock preserves exact framing, lighting, and props</Li>
             </ul>
           </Sub>
@@ -158,8 +177,11 @@ const Features = () => {
           <Sub title="Printify">
             <p>Push designs for print-on-demand fulfillment. Automatic color name matching, dynamic variant fetching, and Printify Choice provider prioritization.</p>
           </Sub>
-          <Sub title="Etsy, eBay, Meta">
-            <p>Push listings with images to connected accounts. Each requires API credentials configured in Settings.</p>
+          <Sub title="Etsy & eBay">
+            <p>OAuth-based connections for both platforms. Push listings with images to your connected Etsy shop or eBay store.</p>
+          </Sub>
+          <Sub title="Meta / Facebook">
+            <p>Push products to your Meta Commerce catalog with images and product data.</p>
           </Sub>
           <Sub title="Multi-Store Sync Dashboard">
             <p>Unified view of listing status across all marketplaces with indicators: Total, Not Listed, Partial, Fully Synced.</p>
@@ -180,6 +202,9 @@ const Features = () => {
               <li>Printify — push to Printify</li>
               <li>Shopify — push to Shopify</li>
             </ol>
+          </Sub>
+          <Sub title="Bulk Upload Pipeline">
+            <p>Upload multiple product folders at once. The pipeline processes them in parallel with configurable concurrency.</p>
           </Sub>
           <Sub title="Pipeline Persistence">
             <p>Jobs are saved to the database. Incomplete jobs can be resumed if you leave and come back.</p>
@@ -240,10 +265,11 @@ const Features = () => {
         {/* 11. Settings */}
         <Section title="11. Settings & Integrations">
           <ul className="space-y-1">
-            <Li><strong>Shopify</strong> — OAuth-based connection with multi-tenant support</Li>
-            <Li><strong>Etsy</strong> — API key + Shop ID</Li>
-            <Li><strong>eBay</strong> — Client ID + Secret (sandbox or production)</Li>
+            <Li><strong>Shopify</strong> — OAuth-based connection with multi-tenant support (per-brand credentials)</Li>
+            <Li><strong>Etsy</strong> — OAuth2 PKCE flow with shared credentials</Li>
+            <Li><strong>eBay</strong> — OAuth flow with Client ID + Secret (sandbox or production)</Li>
             <Li><strong>Meta / Facebook</strong> — Catalog ID + System User Access Token</Li>
+            <Li><strong>Printify</strong> — per-brand API token with shop mapping</Li>
             <Li><strong>Collaboration Hub</strong> — manage team members and invites across all brands</Li>
           </ul>
         </Section>
@@ -268,9 +294,6 @@ const Features = () => {
               <Li>Mark as read, dismiss, or clear all</Li>
             </ul>
           </Sub>
-          <Sub title="Email Alerts">
-            <p>Email notifications for critical events like sync failures and low credits. Requires email domain configuration.</p>
-          </Sub>
         </Section>
 
         {/* 14. Bulk Actions */}
@@ -280,16 +303,40 @@ const Features = () => {
           </p>
         </Section>
 
-        {/* 15. Onboarding */}
-        <Section title="15. Onboarding Tour">
+        {/* 15. Listing Health */}
+        <Section title="15. Listing Health & Refresh Queue">
+          <Sub title="Listing Health Check">
+            <p>AI-powered analysis of listing quality, identifying products with declining sales velocity that may benefit from refreshed content.</p>
+          </Sub>
+          <Sub title="Refresh Queue">
+            <p>Products flagged for refresh appear in a queue with reason codes and velocity drop percentages. Editors can review and approve AI-generated replacement listings.</p>
+          </Sub>
+        </Section>
+
+        {/* 16. Smart Pricing */}
+        <Section title="16. Smart Pricing">
           <p className="text-sm text-secondary-foreground print:text-gray-700">
-            An interactive guided tour walks new users through all key features. Auto-launches on first visit, accessible anytime via the "Tour" button, with a "Don't show again" checkbox.
+            AI-powered pricing suggestions based on product category, market trends, and competitor analysis. Get data-driven price recommendations for each product.
+          </p>
+        </Section>
+
+        {/* 17. Onboarding */}
+        <Section title="17. Onboarding Tour">
+          <p className="text-sm text-secondary-foreground print:text-gray-700">
+            An interactive 14-step guided tour walks new users through all key features. Auto-launches on first visit, accessible anytime via the "Tour" button, with a "Don't show again" checkbox.
+          </p>
+        </Section>
+
+        {/* 18. Terms of Service */}
+        <Section title="18. Terms of Service">
+          <p className="text-sm text-secondary-foreground print:text-gray-700">
+            A comprehensive Terms of Service page covering beta disclaimer, "as-is" warranty, AI content responsibility, third-party service disclaimers, limitation of liability, and data & privacy. Accessible from the login page and at <a href="/terms" className="text-primary hover:underline print:text-black">/terms</a>.
           </p>
         </Section>
 
         {/* Footer */}
         <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground print:text-gray-400 print:border-gray-300">
-          Brand Aura — AI-Powered Product Listing Platform
+          Brand Aura — AI-Powered Product Listing Platform · Public Beta
         </div>
       </main>
     </div>

@@ -1,5 +1,9 @@
 # Brand Aura — Complete Feature Guide
 
+> **Brand Aura is currently in public beta.** Features, functionality, and availability may change. By using this service you agree to our [Terms of Service](/terms).
+
+---
+
 ## Overview
 
 Brand Aura is an AI-powered product listing and brand management platform. It helps e-commerce sellers create, optimize, and push product listings across multiple marketplaces — all from a single dashboard.
@@ -26,9 +30,12 @@ Controls how AI generates product designs:
 
 ### Enabled Marketplaces (per brand)
 Choose which marketplaces this brand sells on:
-- Shopify, Printify, Amazon, Etsy, eBay, Meta/Facebook
+- Shopify, Printify, Etsy, eBay, Meta/Facebook
 - Only enabled marketplaces appear in listing generation and the push tab
 - If none are selected, all marketplaces are shown by default
+
+### Product Type Settings (per brand)
+Configure which product types are available for this brand (e.g. t-shirts, hoodies, mugs). Product types affect listing generation and Printify variant selection.
 
 ### Default Mockup Template
 A fallback garment/product image used for AI color variant generation when a product doesn't have its own source image.
@@ -59,6 +66,9 @@ Each product has three tabs:
 - **Listings** — marketplace-specific SEO listings
 - **Push** — buttons to push to connected marketplaces
 
+### Size & Pricing
+Configure size-based pricing per product (e.g. S/M/L/XL with different prices). Default size pricing can be set at the brand level and overridden per product.
+
 ---
 
 ## 3. AI Design Generation
@@ -69,6 +79,9 @@ Generate marketing messages and promotional designs for your products:
 - Each message can get a matching AI-generated design graphic
 - **Swipe interface** — swipe right to keep, left to skip
 - Light and dark design variants are generated automatically
+
+### Design Feedback & History
+Rate and annotate designs to improve future AI output. Upload reference images for style guidance. Design history is tracked per brand.
 
 ### Design Processing
 - Designs are generated as transparent PNGs
@@ -84,6 +97,9 @@ Generate marketing messages and promotional designs for your products:
 1. A design is overlaid onto the template image client-side (pre-compositing)
 2. The AI then recolors the garment fabric only — it doesn't need to place the design
 3. This produces consistent, reliable results across all colors
+
+### AI Color Recommendations
+AI can suggest optimal colors based on your design's palette, brand identity, and market trends.
 
 ### Technical Details
 - Design scale: 75% of template width, positioned ~22% from the top
@@ -108,7 +124,7 @@ Generate SEO-optimized listings for your enabled marketplaces with one click. Ea
 - **SEO Metadata** — meta title, meta description, URL handle, image alt text
 
 ### Marketplace-Specific
-Listings are tailored per marketplace (Amazon, Etsy, eBay, Shopify) with platform-appropriate formatting and keyword strategies.
+Listings are tailored per marketplace (Etsy, eBay, Shopify) with platform-appropriate formatting and keyword strategies.
 
 ### Bulk Generation
 Generate listings for all products at once from the products list view.
@@ -130,9 +146,16 @@ Generate listings for all products at once from the products list view.
 - Dynamic variant and print area fetching from Printify's catalog API
 - Prioritizes Printify Choice (provider 99) when available
 
-### Etsy, eBay, Meta
-- Push listings with images to connected marketplace accounts
-- Each requires API credentials configured in Settings
+### Etsy
+- OAuth-based connection with PKCE flow
+- Push listings with images to your Etsy shop
+
+### eBay
+- OAuth-based connection (sandbox or production)
+- Push listings with images to your eBay store
+
+### Meta / Facebook
+- Push products to your Meta Commerce catalog
 
 ### Multi-Store Sync Dashboard
 A unified view showing product listing status across all marketplaces:
@@ -172,6 +195,9 @@ Generate social media posts for your products:
 
 ### Content Calendar
 Schedule and organize social posts on a visual calendar view.
+
+### Platform Settings
+Enable or disable specific social platforms per brand.
 
 ---
 
@@ -222,15 +248,24 @@ Toast notifications fire at ~20% remaining, at 10, 3, and 0 credits left. An in-
 ## 11. Settings & Integrations
 
 ### Shopify Connection
-OAuth-based connection with Client ID and Client Secret. Supports multi-tenant architecture for multiple stores.
+OAuth-based connection with Client ID and Client Secret. Supports multi-tenant architecture — each brand stores its own Shopify app credentials for independent OAuth flows.
 
 ### Marketplace Connections
-- **Etsy** — API key + Shop ID
-- **eBay** — Client ID + Client Secret (sandbox or production)
+- **Etsy** — OAuth2 PKCE flow with shared credentials
+- **eBay** — Client ID + Client Secret with OAuth flow (sandbox or production)
 - **Meta / Facebook** — Catalog ID + System User Access Token
+
+### Printify Connection
+Per-brand API token stored in encrypted organization secrets. Each brand can be mapped to a specific Printify shop.
 
 ### Collaboration Hub
 Centralized view to manage team members and pending invitations across all brands.
+
+### Product Type Settings
+Configure available product types per brand.
+
+### Social Platform Settings
+Enable/disable social media platforms per brand.
 
 ---
 
@@ -252,10 +287,6 @@ A dedicated A/B test dashboard shows active and completed tests with a visual co
 - Type-specific icons for sync failures, low credits, team invites, and general info
 - Real-time delivery via database subscriptions
 - Mark as read, dismiss individual, or clear all
-
-### Email Alerts
-- Email notifications for critical events (sync failures, low credits)
-- Requires email domain configuration in project settings
 
 ### Notification Triggers
 - Sync failures (Shopify push errors, marketplace issues)
@@ -293,10 +324,22 @@ AI-powered pricing suggestions based on product category, market trends, and com
 
 ## 17. Onboarding Tour
 
-An interactive 12-step guided tour walks new users through all key features:
+An interactive 14-step guided tour walks new users through all key features:
 - Auto-launches on first visit
 - Accessible anytime via the "Tour" button in the header
 - Includes a "Don't show again" checkbox for returning users
+
+---
+
+## 18. Terms of Service
+
+A comprehensive Terms of Service page covering:
+- Beta disclaimer — the service is in beta and may change
+- "As-is" warranty — no guarantees of uptime or accuracy
+- AI content responsibility — users must review all AI-generated content
+- Third-party services — users must comply with each platform's terms
+- Limitation of liability — the platform is not responsible for losses
+- Data & privacy — how data is stored and used
 
 ---
 
@@ -308,3 +351,4 @@ An interactive 12-step guided tour walks new users through all key features:
 - **Image Processing**: Client-side Canvas API for background removal, upscaling, and composition
 - **Security**: Row Level Security (RLS) with organization membership checks
 - **Multi-tenancy**: Organization-based data isolation with owner/editor/viewer roles
+- **Status**: Public Beta
