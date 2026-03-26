@@ -147,7 +147,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
 
   const loadSizePricing = async () => {
     // Load org-level default size pricing, then overlay product-level overrides
-    const pt = PRODUCT_TYPES["t-shirt"];
+    const pt = PRODUCT_TYPE_REGISTRY["t-shirt"];
     const defaults: Record<string, string> = { ...pt.defaultSizePricing };
 
     if (organizationId) {
