@@ -70,6 +70,7 @@ interface Organization {
   printify_shop_id?: number | null;
   deleted_at?: string | null;
   enabled_marketplaces?: string[];
+  enabled_product_types?: string[];
 }
 
 interface Product {
