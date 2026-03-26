@@ -98,7 +98,7 @@ function drawDesignWithUnderbase(
   const designWidth = cleanedDesign.width;
   const designHeight = cleanedDesign.height;
 
-  const designScale = 0.53;
+  const designScale = 0.60;
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
