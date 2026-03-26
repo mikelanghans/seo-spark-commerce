@@ -23,8 +23,40 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { clientId, clientSecret, storeDomain, organizationId } = await req.json();
+    const body = await req.json();
+    const { action, clientId, clientSecret, storeDomain, organizationId } = body;
 
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // === CHECK action: return connection status without exposing secrets ===
+    if (action === "check") {
+      let query = adminClient
+        .from("shopify_connections")
+        .select("id, store_domain, access_token, client_id")
+        .eq("user_id", user.id);
+      if (organizationId) query = query.eq("organization_id", organizationId);
+      const { data: conn } = await query.maybeSingle();
+
+      if (!conn) {
+        return new Response(JSON.stringify({ connection: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        connection: {
+          id: conn.id,
+          store_domain: conn.store_domain,
+          has_token: !!(conn.access_token && conn.access_token.length > 0),
+          has_credentials: !!conn.client_id,
+          client_id: conn.client_id,
+        },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === SAVE action (default): upsert credentials ===
     if (!clientId || !clientSecret) {
       throw new Error("Client ID and Client Secret are required");
     }
@@ -33,7 +65,6 @@ serve(async (req) => {
     }
 
     const domain = storeDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Check for existing connection
     let query = adminClient

@@ -85,25 +85,33 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const loadConnection = async () => {
     setLoading(true);
-    // Only select non-sensitive fields — client_secret is never read client-side
-    const { data } = await supabase
-      .from("shopify_connections")
-      .select("id, store_domain, access_token, client_id")
-      .eq("user_id", userId)
-      .match(organizationId ? { organization_id: organizationId } : {})
-      .maybeSingle();
-    if (data) {
-      setExisting({
-        id: data.id,
-        store_domain: data.store_domain,
-        has_token: !!data.access_token && data.access_token.length > 0,
-        has_credentials: !!data.client_id,
-        client_id: data.client_id,
+    try {
+      // Use edge function to read connection status (avoids column-level permission issues)
+      const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
+        body: { action: "check", organizationId: organizationId || null },
       });
-      setStoreDomain(data.store_domain);
-      setClientId(data.client_id || "");
-      // Never populate clientSecret from DB — user must re-enter to change
-      setClientSecret("");
+      if (error) {
+        console.error("Failed to check Shopify connection:", error);
+        setLoading(false);
+        return;
+      }
+      const conn = data?.connection;
+      if (conn) {
+        setExisting({
+          id: conn.id,
+          store_domain: conn.store_domain,
+          has_token: conn.has_token,
+          has_credentials: conn.has_credentials,
+          client_id: conn.client_id,
+        });
+        setStoreDomain(conn.store_domain);
+        setClientId(conn.client_id || "");
+        setClientSecret("");
+      } else {
+        setExisting(null);
+      }
+    } catch (err) {
+      console.error("Failed to load Shopify connection:", err);
     }
     setLoading(false);
   };
@@ -130,7 +138,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   // Poll for connection status after opening OAuth popup
-  const startPolling = (domain: string) => {
+  const startPolling = () => {
     let attempts = 0;
     const maxAttempts = 60; // poll for up to 2 minutes
     const interval = setInterval(async () => {
@@ -139,13 +147,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         clearInterval(interval);
         return;
       }
-      const { data } = await supabase
-        .from("shopify_connections")
-        .select("id, access_token")
-        .eq("user_id", userId)
-        .eq("store_domain", domain)
-        .maybeSingle();
-      if (data?.access_token) {
+      const { data } = await supabase.functions.invoke("save-shopify-credentials", {
+        body: { action: "check", organizationId: organizationId || null },
+      });
+      if (data?.connection?.has_token) {
         clearInterval(interval);
         toast.success("Shopify connected successfully!");
         loadConnection();
@@ -180,7 +185,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       // Start polling as fallback in case postMessage doesn't work
       toast.info("Waiting for Shopify authorization...");
-      startPolling(domain);
+      startPolling();
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -193,7 +198,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
     window.open(installUrl, "shopify-oauth", "width=600,height=700");
     toast.info("Waiting for Shopify authorization...");
-    startPolling(existing.store_domain);
+    startPolling();
   };
 
   const handleDisconnect = async () => {
