@@ -185,6 +185,17 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     oauthWindowRef.current = null;
   };
 
+  const isOauthPopupClosed = () => {
+    if (!oauthWindowRef.current) return false;
+    try {
+      return oauthWindowRef.current.closed;
+    } catch {
+      // Some OAuth providers/pages enforce COOP and block cross-window closed checks.
+      // In that case, keep polling backend status instead of crashing the poll loop.
+      return false;
+    }
+  };
+
   // Poll for connection status after opening OAuth popup
   const startPolling = () => {
     if (pollIntervalRef.current) {
@@ -195,14 +206,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     let attempts = 0;
     const maxAttempts = 60; // poll for up to 2 minutes
 
-    pollIntervalRef.current = setInterval(async () => {
+    const pollOnce = async () => {
       attempts++;
-
-      if (oauthWindowRef.current && oauthWindowRef.current.closed) {
-        clearOauthUiState();
-        toast.error("Authorization window was closed before completion.");
-        return;
-      }
 
       if (attempts > maxAttempts) {
         clearOauthUiState();
@@ -210,21 +215,36 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
-        body: { action: "check", organizationId: organizationId || null },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
+          body: { action: "check", organizationId: organizationId || null },
+        });
 
-      if (error || data?.error) {
-        clearOauthUiState();
-        toast.error(data?.error || error?.message || "Failed to verify Shopify authorization status");
-        return;
-      }
+        if (error || data?.error) {
+          clearOauthUiState();
+          toast.error(data?.error || error?.message || "Failed to verify Shopify authorization status");
+          return;
+        }
 
-      if (data?.connection?.has_token) {
-        clearOauthUiState();
-        toast.success("Shopify connected successfully!");
-        loadConnection();
+        if (data?.connection?.has_token) {
+          clearOauthUiState();
+          toast.success("Shopify connected successfully!");
+          loadConnection();
+          return;
+        }
+
+        if (isOauthPopupClosed()) {
+          clearOauthUiState();
+          toast.error("Authorization window was closed before completion.");
+        }
+      } catch (err) {
+        console.warn("Shopify OAuth polling check failed:", err);
       }
+    };
+
+    void pollOnce();
+    pollIntervalRef.current = setInterval(() => {
+      void pollOnce();
     }, 2000);
   };
 
