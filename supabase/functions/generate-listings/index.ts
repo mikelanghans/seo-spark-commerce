@@ -13,7 +13,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const allMarketplaces = ["amazon", "etsy", "ebay", "shopify"];
+    const allMarketplaces = ["etsy", "ebay", "shopify"];
     const marketplaces = (requestedMarketplaces && requestedMarketplaces.length > 0)
       ? requestedMarketplaces.filter((m: string) => allMarketplaces.includes(m))
       : allMarketplaces;
@@ -35,7 +35,7 @@ Product:
 
 Generate SEO-optimized listings for: ${marketplaces.join(", ")}. Only generate for these marketplaces.
 Each listing must be tailored to that marketplace's style and SEO best practices.
-- Amazon: keyword-rich title, benefit-driven bullet points, A+ description
+
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
 - Shopify: clean brand-forward copy, lifestyle-oriented

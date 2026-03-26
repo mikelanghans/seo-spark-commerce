@@ -99,7 +99,7 @@ interface Listing {
   alt_text: string;
 }
 
-const ALL_MARKETPLACES = ["shopify", "amazon", "etsy", "ebay"] as const;
+const ALL_MARKETPLACES = ["shopify", "etsy", "ebay"] as const;
 const ALL_PUSH_CHANNELS = ["shopify", "printify", "etsy", "ebay", "meta"] as const;
 
 type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
@@ -732,7 +732,7 @@ const Dashboard = () => {
         if (result?.error) throw new Error(result.error);
 
         await supabase.from("listings").delete().eq("product_id", product.id);
-        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["amazon", "etsy", "ebay", "shopify"];
+        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["etsy", "ebay", "shopify"];
         const listingRows = bulkMarketplaces.map((m) => ({
           product_id: product.id,
           user_id: user!.id,
@@ -881,7 +881,7 @@ const Dashboard = () => {
 
         await supabase.from("listings").delete().eq("product_id", product.id);
 
-        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["amazon", "etsy", "ebay", "shopify"];
+        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["etsy", "ebay", "shopify"];
         const listingRows = bulkMarketplaces.map((m) => ({
           product_id: product.id,
           user_id: user!.id,
@@ -1383,7 +1383,7 @@ const Dashboard = () => {
                 {[
                   { value: "shopify", label: "Shopify", icon: "🛍️" },
                   { value: "printify", label: "Printify", icon: "🖨️" },
-                  { value: "amazon", label: "Amazon", icon: "📦" },
+                  
                   { value: "etsy", label: "Etsy", icon: "🧶" },
                   { value: "ebay", label: "eBay", icon: "🏷️" },
                   { value: "meta", label: "Meta / Facebook", icon: "📘" },

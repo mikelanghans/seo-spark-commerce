@@ -8,7 +8,7 @@ import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const MARKETPLACES = ["amazon", "etsy", "ebay", "shopify"] as const;
+const MARKETPLACES = ["etsy", "ebay", "shopify"] as const;
 
 const Index = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -127,7 +127,7 @@ const Index = () => {
               </div>
             ) : (
               listings && (
-                <Tabs defaultValue="amazon">
+                <Tabs defaultValue="etsy">
                   <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
                     {MARKETPLACES.map((m) => (
                       <TabsTrigger

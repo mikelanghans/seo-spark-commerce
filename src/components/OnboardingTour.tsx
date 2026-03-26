@@ -46,7 +46,7 @@ const TOUR_STEPS: TourStep[] = [
     icon: <Store className="h-6 w-6" />,
     title: "AI Listings & Push to Marketplaces",
     description:
-      "Generate SEO-optimized listings for Amazon, Etsy, eBay, and Shopify with one click. Then push your products directly to Shopify, Printify, eBay, Etsy, or Meta.",
+      "Generate SEO-optimized listings for Etsy, eBay, and Shopify with one click. Then push your products directly to Shopify, Printify, eBay, Etsy, or Meta.",
     tip: "Connect your Shopify store in Settings to enable direct product pushing.",
   },
   {
