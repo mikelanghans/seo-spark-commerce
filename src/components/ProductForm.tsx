@@ -175,10 +175,23 @@ export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="productType">Product Type</Label>
+          <Select value={productType} onValueChange={(v) => handleProductTypeChange(v as ProductTypeKey)} disabled={isAnalyzing}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select product type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(PRODUCT_TYPES).map((pt) => (
+                <SelectItem key={pt.key} value={pt.key}>{pt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="category">Category</Label>
           <Input
             id="category"
-            placeholder="e.g. Home & Garden > Candles"
+            placeholder="e.g. T-Shirt, Hoodie, Mug"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
             required
