@@ -21,6 +21,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
+import { SizePricingSettings } from "@/components/SizePricingSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
