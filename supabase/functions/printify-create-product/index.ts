@@ -310,11 +310,14 @@ serve(async (req) => {
           title,
           description: description || "",
           tags: productPayload.tags,
-          variants: existingVariantIds.map((vid: number) => ({
-            id: vid,
-            price: priceInCents,
-            is_enabled: enabledVariantIds.has(vid),
-          })),
+          variants: existingVariantIds.map((vid: number) => {
+            const variant = (existingProduct.variants || []).find((v: any) => v.id === vid);
+            return {
+              id: vid,
+              price: variant ? getVariantPrice(variant) : fallbackPriceCents,
+              is_enabled: enabledVariantIds.has(vid),
+            };
+          }),
           print_areas: updatePrintAreas,
         };
 
