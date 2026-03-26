@@ -241,10 +241,46 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
   };
 
+  const saveEbayCreds = async () => {
+    if (!ebayClientId.trim() || !ebayClientSecret.trim()) {
+      toast.error("Both Client ID and Client Secret are required");
+      return;
+    }
+    setSavingEbay(true);
+    try {
+      // Upsert credentials into ebay_connections (no token yet)
+      if (ebayConn) {
+        const { error } = await supabase
+          .from("ebay_connections")
+          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
+          .eq("id", ebayConn.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("ebay_connections")
+          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv } as any);
+        if (error) throw error;
+      }
+      setEbayCredsSaved(true);
+      toast.success("eBay credentials saved! Now authorize your account.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save eBay credentials");
+    } finally {
+      setSavingEbay(false);
+    }
+  };
+
   const connectEbay = async () => {
     setSavingEbay(true);
     try {
-      const clientId = "YOUR_EBAY_CLIENT_ID"; // This is the public app ID shown in consent screen
+      // Use the user's own Client ID for the OAuth consent screen
+      const savedClientId = ebayClientId || ebayConn?.client_id;
+      if (!savedClientId) {
+        toast.error("Save your eBay credentials first");
+        setSavingEbay(false);
+        return;
+      }
+
       const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ebay-oauth-callback`;
       const isSandbox = ebayEnv === "sandbox";
       const authBase = isSandbox
@@ -254,7 +290,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
       const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
 
-      const authUrl = `${authBase}?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
 
       const popup = window.open(authUrl, "ebay-oauth", "width=600,height=700");
 
