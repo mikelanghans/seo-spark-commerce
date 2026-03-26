@@ -266,8 +266,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           updateProduct(i, { step: "Recommending colors..." });
           log(`  🎨 Getting color recommendations...`, "info");
 
-          const { data: colorData, error: colorError } = await withRetry(() =>
-            supabase.functions.invoke("recommend-colors", {
+          const { data: colorData, error: colorError } = await withRetry(async () => {
+            const res = await supabase.functions.invoke("recommend-colors", {
               body: {
                 productTitle,
                 productCategory: "T-Shirt",
@@ -276,9 +276,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 brandAudience: organization.audience,
                 brandTone: organization.tone,
               },
-            }),
-            { label: `colors-${i}` }
-          );
+            });
+            if (res.error) throw new Error(res.error.message || "Failed to get color recommendations");
+            if (res.data?.error) throw new Error(res.data.error);
+            return res;
+          }, { label: `colors-${i}` });
 
           if (colorError || colorData?.error) throw new Error(colorData?.error || colorError?.message);
           recommendedColors = (colorData.recommendations || []).map((r: any) => r.color);

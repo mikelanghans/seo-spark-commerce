@@ -1,12 +1,19 @@
 /** Retry a function with exponential backoff on rate-limit (429) or transient errors */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  { maxRetries = 4, baseDelay = 2000, label = "" } = {}
+  { maxRetries = 4, baseDelay = 2000, label = "", timeoutMs = 60000 } = {}
 ): Promise<T> {
   let lastError: Error | undefined;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await fn();
+      // Wrap with timeout to prevent hanging
+      const result = await Promise.race([
+        fn(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Request timed out")), timeoutMs)
+        ),
+      ]);
+      return result;
     } catch (err: any) {
       lastError = err;
       const msg = err?.message || "";
@@ -16,7 +23,10 @@ export async function withRetry<T>(
         msg.includes("Rate limit") ||
         msg.includes("Too Many Requests") ||
         msg.includes("ECONNRESET") ||
-        msg.includes("fetch failed");
+        msg.includes("fetch failed") ||
+        msg.includes("Failed to send") ||
+        msg.includes("timed out") ||
+        msg.includes("Request timed out");
 
       if (!isRetryable || attempt === maxRetries) throw err;
 
