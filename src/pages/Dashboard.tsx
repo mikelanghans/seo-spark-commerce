@@ -1386,7 +1386,7 @@ const Dashboard = () => {
                   
                   { value: "etsy", label: "Etsy", icon: "🧶" },
                   { value: "ebay", label: "eBay", icon: "🏷️" },
-                  { value: "meta", label: "Meta / Facebook", icon: "📘" },
+                  // { value: "meta", label: "Meta / Facebook", icon: "📘" },
                 ].map((mp) => {
                   const isEnabled = orgForm.enabled_marketplaces.includes(mp.value);
                   return (
