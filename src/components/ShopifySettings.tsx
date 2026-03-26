@@ -201,27 +201,26 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }, 2000);
   };
 
-  const isSafariBrowser = () => {
-    const ua = navigator.userAgent;
-    return /Safari/i.test(ua) && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS/i.test(ua);
-  };
-
   const launchShopifyOauth = (installUrl: string) => {
-    // Always open in a new tab — avoid same-tab redirect which breaks
-    // preview iframes and loses app state. Use noopener,noreferrer to
-    // avoid Safari's Cross-Origin-Opener-Policy block.
-    const popup = window.open(installUrl, "_blank", "noopener,noreferrer");
+    // Open synchronously from user interaction; then drop opener to reduce
+    // cross-origin opener issues before navigating to Shopify.
+    const popup = window.open("about:blank", "_blank");
 
     if (!popup) {
-      // As last resort, provide a copyable link
       toast.error(
-        "Could not open Shopify authorization. Please copy and open this URL in a new tab: " +
-        installUrl,
+        "Could not open Shopify authorization. Please copy and open this URL in a new tab: " + installUrl,
         { duration: 15000 }
       );
       return;
     }
 
+    try {
+      popup.opener = null;
+    } catch {
+      // no-op
+    }
+
+    popup.location.replace(installUrl);
     toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
     startPolling();
   };
@@ -240,31 +239,33 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
     const installUrl = buildInstallUrl(domain, clientId.trim());
 
-    // Open window SYNCHRONOUSLY in the click handler to avoid popup blockers
-    const oauthWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+    // Open window synchronously in click handler to preserve user gesture.
+    const oauthWindow = window.open("about:blank", "_blank");
 
     setSaving(true);
     try {
-      // Save credentials securely via edge function
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
 
       setStoreDomain(domain);
       await loadConnection();
 
-      // Navigate the already-opened window to Shopify OAuth
       if (oauthWindow) {
-        oauthWindow.location.href = installUrl;
+        try {
+          oauthWindow.opener = null;
+        } catch {
+          // no-op
+        }
+
+        oauthWindow.location.replace(installUrl);
         toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
         startPolling();
       } else {
-        // Fallback: provide copyable link
         toast.error(
           "Could not open Shopify authorization. Please copy and open this URL in a new tab: " + installUrl,
           { duration: 15000 }
         );
       }
     } catch (err: any) {
-      // Close the blank window if credentials save failed
       if (oauthWindow) oauthWindow.close();
       toast.error(err.message || "Failed to save");
     } finally {
