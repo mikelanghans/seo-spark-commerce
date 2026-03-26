@@ -149,11 +149,29 @@ const MUG_SWATCH_HINTS: Record<string, string> = {
 const CC1717_SIZE_CHART_URL =
   "https://qhlrjoytvowzsxulfnku.supabase.co/storage/v1/object/public/product-images/shared/cc1717-size-chart.png";
 
+const APPAREL_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+
+function apparelPricing(base: string, upcharge2xl = "2", upcharge3xl = "4"): Record<string, string> {
+  const b = parseFloat(base);
+  const u2 = parseFloat(upcharge2xl);
+  const u3 = parseFloat(upcharge3xl);
+  return {
+    S: b.toFixed(2),
+    M: b.toFixed(2),
+    L: b.toFixed(2),
+    XL: b.toFixed(2),
+    "2XL": (b + u2).toFixed(2),
+    "3XL": (b + u3).toFixed(2),
+  };
+}
+
 export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
   "t-shirt": {
     key: "t-shirt",
     label: "T-Shirt",
     category: "T-Shirt",
+    sizes: APPAREL_SIZES,
+    defaultSizePricing: apparelPricing("29.99"),
     colors: CC1717_COLORS,
     lightColors: CC1717_LIGHT,
     swatchHints: CC1717_SWATCH_HINTS,
@@ -167,6 +185,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "long-sleeve",
     label: "Long Sleeve",
     category: "Long Sleeve",
+    sizes: APPAREL_SIZES,
+    defaultSizePricing: apparelPricing("34.99"),
     colors: CC1717_COLORS,
     lightColors: CC1717_LIGHT,
     swatchHints: CC1717_SWATCH_HINTS,
@@ -180,6 +200,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "sweatshirt",
     label: "Sweatshirt",
     category: "Sweatshirt",
+    sizes: APPAREL_SIZES,
+    defaultSizePricing: apparelPricing("39.99"),
     colors: CC1566_COLORS,
     lightColors: CC1717_LIGHT,
     swatchHints: CC1566_SWATCH_HINTS,
@@ -193,6 +215,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "hoodie",
     label: "Hoodie",
     category: "Hoodie",
+    sizes: APPAREL_SIZES,
+    defaultSizePricing: apparelPricing("44.99"),
     colors: CC1566_COLORS,
     lightColors: CC1717_LIGHT,
     swatchHints: CC1566_SWATCH_HINTS,
@@ -206,6 +230,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "mug",
     label: "Mug / Drinkware",
     category: "Mug",
+    sizes: ["11oz", "15oz"],
+    defaultSizePricing: { "11oz": "16.99", "15oz": "19.99" },
     colors: MUG_COLORS,
     lightColors: MUG_LIGHT,
     swatchHints: MUG_SWATCH_HINTS,
@@ -219,6 +245,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "tote",
     label: "Tote Bag",
     category: "Tote",
+    sizes: [],
+    defaultSizePricing: {},
     colors: [
       { name: "Natural", hex: "#f5f0e1" },
       { name: "Black", hex: "#1a1a1a" },
@@ -236,6 +264,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "canvas",
     label: "Canvas Print",
     category: "Canvas",
+    sizes: ["8x10", "11x14", "16x20", "24x36"],
+    defaultSizePricing: { "8x10": "29.99", "11x14": "39.99", "16x20": "59.99", "24x36": "89.99" },
     colors: [{ name: "White", hex: "#ffffff" }],
     lightColors: new Set(["white"]),
     swatchHints: { white: "white canvas (#FFFFFF)" },
@@ -249,6 +279,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "journal",
     label: "Journal",
     category: "Journal",
+    sizes: [],
+    defaultSizePricing: {},
     colors: [
       { name: "Black", hex: "#1a1a1a" },
       { name: "White", hex: "#ffffff" },
@@ -265,6 +297,8 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     key: "notebook",
     label: "Notebook",
     category: "Notebook",
+    sizes: [],
+    defaultSizePricing: {},
     colors: [
       { name: "Black", hex: "#1a1a1a" },
       { name: "White", hex: "#ffffff" },
