@@ -1344,7 +1344,6 @@ export type Database = {
           logo_url: string | null
           name: string | null
           niche: string | null
-          printify_api_token: string | null
           printify_shop_id: number | null
           template_image_url: string | null
           tone: string | null
@@ -1365,7 +1364,6 @@ export type Database = {
           logo_url?: string | null
           name?: string | null
           niche?: string | null
-          printify_api_token?: never
           printify_shop_id?: number | null
           template_image_url?: string | null
           tone?: string | null
@@ -1386,7 +1384,6 @@ export type Database = {
           logo_url?: string | null
           name?: string | null
           niche?: string | null
-          printify_api_token?: never
           printify_shop_id?: number | null
           template_image_url?: string | null
           tone?: string | null
