@@ -83,6 +83,7 @@ interface Product {
   features: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  tags: string[];
 }
 
 interface Listing {
