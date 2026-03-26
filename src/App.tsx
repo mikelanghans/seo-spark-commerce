@@ -11,6 +11,7 @@ import Features from "./pages/Features";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 const queryClient = new QueryClient();
 
