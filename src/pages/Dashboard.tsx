@@ -1812,6 +1812,26 @@ const Dashboard = () => {
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                           {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
+                          {/* Tags */}
+                          <div className="mt-2 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {(product.tags || []).map((tag) => (
+                              <span key={tag} className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                {tag}
+                                <button onClick={() => handleRemoveTag(product.id, tag)} className="ml-0.5 hover:text-destructive">
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </span>
+                            ))}
+                            <button
+                              onClick={() => {
+                                const tag = prompt("Enter tag name:");
+                                if (tag?.trim()) handleAddTag(product.id, tag.trim());
+                              }}
+                              className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                            >
+                              <Plus className="h-2.5 w-2.5 mr-0.5" /> Tag
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
