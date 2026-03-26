@@ -118,6 +118,22 @@ export function ContentCalendar({
     }
   };
 
+  const togglePublished = async (postId: string, published: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("social_posts")
+        .update({ is_published: published } as any)
+        .eq("id", postId);
+      if (error) throw error;
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, is_published: published } : p))
+      );
+      toast.success(published ? "Marked as published" : "Unmarked");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update");
+    }
+  };
+
   const unscheduledPosts = posts.filter((p) => !p.scheduled_date);
   const selectedDayPosts = selectedDay
     ? postsByDate[format(selectedDay, "yyyy-MM-dd")] || []
