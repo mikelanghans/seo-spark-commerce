@@ -1639,6 +1639,9 @@ const Dashboard = () => {
                   <ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
+                  <PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
                   <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
