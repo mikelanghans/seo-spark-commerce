@@ -261,7 +261,9 @@ const Dashboard = () => {
 
   // Restore navigation state after orgs load
   useEffect(() => {
-    if (_restoredNav || orgs.length === 0) return;
+    if (_restoredNav) return;
+    if (orgs.length === 0 && !loading) { setRestoredNav(true); setView("orgs"); return; }
+    if (orgs.length === 0) return;
     setRestoredNav(true);
     const savedOrgId = sessionStorage.getItem("dash_org_id");
     const savedProductId = sessionStorage.getItem("dash_product_id");
