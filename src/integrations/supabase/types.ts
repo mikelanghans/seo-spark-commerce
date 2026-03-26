@@ -799,6 +799,7 @@ export type Database = {
           design_styles: Json
           enabled_marketplaces: string[]
           enabled_product_types: string[]
+          enabled_social_platforms: string[]
           id: string
           logo_url: string | null
           name: string
@@ -821,6 +822,7 @@ export type Database = {
           design_styles?: Json
           enabled_marketplaces?: string[]
           enabled_product_types?: string[]
+          enabled_social_platforms?: string[]
           id?: string
           logo_url?: string | null
           name: string
@@ -843,6 +845,7 @@ export type Database = {
           design_styles?: Json
           enabled_marketplaces?: string[]
           enabled_product_types?: string[]
+          enabled_social_platforms?: string[]
           id?: string
           logo_url?: string | null
           name?: string
@@ -1133,6 +1136,7 @@ export type Database = {
           hashtags: Json
           id: string
           image_url: string | null
+          is_published: boolean
           organization_id: string
           platform: string
           product_id: string
@@ -1145,6 +1149,7 @@ export type Database = {
           hashtags?: Json
           id?: string
           image_url?: string | null
+          is_published?: boolean
           organization_id: string
           platform: string
           product_id: string
@@ -1157,6 +1162,7 @@ export type Database = {
           hashtags?: Json
           id?: string
           image_url?: string | null
+          is_published?: boolean
           organization_id?: string
           platform?: string
           product_id?: string
