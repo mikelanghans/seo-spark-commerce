@@ -797,6 +797,7 @@ export type Database = {
           deleted_at: string | null
           design_styles: Json
           enabled_marketplaces: string[]
+          enabled_product_types: string[]
           id: string
           logo_url: string | null
           name: string
@@ -817,6 +818,7 @@ export type Database = {
           deleted_at?: string | null
           design_styles?: Json
           enabled_marketplaces?: string[]
+          enabled_product_types?: string[]
           id?: string
           logo_url?: string | null
           name: string
@@ -837,6 +839,7 @@ export type Database = {
           deleted_at?: string | null
           design_styles?: Json
           enabled_marketplaces?: string[]
+          enabled_product_types?: string[]
           id?: string
           logo_url?: string | null
           name?: string

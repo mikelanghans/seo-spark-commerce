@@ -19,6 +19,7 @@ import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
+import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
@@ -70,6 +71,7 @@ interface Organization {
   printify_shop_id?: number | null;
   deleted_at?: string | null;
   enabled_marketplaces?: string[];
+  enabled_product_types?: string[];
 }
 
 interface Product {
@@ -1635,6 +1637,9 @@ const Dashboard = () => {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ProductTypeSettings organizationId={selectedOrg!.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (

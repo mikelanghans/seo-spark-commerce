@@ -22,9 +22,13 @@ interface Props {
   onSubmit: (data: ProductInfo) => void;
   onBack: () => void;
   initial: ProductInfo | null;
+  enabledProductTypes?: ProductTypeKey[];
 }
 
-export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
+export const ProductForm = ({ onSubmit, onBack, initial, enabledProductTypes }: Props) => {
+  const availableTypes = enabledProductTypes?.length
+    ? Object.values(PRODUCT_TYPES).filter((pt) => enabledProductTypes.includes(pt.key))
+    : Object.values(PRODUCT_TYPES);
   const [productType, setProductType] = useState<ProductTypeKey>(
     initial?.category ? (
       initial.category.toLowerCase().includes("hoodie") || initial.category.toLowerCase().includes("sweatshirt") ? "hoodie" :
@@ -181,7 +185,7 @@ export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
               <SelectValue placeholder="Select product type" />
             </SelectTrigger>
             <SelectContent>
-              {Object.values(PRODUCT_TYPES).map((pt) => (
+              {availableTypes.map((pt) => (
                 <SelectItem key={pt.key} value={pt.key}>{pt.label}</SelectItem>
               ))}
             </SelectContent>
