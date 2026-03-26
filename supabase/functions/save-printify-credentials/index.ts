@@ -39,6 +39,18 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    if (action === "check") {
+      const { data: org } = await adminClient
+        .from("organizations")
+        .select("printify_api_token")
+        .eq("id", organizationId)
+        .single();
+      const hasToken = !!(org?.printify_api_token && org.printify_api_token.trim());
+      return new Response(JSON.stringify({ hasToken }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "disconnect") {
       const { error } = await adminClient
         .from("organizations")
