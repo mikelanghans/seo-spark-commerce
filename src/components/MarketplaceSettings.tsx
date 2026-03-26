@@ -105,59 +105,10 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         });
       }
 
-      // Token presence is checked via edge function now; if org exists, check separately
-      if ((orgRes as any)?.data) {
-        // We can't read the token directly anymore; use a lightweight check
-        const { data: checkData } = await supabase.functions.invoke("save-printify-credentials", {
-          body: { organizationId, action: "check" },
-        });
-        if (checkData?.hasToken) setPrintifyHasToken(true);
-      }
     } catch (e: any) {
       toast.error(e.message || "Failed to load connections");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const savePrintify = async () => {
-    if (!printifyToken.trim()) {
-      toast.error("Printify API token is required");
-      return;
-    }
-    if (!organizationId) {
-      toast.error("No brand selected");
-      return;
-    }
-    setSavingPrintify(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("save-printify-credentials", {
-        body: { organizationId, printifyToken },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setPrintifyHasToken(true);
-      setPrintifyToken("");
-      toast.success("Printify token saved!");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to save");
-    } finally {
-      setSavingPrintify(false);
-    }
-  };
-
-  const disconnectPrintify = async () => {
-    if (!organizationId) return;
-    try {
-      const { data, error } = await supabase.functions.invoke("save-printify-credentials", {
-        body: { organizationId, action: "disconnect" },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setPrintifyHasToken(false);
-      toast.success("Printify disconnected");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to disconnect");
     }
   };
 
