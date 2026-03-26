@@ -23,16 +23,52 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const body = await req.json();
-    const { action, clientId, clientSecret, storeDomain, organizationId } = body;
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    const action = typeof body.action === "string" ? body.action.toLowerCase() : "";
+    const clientId = typeof body.clientId === "string"
+      ? body.clientId
+      : typeof body.client_id === "string"
+        ? body.client_id
+        : "";
+    const clientSecret = typeof body.clientSecret === "string"
+      ? body.clientSecret
+      : typeof body.client_secret === "string"
+        ? body.client_secret
+        : "";
+    const storeDomain = typeof body.storeDomain === "string"
+      ? body.storeDomain
+      : typeof body.store_domain === "string"
+        ? body.store_domain
+        : "";
+    const organizationId = typeof body.organizationId === "string"
+      ? body.organizationId
+      : typeof body.organization_id === "string"
+        ? body.organization_id
+        : null;
+
+    const inferredCheck = action === "check" || (!action && !clientId && !clientSecret && !storeDomain);
+
+    console.log("save-shopify-credentials request", {
+      action: inferredCheck ? "check" : action || "save",
+      organizationIdPresent: !!organizationId,
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasStoreDomain: !!storeDomain,
+    });
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // === CHECK action: return connection status without exposing secrets ===
-    if (action === "check") {
+    if (inferredCheck) {
       let query = adminClient
         .from("shopify_connections")
-        .select("id, store_domain, access_token, client_id")
+        .select("id, store_domain, access_token, client_id, client_secret")
         .eq("user_id", user.id);
       if (organizationId) query = query.eq("organization_id", organizationId);
       const { data: conn } = await query.maybeSingle();
@@ -48,7 +84,7 @@ serve(async (req) => {
           id: conn.id,
           store_domain: conn.store_domain,
           has_token: !!(conn.access_token && conn.access_token.length > 0),
-          has_credentials: !!conn.client_id,
+          has_credentials: !!(conn.client_id && conn.client_secret),
           client_id: conn.client_id,
         },
       }), {
@@ -57,14 +93,14 @@ serve(async (req) => {
     }
 
     // === SAVE action (default): upsert credentials ===
-    if (!clientId || !clientSecret) {
+    if (!clientId.trim() || !clientSecret.trim()) {
       throw new Error("Client ID and Client Secret are required");
     }
-    if (!storeDomain) {
+    if (!storeDomain.trim()) {
       throw new Error("Store domain is required");
     }
 
-    const domain = storeDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 
     // Check for existing connection
     let query = adminClient
