@@ -201,6 +201,30 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }, 2000);
   };
 
+  const isSafariBrowser = () => {
+    const ua = navigator.userAgent;
+    return /Safari/i.test(ua) && !/Chrome|CriOS|Edg|OPR|Firefox|FxiOS/i.test(ua);
+  };
+
+  const launchShopifyOauth = (installUrl: string) => {
+    if (isSafariBrowser()) {
+      toast.info("Opening Shopify in this tab (Safari popup restrictions detected)...");
+      window.location.assign(installUrl);
+      return;
+    }
+
+    const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700,noopener,noreferrer");
+
+    if (!popup) {
+      toast.info("Popup blocked. Opening Shopify in this tab instead...");
+      window.location.assign(installUrl);
+      return;
+    }
+
+    toast.info("Waiting for Shopify authorization...");
+    startPolling();
+  };
+
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeDomain.trim()) {
@@ -223,16 +247,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       // Redirect to Shopify OAuth
       const installUrl = buildInstallUrl(domain, clientId.trim());
-      const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
-
-      if (!popup) {
-        toast.error("Popup blocked. Please allow popups and try Install & Connect again.");
-        return;
-      }
-
-      // Start polling as fallback in case postMessage doesn't work
-      toast.info("Waiting for Shopify authorization...");
-      startPolling();
+      launchShopifyOauth(installUrl);
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -243,13 +258,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const handleReauthorize = () => {
     if (!existing || !existing.client_id) return;
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
-    const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700");
-    if (!popup) {
-      toast.error("Popup blocked. Please allow popups and try again.");
-      return;
-    }
-    toast.info("Waiting for Shopify authorization...");
-    startPolling();
+    launchShopifyOauth(installUrl);
   };
 
   const handleDisconnect = async () => {
