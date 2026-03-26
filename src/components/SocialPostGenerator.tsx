@@ -57,9 +57,13 @@ export function SocialPostGenerator({
   userId: string;
   aiUsage?: AiUsage;
 }) {
+  const enabledPlatforms = organization.enabled_social_platforms?.length
+    ? ALL_PLATFORMS.filter((p) => organization.enabled_social_platforms!.includes(p.id))
+    : [];
+
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => enabledPlatforms.map((p) => p.id));
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
   const [postImages, setPostImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
