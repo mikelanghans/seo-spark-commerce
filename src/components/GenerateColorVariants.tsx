@@ -700,25 +700,19 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       )}
 
       {/* Custom Instructions */}
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={() => setShowCustomInstructions(!showCustomInstructions)}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Settings2 className="h-3 w-3" />
-          {showCustomInstructions ? "Hide" : "Custom instructions"} (optional)
-        </button>
-        {showCustomInstructions && (
-          <Textarea
-            placeholder="e.g. &quot;Use a lifestyle background with plants&quot; or &quot;Make the shirt look more wrinkled&quot; or &quot;Show the shirt on a wooden table&quot;"
-            value={customInstructions}
-            onChange={(e) => setCustomInstructions(e.target.value)}
-            disabled={generating}
-            rows={2}
-            className="text-xs"
-          />
-        )}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+          Custom instructions <span className="text-muted-foreground font-normal">(optional)</span>
+        </div>
+        <Textarea
+          placeholder='e.g. "Use a lifestyle background with plants" or "Make the shirt look more wrinkled" or "Show the shirt on a wooden table"'
+          value={customInstructions}
+          onChange={(e) => setCustomInstructions(e.target.value)}
+          disabled={generating}
+          rows={2}
+          className="text-xs"
+        />
       </div>
 
       {generating && (
