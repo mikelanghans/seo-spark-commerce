@@ -84,7 +84,7 @@ export const SocialPlatformSettings = ({ organizationId }: Props) => {
       </div>
       {enabled.length === 0 && (
         <p className="text-xs text-muted-foreground mt-3">
-          None selected — all platforms will be available by default
+          No platforms enabled — enable at least one to use the Social Media tab
         </p>
       )}
     </div>

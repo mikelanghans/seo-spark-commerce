@@ -15,6 +15,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  enabled_social_platforms?: string[];
 }
 
 interface Product {
@@ -33,7 +34,7 @@ interface SocialPost {
   hashtags: string[];
 }
 
-const PLATFORMS = [
+const ALL_PLATFORMS = [
   { id: "instagram", label: "Instagram", icon: "📸" },
   { id: "tiktok", label: "TikTok", icon: "🎵" },
   { id: "x", label: "X (Twitter)", icon: "𝕏" },
