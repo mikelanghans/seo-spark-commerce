@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus, ChevronsUpDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface Organization {
   id: string;
