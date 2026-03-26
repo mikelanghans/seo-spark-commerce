@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound } from "lucide-react";
+import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -26,6 +26,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
+  const [copiedAuthUrl, setCopiedAuthUrl] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waitingToastRef = useRef<string | number | null>(null);
 
@@ -237,6 +238,18 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     toast.info("Credentials ready. Click 'Open Shopify Authorization' to continue.");
   };
 
+  const handleCopyAuthUrl = async () => {
+    if (!pendingAuthUrl) return;
+    try {
+      await navigator.clipboard.writeText(pendingAuthUrl);
+      setCopiedAuthUrl(true);
+      toast.success("Authorization URL copied. Paste it in a new Safari tab.");
+      setTimeout(() => setCopiedAuthUrl(false), 2000);
+    } catch {
+      toast.error("Could not copy automatically. Please copy the URL manually.");
+    }
+  };
+
   const handleAuthorizationLinkClick = () => {
     if (waitingToastRef.current !== null) {
       toast.dismiss(waitingToastRef.current);
@@ -324,12 +337,22 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     );
   }
 
+  const isPreviewEnvironment =
+    window.location.hostname.includes("id-preview--") ||
+    window.location.hostname.includes("lovableproject.com");
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Store className="h-5 w-5 text-primary" />
         <h3 className="text-lg font-semibold">Shopify Connection</h3>
       </div>
+
+      {isPreviewEnvironment && !existing?.has_token && (
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          Safari may block Shopify auth from preview. If it fails, use the <span className="font-medium text-foreground">published app URL</span> to complete authorization.
+        </div>
+      )}
 
       {existing?.has_token && (
         <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-600">
@@ -398,17 +421,28 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           </Button>
 
           {pendingAuthUrl && (
-            <Button type="button" variant="outline" className="gap-2" asChild>
-              <a
-                href={pendingAuthUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleAuthorizationLinkClick}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Open Shopify Authorization
-              </a>
-            </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button type="button" variant="outline" className="gap-2" asChild>
+                  <a
+                    href={pendingAuthUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleAuthorizationLinkClick}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Open Shopify Authorization
+                  </a>
+                </Button>
+                <Button type="button" variant="outline" className="gap-2" onClick={handleCopyAuthUrl}>
+                  <Copy className="h-4 w-4" />
+                  {copiedAuthUrl ? "Copied" : "Copy URL"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                If Safari shows the COOP error, paste the copied URL directly into a brand-new tab and continue there.
+              </p>
+            </div>
           )}
         </form>
       )}
