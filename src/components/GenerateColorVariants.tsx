@@ -550,8 +550,6 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     );
   }
 
-  const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
-
   const newCount = colors.filter((c) => !existingColorSet.has(c.toLowerCase())).length;
   const existingCount = colors.length - newCount;
   const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
