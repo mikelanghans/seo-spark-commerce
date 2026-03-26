@@ -215,8 +215,10 @@ const Dashboard = () => {
       if (code) {
         console.log("[Shopify OAuth] Exchanging code:", code.substring(0, 10) + "...");
         toast.info("Exchanging Shopify authorization code...");
+        // Pass organizationId so the edge function finds the correct per-brand connection
+        const orgId = selectedOrg?.id || sessionStorage.getItem("dash_org_id") || undefined;
         supabase.functions.invoke("shopify-exchange-token", {
-          body: { code },
+          body: { code, organizationId: orgId },
         }).then(({ data, error }) => {
           console.log("[Shopify OAuth] Exchange result:", { data, error });
           if (error) {
