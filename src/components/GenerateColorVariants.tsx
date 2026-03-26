@@ -58,7 +58,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   const [recommendations, setRecommendations] = useState<ColorRecommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
-  const [showCustomInstructions, setShowCustomInstructions] = useState(false);
+  
 
   const loadExistingColors = async () => {
     const { data } = await supabase
