@@ -306,7 +306,7 @@ export function SocialPostGenerator({
       <div className="space-y-2">
         <label className="text-sm font-medium">Platforms</label>
         <div className="flex flex-wrap gap-3">
-          {PLATFORMS.map((p) => (
+          {enabledPlatforms.map((p) => (
             <label
               key={p.id}
               className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
@@ -336,7 +336,7 @@ export function SocialPostGenerator({
             </Button>
           </div>
 
-          {PLATFORMS.filter((p) => posts[p.id]).map((platform) => {
+          {enabledPlatforms.filter((p) => posts[p.id]).map((platform) => {
             const post = posts[platform.id];
             const image = postImages[platform.id];
             const isGeneratingThis = generatingImage === platform.id;
