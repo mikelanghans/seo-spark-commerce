@@ -132,6 +132,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ab_tests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ab_tests_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -168,6 +175,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_usage_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -270,6 +284,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_feedback_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -484,6 +505,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "generated_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "generated_messages_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -548,6 +576,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_refresh_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
           {
@@ -687,6 +722,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organization_invites: {
@@ -728,6 +770,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organization_members: {
@@ -758,6 +807,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -938,6 +994,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pipeline_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       product_images: {
@@ -1047,6 +1110,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shopify_connections: {
@@ -1089,6 +1159,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopify_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1136,6 +1213,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
             referencedColumns: ["id"]
           },
           {
@@ -1192,6 +1276,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "support_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_credits: {
@@ -1238,7 +1329,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      organizations_safe: {
+        Row: {
+          audience: string | null
+          brand_color: string | null
+          brand_font: string | null
+          brand_font_size: string | null
+          brand_style_notes: string | null
+          created_at: string | null
+          deleted_at: string | null
+          design_styles: Json | null
+          enabled_marketplaces: string[] | null
+          id: string | null
+          logo_url: string | null
+          name: string | null
+          niche: string | null
+          printify_api_token: string | null
+          printify_shop_id: number | null
+          template_image_url: string | null
+          tone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          audience?: string | null
+          brand_color?: string | null
+          brand_font?: string | null
+          brand_font_size?: string | null
+          brand_style_notes?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          design_styles?: Json | null
+          enabled_marketplaces?: string[] | null
+          id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          niche?: string | null
+          printify_api_token?: never
+          printify_shop_id?: number | null
+          template_image_url?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          audience?: string | null
+          brand_color?: string | null
+          brand_font?: string | null
+          brand_font_size?: string | null
+          brand_style_notes?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          design_styles?: Json | null
+          enabled_marketplaces?: string[] | null
+          id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          niche?: string | null
+          printify_api_token?: never
+          printify_shop_id?: number | null
+          template_image_url?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_user_credits: {
