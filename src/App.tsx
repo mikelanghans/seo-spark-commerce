@@ -10,6 +10,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import Features from "./pages/Features";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import Terms from "./pages/Terms";
 import { Loader2 } from "lucide-react";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 
@@ -62,6 +63,7 @@ const App = () => (
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route path="/features" element={<Features />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
