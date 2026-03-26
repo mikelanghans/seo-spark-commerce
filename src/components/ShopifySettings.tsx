@@ -236,20 +236,36 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       toast.error("Please enter your Shopify app Client ID and Client Secret");
       return;
     }
+
+    const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const installUrl = buildInstallUrl(domain, clientId.trim());
+
+    // Open window SYNCHRONOUSLY in the click handler to avoid popup blockers
+    const oauthWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+
     setSaving(true);
     try {
-      const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
-
-      // Save credentials securely via edge function (never writes secret from frontend)
+      // Save credentials securely via edge function
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
 
       setStoreDomain(domain);
       await loadConnection();
 
-      // Redirect to Shopify OAuth
-      const installUrl = buildInstallUrl(domain, clientId.trim());
-      launchShopifyOauth(installUrl);
+      // Navigate the already-opened window to Shopify OAuth
+      if (oauthWindow) {
+        oauthWindow.location.href = installUrl;
+        toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
+        startPolling();
+      } else {
+        // Fallback: provide copyable link
+        toast.error(
+          "Could not open Shopify authorization. Please copy and open this URL in a new tab: " + installUrl,
+          { duration: 15000 }
+        );
+      }
     } catch (err: any) {
+      // Close the blank window if credentials save failed
+      if (oauthWindow) oauthWindow.close();
       toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
