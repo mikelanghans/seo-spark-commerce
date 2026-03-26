@@ -25,12 +25,29 @@ interface Props {
 }
 
 export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
+  const [productType, setProductType] = useState<ProductTypeKey>(
+    initial?.category ? (
+      initial.category.toLowerCase().includes("hoodie") || initial.category.toLowerCase().includes("sweatshirt") ? "hoodie" :
+      initial.category.toLowerCase().includes("mug") || initial.category.toLowerCase().includes("drinkware") ? "mug" :
+      "t-shirt"
+    ) : "t-shirt"
+  );
   const [form, setForm] = useState<ProductInfo>(
-    initial ?? { title: "", description: "", keywords: "", category: "", price: "", features: "" }
+    initial ?? { title: "", description: "", keywords: "", category: PRODUCT_TYPES["t-shirt"].category, price: PRODUCT_TYPES["t-shirt"].defaultPrice, features: "" }
   );
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleProductTypeChange = (type: ProductTypeKey) => {
+    setProductType(type);
+    const config = PRODUCT_TYPES[type];
+    setForm((prev) => ({
+      ...prev,
+      category: config.category,
+      price: prev.price || config.defaultPrice,
+    }));
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
