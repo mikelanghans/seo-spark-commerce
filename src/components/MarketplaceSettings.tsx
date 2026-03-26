@@ -526,3 +526,6 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         )}
       </div>
       */}
+    </div>
+  );
+};
