@@ -201,30 +201,37 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }, 2000);
   };
 
-  const launchShopifyOauth = (installUrl: string) => {
-    // Open synchronously from user interaction; then drop opener to reduce
-    // cross-origin opener issues before navigating to Shopify.
-    const w = 600, h = 700;
+  const openShopifyPopup = (url: string) => {
+    const w = 600;
+    const h = 700;
     const left = window.screenX + (window.outerWidth - w) / 2;
     const top = window.screenY + (window.outerHeight - h) / 2;
-    const popup = window.open("about:blank", "shopify_oauth", `width=${w},height=${h},left=${left},top=${top},popup=yes`);
+    const popup = window.open(
+      url,
+      "shopify_oauth",
+      `width=${w},height=${h},left=${left},top=${top},popup=yes`
+    );
+
+    if (popup) {
+      try {
+        popup.opener = null;
+      } catch {
+        // no-op
+      }
+    }
+
+    return popup;
+  };
+
+  const launchShopifyOauth = (installUrl: string) => {
+    const popup = openShopifyPopup(installUrl);
 
     if (!popup) {
-      toast.error(
-        "Could not open Shopify authorization. Please copy and open this URL in a new tab: " + installUrl,
-        { duration: 15000 }
-      );
+      toast.error("Could not open Shopify authorization. Please allow popups and try again.");
       return;
     }
 
-    try {
-      popup.opener = null;
-    } catch {
-      // no-op
-    }
-
-    popup.location.replace(installUrl);
-    toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
+    toast.info("Waiting for Shopify authorization — complete the process in the new window...");
     startPolling();
   };
 
@@ -241,38 +248,27 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
     const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
     const installUrl = buildInstallUrl(domain, clientId.trim());
+    const popup = openShopifyPopup(installUrl);
 
-    // Open window synchronously in click handler to preserve user gesture.
-    const w = 600, h = 700;
-    const left = window.screenX + (window.outerWidth - w) / 2;
-    const top = window.screenY + (window.outerHeight - h) / 2;
-    const oauthWindow = window.open("about:blank", "shopify_oauth", `width=${w},height=${h},left=${left},top=${top},popup=yes`);
+    if (!popup) {
+      toast.error("Could not open Shopify authorization. Please allow popups and try again.");
+      return;
+    }
+
+    toast.info("Waiting for Shopify authorization — complete the process in the new window...");
 
     setSaving(true);
     try {
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
-
       setStoreDomain(domain);
       await loadConnection();
-
-      if (oauthWindow) {
-        try {
-          oauthWindow.opener = null;
-        } catch {
-          // no-op
-        }
-
-        oauthWindow.location.replace(installUrl);
-        toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
-        startPolling();
-      } else {
-        toast.error(
-          "Could not open Shopify authorization. Please copy and open this URL in a new tab: " + installUrl,
-          { duration: 15000 }
-        );
-      }
+      startPolling();
     } catch (err: any) {
-      if (oauthWindow) oauthWindow.close();
+      try {
+        popup.close();
+      } catch {
+        // no-op
+      }
       toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
