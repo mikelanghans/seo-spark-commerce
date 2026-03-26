@@ -449,6 +449,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               const { data: shopsData } = await supabase.functions.invoke("printify-get-shops", {
                 body: { organizationId: organization.id },
               });
+              if (shopsData?.shops?.length > 0) {
+                shopId = shopsData.shops[0].id;
+              }
             }
             if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
