@@ -26,6 +26,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const oauthWindowRef = useRef<Window | null>(null);
+  const waitingToastRef = useRef<string | number | null>(null);
 
   const SHOPIFY_REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
 
@@ -39,6 +41,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
+      if (waitingToastRef.current !== null) {
+        toast.dismiss(waitingToastRef.current);
+        waitingToastRef.current = null;
+      }
+      oauthWindowRef.current = null;
     };
   }, []);
 
@@ -50,6 +57,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
+        if (waitingToastRef.current !== null) {
+          toast.dismiss(waitingToastRef.current);
+          waitingToastRef.current = null;
+        }
+        oauthWindowRef.current = null;
         toast.success("Shopify connected successfully!");
         loadConnection();
       } else if (event.data?.type === "shopify-oauth-error") {
@@ -57,6 +69,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
+        if (waitingToastRef.current !== null) {
+          toast.dismiss(waitingToastRef.current);
+          waitingToastRef.current = null;
+        }
+        oauthWindowRef.current = null;
         toast.error(event.data.error || "OAuth failed");
       }
     };
@@ -156,6 +173,18 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     if (data?.error) throw new Error(data.error);
   };
 
+  const clearOauthUiState = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (waitingToastRef.current !== null) {
+      toast.dismiss(waitingToastRef.current);
+      waitingToastRef.current = null;
+    }
+    oauthWindowRef.current = null;
+  };
+
   // Poll for connection status after opening OAuth popup
   const startPolling = () => {
     if (pollIntervalRef.current) {
@@ -168,11 +197,15 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
     pollIntervalRef.current = setInterval(async () => {
       attempts++;
+
+      if (oauthWindowRef.current && oauthWindowRef.current.closed) {
+        clearOauthUiState();
+        toast.error("Authorization window was closed before completion.");
+        return;
+      }
+
       if (attempts > maxAttempts) {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
+        clearOauthUiState();
         toast.error("Authorization timed out. Verify your Shopify app allows this redirect URL: " + SHOPIFY_REDIRECT_URI);
         return;
       }
@@ -182,19 +215,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       });
 
       if (error || data?.error) {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
+        clearOauthUiState();
         toast.error(data?.error || error?.message || "Failed to verify Shopify authorization status");
         return;
       }
 
       if (data?.connection?.has_token) {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
+        clearOauthUiState();
         toast.success("Shopify connected successfully!");
         loadConnection();
       }
@@ -212,14 +239,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       `width=${w},height=${h},left=${left},top=${top},popup=yes`
     );
 
-    if (popup) {
-      try {
-        popup.opener = null;
-      } catch {
-        // no-op
-      }
-    }
-
+    oauthWindowRef.current = popup;
     return popup;
   };
 
@@ -231,7 +251,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       return;
     }
 
-    toast.info("Waiting for Shopify authorization — complete the process in the new window...");
+    if (waitingToastRef.current !== null) {
+      toast.dismiss(waitingToastRef.current);
+    }
+    waitingToastRef.current = toast.info(
+      "Waiting for Shopify authorization — complete the process in the new window...",
+      { duration: 120000 }
+    );
     startPolling();
   };
 
@@ -255,7 +281,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       return;
     }
 
-    toast.info("Waiting for Shopify authorization — complete the process in the new window...");
+    if (waitingToastRef.current !== null) {
+      toast.dismiss(waitingToastRef.current);
+    }
+    waitingToastRef.current = toast.info(
+      "Waiting for Shopify authorization — complete the process in the new window...",
+      { duration: 120000 }
+    );
 
     setSaving(true);
     try {
@@ -269,6 +301,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       } catch {
         // no-op
       }
+      clearOauthUiState();
       toast.error(err.message || "Failed to save");
     } finally {
       setSaving(false);
