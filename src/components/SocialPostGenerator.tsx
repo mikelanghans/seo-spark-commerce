@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus, ChevronsUpDown, Search } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus, ChevronsUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,7 +56,7 @@ export function SocialPostGenerator({
   userId: string;
   aiUsage?: AiUsage;
 }) {
-  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
@@ -66,6 +66,20 @@ export function SocialPostGenerator({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const toggleProduct = (id: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const removeProduct = (id: string) => {
+    setSelectedProducts((prev) => prev.filter((p) => p !== id));
+  };
+
+  const selectedProductObjects = products.filter((p) => selectedProducts.includes(p.id));
+  // Use the first selected product as the "primary" for AI generation
+  const primaryProduct = selectedProductObjects[0] || null;
+
   const togglePlatform = (id: string) => {
     setSelectedPlatforms((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -73,8 +87,7 @@ export function SocialPostGenerator({
   };
 
   const generate = async () => {
-    const product = products.find((p) => p.id === selectedProduct);
-    if (!product) { toast.error("Select a product first"); return; }
+    if (!primaryProduct) { toast.error("Select at least one product"); return; }
     if (selectedPlatforms.length === 0) { toast.error("Select at least one platform"); return; }
 
     if (aiUsage) {
@@ -87,10 +100,26 @@ export function SocialPostGenerator({
     setPostImages({});
 
     try {
+      // Build product context including all selected products
+      const productContext = selectedProductObjects.length === 1
+        ? { title: primaryProduct.title, description: primaryProduct.description, category: primaryProduct.category, price: primaryProduct.price, keywords: primaryProduct.keywords }
+        : {
+            title: primaryProduct.title,
+            description: primaryProduct.description,
+            category: primaryProduct.category,
+            price: primaryProduct.price,
+            keywords: primaryProduct.keywords,
+            additionalProducts: selectedProductObjects.slice(1).map((p) => ({
+              title: p.title,
+              category: p.category,
+              price: p.price,
+            })),
+          };
+
       const { data, error } = await supabase.functions.invoke("generate-social-posts", {
         body: {
           business: { name: organization.name, niche: organization.niche, tone: organization.tone, audience: organization.audience },
-          product: { title: product.title, description: product.description, category: product.category, price: product.price, keywords: product.keywords },
+          product: productContext,
           platforms: selectedPlatforms,
         },
       });
@@ -109,8 +138,7 @@ export function SocialPostGenerator({
   };
 
   const generateImage = async (platform: string) => {
-    const product = products.find((p) => p.id === selectedProduct);
-    if (!product) return;
+    if (!primaryProduct) return;
 
     setGeneratingImage(platform);
     try {
@@ -120,12 +148,12 @@ export function SocialPostGenerator({
       }
       const { data, error } = await supabase.functions.invoke("generate-social-image", {
         body: {
-          productTitle: product.title,
-          productDescription: product.description,
+          productTitle: primaryProduct.title,
+          productDescription: primaryProduct.description,
           brandName: organization.name,
           brandNiche: organization.niche,
           platform,
-          imageUrl: product.image_url || undefined,
+          imageUrl: primaryProduct.image_url || undefined,
         },
       });
 
@@ -151,20 +179,22 @@ export function SocialPostGenerator({
   };
 
   const saveAll = async () => {
-    const product = products.find((p) => p.id === selectedProduct);
-    if (!product) return;
+    if (!primaryProduct) return;
 
     setSaving(true);
     try {
-      const rows = Object.entries(posts).map(([platform, post]) => ({
-        product_id: product.id,
-        organization_id: organization.id,
-        user_id: userId,
-        platform,
-        caption: post.caption,
-        hashtags: post.hashtags,
-        image_url: postImages[platform] || "",
-      }));
+      // Save a post row for each selected product × platform combination
+      const rows = Object.entries(posts).flatMap(([platform, post]) =>
+        selectedProducts.map((productId) => ({
+          product_id: productId,
+          organization_id: organization.id,
+          user_id: userId,
+          platform,
+          caption: post.caption,
+          hashtags: post.hashtags,
+          image_url: postImages[platform] || "",
+        }))
+      );
 
       const { error } = await supabase.from("social_posts").insert(rows as any);
       if (error) throw error;
@@ -185,7 +215,35 @@ export function SocialPostGenerator({
 
       {/* Product selector */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Select Product</label>
+        <label className="text-sm font-medium">Select Products</label>
+        <p className="text-xs text-muted-foreground">Choose one or more products (e.g., same design on different product types)</p>
+
+        {/* Selected product chips */}
+        {selectedProductObjects.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {selectedProductObjects.map((p) => (
+              <Badge
+                key={p.id}
+                variant="secondary"
+                className="flex items-center gap-1.5 pl-1 pr-2 py-1 text-sm"
+              >
+                {p.image_url ? (
+                  <img src={p.image_url} alt="" className="h-5 w-5 rounded object-cover" />
+                ) : (
+                  <div className="h-5 w-5 rounded bg-muted" />
+                )}
+                <span className="max-w-[200px] truncate">{p.title}</span>
+                <button
+                  onClick={() => removeProduct(p.id)}
+                  className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+
         <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -194,22 +252,11 @@ export function SocialPostGenerator({
               aria-expanded={productPickerOpen}
               className="w-full justify-between h-auto min-h-10 py-2"
             >
-              {selectedProduct ? (
-                <div className="flex items-center gap-3 text-left">
-                  {products.find((p) => p.id === selectedProduct)?.image_url && (
-                    <img
-                      src={products.find((p) => p.id === selectedProduct)!.image_url!}
-                      alt=""
-                      className="h-8 w-8 rounded object-cover shrink-0"
-                    />
-                  )}
-                  <span className="truncate">
-                    {products.find((p) => p.id === selectedProduct)?.title}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-muted-foreground">Choose a product…</span>
-              )}
+              <span className="text-muted-foreground">
+                {selectedProducts.length === 0
+                  ? "Choose products…"
+                  : `${selectedProducts.length} product${selectedProducts.length > 1 ? "s" : ""} selected`}
+              </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -219,31 +266,34 @@ export function SocialPostGenerator({
               <CommandList>
                 <CommandEmpty>No products found.</CommandEmpty>
                 <CommandGroup>
-                  {products.map((p) => (
-                    <CommandItem
-                      key={p.id}
-                      value={p.title}
-                      onSelect={() => {
-                        setSelectedProduct(p.id);
-                        setProductPickerOpen(false);
-                      }}
-                      className="flex items-center gap-3 py-2"
-                    >
-                      {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="h-8 w-8 rounded object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded bg-muted shrink-0" />
-                      )}
-                      <span className="truncate">{p.title}</span>
-                      {selectedProduct === p.id && (
-                        <Check className="ml-auto h-4 w-4 text-primary shrink-0" />
-                      )}
-                    </CommandItem>
-                  ))}
+                  {products.map((p) => {
+                    const isSelected = selectedProducts.includes(p.id);
+                    return (
+                      <CommandItem
+                        key={p.id}
+                        value={p.title}
+                        onSelect={() => toggleProduct(p.id)}
+                        className="flex items-center gap-3 py-2"
+                      >
+                        <Checkbox checked={isSelected} className="h-4 w-4 shrink-0" />
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt=""
+                            className="h-8 w-8 rounded object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-muted shrink-0" />
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <span className="truncate text-sm">{p.title}</span>
+                          {p.category && (
+                            <span className="text-xs text-muted-foreground truncate">{p.category}</span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               </CommandList>
             </Command>
@@ -270,7 +320,7 @@ export function SocialPostGenerator({
         </div>
       </div>
 
-      <Button onClick={generate} disabled={loading || !selectedProduct || selectedPlatforms.length === 0} className="gap-2">
+      <Button onClick={generate} disabled={loading || selectedProducts.length === 0 || selectedPlatforms.length === 0} className="gap-2">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> Generate Posts</>}
       </Button>
 
@@ -281,7 +331,7 @@ export function SocialPostGenerator({
             <h4 className="font-semibold">Generated Posts</h4>
             <Button variant="outline" size="sm" onClick={saveAll} disabled={saving} className="gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save All
+              Save All {selectedProducts.length > 1 && `(${selectedProducts.length} products)`}
             </Button>
           </div>
 
