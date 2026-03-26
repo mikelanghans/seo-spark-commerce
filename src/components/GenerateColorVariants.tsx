@@ -552,8 +552,13 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
 
   const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
 
+  const newCount = colors.filter((c) => !existingColorSet.has(c.toLowerCase())).length;
+  const existingCount = colors.length - newCount;
+  const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
+
   return (
-    <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+    <div className="rounded-lg border border-border bg-card p-4 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Palette className="h-4 w-4 text-primary" />
@@ -564,197 +569,183 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         </Button>
       </div>
 
-      {/* AI Recommendations */}
-      {recommendations.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-primary" />
-            <p className="text-sm font-medium">Get AI Color Recommendations</p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            AI will analyze your product, brand, and audience to suggest the best-selling colors.
-          </p>
+      {/* Step 1: Pick colors */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">1 · Choose colors</p>
           <Button
             onClick={loadRecommendations}
-            disabled={loadingRecs}
+            disabled={loadingRecs || generating}
+            variant="outline"
             size="sm"
-            className="gap-2"
+            className="h-7 gap-1.5 text-xs"
           >
-            {loadingRecs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            {loadingRecs ? "Analyzing…" : "Recommend Colors"}
+            {loadingRecs ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+            {loadingRecs ? "Analyzing…" : "AI Recommend"}
           </Button>
         </div>
-      ) : (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <p className="text-xs font-semibold text-primary">AI Recommendations</p>
-          </div>
-          <div className="space-y-1">
-            {recommendations.map((rec) => {
-              const isExisting = existingColorSet.has(rec.color.toLowerCase());
-              const isSelected = colors.includes(rec.color);
-              return (
-                <button
-                  key={rec.color}
-                  type="button"
-                  onClick={() => isSelected ? removeColor(rec.color) : addColor(rec.color)}
-                  disabled={generating}
-                  className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-left transition-colors ${
-                    isSelected
-                      ? "bg-primary/15 border border-primary/30"
-                      : "bg-card border border-border hover:border-primary/30"
-                  }`}
-                >
-                  <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    isSelected ? "border-primary bg-primary" : "border-muted-foreground"
-                  }`}>
-                    {isSelected && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
-                  </div>
-                  <span className="text-xs font-medium flex-1 flex items-center gap-1.5">
-                    {isExisting && <CheckCircle2 className="inline h-3 w-3 text-muted-foreground" />}
+
+        {/* AI Recommendation results (inline, compact) */}
+        {recommendations.length > 0 && (
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 space-y-1.5">
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> AI Picks
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {recommendations.map((rec) => {
+                const isSelected = colors.includes(rec.color);
+                return (
+                  <button
+                    key={rec.color}
+                    type="button"
+                    onClick={() => isSelected ? removeColor(rec.color) : addColor(rec.color)}
+                    disabled={generating}
+                    title={rec.reason}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-primary/30 text-foreground hover:bg-primary/10"
+                    }`}
+                  >
                     <span
-                      className="inline-block h-3.5 w-3.5 rounded-full border border-border shrink-0"
+                      className="inline-block h-2.5 w-2.5 rounded-full border border-white/20 shrink-0"
                       style={{ backgroundColor: COLOR_HEX[rec.color.toLowerCase()] || "#ccc" }}
                     />
                     {rec.color}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{rec.reason}</span>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Color palette grid */}
+        <div className="flex flex-wrap gap-1.5">
+          {SUGGESTED_COLORS.map((color) => {
+            const isExisting = existingColorSet.has(color.toLowerCase());
+            const isSelected = colors.includes(color);
+            const isRecommended = recommendedColorNames.has(color.toLowerCase());
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => isSelected ? removeColor(color) : addColor(color)}
+                disabled={generating}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : isRecommended
+                      ? "bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {isExisting && <CheckCircle2 className="h-2.5 w-2.5" />}
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full border border-white/20 shrink-0"
+                  style={{ backgroundColor: COLOR_HEX[color.toLowerCase()] || "#ccc" }}
+                />
+                {color}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Custom color inline */}
+        <div className="flex gap-2">
+          <Input
+            placeholder="Custom color (e.g. Burnt Orange)"
+            value={customColor}
+            onChange={(e) => setCustomColor(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
+            disabled={generating}
+            className="h-7 text-xs"
+          />
+          <Button variant="outline" size="sm" onClick={addCustom} disabled={generating || !customColor.trim()} className="h-7 gap-1 text-xs">
+            <Plus className="h-3 w-3" /> Add
+          </Button>
+        </div>
+      </div>
+
+      {/* Selected colors summary */}
+      {colors.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Selected · {colors.length} color{colors.length !== 1 ? "s" : ""}
+            {existingCount > 0 && <span className="normal-case tracking-normal font-normal"> ({existingCount} already exist)</span>}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {colors.map((c) => (
+              <span key={c} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full border border-primary/30 shrink-0"
+                  style={{ backgroundColor: COLOR_HEX[c.toLowerCase()] || "#ccc" }}
+                />
+                {c}
+                {!generating && (
+                  <button onClick={() => removeColor(c)} className="ml-0.5 hover:text-destructive">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                )}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Or pick manually from the palette below:
-      </p>
+      {/* Step 2: Customize & generate */}
+      <div className="space-y-3 border-t border-border pt-4">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">2 · Customize & generate</p>
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Settings2 className="h-3 w-3" />
+            Custom instructions <span className="font-normal">(optional)</span>
+          </div>
+          <Textarea
+            placeholder='e.g. "Use a lifestyle background with plants" or "Show the shirt on a wooden table"'
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            disabled={generating}
+            rows={2}
+            className="text-xs resize-none"
+          />
+        </div>
 
-      {/* Quick-pick colors */}
-      <div className="flex flex-wrap gap-1.5">
-        {SUGGESTED_COLORS.map((color) => {
-          const isExisting = existingColorSet.has(color.toLowerCase());
-          const isSelected = colors.includes(color);
-          const isRecommended = recommendedColorNames.has(color.toLowerCase());
-          return (
-            <button
-              key={color}
-              type="button"
-              onClick={() => isSelected ? removeColor(color) : addColor(color)}
-              disabled={generating}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                isSelected
-                  ? isExisting
-                    ? "bg-primary/70 text-primary-foreground"
-                    : "bg-primary text-primary-foreground"
-                  : isRecommended
-                    ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              {isExisting && <CheckCircle2 className="inline h-3 w-3 mr-1" />}
-              <span
-                className="inline-block h-3 w-3 rounded-full border border-white/30 shrink-0"
-                style={{ backgroundColor: COLOR_HEX[color.toLowerCase()] || "#ccc" }}
-              />
-              {color}
-            </button>
-          );
-        })}
-      </div>
+        {generating && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>
+                Generating {progress.done}/{progress.total}
+                {activeColors.length > 0 && ` — ${activeColors.join(", ")}`}
+              </span>
+            </div>
+            {avgTime && progress.done < progress.total && (
+              <p className="text-[10px] text-muted-foreground pl-6">
+                ~{Math.ceil(((progress.total - progress.done) * avgTime) / 1000 / 60)} min remaining
+                {" "}(~{Math.round(avgTime / 1000)}s per color, 2 at a time)
+              </p>
+            )}
+          </div>
+        )}
 
-      {/* Custom color */}
-      <div className="flex gap-2">
-        <Input
-          placeholder="Custom color (e.g. Burnt Orange)"
-          value={customColor}
-          onChange={(e) => setCustomColor(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
-          disabled={generating}
-          className="h-8 text-xs"
-        />
-        <Button variant="outline" size="sm" onClick={addCustom} disabled={generating || !customColor.trim()} className="h-8 gap-1">
-          <Plus className="h-3 w-3" /> Add
+        <Button
+          onClick={handleGenerate}
+          disabled={generating || colors.length === 0 || newCount === 0}
+          className="gap-2 w-full"
+          size="sm"
+        >
+          {generating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {generating
+            ? `Generating ${progress.done}/${progress.total}…`
+            : newCount === 0
+              ? "All selected colors already exist"
+              : `Generate ${newCount} Variant${newCount !== 1 ? "s" : ""}`}
         </Button>
       </div>
-
-      {/* Selected colors */}
-      {colors.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {colors.map((c) => (
-            <span key={c} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              <span
-                className="inline-block h-3 w-3 rounded-full border border-primary/30 shrink-0"
-                style={{ backgroundColor: COLOR_HEX[c.toLowerCase()] || "#ccc" }}
-              />
-              {c}
-              {!generating && (
-                <button onClick={() => removeColor(c)} className="ml-0.5 hover:text-destructive">
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Custom Instructions */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-          Custom instructions <span className="text-muted-foreground font-normal">(optional)</span>
-        </div>
-        <Textarea
-          placeholder='e.g. "Use a lifestyle background with plants" or "Make the shirt look more wrinkled" or "Show the shirt on a wooden table"'
-          value={customInstructions}
-          onChange={(e) => setCustomInstructions(e.target.value)}
-          disabled={generating}
-          rows={2}
-          className="text-xs"
-        />
-      </div>
-
-      {generating && (
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>
-              Generating {progress.done}/{progress.total}
-              {activeColors.length > 0 && ` — ${activeColors.join(", ")}`}
-            </span>
-          </div>
-          {avgTime && progress.done < progress.total && (
-            <p className="text-[10px] text-muted-foreground pl-6">
-              ~{Math.ceil(((progress.total - progress.done) * avgTime) / 1000 / 60)} min remaining
-              {" "}(~{Math.round(avgTime / 1000)}s per color, 2 at a time)
-            </p>
-          )}
-        </div>
-      )}
-
-      {(() => {
-        const newCount = colors.filter((c) => !existingColorSet.has(c.toLowerCase())).length;
-        const existingCount = colors.length - newCount;
-        const label = newCount === 0
-          ? "All selected colors already exist"
-          : `Generate ${newCount} New Color Variant${newCount !== 1 ? "s" : ""}${existingCount > 0 ? ` (${existingCount} already exist${existingCount === 1 ? "s" : ""})` : ""}`;
-        return (
-          <Button
-            onClick={handleGenerate}
-            disabled={generating || colors.length === 0 || newCount === 0}
-            className="gap-2 w-full"
-            size="sm"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {generating ? `Generating ${progress.done}/${progress.total}…` : label}
-          </Button>
-        );
-      })()}
     </div>
   );
 };
