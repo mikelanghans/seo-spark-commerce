@@ -116,23 +116,118 @@ serve(async (req) => {
     console.error("shopify-oauth-callback error:", e);
     const errorMsg = e instanceof Error ? e.message : "Unknown error";
     const safeError = errorMsg.replace(/"/g, "\\\"").replace(/\n/g, " ");
+
+    // Best-effort parse of origin from state, so fallback redirect lands back in app.
+    const fallbackUrl = new URL(req.url);
+    const stateRaw = fallbackUrl.searchParams.get("state") || "";
+    let origin = "";
+    try {
+      const decoded = decodeURIComponent(stateRaw);
+      const parsed = JSON.parse(decoded);
+      origin = parsed.origin || "";
+    } catch {
+      try {
+        origin = decodeURIComponent(stateRaw);
+      } catch {
+        origin = "";
+      }
+    }
+
+    const redirectTarget = origin
+      ? `${origin}?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}`
+      : `/?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}`;
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <title>Connection Error</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #fff;
+      line-height: 1.5;
+    }
+    .card {
+      max-width: 560px;
+      margin: 0 auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 18px; }
+    p { margin: 0 0 10px; }
+    code {
+      display: block;
+      white-space: pre-wrap;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      color: #111827;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.primary {
+      background: #111827;
+      color: #fff;
+      border-color: #111827;
+    }
+  </style>
   <script>
     (function () {
-      if (window.opener) {
-        window.opener.postMessage({ type: "shopify-oauth-error", error: "${safeError}" }, "*");
+      var hadOpener = !!window.opener;
+      if (hadOpener) {
+        try {
+          window.opener.postMessage({ type: "shopify-oauth-error", error: "${safeError}" }, "*");
+        } catch (err) {
+          // no-op: opener messaging can be blocked by browser COOP policies
+        }
+      }
+
+      window.__redirectToApp = function () {
+        window.location.replace("${redirectTarget}");
+      };
+
+      window.__closePopup = function () {
         window.close();
-      } else {
-        window.location.replace("/?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}");
+      };
+
+      // If there's no opener, redirect back to app immediately so the user sees the error there.
+      if (!hadOpener) {
+        window.__redirectToApp();
       }
     })();
   </script>
 </head>
-<body></body>
+<body>
+  <div class="card">
+    <h1>Shopify authorization failed</h1>
+    <p>We couldn't complete the connection. Please return to the app and try again.</p>
+    <code>${safeError}</code>
+    <div class="actions">
+      <button class="primary" onclick="window.__redirectToApp()">Return to app</button>
+      <button onclick="window.__closePopup()">Close window</button>
+    </div>
+  </div>
+</body>
 </html>`;
 
     return new Response(html, {
