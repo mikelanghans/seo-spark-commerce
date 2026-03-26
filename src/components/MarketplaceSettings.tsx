@@ -240,30 +240,64 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
   };
 
-  const saveEbay = async () => {
-    if (!ebayClientId.trim() || !ebayClientSecret.trim()) {
-      toast.error("Client ID and Secret are required");
-      return;
-    }
+  const connectEbay = async () => {
     setSavingEbay(true);
     try {
-      if (ebayConn) {
-        const { error } = await supabase
-          .from("ebay_connections")
-          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
-          .eq("id", ebayConn.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("ebay_connections")
-          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv } as any);
-        if (error) throw error;
-      }
-      toast.success("eBay connection saved!");
-      loadConnections();
+      const clientId = "YOUR_EBAY_CLIENT_ID"; // This is the public app ID shown in consent screen
+      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ebay-oauth-callback`;
+      const isSandbox = ebayEnv === "sandbox";
+      const authBase = isSandbox
+        ? "https://auth.sandbox.ebay.com/oauth2/authorize"
+        : "https://auth.ebay.com/oauth2/authorize";
+
+      const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
+      const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
+
+      const authUrl = `${authBase}?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+
+      const popup = window.open(authUrl, "ebay-oauth", "width=600,height=700");
+
+      const handler = async (e: MessageEvent) => {
+        if (e.data?.type !== "ebay-oauth") return;
+        window.removeEventListener("message", handler);
+
+        if (e.data.error) {
+          toast.error("eBay authorization failed");
+          setSavingEbay(false);
+          return;
+        }
+
+        try {
+          const { data: result, error } = await supabase.functions.invoke("ebay-exchange-token", {
+            body: {
+              code: e.data.code,
+              redirectUri,
+              environment: e.data.environment || ebayEnv,
+            },
+          });
+
+          if (error) throw error;
+          if (result?.error) throw new Error(result.error);
+
+          toast.success(`eBay connected! (${result.environment || ebayEnv})`);
+          loadConnections();
+        } catch (err: any) {
+          toast.error(err.message || "Failed to connect eBay");
+        } finally {
+          setSavingEbay(false);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          setSavingEbay(false);
+        }
+      }, 1000);
     } catch (e: any) {
-      toast.error(e.message || "Failed to save");
-    } finally {
+      toast.error(e.message || "Failed to start eBay OAuth");
       setSavingEbay(false);
     }
   };
@@ -392,7 +426,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         {etsyConn ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
+            {etsyConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
           </div>
         ) : (
           <div className="space-y-3">
@@ -430,41 +464,28 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
         {ebayConn ? (
           <div className="text-sm text-muted-foreground">
-            <p>Client ID: <span className="text-foreground font-mono text-xs">{ebayConn.client_id.slice(0, 12)}…</span></p>
             <p>Environment: <span className="text-foreground font-medium capitalize">{ebayConn.environment}</span></p>
+            {ebayConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your eBay account to push listings.
-              <a href="https://developer.ebay.com/my/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary ml-1">
-                Get credentials <ExternalLink className="h-3 w-3" />
-              </a>
+              Connect your eBay account to push listings directly. Click below to authorize via eBay.
             </p>
-            <div className="grid gap-3">
-              <div>
-                <Label>Client ID (App ID)</Label>
-                <Input value={ebayClientId} onChange={(e) => setEbayClientId(e.target.value)} placeholder="Your eBay Client ID" />
-              </div>
-              <div>
-                <Label>Client Secret (Cert ID)</Label>
-                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Client Secret" />
-              </div>
-              <div>
-                <Label>Environment</Label>
-                <select
-                  value={ebayEnv}
-                  onChange={(e) => setEbayEnv(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="sandbox">Sandbox (Testing)</option>
-                  <option value="production">Production (Live)</option>
-                </select>
-              </div>
+            <div>
+              <Label>Environment</Label>
+              <select
+                value={ebayEnv}
+                onChange={(e) => setEbayEnv(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="sandbox">Sandbox (Testing)</option>
+                <option value="production">Production (Live)</option>
+              </select>
             </div>
-            <Button onClick={saveEbay} disabled={savingEbay} className="gap-2">
-              {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Connect eBay
+            <Button onClick={connectEbay} disabled={savingEbay} className="gap-2">
+              {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+              {savingEbay ? "Connecting..." : "Connect eBay Account"}
             </Button>
           </div>
         )}
