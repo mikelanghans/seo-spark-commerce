@@ -155,9 +155,22 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const buildInstallUrl = (domain: string, appClientId: string) => {
     const scopes = "read_products,write_products,read_files,write_files";
-    const statePayload = JSON.stringify({ origin: window.location.origin, organizationId: organizationId || null });
+    const statePayload = JSON.stringify({
+      origin: window.location.origin,
+      returnTo: window.location.href,
+      organizationId: organizationId || null,
+    });
     const state = encodeURIComponent(statePayload);
     return `https://${domain}/admin/oauth/authorize?client_id=${appClientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(SHOPIFY_REDIRECT_URI)}&state=${state}`;
+  };
+
+  const shouldUseTopLevelOauthRedirect = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    const isSafari =
+      /safari/.test(ua) &&
+      !/chrome|chromium|android|crios|fxios|edgios/.test(ua);
+    const isEmbedded = window.self !== window.top;
+    return isSafari || isEmbedded;
   };
 
   const saveCredentialsViaEdgeFunction = async (domain: string, appClientId: string, appClientSecret: string) => {
@@ -264,6 +277,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   const launchShopifyOauth = (installUrl: string) => {
+    if (shouldUseTopLevelOauthRedirect()) {
+      clearOauthUiState();
+      toast.info("Redirecting to Shopify authorization...");
+      window.location.assign(installUrl);
+      return;
+    }
+
     const popup = openShopifyPopup(installUrl);
 
     if (!popup) {
@@ -294,26 +314,39 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
     const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
     const installUrl = buildInstallUrl(domain, clientId.trim());
-    const popup = openShopifyPopup(installUrl);
+    const useTopLevelRedirect = shouldUseTopLevelOauthRedirect();
+    let popup: Window | null = null;
 
-    if (!popup) {
-      toast.error("Could not open Shopify authorization. Please allow popups and try again.");
-      return;
-    }
+    if (!useTopLevelRedirect) {
+      popup = openShopifyPopup(installUrl);
 
-    if (waitingToastRef.current !== null) {
-      toast.dismiss(waitingToastRef.current);
+      if (!popup) {
+        toast.error("Could not open Shopify authorization. Please allow popups and try again.");
+        return;
+      }
+
+      if (waitingToastRef.current !== null) {
+        toast.dismiss(waitingToastRef.current);
+      }
+      waitingToastRef.current = toast.info(
+        "Waiting for Shopify authorization — complete the process in the new window...",
+        { duration: 120000 }
+      );
     }
-    waitingToastRef.current = toast.info(
-      "Waiting for Shopify authorization — complete the process in the new window...",
-      { duration: 120000 }
-    );
 
     setSaving(true);
     try {
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
       setStoreDomain(domain);
       await loadConnection();
+
+      if (useTopLevelRedirect) {
+        clearOauthUiState();
+        toast.info("Redirecting to Shopify authorization...");
+        window.location.assign(installUrl);
+        return;
+      }
+
       startPolling();
     } catch (err: any) {
       try {

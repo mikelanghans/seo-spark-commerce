@@ -1,6 +1,66 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const parseOauthState = (stateRaw: string | null) => {
+  let origin = "";
+  let returnTo = "";
+  let organizationId: string | null = null;
+
+  if (!stateRaw) return { origin, returnTo, organizationId };
+
+  const candidates = [stateRaw];
+  try {
+    candidates.push(decodeURIComponent(stateRaw));
+  } catch {
+    // no-op
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      origin = typeof parsed.origin === "string" ? parsed.origin : origin;
+      returnTo = typeof parsed.returnTo === "string" ? parsed.returnTo : returnTo;
+      organizationId = typeof parsed.organizationId === "string" ? parsed.organizationId : organizationId;
+      break;
+    } catch {
+      if (!origin && /^https?:\/\//i.test(candidate)) {
+        origin = candidate;
+      }
+    }
+  }
+
+  if (!origin && returnTo) {
+    try {
+      origin = new URL(returnTo).origin;
+    } catch {
+      // no-op
+    }
+  }
+
+  return { origin, returnTo, organizationId };
+};
+
+const buildAppRedirectUrl = (base: string, status: "success" | "error", errorMessage?: string) => {
+  const fallbackBase = base || "/";
+
+  try {
+    const url = new URL(fallbackBase);
+    url.searchParams.set("shopify_oauth", status);
+    if (status === "error" && errorMessage) {
+      url.searchParams.set("error", errorMessage);
+    } else {
+      url.searchParams.delete("error");
+    }
+    return url.toString();
+  } catch {
+    const sep = fallbackBase.includes("?") ? "&" : "?";
+    const errorPart = status === "error" && errorMessage
+      ? `&error=${encodeURIComponent(errorMessage)}`
+      : "";
+    return `${fallbackBase}${sep}shopify_oauth=${status}${errorPart}`;
+  }
+};
+
 serve(async (req) => {
   try {
     const url = new URL(req.url);
@@ -8,24 +68,31 @@ serve(async (req) => {
     const shop = url.searchParams.get("shop");
     const stateRaw = url.searchParams.get("state") || "";
 
+    const { origin, returnTo, organizationId } = parseOauthState(stateRaw);
+
+    console.log("shopify-oauth-callback request", {
+      hasCode: !!code,
+      shop,
+      hasState: !!stateRaw,
+      hasOrganizationId: !!organizationId,
+    });
+
     if (!code || !shop) {
       throw new Error("Missing code or shop parameter from Shopify");
     }
 
     const domain = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-    // Parse state - supports both legacy (plain origin string) and new JSON format
-    let origin = "";
-    let organizationId: string | null = null;
-    try {
-      const decoded = decodeURIComponent(stateRaw);
-      const parsed = JSON.parse(decoded);
-      origin = parsed.origin || "";
-      organizationId = parsed.organizationId || null;
-    } catch {
-      // Legacy format: state is just the origin string
-      origin = decodeURIComponent(stateRaw);
-    }
+    const redirectBase = returnTo || origin || "/";
+    const successRedirect = buildAppRedirectUrl(redirectBase, "success");
+    const targetOrigin = (() => {
+      if (origin) return origin;
+      try {
+        return new URL(redirectBase).origin;
+      } catch {
+        return "*";
+      }
+    })();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -88,7 +155,8 @@ serve(async (req) => {
     if (updateError) throw updateError;
 
     // Return a silent HTML page that posts to opener and closes/redirects immediately
-    const targetOrigin = (origin || "*").replace(/"/g, "");
+    const safeTargetOrigin = targetOrigin.replace(/"/g, "");
+    const safeSuccessRedirect = successRedirect.replace(/"/g, "\\\"");
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -97,10 +165,10 @@ serve(async (req) => {
   <script>
     (function () {
       if (window.opener) {
-        window.opener.postMessage({ type: "shopify-oauth-success" }, "${targetOrigin}");
+        window.opener.postMessage({ type: "shopify-oauth-success" }, "${safeTargetOrigin}");
         window.close();
       } else {
-        window.location.replace("${origin || "/"}?shopify_oauth=success");
+        window.location.replace("${safeSuccessRedirect}");
       }
     })();
   </script>
@@ -117,25 +185,12 @@ serve(async (req) => {
     const errorMsg = e instanceof Error ? e.message : "Unknown error";
     const safeError = errorMsg.replace(/"/g, "\\\"").replace(/\n/g, " ");
 
-    // Best-effort parse of origin from state, so fallback redirect lands back in app.
+    // Best-effort parse of state, so fallback redirect lands back in app.
     const fallbackUrl = new URL(req.url);
-    const stateRaw = fallbackUrl.searchParams.get("state") || "";
-    let origin = "";
-    try {
-      const decoded = decodeURIComponent(stateRaw);
-      const parsed = JSON.parse(decoded);
-      origin = parsed.origin || "";
-    } catch {
-      try {
-        origin = decodeURIComponent(stateRaw);
-      } catch {
-        origin = "";
-      }
-    }
-
-    const redirectTarget = origin
-      ? `${origin}?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}`
-      : `/?shopify_oauth=error&error=${encodeURIComponent(errorMsg)}`;
+    const stateRaw = fallbackUrl.searchParams.get("state");
+    const { origin, returnTo } = parseOauthState(stateRaw);
+    const redirectBase = returnTo || origin || "/";
+    const redirectTarget = buildAppRedirectUrl(redirectBase, "error", errorMsg).replace(/"/g, "\\\"");
 
     const html = `<!DOCTYPE html>
 <html>
