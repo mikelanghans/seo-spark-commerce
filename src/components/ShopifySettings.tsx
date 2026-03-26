@@ -192,6 +192,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     if (!existing || !existing.client_id) return;
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
     window.open(installUrl, "shopify-oauth", "width=600,height=700");
+    toast.info("Waiting for Shopify authorization...");
+    startPolling(existing.store_domain);
   };
 
   const handleDisconnect = async () => {
