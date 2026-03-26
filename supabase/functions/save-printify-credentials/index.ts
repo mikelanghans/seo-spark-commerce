@@ -40,12 +40,12 @@ serve(async (req) => {
     );
 
     if (action === "check") {
-      const { data: org } = await adminClient
-        .from("organizations")
+      const { data: secrets } = await adminClient
+        .from("organization_secrets")
         .select("printify_api_token")
-        .eq("id", organizationId)
+        .eq("organization_id", organizationId)
         .single();
-      const hasToken = !!(org?.printify_api_token && org.printify_api_token.trim());
+      const hasToken = !!(secrets?.printify_api_token && secrets.printify_api_token.trim());
       return new Response(JSON.stringify({ hasToken }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -53,9 +53,9 @@ serve(async (req) => {
 
     if (action === "disconnect") {
       const { error } = await adminClient
-        .from("organizations")
-        .update({ printify_api_token: "" })
-        .eq("id", organizationId);
+        .from("organization_secrets")
+        .update({ printify_api_token: "", updated_at: new Date().toISOString() })
+        .eq("organization_id", organizationId);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, disconnected: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,9 +66,12 @@ serve(async (req) => {
     if (!printifyToken?.trim()) throw new Error("printifyToken is required");
 
     const { error } = await adminClient
-      .from("organizations")
-      .update({ printify_api_token: printifyToken.trim() })
-      .eq("id", organizationId);
+      .from("organization_secrets")
+      .upsert({
+        organization_id: organizationId,
+        printify_api_token: printifyToken.trim(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "organization_id" });
     if (error) throw error;
 
     return new Response(JSON.stringify({ success: true }), {
