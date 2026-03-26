@@ -55,6 +55,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const [ebayClientSecret, setEbayClientSecret] = useState("");
   const [ebayEnv, setEbayEnv] = useState("sandbox");
   const [savingEbay, setSavingEbay] = useState(false);
+  const [ebayCredsSaved, setEbayCredsSaved] = useState(false);
 
   // Meta state
   const [metaConn, setMetaConn] = useState<MetaConn | null>(null);

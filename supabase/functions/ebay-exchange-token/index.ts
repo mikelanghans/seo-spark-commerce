@@ -19,27 +19,36 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) throw new Error("Unauthorized");
-    const userId = claims.claims.sub as string;
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) throw new Error("Unauthorized");
+    const userId = user.id;
 
     const { code, redirectUri, environment } = await req.json();
-    if (!code || !redirectUri) {
-      throw new Error("code and redirectUri are required");
+    if (!code || !redirectUri) throw new Error("code and redirectUri are required");
+
+    // Read user's own credentials from the database
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: conn } = await adminClient
+      .from("ebay_connections")
+      .select("id, client_id, client_secret, environment")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!conn || !conn.client_id || !conn.client_secret) {
+      throw new Error("No eBay credentials found. Please save your Client ID and Secret first.");
     }
 
-    const clientId = Deno.env.get("EBAY_CLIENT_ID");
-    const clientSecret = Deno.env.get("EBAY_CLIENT_SECRET");
-    if (!clientId || !clientSecret) throw new Error("eBay OAuth credentials not configured");
-
-    const isSandbox = environment === "sandbox";
+    const isSandbox = (environment || conn.environment) === "sandbox";
     const tokenUrl = isSandbox
       ? "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
       : "https://api.ebay.com/identity/v1/oauth2/token";
 
-    // Exchange authorization code for tokens
-    const creds = btoa(`${clientId}:${clientSecret}`);
+    // Exchange authorization code for tokens using user's own credentials
+    const creds = btoa(`${conn.client_id}:${conn.client_secret}`);
     const tokenRes = await fetch(tokenUrl, {
       method: "POST",
       headers: {
@@ -56,7 +65,7 @@ serve(async (req) => {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error("eBay token exchange error:", errText);
-      throw new Error(`eBay token exchange failed (${tokenRes.status}): ${errText}`);
+      throw new Error(`eBay token exchange failed (${tokenRes.status})`);
     }
 
     const tokenData = await tokenRes.json();
@@ -68,46 +77,19 @@ serve(async (req) => {
 
     const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // Store connection using service role
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { data: existing } = await adminClient
+    // Update the existing connection with tokens
+    await adminClient
       .from("ebay_connections")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .update({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_expires_at: tokenExpiresAt,
+        environment: environment || conn.environment,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", conn.id);
 
-    if (existing) {
-      await adminClient
-        .from("ebay_connections")
-        .update({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          token_expires_at: tokenExpiresAt,
-          client_id: clientId,
-          client_secret: "", // Don't store shared secret per-user
-          environment: environment || "sandbox",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-    } else {
-      await adminClient
-        .from("ebay_connections")
-        .insert({
-          user_id: userId,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          token_expires_at: tokenExpiresAt,
-          client_id: clientId,
-          client_secret: "",
-          environment: environment || "sandbox",
-        });
-    }
-
-    return new Response(JSON.stringify({ success: true, environment }), {
+    return new Response(JSON.stringify({ success: true, environment: environment || conn.environment }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
