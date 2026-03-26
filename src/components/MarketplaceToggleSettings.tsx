@@ -6,7 +6,6 @@ import { Store } from "lucide-react";
 
 const MARKETPLACES = [
   { value: "shopify", label: "Shopify", icon: "🛍️" },
-  { value: "printify", label: "Printify", icon: "🖨️" },
   { value: "etsy", label: "Etsy", icon: "🧶" },
   { value: "ebay", label: "eBay", icon: "🏷️" },
 ];
