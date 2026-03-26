@@ -794,6 +794,7 @@ export type Database = {
           brand_font_size: string
           brand_style_notes: string
           created_at: string
+          default_size_pricing: Json
           deleted_at: string | null
           design_styles: Json
           enabled_marketplaces: string[]
@@ -815,6 +816,7 @@ export type Database = {
           brand_font_size?: string
           brand_style_notes?: string
           created_at?: string
+          default_size_pricing?: Json
           deleted_at?: string | null
           design_styles?: Json
           enabled_marketplaces?: string[]
@@ -836,6 +838,7 @@ export type Database = {
           brand_font_size?: string
           brand_style_notes?: string
           created_at?: string
+          default_size_pricing?: Json
           deleted_at?: string | null
           design_styles?: Json
           enabled_marketplaces?: string[]
@@ -1021,6 +1024,7 @@ export type Database = {
           price: string
           printify_product_id: string | null
           shopify_product_id: number | null
+          size_pricing: Json | null
           tags: string[]
           title: string
           updated_at: string
@@ -1041,6 +1045,7 @@ export type Database = {
           price?: string
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          size_pricing?: Json | null
           tags?: string[]
           title: string
           updated_at?: string
@@ -1061,6 +1066,7 @@ export type Database = {
           price?: string
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          size_pricing?: Json | null
           tags?: string[]
           title?: string
           updated_at?: string
