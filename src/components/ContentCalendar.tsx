@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   format,
@@ -26,6 +27,7 @@ interface SocialPost {
   image_url: string | null;
   product_id: string;
   created_at: string;
+  is_published: boolean;
 }
 
 interface Product {
@@ -37,7 +39,9 @@ const PLATFORM_META: Record<string, { icon: string; color: string }> = {
   instagram: { icon: "📸", color: "bg-pink-500/20 text-pink-700 dark:text-pink-300" },
   tiktok: { icon: "🎵", color: "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300" },
   x: { icon: "𝕏", color: "bg-zinc-500/20 text-zinc-700 dark:text-zinc-300" },
+  twitter: { icon: "🐦", color: "bg-sky-500/20 text-sky-700 dark:text-sky-300" },
   facebook: { icon: "📘", color: "bg-blue-500/20 text-blue-700 dark:text-blue-300" },
+  pinterest: { icon: "📌", color: "bg-red-500/20 text-red-700 dark:text-red-300" },
 };
 
 export function ContentCalendar({
@@ -59,7 +63,7 @@ export function ContentCalendar({
     try {
       const { data, error } = await supabase
         .from("social_posts")
-        .select("id, platform, caption, scheduled_date, image_url, product_id, created_at")
+        .select("id, platform, caption, scheduled_date, image_url, product_id, created_at, is_published")
         .eq("organization_id", organizationId)
         .order("scheduled_date", { ascending: true });
 
@@ -111,6 +115,22 @@ export function ContentCalendar({
       toast.error(e.message || "Failed to schedule");
     } finally {
       setScheduling(null);
+    }
+  };
+
+  const togglePublished = async (postId: string, published: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("social_posts")
+        .update({ is_published: published } as any)
+        .eq("id", postId);
+      if (error) throw error;
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, is_published: published } : p))
+      );
+      toast.success(published ? "Marked as published" : "Unmarked");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update");
     }
   };
 
@@ -221,6 +241,18 @@ export function ContentCalendar({
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2">{post.caption}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {post.is_published && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                          )}
+                          <Switch
+                            checked={post.is_published}
+                            onCheckedChange={(checked) => togglePublished(post.id, checked)}
+                          />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {post.is_published ? "Published" : "Draft"}
+                          </span>
                         </div>
                       </div>
                     );

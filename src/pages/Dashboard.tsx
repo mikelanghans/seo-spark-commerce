@@ -21,6 +21,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import { MarketplaceToggleSettings } from "@/components/MarketplaceToggleSettings";
+import { SocialPlatformSettings } from "@/components/SocialPlatformSettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
 import { SizePricingSettings } from "@/components/SizePricingSettings";
 import { PushToShopify } from "@/components/PushToShopify";
@@ -1649,6 +1650,9 @@ const Dashboard = () => {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <MarketplaceToggleSettings organizationId={selectedOrg!.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <SocialPlatformSettings organizationId={selectedOrg!.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <ProductTypeSettings organizationId={selectedOrg!.id} />
