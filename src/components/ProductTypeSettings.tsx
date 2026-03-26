@@ -75,21 +75,8 @@ export const ProductTypeSettings = ({ organizationId }: Props) => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">{pt.label}</p>
               <p className="text-xs text-muted-foreground">
-                {pt.colors.length} colors · Default {pt.defaultPrice}
+                {pt.category} · Default {pt.defaultPrice}
               </p>
-            </div>
-            <div className="flex gap-0.5">
-              {pt.colors.slice(0, 6).map((c) => (
-                <div
-                  key={c.name}
-                  className="h-4 w-4 rounded-full border border-border"
-                  style={{ backgroundColor: c.hex }}
-                  title={c.name}
-                />
-              ))}
-              {pt.colors.length > 6 && (
-                <span className="text-[10px] text-muted-foreground ml-1">+{pt.colors.length - 6}</span>
-              )}
             </div>
           </label>
         ))}

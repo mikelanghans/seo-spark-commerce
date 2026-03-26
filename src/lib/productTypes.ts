@@ -275,9 +275,14 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
 /** Get product type config from a category string (fuzzy match) */
 export function getProductType(category: string): ProductTypeConfig {
   const lower = (category || "").toLowerCase();
-  if (lower.includes("hoodie") || lower.includes("sweatshirt")) return PRODUCT_TYPES.hoodie;
+  if (lower.includes("hoodie")) return PRODUCT_TYPES.hoodie;
+  if (lower.includes("sweatshirt") || lower.includes("crewneck")) return PRODUCT_TYPES.sweatshirt;
+  if (lower.includes("long sleeve")) return PRODUCT_TYPES["long-sleeve"];
   if (lower.includes("mug") || lower.includes("drinkware") || lower.includes("cup")) return PRODUCT_TYPES.mug;
-  // Default to t-shirt
+  if (lower.includes("tote")) return PRODUCT_TYPES.tote;
+  if (lower.includes("canvas") || lower.includes("wall art")) return PRODUCT_TYPES.canvas;
+  if (lower.includes("journal")) return PRODUCT_TYPES.journal;
+  if (lower.includes("notebook")) return PRODUCT_TYPES.notebook;
   return PRODUCT_TYPES["t-shirt"];
 }
 
