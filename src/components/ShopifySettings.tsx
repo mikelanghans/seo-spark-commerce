@@ -26,6 +26,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const oauthWindowRef = useRef<Window | null>(null);
+  const waitingToastRef = useRef<string | number | null>(null);
 
   const SHOPIFY_REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
 
@@ -39,6 +41,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
+      if (waitingToastRef.current !== null) {
+        toast.dismiss(waitingToastRef.current);
+        waitingToastRef.current = null;
+      }
+      oauthWindowRef.current = null;
     };
   }, []);
 
