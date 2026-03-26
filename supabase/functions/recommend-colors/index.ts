@@ -12,12 +12,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { productTitle, productCategory, brandName, brandNiche, brandAudience, brandTone, existingColors, designImageBase64 } = await req.json();
+    const { productTitle, productCategory, brandName, brandNiche, brandAudience, brandTone, existingColors, designImageBase64, availablePalette, productTypeLabel } = await req.json();
 
-    const prompt = `You are a fashion merchandising expert specializing in print-on-demand apparel color strategy.
+    const paletteStr = availablePalette || "Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Crimson, Espresso, Midnight, Sage, Chambray";
+    const typeLabel = productTypeLabel || productCategory || "T-Shirt";
+
+    const prompt = `You are a fashion merchandising expert specializing in print-on-demand ${typeLabel.toLowerCase()} color strategy.
 
 PRODUCT: "${productTitle}"
-CATEGORY: ${productCategory || "T-Shirt"}
+CATEGORY: ${productCategory || typeLabel}
 BRAND: ${brandName || "lifestyle apparel"}
 NICHE: ${brandNiche || "lifestyle"}
 TARGET AUDIENCE: ${brandAudience || "general"}
@@ -27,8 +30,8 @@ ${existingColors?.length ? `ALREADY GENERATED COLORS (do NOT recommend these): $
 
 ${designImageBase64 ? "I've attached the actual design graphic. ANALYZE IT CAREFULLY — consider its colors, mood, theme, and visual elements when recommending garment colors. Choose colors that complement or contrast the design's palette for maximum visual impact." : ""}
 
-AVAILABLE COLORS (Comfort Colors 1717 palette — ONLY recommend from this list):
-Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Crimson, Espresso, Midnight, Sage, Chambray
+AVAILABLE COLORS (ONLY recommend from this list):
+${paletteStr}
 
 IMPORTANT RULES:
 1. You MUST always include "Black" and "White" in your recommendations (unless they are in the already-generated list).
@@ -37,7 +40,7 @@ IMPORTANT RULES:
 
 For each color beyond Black and White, recommend those that would:
 1. Best complement or contrast the SPECIFIC design's color palette and visual theme
-2. Create strong visual impact — the garment color should make this particular design pop
+2. Create strong visual impact — the ${typeLabel.toLowerCase()} color should make this particular design pop
 3. Cover the most popular color preferences for the niche
 4. Maximize conversion rates based on POD industry data
 
