@@ -4,8 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Trash2, ExternalLink, Printer } from "lucide-react";
+import { Loader2, Check, Trash2, ExternalLink, Printer, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   userId: string;
@@ -17,6 +28,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
   const [printifyToken, setPrintifyToken] = useState("");
   const [printifyHasToken, setPrintifyHasToken] = useState(false);
   const [savingPrintify, setSavingPrintify] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (organizationId) loadStatus();
@@ -55,6 +67,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       if (data?.error) throw new Error(data.error);
       setPrintifyHasToken(true);
       setPrintifyToken("");
+      setEditing(false);
       toast.success("Printify token saved!");
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
@@ -72,6 +85,8 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setPrintifyHasToken(false);
+      setEditing(false);
+      setPrintifyToken("");
       toast.success("Printify disconnected");
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
@@ -98,33 +113,61 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
             <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
               <Check className="h-3 w-3 mr-1" /> Connected
             </Badge>
-            <Button variant="ghost" size="icon" onClick={disconnectPrintify}>
-              <Trash2 className="h-4 w-4 text-destructive" />
+            <Button variant="ghost" size="icon" onClick={() => { setEditing(!editing); setPrintifyToken(""); }}>
+              <Pencil className="h-4 w-4 text-muted-foreground" />
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Disconnect Printify?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will remove your Printify API token. You won't be able to push products to Printify until you reconnect.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={disconnectPrintify} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Disconnect
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         ) : (
           <Badge variant="secondary">Not connected</Badge>
         )}
       </div>
 
-      {printifyHasToken ? (
+      {printifyHasToken && !editing ? (
         <p className="text-sm text-muted-foreground">Your Printify API token is saved. Products will be created in your Printify account.</p>
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Connect your Printify account to push products for print-on-demand.
+            {printifyHasToken ? "Update your Printify API token below." : "Connect your Printify account to push products for print-on-demand."}
             <a href="https://printify.com/app/account/api" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary ml-1">
               Get API token <ExternalLink className="h-3 w-3" />
             </a>
           </p>
           <div>
             <Label>API Token</Label>
-            <Input type="password" value={printifyToken} onChange={(e) => setPrintifyToken(e.target.value)} placeholder="Your Printify API token" />
+            <Input type="password" value={printifyToken} onChange={(e) => setPrintifyToken(e.target.value)} placeholder={printifyHasToken ? "Enter new token" : "Your Printify API token"} />
           </div>
-          <Button onClick={savePrintify} disabled={savingPrintify} className="gap-2">
-            {savingPrintify ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Connect Printify
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={savePrintify} disabled={savingPrintify} className="gap-2">
+              {savingPrintify ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {printifyHasToken ? "Update Token" : "Connect Printify"}
+            </Button>
+            {editing && (
+              <Button variant="outline" onClick={() => { setEditing(false); setPrintifyToken(""); }}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>
