@@ -210,11 +210,40 @@ export const DesignPreviewDialog = ({
         )}
 
         {/* Action buttons row: Download + Upload replacement */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {activeUrl && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload}>
               <Download className="h-4 w-4" />
-              Download
+              Download {designUrl && darkDesignUrl ? (activeVariant === "light" ? "light" : "dark") : ""}
+            </Button>
+          )}
+          {designUrl && darkDesignUrl && !viewingUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={async () => {
+                try {
+                  for (const [url, label] of [[designUrl, "light"], [darkDesignUrl, "dark"]] as const) {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = blobUrl;
+                    a.download = `design-${messageId || "image"}-${label}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                  }
+                  toast.success("Both variants downloaded");
+                } catch {
+                  toast.error("Failed to download images");
+                }
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Download both
             </Button>
           )}
           {onReplaceDesign && messageId && (
