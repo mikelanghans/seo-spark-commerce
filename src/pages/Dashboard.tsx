@@ -76,6 +76,7 @@ interface Organization {
   deleted_at?: string | null;
   enabled_marketplaces?: string[];
   enabled_product_types?: string[];
+  enabled_social_platforms?: string[];
 }
 
 interface Product {

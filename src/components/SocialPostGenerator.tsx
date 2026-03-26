@@ -15,6 +15,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  enabled_social_platforms?: string[];
 }
 
 interface Product {
@@ -33,7 +34,7 @@ interface SocialPost {
   hashtags: string[];
 }
 
-const PLATFORMS = [
+const ALL_PLATFORMS = [
   { id: "instagram", label: "Instagram", icon: "📸" },
   { id: "tiktok", label: "TikTok", icon: "🎵" },
   { id: "x", label: "X (Twitter)", icon: "𝕏" },
@@ -56,9 +57,13 @@ export function SocialPostGenerator({
   userId: string;
   aiUsage?: AiUsage;
 }) {
+  const enabledPlatforms = organization.enabled_social_platforms?.length
+    ? ALL_PLATFORMS.filter((p) => organization.enabled_social_platforms!.includes(p.id))
+    : [];
+
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => enabledPlatforms.map((p) => p.id));
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
   const [postImages, setPostImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -304,20 +309,26 @@ export function SocialPostGenerator({
       {/* Platform selector */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Platforms</label>
-        <div className="flex flex-wrap gap-3">
-          {PLATFORMS.map((p) => (
-            <label
-              key={p.id}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                selectedPlatforms.includes(p.id) ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground"
-              }`}
-            >
-              <Checkbox checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => togglePlatform(p.id)} className="h-4 w-4" />
-              <span>{p.icon}</span>
-              <span>{p.label}</span>
-            </label>
-          ))}
-        </div>
+        {enabledPlatforms.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4">
+            No social platforms enabled. Go to <strong>Settings → Social Platforms</strong> to enable platforms for this brand.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {enabledPlatforms.map((p) => (
+              <label
+                key={p.id}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  selectedPlatforms.includes(p.id) ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                <Checkbox checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => togglePlatform(p.id)} className="h-4 w-4" />
+                <span>{p.icon}</span>
+                <span>{p.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       <Button onClick={generate} disabled={loading || selectedProducts.length === 0 || selectedPlatforms.length === 0} className="gap-2">
@@ -335,7 +346,7 @@ export function SocialPostGenerator({
             </Button>
           </div>
 
-          {PLATFORMS.filter((p) => posts[p.id]).map((platform) => {
+          {enabledPlatforms.filter((p) => posts[p.id]).map((platform) => {
             const post = posts[platform.id];
             const image = postImages[platform.id];
             const isGeneratingThis = generatingImage === platform.id;
