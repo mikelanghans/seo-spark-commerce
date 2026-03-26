@@ -158,7 +158,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const scopes = "read_products,write_products,read_files,write_files";
     const statePayload = JSON.stringify({
       origin: window.location.origin,
-      returnTo: window.location.href,
       organizationId: organizationId || null,
     });
     const state = encodeURIComponent(statePayload);
@@ -240,13 +239,20 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const openShopifyAuthTab = (url: string) => {
     // Top-level tab avoids Safari/COOP popup failures inside preview iframe.
-    const tab = window.open(url, "_blank", "noopener,noreferrer");
+    const tab = window.open(url, "_blank");
+    if (!tab) return false;
     oauthWindowRef.current = tab;
+    return true;
   };
 
   const launchShopifyOauth = (installUrl: string) => {
     setPendingAuthUrl(installUrl);
-    openShopifyAuthTab(installUrl);
+    const opened = openShopifyAuthTab(installUrl);
+    if (!opened) {
+      toast.error("Could not open Shopify authorization tab. Please allow popups and try again.");
+      return;
+    }
+
     if (waitingToastRef.current !== null) {
       toast.dismiss(waitingToastRef.current);
     }
@@ -276,7 +282,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
       setStoreDomain(domain);
       setPendingAuthUrl(installUrl);
-      openShopifyAuthTab(installUrl);
+
+      const opened = openShopifyAuthTab(installUrl);
+      if (!opened) {
+        toast.error("Credentials saved. Click 'Open Shopify Authorization' to continue.");
+        return;
+      }
+
       if (waitingToastRef.current !== null) {
         toast.dismiss(waitingToastRef.current);
       }

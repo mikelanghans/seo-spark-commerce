@@ -154,26 +154,89 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Return a silent HTML page that posts to opener and closes/redirects immediately
+    // Return an HTML page that posts to opener if available.
+    // Do not auto-redirect when opener is unavailable (common with Safari/COOP).
     const safeTargetOrigin = targetOrigin.replace(/"/g, "");
     const safeSuccessRedirect = successRedirect.replace(/"/g, "\\\"");
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Connecting...</title>
+  <title>Shopify Connected</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2937;
+      background: #fff;
+      line-height: 1.5;
+    }
+    .card {
+      max-width: 560px;
+      margin: 0 auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 18px; }
+    p { margin: 0 0 10px; }
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      color: #111827;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.primary {
+      background: #111827;
+      color: #fff;
+      border-color: #111827;
+    }
+  </style>
   <script>
     (function () {
       if (window.opener) {
-        window.opener.postMessage({ type: "shopify-oauth-success" }, "${safeTargetOrigin}");
-        window.close();
-      } else {
-        window.location.replace("${safeSuccessRedirect}");
+        try {
+          window.opener.postMessage({ type: "shopify-oauth-success" }, "${safeTargetOrigin}");
+        } catch (err) {
+          // no-op
+        }
+        try {
+          window.close();
+        } catch (err) {
+          // no-op
+        }
       }
+
+      window.__returnToApp = function () {
+        window.location.replace("${safeSuccessRedirect}");
+      };
+
+      window.__closeTab = function () {
+        window.close();
+      };
     })();
   </script>
 </head>
-<body></body>
+<body>
+  <div class="card">
+    <h1>Shopify authorization completed</h1>
+    <p>You can now return to the app tab. The connection status should update automatically.</p>
+    <div class="actions">
+      <button class="primary" onclick="window.__returnToApp()">Return to app</button>
+      <button onclick="window.__closeTab()">Close tab</button>
+    </div>
+  </div>
+</body>
 </html>`;
 
     return new Response(html, {
@@ -265,10 +328,7 @@ serve(async (req) => {
         window.close();
       };
 
-      // If there's no opener, redirect back to app immediately so the user sees the error there.
-      if (!hadOpener) {
-        window.__redirectToApp();
-      }
+      // No automatic redirect: in Safari/COOP contexts this can fail or lead to blank pages.
     })();
   </script>
 </head>
