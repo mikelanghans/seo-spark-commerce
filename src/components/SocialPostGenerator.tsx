@@ -56,8 +56,18 @@ export function SocialPostGenerator({
   userId: string;
   aiUsage?: AiUsage;
 }) {
-  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
+
+  const toggleProduct = (id: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
+  const removeProduct = (id: string) => {
+    setSelectedProducts((prev) => prev.filter((p) => p !== id));
+  };
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
   const [postImages, setPostImages] = useState<Record<string, string>>({});
