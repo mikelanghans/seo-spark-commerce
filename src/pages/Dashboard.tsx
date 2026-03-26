@@ -83,6 +83,7 @@ interface Product {
   features: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  tags: string[];
 }
 
 interface Listing {
@@ -691,12 +692,35 @@ const Dashboard = () => {
     products.filter((p) => {
       const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (activeFilter === "__not_on_shopify") return matchesSearch && !p.shopify_product_id;
-      if (activeFilter === "__on_shopify") return matchesSearch && !!p.shopify_product_id;
+      if (activeFilter?.startsWith("tag:")) {
+        const tag = activeFilter.slice(4);
+        return matchesSearch && (p.tags || []).includes(tag);
+      }
       const matchesFilter = !activeFilter ||
         p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
         p.category.toLowerCase().includes(activeFilter.toLowerCase());
       return matchesSearch && matchesFilter;
     });
+
+  const allTags = [...new Set(products.flatMap((p) => p.tags || []))].sort();
+
+  const handleAddTag = async (productId: string, tag: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const current = product.tags || [];
+    if (current.includes(tag)) return;
+    const updated = [...current, tag];
+    await supabase.from("products").update({ tags: updated }).eq("id", productId);
+    setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, tags: updated } : p));
+  };
+
+  const handleRemoveTag = async (productId: string, tag: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const updated = (product.tags || []).filter((t) => t !== tag);
+    await supabase.from("products").update({ tags: updated }).eq("id", productId);
+    setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, tags: updated } : p));
+  };
 
   const handleBulkDelete = async () => {
     if (selectedProductIds.size === 0) return;
@@ -1687,25 +1711,19 @@ const Dashboard = () => {
                       )}
                     </div>
 
-                    {/* Category Filters */}
+                    {/* Filters */}
                     <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { key: "__not_on_shopify", label: "Not on Shopify", icon: "🔴" },
-                        { key: "__on_shopify", label: "On Shopify", icon: "🟢" },
-                      ].map(({ key, label, icon }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                            activeFilter === key
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                          }`}
-                        >
-                          {icon} {label}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setActiveFilter(activeFilter === "__not_on_shopify" ? null : "__not_on_shopify")}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          activeFilter === "__not_on_shopify"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        🔴 Not on Shopify
+                      </button>
                       {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
                         <button
                           key={cat}
@@ -1718,6 +1736,20 @@ const Dashboard = () => {
                           }`}
                         >
                           {cat}
+                        </button>
+                      ))}
+                      {allTags.map((tag) => (
+                        <button
+                          key={`tag:${tag}`}
+                          type="button"
+                          onClick={() => setActiveFilter(activeFilter === `tag:${tag}` ? null : `tag:${tag}`)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            activeFilter === `tag:${tag}`
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          🏷️ {tag}
                         </button>
                       ))}
                     </div>
@@ -1780,6 +1812,26 @@ const Dashboard = () => {
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                           {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
+                          {/* Tags */}
+                          <div className="mt-2 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            {(product.tags || []).map((tag) => (
+                              <span key={tag} className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                {tag}
+                                <button onClick={() => handleRemoveTag(product.id, tag)} className="ml-0.5 hover:text-destructive">
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </span>
+                            ))}
+                            <button
+                              onClick={() => {
+                                const tag = prompt("Enter tag name:");
+                                if (tag?.trim()) handleAddTag(product.id, tag.trim());
+                              }}
+                              className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                            >
+                              <Plus className="h-2.5 w-2.5 mr-0.5" /> Tag
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

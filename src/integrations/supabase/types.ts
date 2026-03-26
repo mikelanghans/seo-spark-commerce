@@ -1018,6 +1018,7 @@ export type Database = {
           price: string
           printify_product_id: string | null
           shopify_product_id: number | null
+          tags: string[]
           title: string
           updated_at: string
           user_id: string
@@ -1037,6 +1038,7 @@ export type Database = {
           price?: string
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          tags?: string[]
           title: string
           updated_at?: string
           user_id: string
@@ -1056,6 +1058,7 @@ export type Database = {
           price?: string
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          tags?: string[]
           title?: string
           updated_at?: string
           user_id?: string
