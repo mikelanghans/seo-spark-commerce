@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, Hash, Save, ImagePlus, ChevronsUpDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface Organization {
   id: string;
@@ -55,6 +57,7 @@ export function SocialPostGenerator({
   aiUsage?: AiUsage;
 }) {
   const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
   const [postImages, setPostImages] = useState<Record<string, string>>({});
@@ -183,16 +186,69 @@ export function SocialPostGenerator({
       {/* Product selector */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Select Product</label>
-        <select
-          value={selectedProduct}
-          onChange={(e) => setSelectedProduct(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">Choose a product…</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>{p.title}</option>
-          ))}
-        </select>
+        <Popover open={productPickerOpen} onOpenChange={setProductPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={productPickerOpen}
+              className="w-full justify-between h-auto min-h-10 py-2"
+            >
+              {selectedProduct ? (
+                <div className="flex items-center gap-3 text-left">
+                  {products.find((p) => p.id === selectedProduct)?.image_url && (
+                    <img
+                      src={products.find((p) => p.id === selectedProduct)!.image_url!}
+                      alt=""
+                      className="h-8 w-8 rounded object-cover shrink-0"
+                    />
+                  )}
+                  <span className="truncate">
+                    {products.find((p) => p.id === selectedProduct)?.title}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">Choose a product…</span>
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search products…" />
+              <CommandList>
+                <CommandEmpty>No products found.</CommandEmpty>
+                <CommandGroup>
+                  {products.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={p.title}
+                      onSelect={() => {
+                        setSelectedProduct(p.id);
+                        setProductPickerOpen(false);
+                      }}
+                      className="flex items-center gap-3 py-2"
+                    >
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt=""
+                          className="h-8 w-8 rounded object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-muted shrink-0" />
+                      )}
+                      <span className="truncate">{p.title}</span>
+                      {selectedProduct === p.id && (
+                        <Check className="ml-auto h-4 w-4 text-primary shrink-0" />
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Platform selector */}
