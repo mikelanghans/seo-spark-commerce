@@ -85,25 +85,33 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const loadConnection = async () => {
     setLoading(true);
-    // Only select non-sensitive fields — client_secret is never read client-side
-    const { data } = await supabase
-      .from("shopify_connections")
-      .select("id, store_domain, access_token, client_id")
-      .eq("user_id", userId)
-      .match(organizationId ? { organization_id: organizationId } : {})
-      .maybeSingle();
-    if (data) {
-      setExisting({
-        id: data.id,
-        store_domain: data.store_domain,
-        has_token: !!data.access_token && data.access_token.length > 0,
-        has_credentials: !!data.client_id,
-        client_id: data.client_id,
+    try {
+      // Use edge function to read connection status (avoids column-level permission issues)
+      const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
+        body: { action: "check", organizationId: organizationId || null },
       });
-      setStoreDomain(data.store_domain);
-      setClientId(data.client_id || "");
-      // Never populate clientSecret from DB — user must re-enter to change
-      setClientSecret("");
+      if (error) {
+        console.error("Failed to check Shopify connection:", error);
+        setLoading(false);
+        return;
+      }
+      const conn = data?.connection;
+      if (conn) {
+        setExisting({
+          id: conn.id,
+          store_domain: conn.store_domain,
+          has_token: conn.has_token,
+          has_credentials: conn.has_credentials,
+          client_id: conn.client_id,
+        });
+        setStoreDomain(conn.store_domain);
+        setClientId(conn.client_id || "");
+        setClientSecret("");
+      } else {
+        setExisting(null);
+      }
+    } catch (err) {
+      console.error("Failed to load Shopify connection:", err);
     }
     setLoading(false);
   };
