@@ -3,9 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Sparkles, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 
 export interface ProductInfo {
   title: string;
@@ -23,12 +25,29 @@ interface Props {
 }
 
 export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
+  const [productType, setProductType] = useState<ProductTypeKey>(
+    initial?.category ? (
+      initial.category.toLowerCase().includes("hoodie") || initial.category.toLowerCase().includes("sweatshirt") ? "hoodie" :
+      initial.category.toLowerCase().includes("mug") || initial.category.toLowerCase().includes("drinkware") ? "mug" :
+      "t-shirt"
+    ) : "t-shirt"
+  );
   const [form, setForm] = useState<ProductInfo>(
-    initial ?? { title: "", description: "", keywords: "", category: "", price: "", features: "" }
+    initial ?? { title: "", description: "", keywords: "", category: PRODUCT_TYPES["t-shirt"].category, price: PRODUCT_TYPES["t-shirt"].defaultPrice, features: "" }
   );
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleProductTypeChange = (type: ProductTypeKey) => {
+    setProductType(type);
+    const config = PRODUCT_TYPES[type];
+    setForm((prev) => ({
+      ...prev,
+      category: config.category,
+      price: prev.price || config.defaultPrice,
+    }));
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,10 +175,23 @@ export const ProductForm = ({ onSubmit, onBack, initial }: Props) => {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="productType">Product Type</Label>
+          <Select value={productType} onValueChange={(v) => handleProductTypeChange(v as ProductTypeKey)} disabled={isAnalyzing}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select product type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(PRODUCT_TYPES).map((pt) => (
+                <SelectItem key={pt.key} value={pt.key}>{pt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="category">Category</Label>
           <Input
             id="category"
-            placeholder="e.g. Home & Garden > Candles"
+            placeholder="e.g. T-Shirt, Hoodie, Mug"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
             required

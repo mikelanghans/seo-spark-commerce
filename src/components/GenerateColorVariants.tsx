@@ -15,6 +15,7 @@ import {
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { getProductType, getSuggestedColors, getColorHexMap, isLightColor, type ProductTypeConfig } from "@/lib/productTypes";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
@@ -36,36 +37,15 @@ interface Props {
   aiUsage?: AiUsage;
 }
 
-const SUGGESTED_COLORS = [
-  "Black", "White", "True Navy", "Red", "Moss",
-  "Grey", "Blue Jean", "Pepper", "Island Green", "Ivory",
-  "Crimson", "Espresso", "Midnight", "Sage", "Chambray",
-];
-
-const COLOR_HEX: Record<string, string> = {
-  black: "#1a1a1a",
-  white: "#f5f5f0",
-  "true navy": "#1e2d4a",
-  red: "#b22234",
-  moss: "#5a6e3c",
-  grey: "#9a9a96",
-  "blue jean": "#6b8cae",
-  pepper: "#3d3a38",
-  "island green": "#5a9e8f",
-  ivory: "#f0e8d8",
-  crimson: "#8b1a2b",
-  espresso: "#3b2a20",
-  midnight: "#1a1a2e",
-  sage: "#a3b09e",
-  chambray: "#8ba3c4",
-};
-
 interface ColorRecommendation {
   color: string;
   reason: string;
 }
 
 export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+  const typeConfig = getProductType(productCategory || "");
+  const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
+  const COLOR_HEX = getColorHexMap(typeConfig);
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
@@ -129,13 +109,15 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       const { data, error } = await supabase.functions.invoke("recommend-colors", {
         body: {
           productTitle,
-          productCategory: productCategory || "T-Shirt",
+          productCategory: productCategory || typeConfig.category,
           brandName,
           brandNiche,
           brandAudience,
           brandTone,
           existingColors: existingList,
           designImageBase64,
+          availablePalette: SUGGESTED_COLORS.join(", "),
+          productTypeLabel: typeConfig.label,
         },
       });
       if (error || data?.error) {
@@ -176,14 +158,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
   };
 
-  const LIGHT_COLORS = new Set([
-    "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
-    "island reef", "chambray", "white", "flo blue", "watermelon",
-    "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-    "light green", "bay", "sage",
-  ]);
+  const LIGHT_COLORS = typeConfig.lightColors;
 
-  const CONCURRENCY = 2;
+  const CONCURRENCY = typeConfig.concurrency;
 
   const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
     const resp = await fetch(dataUrl);
@@ -205,6 +182,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
         customInstructions: customInstructions.trim() || undefined,
+        swatchHints: typeConfig.swatchHints,
       },
     });
     if (error || data?.error) {

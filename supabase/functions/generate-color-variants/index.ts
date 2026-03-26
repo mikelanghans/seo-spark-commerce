@@ -27,7 +27,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight, customInstructions } = await req.json();
+    const { imageBase64, colorName, productTitle, sourceWidth, sourceHeight, customInstructions, swatchHints: customSwatchHints } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -35,7 +35,9 @@ serve(async (req) => {
       ? `OUTPUT SIZE: The result MUST be ${sourceWidth}x${sourceHeight} pixels — identical to the input.`
       : "";
 
-    const swatchHint = COLOR_SWATCH_HINTS[(colorName || "").toLowerCase().trim()]
+    // Use custom swatch hints if provided (product-type-aware), else fall back to built-in
+    const effectiveSwatchHints = customSwatchHints || COLOR_SWATCH_HINTS;
+    const swatchHint = effectiveSwatchHints[(colorName || "").toLowerCase().trim()]
       || `${colorName} with realistic garment dye tone`;
 
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
