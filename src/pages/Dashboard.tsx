@@ -1612,7 +1612,7 @@ const Dashboard = () => {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
-                    <CollaborationHub userId={user!.id} organizations={orgs.map(o => ({ id: o.id, name: o.name }))} />
+                    <CollaborationHub userId={user!.id} organizations={selectedOrg ? [{ id: selectedOrg.id, name: selectedOrg.name }] : []} />
                   ) : (
                     <UpgradePrompt feature="team-collaboration" onUpgrade={() => setView("settings")} />
                   )}
