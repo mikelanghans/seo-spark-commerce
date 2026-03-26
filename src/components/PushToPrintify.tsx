@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { recolorOpaquePixels, removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -78,6 +79,8 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [loadingMockups, setLoadingMockups] = useState(false);
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
+  const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
+  const [loadingColors, setLoadingColors] = useState(false);
 
   const loadShops = async () => {
     setLoadingShops(true);
@@ -139,8 +142,46 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       loadShops();
       loadPrintifyInfo();
       loadMockups();
+      loadSizePricing();
     }
   }, [open]);
+
+  const loadSizePricing = async () => {
+    // Load org-level default size pricing, then overlay product-level overrides
+    const pt = PRODUCT_TYPES["t-shirt"];
+    const defaults: Record<string, string> = { ...pt.defaultSizePricing };
+
+    if (organizationId) {
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("default_size_pricing")
+        .eq("id", organizationId)
+        .single();
+      const orgPricing = (org as any)?.default_size_pricing?.["t-shirt"] as Record<string, string> | undefined;
+      if (orgPricing) {
+        for (const [size, price] of Object.entries(orgPricing)) {
+          if (price) defaults[size] = price;
+        }
+      }
+    }
+
+    // Product-level overrides
+    if (product.id) {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("size_pricing")
+        .eq("id", product.id)
+        .single();
+      const prodPricing = (prod as any)?.size_pricing as Record<string, string> | undefined;
+      if (prodPricing) {
+        for (const [size, price] of Object.entries(prodPricing)) {
+          if (price) defaults[size] = price;
+        }
+      }
+    }
+
+    setSizePricing(defaults);
+  };
 
   // Re-fetch print provider info when product type changes
   useEffect(() => {
@@ -253,6 +294,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           selectedColors: colorsToUse,
           selectedSizes,
           price: product.price,
+          sizePricing,
           mockupImages,
           productId: product.id,
           printifyProductId: product.printify_product_id,
@@ -413,7 +455,16 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               <p><strong>Colors:</strong> {colorsForPush.join(", ")}</p>
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
               <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
-              <p><strong>Price:</strong> {product.price || "$29.99"}</p>
+              <div>
+                <strong>Pricing:</strong>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                  {selectedSizes.map((s) => (
+                    <span key={s} className="text-xs">
+                      {s}: ${sizePricing[s] || product.price?.replace(/[^0-9.]/g, "") || "29.99"}
+                    </span>
+                  ))}
+                </div>
+              </div>
               {product.printify_product_id && (
                 <p className="text-primary text-xs">Will update existing Printify product</p>
               )}
