@@ -499,31 +499,51 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           )}
         </div>
 
-        {ebayConn ? (
+        {ebayConn?.has_token ? (
           <div className="text-sm text-muted-foreground">
             <p>Environment: <span className="text-foreground font-medium capitalize">{ebayConn.environment}</span></p>
-            {ebayConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
+            <p className="text-green-600 dark:text-green-400">OAuth token active</p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your eBay account to push listings directly. Click below to authorize via eBay.
+              Connect your eBay account to push listings. Enter your App ID and Cert ID from the{" "}
+              <a href="https://developer.ebay.com/my/keys" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary">
+                eBay Developer Portal <ExternalLink className="h-3 w-3" />
+              </a>
             </p>
-            <div>
-              <Label>Environment</Label>
-              <select
-                value={ebayEnv}
-                onChange={(e) => setEbayEnv(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="sandbox">Sandbox (Testing)</option>
-                <option value="production">Production (Live)</option>
-              </select>
+            <div className="grid gap-3">
+              <div>
+                <Label>App ID (Client ID)</Label>
+                <Input value={ebayClientId} onChange={(e) => setEbayClientId(e.target.value)} placeholder="Your eBay App ID" />
+              </div>
+              <div>
+                <Label>Cert ID (Client Secret)</Label>
+                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Cert ID" />
+              </div>
+              <div>
+                <Label>Environment</Label>
+                <select
+                  value={ebayEnv}
+                  onChange={(e) => setEbayEnv(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="sandbox">Sandbox (Testing)</option>
+                  <option value="production">Production (Live)</option>
+                </select>
+              </div>
             </div>
-            <Button onClick={connectEbay} disabled={savingEbay} className="gap-2">
-              {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-              {savingEbay ? "Connecting..." : "Connect eBay Account"}
-            </Button>
+            {!ebayCredsSaved && !ebayConn ? (
+              <Button onClick={saveEbayCreds} disabled={savingEbay} className="gap-2">
+                {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Save Credentials
+              </Button>
+            ) : (
+              <Button onClick={connectEbay} disabled={savingEbay} className="gap-2">
+                {savingEbay ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+                {savingEbay ? "Connecting..." : "Authorize eBay Account"}
+              </Button>
+            )}
           </div>
         )}
       </div>
