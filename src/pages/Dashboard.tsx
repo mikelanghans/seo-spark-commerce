@@ -120,6 +120,7 @@ const Dashboard = () => {
     _setView(v);
   };
   const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [orgsLoaded, setOrgsLoaded] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -261,9 +262,8 @@ const Dashboard = () => {
 
   // Restore navigation state after orgs load
   useEffect(() => {
-    if (_restoredNav) return;
-    if (orgs.length === 0 && !loading) { setRestoredNav(true); setView("orgs"); return; }
-    if (orgs.length === 0) return;
+    if (_restoredNav || !orgsLoaded) return;
+    if (orgs.length === 0) { setRestoredNav(true); setView("orgs"); return; }
     setRestoredNav(true);
     const savedOrgId = sessionStorage.getItem("dash_org_id");
     const savedProductId = sessionStorage.getItem("dash_product_id");
@@ -284,12 +284,13 @@ const Dashboard = () => {
         setView("products");
       }
     });
-  }, [orgs]);
+  }, [orgs, orgsLoaded]);
 
   const loadOrgs = async () => {
     setLoading(true);
     const { data } = await supabase.from("organizations").select("*").is("deleted_at", null).order("created_at", { ascending: false });
     setOrgs((data as Organization[]) || []);
+    setOrgsLoaded(true);
     setLoading(false);
   };
 
