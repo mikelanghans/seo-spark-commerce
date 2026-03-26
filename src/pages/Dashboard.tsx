@@ -1639,6 +1639,9 @@ const Dashboard = () => {
                   <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
+                  <ProductTypeSettings organizationId={selectedOrg!.id} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
                     <CollaborationHub userId={user!.id} organizations={selectedOrg ? [{ id: selectedOrg.id, name: selectedOrg.name }] : []} />
                   ) : (
