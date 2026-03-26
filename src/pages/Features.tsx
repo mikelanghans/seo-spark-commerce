@@ -78,7 +78,7 @@ const Features = () => {
             </ul>
           </Sub>
           <Sub title="Enabled Marketplaces (per brand)">
-            <p>Choose which marketplaces this brand sells on: Shopify, Printify, Amazon, Etsy, eBay, Meta/Facebook. Only enabled marketplaces appear in listing generation and the push tab. If none are selected, all are shown by default.</p>
+            <p>Choose which marketplaces this brand sells on: Shopify, Printify, Etsy, eBay, Meta/Facebook. Only enabled marketplaces appear in listing generation and the push tab. If none are selected, all are shown by default.</p>
           </Sub>
           <Sub title="Other">
             <ul className="space-y-1 mt-1">
@@ -146,7 +146,7 @@ const Features = () => {
             <p>SEO-optimized listings tailored per marketplace, including: title, description, bullet points, tags/keywords, meta title, meta description, URL handle, and image alt text.</p>
           </Sub>
           <Sub title="Supported Marketplaces">
-            <p>Amazon, Etsy, eBay, and Shopify — each with platform-appropriate formatting. Bulk generation available for all products at once.</p>
+            <p>Etsy, eBay, and Shopify — each with platform-appropriate formatting. Bulk generation available for all products at once.</p>
           </Sub>
         </Section>
 
