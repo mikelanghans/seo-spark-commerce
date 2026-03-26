@@ -426,7 +426,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         {etsyConn ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
+            {etsyConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
           </div>
         ) : (
           <div className="space-y-3">
