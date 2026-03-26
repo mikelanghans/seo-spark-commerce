@@ -242,6 +242,18 @@ export function ContentCalendar({
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2">{post.caption}</p>
                         </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {post.is_published && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                          )}
+                          <Switch
+                            checked={post.is_published}
+                            onCheckedChange={(checked) => togglePublished(post.id, checked)}
+                          />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {post.is_published ? "Published" : "Draft"}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
