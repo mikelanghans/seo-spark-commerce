@@ -1419,7 +1419,7 @@ const Dashboard = () => {
                   
                   { value: "etsy", label: "Etsy", icon: "🧶" },
                   { value: "ebay", label: "eBay", icon: "🏷️" },
-                  // { value: "meta", label: "Meta / Facebook", icon: "📘" },
+                  
                 ].map((mp) => {
                   const isEnabled = orgForm.enabled_marketplaces.includes(mp.value);
                   return (
@@ -2314,7 +2314,7 @@ const Dashboard = () => {
                           printifyShopId={selectedOrg?.printify_shop_id}
                         />
                       )}
-                      {(channels.includes("etsy") || channels.includes("ebay") || channels.includes("meta")) && (
+                      {(channels.includes("etsy") || channels.includes("ebay")) && (
                         <PushToMarketplace
                           product={selectedProduct}
                           listings={listingsMapped}
