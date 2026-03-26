@@ -138,7 +138,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   // Poll for connection status after opening OAuth popup
-  const startPolling = (domain: string) => {
+  const startPolling = () => {
     let attempts = 0;
     const maxAttempts = 60; // poll for up to 2 minutes
     const interval = setInterval(async () => {
@@ -147,13 +147,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         clearInterval(interval);
         return;
       }
-      const { data } = await supabase
-        .from("shopify_connections")
-        .select("id, access_token")
-        .eq("user_id", userId)
-        .eq("store_domain", domain)
-        .maybeSingle();
-      if (data?.access_token) {
+      const { data } = await supabase.functions.invoke("save-shopify-credentials", {
+        body: { action: "check", organizationId: organizationId || null },
+      });
+      if (data?.connection?.has_token) {
         clearInterval(interval);
         toast.success("Shopify connected successfully!");
         loadConnection();
