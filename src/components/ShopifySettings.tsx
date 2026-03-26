@@ -207,21 +207,22 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   const launchShopifyOauth = (installUrl: string) => {
-    if (isSafariBrowser()) {
-      toast.info("Opening Shopify in this tab (Safari popup restrictions detected)...");
-      window.location.assign(installUrl);
-      return;
-    }
-
-    const popup = window.open(installUrl, "shopify-oauth", "width=600,height=700,noopener,noreferrer");
+    // Always open in a new tab — avoid same-tab redirect which breaks
+    // preview iframes and loses app state. Use noopener,noreferrer to
+    // avoid Safari's Cross-Origin-Opener-Policy block.
+    const popup = window.open(installUrl, "_blank", "noopener,noreferrer");
 
     if (!popup) {
-      toast.info("Popup blocked. Opening Shopify in this tab instead...");
-      window.location.assign(installUrl);
+      // As last resort, provide a copyable link
+      toast.error(
+        "Could not open Shopify authorization. Please copy and open this URL in a new tab: " +
+        installUrl,
+        { duration: 15000 }
+      );
       return;
     }
 
-    toast.info("Waiting for Shopify authorization...");
+    toast.info("Waiting for Shopify authorization — complete the process in the new tab...");
     startPolling();
   };
 
