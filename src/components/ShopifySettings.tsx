@@ -27,7 +27,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const [showCredentials, setShowCredentials] = useState(false);
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const oauthWindowRef = useRef<Window | null>(null);
   const waitingToastRef = useRef<string | number | null>(null);
 
   const SHOPIFY_REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-callback`;
@@ -46,7 +45,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         toast.dismiss(waitingToastRef.current);
         waitingToastRef.current = null;
       }
-      oauthWindowRef.current = null;
     };
   }, []);
 
@@ -62,7 +60,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           toast.dismiss(waitingToastRef.current);
           waitingToastRef.current = null;
         }
-        oauthWindowRef.current = null;
         toast.success("Shopify connected successfully!");
         loadConnection();
       } else if (event.data?.type === "shopify-oauth-error") {
@@ -74,7 +71,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           toast.dismiss(waitingToastRef.current);
           waitingToastRef.current = null;
         }
-        oauthWindowRef.current = null;
         toast.error(event.data.error || "OAuth failed");
       }
     };
@@ -186,7 +182,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       toast.dismiss(waitingToastRef.current);
       waitingToastRef.current = null;
     }
-    oauthWindowRef.current = null;
   };
 
   // Poll for connection status after opening OAuth popup
@@ -237,27 +232,17 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }, 2000);
   };
 
-  const openShopifyAuthTab = (url: string) => {
-    // Top-level tab avoids Safari/COOP popup failures inside preview iframe.
-    const tab = window.open(url, "_blank");
-    if (!tab) return false;
-    oauthWindowRef.current = tab;
-    return true;
-  };
-
   const launchShopifyOauth = (installUrl: string) => {
     setPendingAuthUrl(installUrl);
-    const opened = openShopifyAuthTab(installUrl);
-    if (!opened) {
-      toast.error("Could not open Shopify authorization tab. Please allow popups and try again.");
-      return;
-    }
+    toast.info("Credentials ready. Click 'Open Shopify Authorization' to continue.");
+  };
 
+  const handleAuthorizationLinkClick = () => {
     if (waitingToastRef.current !== null) {
       toast.dismiss(waitingToastRef.current);
     }
     waitingToastRef.current = toast.info(
-      "Waiting for Shopify authorization — complete the process in the new window...",
+      "Waiting for Shopify authorization — complete the process in the new tab...",
       { duration: 120000 }
     );
     startPolling();
@@ -282,22 +267,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
       setStoreDomain(domain);
       setPendingAuthUrl(installUrl);
-
-      const opened = openShopifyAuthTab(installUrl);
-      if (!opened) {
-        toast.error("Credentials saved. Click 'Open Shopify Authorization' to continue.");
-        return;
-      }
-
-      if (waitingToastRef.current !== null) {
-        toast.dismiss(waitingToastRef.current);
-      }
-      waitingToastRef.current = toast.info(
-        "Waiting for Shopify authorization — complete the process in the new tab...",
-        { duration: 120000 }
-      );
       await loadConnection();
-      startPolling();
+      toast.success("Credentials saved. Click 'Open Shopify Authorization' to continue.");
     } catch (err: any) {
       clearOauthUiState();
       toast.error(err.message || "Failed to save");
@@ -427,14 +398,16 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           </Button>
 
           {pendingAuthUrl && (
-            <Button
-              type="button"
-              variant="outline"
-              className="gap-2"
-              onClick={() => launchShopifyOauth(pendingAuthUrl)}
-            >
-              <RefreshCw className="h-4 w-4" />
-              Open Shopify Authorization
+            <Button type="button" variant="outline" className="gap-2" asChild>
+              <a
+                href={pendingAuthUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleAuthorizationLinkClick}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Open Shopify Authorization
+              </a>
             </Button>
           )}
         </form>
