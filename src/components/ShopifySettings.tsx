@@ -19,8 +19,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     id: string;
     store_domain: string;
     has_token: boolean;
+    has_credentials: boolean;
     client_id: string | null;
-    client_secret: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,9 +85,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const loadConnection = async () => {
     setLoading(true);
+    // Only select non-sensitive fields — client_secret is never read client-side
     const { data } = await supabase
       .from("shopify_connections")
-      .select("*")
+      .select("id, store_domain, access_token, client_id")
       .eq("user_id", userId)
       .match(organizationId ? { organization_id: organizationId } : {})
       .maybeSingle();
@@ -96,12 +97,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         id: data.id,
         store_domain: data.store_domain,
         has_token: !!data.access_token && data.access_token.length > 0,
+        has_credentials: !!data.client_id,
         client_id: data.client_id,
-        client_secret: data.client_secret,
       });
       setStoreDomain(data.store_domain);
       setClientId(data.client_id || "");
-      setClientSecret(data.client_secret || "");
+      // Never populate clientSecret from DB — user must re-enter to change
+      setClientSecret("");
     }
     setLoading(false);
   };
@@ -112,6 +114,19 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const statePayload = JSON.stringify({ origin: window.location.origin, organizationId: organizationId || null });
     const state = encodeURIComponent(statePayload);
     return `https://${domain}/admin/oauth/authorize?client_id=${appClientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+  };
+
+  const saveCredentialsViaEdgeFunction = async (domain: string, appClientId: string, appClientSecret: string) => {
+    const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
+      body: {
+        storeDomain: domain,
+        clientId: appClientId,
+        clientSecret: appClientSecret,
+        organizationId: organizationId || null,
+      },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
   };
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -128,26 +143,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     try {
       const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-      if (existing) {
-        const { error } = await supabase
-          .from("shopify_connections")
-          .update({
-            store_domain: domain,
-            client_id: clientId.trim(),
-            client_secret: clientSecret.trim(),
-          })
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("shopify_connections").insert({
-          user_id: userId,
-          store_domain: domain,
-          organization_id: organizationId || null,
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
-        });
-        if (error) throw error;
-      }
+      // Save credentials securely via edge function (never writes secret from frontend)
+      await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
 
       setStoreDomain(domain);
       await loadConnection();
@@ -189,16 +186,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("shopify_connections")
-        .update({
-          client_id: clientId.trim(),
-          client_secret: clientSecret.trim(),
-        })
-        .eq("id", existing.id);
-      if (error) throw error;
+      await saveCredentialsViaEdgeFunction(existing.store_domain, clientId.trim(), clientSecret.trim());
       toast.success("App credentials updated");
       setShowCredentials(false);
+      setClientSecret("");
       await loadConnection();
     } catch (err: any) {
       toast.error(err.message || "Failed to update credentials");
@@ -287,7 +278,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setShowCredentials(!showCredentials)}
+              onClick={() => { setShowCredentials(!showCredentials); setClientSecret(""); }}
               className="gap-2"
             >
               <KeyRound className="h-4 w-4" />
@@ -320,7 +311,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                   type="password"
                   value={clientSecret}
                   onChange={(e) => setClientSecret(e.target.value)}
-                  placeholder="Your Shopify app Client Secret"
+                  placeholder={existing.has_credentials ? "••••••••  (enter new value to change)" : "Your Shopify app Client Secret"}
                   className="text-sm"
                 />
               </div>
