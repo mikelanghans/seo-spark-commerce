@@ -357,7 +357,7 @@ const Dashboard = () => {
     setOrgLogoPreview(org.logo_url || null);
     setOrgLogoFile(null);
     setView("org-form");
-    loadPrintifyShops();
+    loadPrintifyShops(org.id);
   };
 
   const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1320,7 +1320,7 @@ const Dashboard = () => {
                     setLoadingPrintifyShops(true);
                     try {
                       const { data } = await supabase.functions.invoke("printify-get-shops", {
-                        body: { organizationId: selectedOrg?.id },
+                        body: { organizationId: editingOrg?.id || selectedOrg?.id },
                       });
                       setPrintifyShops(data?.shops || []);
                     } catch { /* silent */ }
