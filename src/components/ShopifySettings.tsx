@@ -253,6 +253,12 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       {!existing?.has_token && (
         <form onSubmit={handleConnect} className="space-y-4">
+          {existing && existing.has_credentials && (
+            <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
+              <RefreshCw className="h-4 w-4" />
+              Credentials saved for <span className="font-medium">{existing.store_domain}</span> but authorization is incomplete. Re-enter your Client Secret and click Install &amp; Connect to finish.
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Store Domain</Label>
             <Input
