@@ -57,6 +57,7 @@ export function SocialPostGenerator({
   aiUsage?: AiUsage;
 }) {
   const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["instagram", "tiktok", "x", "facebook"]);
   const [posts, setPosts] = useState<Record<string, SocialPost>>({});
   const [postImages, setPostImages] = useState<Record<string, string>>({});
