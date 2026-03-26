@@ -1653,6 +1653,7 @@ const Dashboard = () => {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <SocialPlatformSettings organizationId={selectedOrg!.id} />
+                </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <ProductTypeSettings organizationId={selectedOrg!.id} />
                 </div>
