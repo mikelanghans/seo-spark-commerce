@@ -309,20 +309,26 @@ export function SocialPostGenerator({
       {/* Platform selector */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Platforms</label>
-        <div className="flex flex-wrap gap-3">
-          {enabledPlatforms.map((p) => (
-            <label
-              key={p.id}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                selectedPlatforms.includes(p.id) ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground"
-              }`}
-            >
-              <Checkbox checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => togglePlatform(p.id)} className="h-4 w-4" />
-              <span>{p.icon}</span>
-              <span>{p.label}</span>
-            </label>
-          ))}
-        </div>
+        {enabledPlatforms.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4">
+            No social platforms enabled. Go to <strong>Settings → Social Platforms</strong> to enable platforms for this brand.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {enabledPlatforms.map((p) => (
+              <label
+                key={p.id}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  selectedPlatforms.includes(p.id) ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                <Checkbox checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => togglePlatform(p.id)} className="h-4 w-4" />
+                <span>{p.icon}</span>
+                <span>{p.label}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       <Button onClick={generate} disabled={loading || selectedProducts.length === 0 || selectedPlatforms.length === 0} className="gap-2">
