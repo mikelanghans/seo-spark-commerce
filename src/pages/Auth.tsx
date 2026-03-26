@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,7 +57,10 @@ const Auth = () => {
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-2">
           <img src={brandAuraIcon} alt="Brand Aura" className="h-24 w-24 object-contain" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Brand Aura</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Brand Aura</h1>
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary uppercase tracking-wider mt-1">Beta</span>
+          </div>
           <p className="text-xs text-muted-foreground tracking-widest uppercase">AI-Powered Brand Studio</p>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your account" : "Create your account"}
@@ -118,6 +121,11 @@ const Auth = () => {
           >
             {isLogin ? "Sign up" : "Sign in"}
           </button>
+        </p>
+
+        <p className="text-center text-xs text-muted-foreground">
+          By signing up you agree to our{" "}
+          <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
         </p>
       </div>
     </div>
