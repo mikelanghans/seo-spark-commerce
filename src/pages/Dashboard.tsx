@@ -20,6 +20,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
+import { PrintifySettings } from "@/components/PrintifySettings";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
