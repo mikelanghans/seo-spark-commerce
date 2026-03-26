@@ -5,7 +5,7 @@ import { Store, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopifyPushPreview } from "./ShopifyPushPreview";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
-import { CC1717_SIZE_CHART_URL } from "@/lib/sizeChart";
+import { getProductType } from "@/lib/productTypes";
 
 interface Product {
   id: string;
@@ -60,10 +60,10 @@ export const PushToShopify = ({ product, listings, userId, organizationId }: Pro
 
       const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
 
-      // Append size chart as the last image for tee products
-      const isTee = (product.category || "").toLowerCase().includes("t-shirt") || (product.category || "").toLowerCase().includes("tee");
-      if (isTee) {
-        optimizedVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
+      // Append size chart as the last image if the product type has one
+      const typeConfig = getProductType(product.category || "");
+      if (typeConfig.sizeChartUrl) {
+        optimizedVariants.push({ colorName: "Size Chart", imageUrl: typeConfig.sizeChartUrl });
       }
 
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
