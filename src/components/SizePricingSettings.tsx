@@ -1,62 +1,58 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { SizePricingEditor } from "./SizePricingEditor";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
-import { DollarSign, Loader2 } from "lucide-react";
+import { DollarSign, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface Props {
   organizationId: string;
 }
 
+const ACTIVE_TYPE: ProductTypeKey = "t-shirt";
+
 export const SizePricingSettings = ({ organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [enabledTypes, setEnabledTypes] = useState<ProductTypeKey[]>([]);
-  const [pricing, setPricing] = useState<Record<string, Record<string, string>>>({});
+  const [pricing, setPricing] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
+
+  const pt = PRODUCT_TYPES[ACTIVE_TYPE];
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from("organizations")
-        .select("enabled_product_types, default_size_pricing")
+        .select("default_size_pricing")
         .eq("id", organizationId)
         .single();
 
-      if (data) {
-        setEnabledTypes((data.enabled_product_types || []) as ProductTypeKey[]);
-        const saved = (data as any).default_size_pricing as Record<string, Record<string, string>> | null;
-        // Merge saved pricing with defaults so all sizes have values
-        const merged: Record<string, Record<string, string>> = {};
-        for (const key of (data.enabled_product_types || []) as ProductTypeKey[]) {
-          const pt = PRODUCT_TYPES[key];
-          if (pt?.sizes?.length) {
-            merged[key] = {};
-            for (const size of pt.sizes) {
-              merged[key][size] = saved?.[key]?.[size] || pt.defaultSizePricing[size] || "";
-            }
-          }
-        }
-        setPricing(merged);
+      const saved = (data as any)?.default_size_pricing as Record<string, Record<string, string>> | null;
+      const merged: Record<string, string> = {};
+      for (const size of pt.sizes) {
+        merged[size] = saved?.[ACTIVE_TYPE]?.[size] || pt.defaultSizePricing[size] || "";
       }
+      setPricing(merged);
       setLoading(false);
     };
     load();
   }, [organizationId]);
 
-  const handleChange = useCallback((updated: Record<string, Record<string, string>>) => {
-    setPricing(updated);
+  const handlePriceChange = (size: string, price: string) => {
+    const sanitized = price.replace(/[^0-9.]/g, "");
+    setPricing((prev) => ({ ...prev, [size]: sanitized }));
     setHasChanges(true);
-  }, []);
+  };
 
   const save = async () => {
     setSaving(true);
     try {
       const { error } = await supabase
         .from("organizations")
-        .update({ default_size_pricing: pricing as any })
+        .update({ default_size_pricing: { [ACTIVE_TYPE]: pricing } as any })
         .eq("id", organizationId);
       if (error) throw error;
       setHasChanges(false);
@@ -76,6 +72,8 @@ export const SizePricingSettings = ({ organizationId }: Props) => {
     );
   }
 
+  const typesWithSizes = Object.values(PRODUCT_TYPES).filter((t) => t.sizes.length > 0);
+
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
@@ -83,13 +81,43 @@ export const SizePricingSettings = ({ organizationId }: Props) => {
         <h3 className="text-lg font-semibold">Size Pricing</h3>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Set default prices per size for each product type. These apply to all new products unless overridden.
+        Set default prices per size. These apply to all new products unless overridden.
       </p>
-      <SizePricingEditor
-        enabledTypes={enabledTypes}
-        value={pricing}
-        onChange={handleChange}
-      />
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {typesWithSizes.map((t) => (
+          <Badge
+            key={t.key}
+            variant={t.key === ACTIVE_TYPE ? "default" : "outline"}
+            className={`px-3 py-1.5 text-sm cursor-default select-none ${
+              t.key !== ACTIVE_TYPE ? "opacity-50 border-dashed" : ""
+            }`}
+          >
+            {t.label}
+            {t.key !== ACTIVE_TYPE && <Lock className="h-3 w-3 ml-1.5 inline-block" />}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {pt.sizes.map((size) => (
+          <div key={size}>
+            <Label className="text-xs text-muted-foreground">{size}</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+              <Input
+                type="text"
+                inputMode="decimal"
+                className="pl-7"
+                value={pricing[size] || ""}
+                placeholder={pt.defaultSizePricing[size] || ""}
+                onChange={(e) => handlePriceChange(size, e.target.value)}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
       {hasChanges && (
         <div className="mt-4">
           <Button onClick={save} disabled={saving} className="gap-2">
