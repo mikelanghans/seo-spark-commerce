@@ -485,10 +485,19 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
             <Package className="h-5 w-5 text-blue-500" />
             <span className="font-semibold">eBay</span>
           </div>
-          {ebayConn ? (
+          {ebayConn?.has_token ? (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
                 <Check className="h-3 w-3 mr-1" /> Connected
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={() => deleteConnection("ebay")}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : ebayConn ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                Credentials saved
               </Badge>
               <Button variant="ghost" size="icon" onClick={() => deleteConnection("ebay")}>
                 <Trash2 className="h-4 w-4 text-destructive" />
