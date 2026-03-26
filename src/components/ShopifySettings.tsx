@@ -204,7 +204,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   const launchShopifyOauth = (installUrl: string) => {
     // Open synchronously from user interaction; then drop opener to reduce
     // cross-origin opener issues before navigating to Shopify.
-    const popup = window.open("about:blank", "_blank");
+    const w = 600, h = 700;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const popup = window.open("about:blank", "shopify_oauth", `width=${w},height=${h},left=${left},top=${top},popup=yes`);
 
     if (!popup) {
       toast.error(
@@ -240,7 +243,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     const installUrl = buildInstallUrl(domain, clientId.trim());
 
     // Open window synchronously in click handler to preserve user gesture.
-    const oauthWindow = window.open("about:blank", "_blank");
+    const w = 600, h = 700;
+    const left = window.screenX + (window.outerWidth - w) / 2;
+    const top = window.screenY + (window.outerHeight - h) / 2;
+    const oauthWindow = window.open("about:blank", "shopify_oauth", `width=${w},height=${h},left=${left},top=${top},popup=yes`);
 
     setSaving(true);
     try {
