@@ -156,14 +156,9 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     }
   };
 
-  const LIGHT_COLORS = new Set([
-    "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
-    "island reef", "chambray", "white", "flo blue", "watermelon",
-    "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-    "light green", "bay", "sage",
-  ]);
+  const LIGHT_COLORS = typeConfig.lightColors;
 
-  const CONCURRENCY = 2;
+  const CONCURRENCY = typeConfig.concurrency;
 
   const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
     const resp = await fetch(dataUrl);
