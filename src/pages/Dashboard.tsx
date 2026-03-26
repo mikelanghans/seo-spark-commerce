@@ -337,12 +337,14 @@ const Dashboard = () => {
     loadOrgs();
   };
 
-  const loadPrintifyShops = async () => {
+  const loadPrintifyShops = async (orgId?: string) => {
+    setPrintifyShops([]);
     setLoadingPrintifyShops(true);
     try {
       const { data } = await supabase.functions.invoke("printify-get-shops", {
-        body: { organizationId: selectedOrg?.id },
+        body: { organizationId: orgId || editingOrg?.id || selectedOrg?.id },
       });
+      setPrintifyShops(data?.shops || []);
     } catch { /* silent */ }
     setLoadingPrintifyShops(false);
   };
