@@ -231,28 +231,38 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label>Client ID</Label>
-            <Input
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              placeholder="Your Shopify app Client ID"
-              required
-            />
+
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <KeyRound className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">App Credentials</span>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Client ID</Label>
+              <Input
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                placeholder="e.g. 1a2b3c4d5e6f..."
+                className="font-mono text-sm"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Client Secret</Label>
+              <Input
+                type="password"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder="e.g. shpss_abc123..."
+                className="font-mono text-sm"
+                required
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Find these in your <span className="text-foreground font-medium">Shopify Partners</span> dashboard → Apps → your app → Client credentials.
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label>Client Secret</Label>
-            <Input
-              type="password"
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder="Your Shopify app Client Secret"
-              required
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Enter your Shopify app credentials from your Shopify Partners dashboard. Each brand uses its own Shopify app.
-          </p>
+
           <Button type="submit" disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
             Install & Connect
