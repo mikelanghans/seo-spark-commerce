@@ -34,12 +34,12 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
-      const { data: org } = await adminClient
-        .from("organizations")
+      const { data: secrets } = await adminClient
+        .from("organization_secrets")
         .select("printify_api_token")
-        .eq("id", organizationId)
+        .eq("organization_id", organizationId)
         .single();
-      if (org?.printify_api_token) printifyToken = org.printify_api_token;
+      if (secrets?.printify_api_token) printifyToken = secrets.printify_api_token;
     }
 
     if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");

@@ -818,6 +818,30 @@ export type Database = {
           },
         ]
       }
+      organization_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          printify_api_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          printify_api_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          printify_api_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           audience: string
@@ -833,7 +857,6 @@ export type Database = {
           logo_url: string | null
           name: string
           niche: string
-          printify_api_token: string | null
           printify_shop_id: number | null
           template_image_url: string | null
           tone: string
@@ -854,7 +877,6 @@ export type Database = {
           logo_url?: string | null
           name: string
           niche?: string
-          printify_api_token?: string | null
           printify_shop_id?: number | null
           template_image_url?: string | null
           tone?: string
@@ -875,7 +897,6 @@ export type Database = {
           logo_url?: string | null
           name?: string
           niche?: string
-          printify_api_token?: string | null
           printify_shop_id?: number | null
           template_image_url?: string | null
           tone?: string
