@@ -1711,25 +1711,19 @@ const Dashboard = () => {
                       )}
                     </div>
 
-                    {/* Category Filters */}
+                    {/* Filters */}
                     <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { key: "__not_on_shopify", label: "Not on Shopify", icon: "🔴" },
-                        { key: "__on_shopify", label: "On Shopify", icon: "🟢" },
-                      ].map(({ key, label, icon }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                            activeFilter === key
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                          }`}
-                        >
-                          {icon} {label}
-                        </button>
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setActiveFilter(activeFilter === "__not_on_shopify" ? null : "__not_on_shopify")}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          activeFilter === "__not_on_shopify"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                        }`}
+                      >
+                        🔴 Not on Shopify
+                      </button>
                       {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
                         <button
                           key={cat}
@@ -1742,6 +1736,20 @@ const Dashboard = () => {
                           }`}
                         >
                           {cat}
+                        </button>
+                      ))}
+                      {allTags.map((tag) => (
+                        <button
+                          key={`tag:${tag}`}
+                          type="button"
+                          onClick={() => setActiveFilter(activeFilter === `tag:${tag}` ? null : `tag:${tag}`)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            activeFilter === `tag:${tag}`
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          🏷️ {tag}
                         </button>
                       ))}
                     </div>
