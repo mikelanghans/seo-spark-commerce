@@ -263,7 +263,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             if (productError) throw productError;
             productId = productData.id;
           }
-          const productId = productData.id;
+          
 
           // Link message to product so it's filtered from Message Ideas
           if (savedMsg?.id) {
