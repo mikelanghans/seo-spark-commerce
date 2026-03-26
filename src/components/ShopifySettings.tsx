@@ -129,6 +129,31 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     if (data?.error) throw new Error(data.error);
   };
 
+  // Poll for connection status after opening OAuth popup
+  const startPolling = (domain: string) => {
+    let attempts = 0;
+    const maxAttempts = 60; // poll for up to 2 minutes
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(interval);
+        return;
+      }
+      const { data } = await supabase
+        .from("shopify_connections")
+        .select("id, access_token")
+        .eq("user_id", userId)
+        .eq("store_domain", domain)
+        .maybeSingle();
+      if (data?.access_token) {
+        clearInterval(interval);
+        toast.success("Shopify connected successfully!");
+        loadConnection();
+      }
+    }, 2000);
+    return interval;
+  };
+
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeDomain.trim()) {
@@ -152,6 +177,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       // Redirect to Shopify OAuth
       const installUrl = buildInstallUrl(domain, clientId.trim());
       window.open(installUrl, "shopify-oauth", "width=600,height=700");
+
+      // Start polling as fallback in case postMessage doesn't work
+      toast.info("Waiting for Shopify authorization...");
+      startPolling(domain);
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -163,6 +192,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     if (!existing || !existing.client_id) return;
     const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
     window.open(installUrl, "shopify-oauth", "width=600,height=700");
+    toast.info("Waiting for Shopify authorization...");
+    startPolling(existing.store_domain);
   };
 
   const handleDisconnect = async () => {
