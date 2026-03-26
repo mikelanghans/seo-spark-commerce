@@ -57,6 +57,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
+        if (waitingToastRef.current !== null) {
+          toast.dismiss(waitingToastRef.current);
+          waitingToastRef.current = null;
+        }
+        oauthWindowRef.current = null;
         toast.success("Shopify connected successfully!");
         loadConnection();
       } else if (event.data?.type === "shopify-oauth-error") {
@@ -64,6 +69,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
+        if (waitingToastRef.current !== null) {
+          toast.dismiss(waitingToastRef.current);
+          waitingToastRef.current = null;
+        }
+        oauthWindowRef.current = null;
         toast.error(event.data.error || "OAuth failed");
       }
     };
