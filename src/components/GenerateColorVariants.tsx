@@ -43,6 +43,9 @@ interface ColorRecommendation {
 }
 
 export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+  const typeConfig = getProductType(productCategory || "");
+  const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
+  const COLOR_HEX = getColorHexMap(typeConfig);
   const [open, setOpen] = useState(false);
   const [colors, setColors] = useState<string[]>([]);
   const [existingColorSet, setExistingColorSet] = useState<Set<string>>(new Set());
