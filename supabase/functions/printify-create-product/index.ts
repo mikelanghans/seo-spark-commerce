@@ -28,7 +28,7 @@ serve(async (req) => {
     const {
       shopId, title, description, tags, printifyImageId,
       darkPrintifyImageId, lightColors,
-      selectedColors, selectedSizes, price,
+      selectedColors, selectedSizes, price, sizePricing,
       blueprintId, printProviderId, productId, printifyProductId,
       organizationId,
     } = await req.json();
@@ -252,8 +252,23 @@ serve(async (req) => {
     // For CREATE: include ALL blueprint variants (enabled + disabled)
     const printAreas = buildPrintAreas(allVariantIds);
 
-    const priceInCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
+    const fallbackPriceCents = Math.round(parseFloat(price?.replace(/[^0-9.]/g, "") || "29.99") * 100);
     const enabledVariantIds = new Set(enabledVariants.map((v: any) => v.id));
+
+    // Build per-size price map in cents
+    const sizePriceCents: Record<string, number> = {};
+    if (sizePricing && typeof sizePricing === "object") {
+      for (const [size, p] of Object.entries(sizePricing)) {
+        const parsed = parseFloat((p as string)?.replace(/[^0-9.]/g, "") || "0");
+        if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
+      }
+    }
+    console.log(`Size pricing (cents): ${JSON.stringify(sizePriceCents)}, fallback: ${fallbackPriceCents}`);
+
+    const getVariantPrice = (variant: any): number => {
+      const vSize = (variant.options?.size || "").trim();
+      return sizePriceCents[vSize] || fallbackPriceCents;
+    };
 
     const productPayload: any = {
       title,
@@ -263,7 +278,7 @@ serve(async (req) => {
       print_provider_id: ppId,
       variants: allVariants.map((v: any) => ({
         id: v.id,
-        price: priceInCents,
+        price: getVariantPrice(v),
         is_enabled: enabledVariantIds.has(v.id),
       })),
       print_areas: printAreas,
