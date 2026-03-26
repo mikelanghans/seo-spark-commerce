@@ -690,6 +690,8 @@ const Dashboard = () => {
   const getFilteredProducts = () =>
     products.filter((p) => {
       const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+      if (activeFilter === "__not_on_shopify") return matchesSearch && !p.shopify_product_id;
+      if (activeFilter === "__on_shopify") return matchesSearch && !!p.shopify_product_id;
       const matchesFilter = !activeFilter ||
         p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
         p.category.toLowerCase().includes(activeFilter.toLowerCase());
@@ -1699,6 +1701,23 @@ const Dashboard = () => {
 
                     {/* Category Filters */}
                     <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: "__not_on_shopify", label: "Not on Shopify", icon: "🔴" },
+                        { key: "__on_shopify", label: "On Shopify", icon: "🟢" },
+                      ].map(({ key, label, icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                            activeFilter === key
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          {icon} {label}
+                        </button>
+                      ))}
                       {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
                         <button
                           key={cat}
