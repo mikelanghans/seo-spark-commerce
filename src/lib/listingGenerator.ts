@@ -18,16 +18,6 @@ export function generateListings(
     .filter(Boolean);
 
   return {
-    amazon: {
-      title: `${product.title} — Premium ${biz.niche} | ${features[0] || "Top Quality"} | Perfect for ${biz.audience}`,
-      description: `Discover the ${product.title} by ${biz.name}. ${product.description}\n\nDesigned with ${biz.audience} in mind, this ${product.category.split(">").pop()?.trim() || "product"} delivers exceptional quality and value. ${biz.tone} craftsmanship meets modern design.\n\nWhether you're shopping for yourself or looking for the perfect gift, the ${product.title} is the ideal choice. Order today and experience the ${biz.name} difference.`,
-      bulletPoints: [
-        ...features.slice(0, 5),
-        `Perfect gift for ${biz.audience}`,
-        `Proudly made by ${biz.name}`,
-      ],
-      tags: [...keywords, biz.niche, "premium", "best seller", "top rated"].slice(0, 10),
-    },
     etsy: {
       title: `${product.title} | ${biz.niche} | Handcrafted by ${biz.name} | Gift for ${biz.audience}`,
       description: `✨ ${product.title} ✨\n\n${product.description}\n\n🎁 Perfect for ${biz.audience}\n\nEach piece is crafted with care by ${biz.name}. Our ${biz.tone.toLowerCase()} approach ensures every item meets the highest standards.\n\n📦 What you'll receive:\n${features.map((f) => `• ${f}`).join("\n")}\n\n${product.price ? `💰 ${product.price}` : ""}\n\nThank you for supporting small business! 🧡`,

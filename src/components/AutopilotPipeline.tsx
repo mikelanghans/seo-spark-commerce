@@ -340,7 +340,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
         if (listError) throw new Error(`Listing generation failed: ${listError.message}`);
         if (listings.error) throw new Error(`Listing generation failed: ${listings.error}`);
 
-        const marketplaces = ["amazon", "etsy", "ebay", "shopify"];
+        const marketplaces = ["etsy", "ebay", "shopify"];
         await supabase.from("listings").delete().eq("product_id", productId);
         const listingRows = marketplaces.map((m) => ({
           product_id: productId,

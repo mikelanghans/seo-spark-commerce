@@ -127,7 +127,7 @@ const Index = () => {
               </div>
             ) : (
               listings && (
-                <Tabs defaultValue="amazon">
+                <Tabs defaultValue="etsy">
                   <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
                     {MARKETPLACES.map((m) => (
                       <TabsTrigger
