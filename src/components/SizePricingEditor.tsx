@@ -20,6 +20,8 @@ export const SizePricingEditor = ({ enabledTypes, value, onChange, isProductLeve
     .filter((key) => PRODUCT_TYPES[key]?.sizes?.length > 0)
     .map((key) => PRODUCT_TYPES[key]);
 
+  const [activeTab, setActiveTab] = useState(typesWithSizes[0]?.key || "");
+
   if (typesWithSizes.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
