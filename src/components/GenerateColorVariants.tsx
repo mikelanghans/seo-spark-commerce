@@ -109,13 +109,15 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
       const { data, error } = await supabase.functions.invoke("recommend-colors", {
         body: {
           productTitle,
-          productCategory: productCategory || "T-Shirt",
+          productCategory: productCategory || typeConfig.category,
           brandName,
           brandNiche,
           brandAudience,
           brandTone,
           existingColors: existingList,
           designImageBase64,
+          availablePalette: SUGGESTED_COLORS.join(", "),
+          productTypeLabel: typeConfig.label,
         },
       });
       if (error || data?.error) {
