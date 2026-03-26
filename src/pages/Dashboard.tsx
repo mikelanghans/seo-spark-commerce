@@ -692,12 +692,35 @@ const Dashboard = () => {
     products.filter((p) => {
       const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (activeFilter === "__not_on_shopify") return matchesSearch && !p.shopify_product_id;
-      if (activeFilter === "__on_shopify") return matchesSearch && !!p.shopify_product_id;
+      if (activeFilter?.startsWith("tag:")) {
+        const tag = activeFilter.slice(4);
+        return matchesSearch && (p.tags || []).includes(tag);
+      }
       const matchesFilter = !activeFilter ||
         p.title.toLowerCase().includes(activeFilter.toLowerCase()) ||
         p.category.toLowerCase().includes(activeFilter.toLowerCase());
       return matchesSearch && matchesFilter;
     });
+
+  const allTags = [...new Set(products.flatMap((p) => p.tags || []))].sort();
+
+  const handleAddTag = async (productId: string, tag: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const current = product.tags || [];
+    if (current.includes(tag)) return;
+    const updated = [...current, tag];
+    await supabase.from("products").update({ tags: updated }).eq("id", productId);
+    setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, tags: updated } : p));
+  };
+
+  const handleRemoveTag = async (productId: string, tag: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const updated = (product.tags || []).filter((t) => t !== tag);
+    await supabase.from("products").update({ tags: updated }).eq("id", productId);
+    setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, tags: updated } : p));
+  };
 
   const handleBulkDelete = async () => {
     if (selectedProductIds.size === 0) return;
