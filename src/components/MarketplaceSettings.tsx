@@ -470,7 +470,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         )}
       </div>
 
-      {/* Meta */}
+      {/* Meta - commented out for now
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -525,6 +525,4 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           </div>
         )}
       </div>
-    </div>
-  );
-};
+      */}
