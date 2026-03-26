@@ -2076,30 +2076,98 @@ const Dashboard = () => {
                     <Upload className="h-4 w-4" />
                     Replace
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(selectedProduct.image_url!);
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_design.png`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      } catch {
-                        toast.error("Failed to download design");
-                      }
-                    }}
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Download
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={async () => {
+                        try {
+                          const res = await fetch(selectedProduct.image_url!);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        } catch { toast.error("Failed to download"); }
+                      }}>
+                        Light variant
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        try {
+                          const { data: imgs } = await supabase
+                            .from("product_images")
+                            .select("image_url")
+                            .eq("product_id", selectedProduct.id)
+                            .eq("image_type", "design")
+                            .eq("color_name", "dark-on-light")
+                            .limit(1);
+                          const darkUrl = imgs?.[0]?.image_url;
+                          if (!darkUrl) { toast.error("No dark variant found"); return; }
+                          const res = await fetch(darkUrl);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        } catch { toast.error("Failed to download dark variant"); }
+                      }}>
+                        Dark variant
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={async () => {
+                        const slug = selectedProduct.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+                        try {
+                          // Download light
+                          const lightRes = await fetch(selectedProduct.image_url!);
+                          const lightBlob = await lightRes.blob();
+                          const lightUrl = URL.createObjectURL(lightBlob);
+                          const a1 = document.createElement("a");
+                          a1.href = lightUrl;
+                          a1.download = `${slug}_light.png`;
+                          document.body.appendChild(a1);
+                          a1.click();
+                          document.body.removeChild(a1);
+                          URL.revokeObjectURL(lightUrl);
+
+                          // Download dark
+                          const { data: imgs } = await supabase
+                            .from("product_images")
+                            .select("image_url")
+                            .eq("product_id", selectedProduct.id)
+                            .eq("image_type", "design")
+                            .eq("color_name", "dark-on-light")
+                            .limit(1);
+                          const darkUrl = imgs?.[0]?.image_url;
+                          if (darkUrl) {
+                            const darkRes = await fetch(darkUrl);
+                            const darkBlob = await darkRes.blob();
+                            const dUrl = URL.createObjectURL(darkBlob);
+                            const a2 = document.createElement("a");
+                            a2.href = dUrl;
+                            a2.download = `${slug}_dark.png`;
+                            document.body.appendChild(a2);
+                            setTimeout(() => { a2.click(); document.body.removeChild(a2); URL.revokeObjectURL(dUrl); }, 300);
+                          } else {
+                            toast("Only light variant available — dark not found");
+                          }
+                          toast.success("Downloads started!");
+                        } catch { toast.error("Failed to download"); }
+                      }}>
+                        Both variants
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             )}
