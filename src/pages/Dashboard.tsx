@@ -1622,18 +1622,6 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
-                <DesignTriage
-                  organization={selectedOrg}
-                  userId={user!.id}
-                  products={products as any}
-                  onViewProduct={(p) => {
-                    const prod = products.find((pr) => pr.id === p.id);
-                    if (prod) { setSelectedProduct(prod); setView("product-detail"); loadListings(prod.id); }
-                  }}
-                  onProductsPushed={() => {
-                    if (selectedOrg) loadProducts(selectedOrg.id);
-                  }}
-                />
                 {products.length > 0 && (
                   <>
                     {/* Bulk Action Bar */}
