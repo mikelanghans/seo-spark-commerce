@@ -172,6 +172,33 @@ export type Database = {
           },
         ]
       }
+      app_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          page_url: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string
+          page_url?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          page_url?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       beta_access_codes: {
         Row: {
           code: string
