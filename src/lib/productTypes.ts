@@ -3,7 +3,7 @@
  * Defines color palettes, size charts, mockup config, and design placement per product type.
  */
 
-export type ProductTypeKey = "t-shirt" | "hoodie" | "mug";
+export type ProductTypeKey = "t-shirt" | "long-sleeve" | "sweatshirt" | "hoodie" | "mug" | "tote" | "canvas" | "journal" | "notebook";
 
 export interface ProductTypeColor {
   name: string;
@@ -156,16 +156,42 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     defaultPrice: "$29.99",
     concurrency: 2,
   },
+  "long-sleeve": {
+    key: "long-sleeve",
+    label: "Long Sleeve",
+    category: "Long Sleeve",
+    colors: CC1717_COLORS,
+    lightColors: CC1717_LIGHT,
+    swatchHints: CC1717_SWATCH_HINTS,
+    designPlacement: "center-chest print area on long sleeve tee, 55% width, positioned at 25% from top",
+    sizeChartUrl: null,
+    shopifyTags: ["Long Sleeve"],
+    defaultPrice: "$34.99",
+    concurrency: 2,
+  },
+  sweatshirt: {
+    key: "sweatshirt",
+    label: "Sweatshirt",
+    category: "Sweatshirt",
+    colors: CC1566_COLORS,
+    lightColors: CC1717_LIGHT,
+    swatchHints: CC1566_SWATCH_HINTS,
+    designPlacement: "center-chest print area on crewneck sweatshirt, 55% width, positioned at 28% from top",
+    sizeChartUrl: null,
+    shopifyTags: ["Sweatshirts"],
+    defaultPrice: "$39.99",
+    concurrency: 2,
+  },
   hoodie: {
     key: "hoodie",
-    label: "Hoodie / Sweatshirt",
+    label: "Hoodie",
     category: "Hoodie",
     colors: CC1566_COLORS,
-    lightColors: CC1717_LIGHT, // reuse same light classification
+    lightColors: CC1717_LIGHT,
     swatchHints: CC1566_SWATCH_HINTS,
     designPlacement: "center-chest print area on hoodie, 55% width, positioned at 28% from top",
-    sizeChartUrl: null, // TODO: upload hoodie size chart
-    shopifyTags: ["Hoodies", "Sweatshirts"],
+    sizeChartUrl: null,
+    shopifyTags: ["Hoodies"],
     defaultPrice: "$44.99",
     concurrency: 2,
   },
@@ -182,14 +208,81 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     defaultPrice: "$16.99",
     concurrency: 2,
   },
+  tote: {
+    key: "tote",
+    label: "Tote Bag",
+    category: "Tote",
+    colors: [
+      { name: "Natural", hex: "#f5f0e1" },
+      { name: "Black", hex: "#1a1a1a" },
+      { name: "Navy", hex: "#1e2d4a" },
+    ],
+    lightColors: new Set(["natural"]),
+    swatchHints: { natural: "natural canvas tote (#F5F0E1)", black: "black canvas (#1A1A1A)", navy: "navy canvas (#1E2D4A)" },
+    designPlacement: "center print area on tote bag, 70% width",
+    sizeChartUrl: null,
+    shopifyTags: ["Tote Bags", "Accessories"],
+    defaultPrice: "$19.99",
+    concurrency: 2,
+  },
+  canvas: {
+    key: "canvas",
+    label: "Canvas Print",
+    category: "Canvas",
+    colors: [{ name: "White", hex: "#ffffff" }],
+    lightColors: new Set(["white"]),
+    swatchHints: { white: "white canvas (#FFFFFF)" },
+    designPlacement: "full bleed canvas print",
+    sizeChartUrl: null,
+    shopifyTags: ["Canvas", "Wall Art"],
+    defaultPrice: "$39.99",
+    concurrency: 2,
+  },
+  journal: {
+    key: "journal",
+    label: "Journal",
+    category: "Journal",
+    colors: [
+      { name: "Black", hex: "#1a1a1a" },
+      { name: "White", hex: "#ffffff" },
+    ],
+    lightColors: new Set(["white"]),
+    swatchHints: { black: "black cover (#1A1A1A)", white: "white cover (#FFFFFF)" },
+    designPlacement: "front cover print, full bleed",
+    sizeChartUrl: null,
+    shopifyTags: ["Journals", "Stationery"],
+    defaultPrice: "$24.99",
+    concurrency: 2,
+  },
+  notebook: {
+    key: "notebook",
+    label: "Notebook",
+    category: "Notebook",
+    colors: [
+      { name: "Black", hex: "#1a1a1a" },
+      { name: "White", hex: "#ffffff" },
+    ],
+    lightColors: new Set(["white"]),
+    swatchHints: { black: "black cover (#1A1A1A)", white: "white cover (#FFFFFF)" },
+    designPlacement: "front cover print, full bleed",
+    sizeChartUrl: null,
+    shopifyTags: ["Notebooks", "Stationery"],
+    defaultPrice: "$19.99",
+    concurrency: 2,
+  },
 };
 
 /** Get product type config from a category string (fuzzy match) */
 export function getProductType(category: string): ProductTypeConfig {
   const lower = (category || "").toLowerCase();
-  if (lower.includes("hoodie") || lower.includes("sweatshirt")) return PRODUCT_TYPES.hoodie;
+  if (lower.includes("hoodie")) return PRODUCT_TYPES.hoodie;
+  if (lower.includes("sweatshirt") || lower.includes("crewneck")) return PRODUCT_TYPES.sweatshirt;
+  if (lower.includes("long sleeve")) return PRODUCT_TYPES["long-sleeve"];
   if (lower.includes("mug") || lower.includes("drinkware") || lower.includes("cup")) return PRODUCT_TYPES.mug;
-  // Default to t-shirt
+  if (lower.includes("tote")) return PRODUCT_TYPES.tote;
+  if (lower.includes("canvas") || lower.includes("wall art")) return PRODUCT_TYPES.canvas;
+  if (lower.includes("journal")) return PRODUCT_TYPES.journal;
+  if (lower.includes("notebook")) return PRODUCT_TYPES.notebook;
   return PRODUCT_TYPES["t-shirt"];
 }
 
