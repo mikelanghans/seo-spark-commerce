@@ -182,6 +182,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
         customInstructions: customInstructions.trim() || undefined,
+        swatchHints: typeConfig.swatchHints,
       },
     });
     if (error || data?.error) {
