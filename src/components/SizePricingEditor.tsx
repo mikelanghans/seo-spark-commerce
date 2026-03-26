@@ -50,7 +50,6 @@ export const SizePricingEditor = ({ enabledTypes, value, onChange, isProductLeve
     return PRODUCT_TYPES[typeKey as ProductTypeKey]?.defaultSizePricing[size] || "";
   };
 
-  const [activeTab, setActiveTab] = useState(typesWithSizes[0]?.key || "");
 
   return (
     <div className="space-y-3">
