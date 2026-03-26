@@ -14,6 +14,10 @@ export interface ProductTypeConfig {
   key: ProductTypeKey;
   label: string;
   category: string;
+  /** Available sizes for this product type (empty = one-size / no sizes) */
+  sizes: string[];
+  /** Default price per size */
+  defaultSizePricing: Record<string, string>;
   /** Colors available for this product type */
   colors: ProductTypeColor[];
   /** Colors considered "light" (use dark-ink design) */
@@ -26,11 +30,14 @@ export interface ProductTypeConfig {
   sizeChartUrl: string | null;
   /** Shopify tags to auto-add */
   shopifyTags: string[];
-  /** Default price suggestion */
+  /** Default price suggestion (base / display price) */
   defaultPrice: string;
   /** Max concurrent AI generations */
   concurrency: number;
 }
+
+/** Size pricing map: product type key → size → price string */
+export type SizePricingMap = Record<string, Record<string, string>>;
 
 // ─── Comfort Colors 1717 (T-Shirt) ────────────────────────────────
 
