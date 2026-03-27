@@ -109,8 +109,8 @@ interface Listing {
   alt_text: string;
 }
 
-const ALL_MARKETPLACES = ["shopify", "etsy", "ebay"] as const;
-const ALL_PUSH_CHANNELS = ["shopify", "printify", "etsy", "ebay"] as const;
+const ALL_MARKETPLACES = ["etsy", "ebay"] as const;
+const ALL_PUSH_CHANNELS = ["etsy", "ebay"] as const;
 
 type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 

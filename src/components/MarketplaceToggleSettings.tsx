@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Store } from "lucide-react";
 
 const MARKETPLACES = [
-  { value: "shopify", label: "Shopify", icon: "🛍️" },
   { value: "etsy", label: "Etsy", icon: "🧶" },
   { value: "ebay", label: "eBay", icon: "🏷️" },
 ];
