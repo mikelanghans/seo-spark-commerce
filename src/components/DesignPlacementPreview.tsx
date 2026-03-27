@@ -20,7 +20,7 @@ interface Props {
   designStyle?: string;
 }
 
-const DEFAULT_SCALE = 0.55;
+const DEFAULT_SCALE = 0.40;
 const DEFAULT_OFFSET_X = 0;
 const DEFAULT_OFFSET_Y = 0.25;
 const MIN_SCALE = 0.15;
@@ -39,7 +39,7 @@ export const DesignPlacementPreview = ({
   isDarkGarment,
   designStyle,
 }: Props) => {
-  const defaultScale = designStyle === "text-only" ? 0.45 : DEFAULT_SCALE;
+  const defaultScale = designStyle === "text-only" ? 0.35 : DEFAULT_SCALE;
   const [scale, setScale] = useState(defaultScale);
   const [offsetX, setOffsetX] = useState(DEFAULT_OFFSET_X);
   const [offsetY, setOffsetY] = useState(DEFAULT_OFFSET_Y);
