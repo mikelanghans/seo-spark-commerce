@@ -16,6 +16,7 @@ import {
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { getProductType, getSuggestedColors, getColorHexMap, isLightColor, type ProductTypeConfig } from "@/lib/productTypes";
+import { MockupReviewDialog } from "./MockupReviewDialog";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
@@ -26,6 +27,7 @@ interface Props {
   productId: string;
   userId: string;
   productTitle: string;
+  organizationId?: string;
   sourceImageUrl: string | null;
   designImageUrl?: string | null;
   onComplete: () => void;
@@ -42,7 +44,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const typeConfig = getProductType(productCategory || "");
   const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
   const COLOR_HEX = getColorHexMap(typeConfig);
@@ -58,7 +60,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   const [recommendations, setRecommendations] = useState<ColorRecommendation[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
-  
+  const [reviewMockups, setReviewMockups] = useState<{ id: string; image_url: string; color_name: string }[]>([]);
+  const [showReview, setShowReview] = useState(false);
 
   const loadExistingColors = async () => {
     const { data } = await supabase
@@ -173,6 +176,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     targetSize: { width: number; height: number } | null,
     designBase64?: string,
     isDarkGarment?: boolean,
+    effectiveInstructions?: string,
   ): Promise<boolean> => {
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
@@ -181,7 +185,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         productTitle,
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
-        customInstructions: customInstructions.trim() || undefined,
+        customInstructions: effectiveInstructions || customInstructions.trim() || undefined,
         swatchHints: typeConfig.swatchHints,
       },
     });
@@ -251,6 +255,49 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     setAvgTime(null);
     setProgress({ done: 0, total: colors.length, current: colors[0] });
     setActiveColors([]);
+
+    // Build AI hints from past mockup feedback for this org
+    let feedbackHints = "";
+    if (organizationId) {
+      try {
+        const { data: fbRows } = await supabase
+          .from("mockup_feedback" as any)
+          .select("size_feedback, color_accuracy, notes, rating")
+          .eq("organization_id", organizationId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (fbRows && fbRows.length > 0) {
+          const sizeCounts = { "too-large": 0, "too-small": 0, "just-right": 0 };
+          const colorIssues: string[] = [];
+          const notesList: string[] = [];
+
+          for (const fb of fbRows as any[]) {
+            if (fb.size_feedback && fb.size_feedback in sizeCounts) {
+              sizeCounts[fb.size_feedback as keyof typeof sizeCounts]++;
+            }
+            if (fb.color_accuracy === "inaccurate") colorIssues.push(fb.color_name || "unknown");
+            if (fb.notes?.trim()) notesList.push(fb.notes.trim());
+          }
+
+          const hints: string[] = [];
+          if (sizeCounts["too-large"] > sizeCounts["just-right"] + sizeCounts["too-small"]) {
+            hints.push("IMPORTANT: Previous feedback indicates the design/print on the shirt tends to appear TOO LARGE. Make the design noticeably smaller on the garment.");
+          } else if (sizeCounts["too-small"] > sizeCounts["just-right"] + sizeCounts["too-large"]) {
+            hints.push("IMPORTANT: Previous feedback indicates the design/print appears TOO SMALL. Make the design slightly larger on the garment.");
+          }
+          if (colorIssues.length >= 2) {
+            hints.push(`Color accuracy has been flagged as an issue. Pay extra attention to matching the target color precisely.`);
+          }
+          if (notesList.length > 0) {
+            hints.push(`User notes from past mockups: ${notesList.slice(0, 3).join("; ")}`);
+          }
+          feedbackHints = hints.join("\n");
+        }
+      } catch {
+        // silently skip
+      }
+    }
 
     const { data: existingImages } = await supabase
       .from("product_images")
@@ -500,7 +547,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
           const preComposited = isLight ? preCompositedLight : preCompositedDark;
           // Pass the correct design variant for post-AI recomposite
           const designForRecomposite = isLight ? (darkDesign || lightDesign) : lightDesign;
-          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite, !isLight);
+          const combinedInstructions = [customInstructions.trim(), feedbackHints].filter(Boolean).join("\n") || undefined;
+          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite, !isLight, combinedInstructions);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
@@ -540,13 +588,44 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
     setRecommendations([]);
     setOpen(false);
     onComplete();
+
+    // Show review dialog if we have an organizationId and generated some mockups
+    if (organizationId && successCount > 0) {
+      try {
+        const { data: newImages } = await supabase
+          .from("product_images")
+          .select("id, image_url, color_name")
+          .eq("product_id", productId)
+          .eq("image_type", "mockup")
+          .order("created_at", { ascending: false })
+          .limit(successCount);
+        if (newImages && newImages.length > 0) {
+          setReviewMockups(newImages);
+          setShowReview(true);
+        }
+      } catch {
+        // silently skip review
+      }
+    }
   };
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
-        <Palette className="h-3.5 w-3.5" /> Color Variants
-      </Button>
+      <>
+        <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
+          <Palette className="h-3.5 w-3.5" /> Color Variants
+        </Button>
+        {organizationId && (
+          <MockupReviewDialog
+            open={showReview}
+            onClose={() => { setShowReview(false); setReviewMockups([]); }}
+            mockups={reviewMockups}
+            productId={productId}
+            organizationId={organizationId}
+            userId={userId}
+          />
+        )}
+      </>
     );
   }
 
@@ -555,6 +634,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
   const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
 
   return (
+    <>
     <div className="rounded-lg border border-border bg-card p-4 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -745,5 +825,17 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, sourceI
         </Button>
       </div>
     </div>
+
+    {organizationId && (
+      <MockupReviewDialog
+        open={showReview}
+        onClose={() => { setShowReview(false); setReviewMockups([]); }}
+        mockups={reviewMockups}
+        productId={productId}
+        organizationId={organizationId}
+        userId={userId}
+      />
+    )}
+    </>
   );
 };

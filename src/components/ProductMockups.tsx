@@ -7,6 +7,7 @@ import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn } from "
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { GenerateColorVariants } from "./GenerateColorVariants";
+import { MockupFeedback } from "./MockupFeedback";
 
 interface ProductImage {
   id: string;
@@ -26,6 +27,7 @@ interface Props {
   productId: string;
   userId: string;
   productTitle: string;
+  organizationId?: string;
   sourceImageUrl?: string | null;
   designImageUrl?: string | null;
   brandName?: string;
@@ -36,7 +38,7 @@ interface Props {
   aiUsage?: AiUsage;
 }
 
-export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+export const ProductMockups = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -148,6 +150,7 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
         productId={productId}
         userId={userId}
         productTitle={productTitle}
+        organizationId={organizationId}
         sourceImageUrl={sourceImageUrl || null}
         designImageUrl={designImageUrl}
         onComplete={loadImages}
@@ -221,6 +224,15 @@ export const ProductMockups = ({ productId, userId, productTitle, sourceImageUrl
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                    {organizationId && (
+                      <MockupFeedback
+                        productImageId={img.id}
+                        productId={productId}
+                        organizationId={organizationId}
+                        userId={userId}
+                        colorName={img.color_name}
+                      />
+                    )}
                   </>
                 )}
               </div>
