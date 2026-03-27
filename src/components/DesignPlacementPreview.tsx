@@ -97,6 +97,21 @@ export const DesignPlacementPreview = ({
 
     ctx.drawImage(designImg, dx, dy, designW, designH);
 
+    // Vertical center guideline
+    const designCenterY = dy + designH / 2;
+    const garmentCenterY = ty + th / 2;
+    const isCentered = Math.abs(designCenterY - garmentCenterY) < 4;
+    if (isCentered) {
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(tx + 20, garmentCenterY);
+      ctx.lineTo(tx + tw - 20, garmentCenterY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     // Dashed placement frame
     ctx.strokeStyle = "rgba(0,0,0,0.4)";
     ctx.lineWidth = 1.5;
