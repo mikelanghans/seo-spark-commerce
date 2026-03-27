@@ -77,6 +77,7 @@ interface Organization {
   enabled_marketplaces?: string[];
   enabled_product_types?: string[];
   enabled_social_platforms?: string[];
+  default_size_pricing?: Record<string, Record<string, string>>;
 }
 
 interface Product {
