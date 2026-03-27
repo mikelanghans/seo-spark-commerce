@@ -329,6 +329,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         brandTone={brandTone}
         productCategory={productCategory}
         aiUsage={aiUsage}
+        onRegenerateSingle={handleRegenerateSingle}
       />
 
       <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
