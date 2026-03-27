@@ -26,6 +26,7 @@ interface Props {
   productId: string;
   userId: string;
   productTitle: string;
+  organizationId?: string;
   sourceImageUrl: string | null;
   designImageUrl?: string | null;
   onComplete: () => void;
@@ -42,7 +43,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const typeConfig = getProductType(productCategory || "");
   const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
   const COLOR_HEX = getColorHexMap(typeConfig);
