@@ -295,7 +295,16 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     setTimeout(() => handleGenerateWithPlacement(params), 100);
   };
 
+  const handleGenerateWithPlacement = (params: PlacementParams) => {
+    // Use a ref-like approach: store params then call generate
+    placementParamsRef.current = params;
+    handleGenerate();
+  };
+
+  const placementParamsRef = { current: placementParams };
+
   const handleGenerate = async () => {
+    const effectivePlacement = placementParamsRef.current ?? placementParams;
     if (!sourceImageUrl) {
       toast.error("No source image available. Upload a product image first.");
       return;
