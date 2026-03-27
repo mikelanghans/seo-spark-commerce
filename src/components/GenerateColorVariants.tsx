@@ -512,12 +512,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
 
     if (lightDesign) {
       try {
-        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign, true);
+        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign, true, undefined, placementParams);
       } catch { preCompositedDark = imageBase64; }
     }
     if (darkDesign || lightDesign) {
       try {
-        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!, false);
+        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!, false, undefined, placementParams);
       } catch { preCompositedLight = imageBase64; }
     }
 
