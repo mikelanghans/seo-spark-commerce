@@ -92,6 +92,8 @@ interface Product {
   features: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  printify_product_id: string | null;
+  size_pricing: Record<string, string> | null;
   tags: string[];
 }
 
