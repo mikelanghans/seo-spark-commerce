@@ -54,7 +54,7 @@ export const DesignPlacementPreview = ({
   const resizeStart = useRef<{ y: number; startScale: number }>({ y: 0, startScale: 0 });
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setInitialized(false); return; }
     const loadImg = (src: string) =>
       new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
