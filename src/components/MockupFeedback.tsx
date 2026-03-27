@@ -3,9 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, MessageSquare, ArrowDownFromLine, ArrowUpFromLine, Palette } from "lucide-react";
+import { AlertTriangle, Loader2, RefreshCw, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const ISSUE_OPTIONS = [
+  { value: "color-off", label: "Color is wrong" },
+  { value: "too-large", label: "Design too large" },
+  { value: "too-small", label: "Design too small" },
+  { value: "ghosting", label: "Ghost / artifacts" },
+  { value: "placement", label: "Placement is off" },
+  { value: "quality", label: "Low quality" },
+] as const;
+
+type IssueType = (typeof ISSUE_OPTIONS)[number]["value"];
 
 interface Props {
   productImageId: string;
@@ -13,13 +24,9 @@ interface Props {
   organizationId: string;
   userId: string;
   colorName: string;
-  /** Compact inline mode for card overlay */
-  compact?: boolean;
+  imageUrl: string;
+  onRegenerate?: (colorName: string, feedback: string) => Promise<void>;
 }
-
-type Rating = "good" | "bad" | "neutral";
-type SizeFeedback = "too-large" | "too-small" | "just-right" | null;
-type ColorAccuracy = "accurate" | "inaccurate" | null;
 
 export const MockupFeedback = ({
   productImageId,
@@ -27,185 +34,154 @@ export const MockupFeedback = ({
   organizationId,
   userId,
   colorName,
-  compact = true,
+  imageUrl,
+  onRegenerate,
 }: Props) => {
-  const [rating, setRating] = useState<Rating>("neutral");
-  const [showDetail, setShowDetail] = useState(false);
-  const [sizeFeedback, setSizeFeedback] = useState<SizeFeedback>(null);
-  const [colorAccuracy, setColorAccuracy] = useState<ColorAccuracy>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [issues, setIssues] = useState<Set<IssueType>>(new Set());
   const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
-  const handleQuickRate = async (r: Rating) => {
-    setRating(r);
-    if (r === "bad") {
-      setShowDetail(true);
+  const toggleIssue = (issue: IssueType) => {
+    setIssues((prev) => {
+      const next = new Set(prev);
+      if (next.has(issue)) next.delete(issue);
+      else next.add(issue);
+      return next;
+    });
+  };
+
+  const buildFeedbackText = () => {
+    const parts: string[] = [];
+    for (const issue of issues) {
+      const label = ISSUE_OPTIONS.find((o) => o.value === issue)?.label;
+      if (label) parts.push(label);
+    }
+    if (notes.trim()) parts.push(notes.trim());
+    return parts.join(". ");
+  };
+
+  const handleRegenerate = async () => {
+    const feedbackText = buildFeedbackText();
+    if (!feedbackText) {
+      toast.error("Please select at least one issue or add a note.");
       return;
     }
-    // Quick save for thumbs up
+
+    setRegenerating(true);
     try {
+      // Save feedback to DB for training
       await supabase.from("mockup_feedback" as any).insert({
         product_image_id: productImageId,
         product_id: productId,
         organization_id: organizationId,
         user_id: userId,
-        rating: r,
+        rating: "bad",
+        size_feedback: issues.has("too-large") ? "too-large" : issues.has("too-small") ? "too-small" : null,
+        color_accuracy: issues.has("color-off") ? "inaccurate" : null,
+        notes: feedbackText,
         color_name: colorName,
       });
-      setSubmitted(true);
-    } catch {
-      // silent
-    }
-  };
 
-  const handleDetailedSubmit = async () => {
-    setSaving(true);
-    try {
-      const { error } = await supabase.from("mockup_feedback" as any).insert({
-        product_image_id: productImageId,
-        product_id: productId,
-        organization_id: organizationId,
-        user_id: userId,
-        rating,
-        size_feedback: sizeFeedback,
-        color_accuracy: colorAccuracy,
-        notes: notes.trim() || null,
-        color_name: colorName,
-      });
-      if (error) throw error;
-      toast.success("Feedback saved — thanks!");
-      setShowDetail(false);
-      setSubmitted(true);
-    } catch {
-      toast.error("Failed to save feedback");
+      // Delete the old mockup
+      await supabase.from("product_images").delete().eq("id", productImageId);
+
+      // Regenerate
+      if (onRegenerate) {
+        await onRegenerate(colorName, feedbackText);
+      }
+
+      toast.success(`Regenerating ${colorName} mockup…`);
+      setShowDialog(false);
+      setIssues(new Set());
+      setNotes("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to regenerate");
     } finally {
-      setSaving(false);
+      setRegenerating(false);
     }
   };
-
-  if (submitted) {
-    return (
-      <span className="text-[10px] text-muted-foreground italic">
-        {rating === "good" ? "👍" : "📝"} Noted
-      </span>
-    );
-  }
 
   return (
     <>
-      {compact && (
-        <div className="flex items-center gap-0.5">
-          <Button
-            size="icon"
-            variant="ghost"
-            className={cn(
-              "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
-              rating === "good" && "opacity-100 text-green-500"
-            )}
-            onClick={(e) => { e.stopPropagation(); handleQuickRate("good"); }}
-            title="Looks good"
-          >
-            <ThumbsUp className="h-3 w-3" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className={cn(
-              "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
-              rating === "bad" && "opacity-100 text-destructive"
-            )}
-            onClick={(e) => { e.stopPropagation(); handleQuickRate("bad"); }}
-            title="Needs improvement"
-          >
-            <ThumbsDown className="h-3 w-3" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={(e) => { e.stopPropagation(); setShowDetail(true); }}
-            title="Detailed feedback"
-          >
-            <MessageSquare className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => { e.stopPropagation(); setShowDialog(true); }}
+        title="Fix & regenerate this mockup"
+      >
+        <RefreshCw className="h-3 w-3" />
+      </Button>
 
-      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+      <Dialog open={showDialog} onOpenChange={(open) => !regenerating && setShowDialog(open)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm">Mockup Feedback — {colorName}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Fix Mockup — {colorName}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Size feedback */}
-            <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Design Size</p>
-              <div className="flex gap-2">
-                {([
-                  { value: "too-large" as const, label: "Too Large", icon: ArrowUpFromLine },
-                  { value: "just-right" as const, label: "Just Right", icon: ThumbsUp },
-                  { value: "too-small" as const, label: "Too Small", icon: ArrowDownFromLine },
-                ]).map(({ value, label, icon: Icon }) => (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant={sizeFeedback === value ? "default" : "outline"}
-                    className="flex-1 gap-1 text-xs"
-                    onClick={() => setSizeFeedback(sizeFeedback === value ? null : value)}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                  </Button>
-                ))}
-              </div>
-            </div>
 
-            {/* Color accuracy */}
-            <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Color Accuracy</p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={colorAccuracy === "accurate" ? "default" : "outline"}
-                  className="flex-1 gap-1 text-xs"
-                  onClick={() => setColorAccuracy(colorAccuracy === "accurate" ? null : "accurate")}
-                >
-                  <Palette className="h-3 w-3" />
-                  Accurate
-                </Button>
-                <Button
-                  size="sm"
-                  variant={colorAccuracy === "inaccurate" ? "default" : "outline"}
-                  className="flex-1 gap-1 text-xs"
-                  onClick={() => setColorAccuracy(colorAccuracy === "inaccurate" ? null : "inaccurate")}
-                >
-                  <Palette className="h-3 w-3" />
-                  Off
-                </Button>
-              </div>
-            </div>
-
-            {/* Free-text notes */}
-            <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Notes (optional)</p>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. ghost design visible, design shifted left..."
-                className="h-16 text-xs"
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              size="sm"
-              onClick={handleDetailedSubmit}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Submit Feedback"}
-            </Button>
+          {/* Preview */}
+          <div className="rounded-lg border border-border bg-secondary overflow-hidden">
+            <img src={imageUrl} alt={colorName} className="w-full object-contain max-h-48" loading="lazy" />
           </div>
+
+          {/* Issue selection */}
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">What's wrong?</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ISSUE_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleIssue(value)}
+                  disabled={regenerating}
+                  className={cn(
+                    "rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors text-left flex items-center gap-1.5",
+                    issues.has(value)
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                  )}
+                >
+                  {issues.has(value) && <Check className="h-3 w-3 shrink-0" />}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Additional details (optional)</p>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Color should be darker, design needs to be centered…"
+              className="h-16 text-xs"
+              disabled={regenerating}
+            />
+          </div>
+
+          <Button
+            onClick={handleRegenerate}
+            disabled={regenerating || (issues.size === 0 && !notes.trim())}
+            className="w-full gap-2"
+            size="sm"
+          >
+            {regenerating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Regenerating…
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-3.5 w-3.5" />
+                Fix & Regenerate
+              </>
+            )}
+          </Button>
         </DialogContent>
       </Dialog>
     </>
