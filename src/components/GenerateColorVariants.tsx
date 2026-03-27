@@ -814,7 +814,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         )}
 
         <Button
-          onClick={handleGenerate}
+          onClick={handlePreviewPlacement}
           disabled={generating || colors.length === 0 || newCount === 0}
           className="gap-2 w-full"
           size="sm"
@@ -828,10 +828,19 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
             ? `Generating ${progress.done}/${progress.total}…`
             : newCount === 0
               ? "All selected colors already exist"
-              : `Generate ${newCount} Variant${newCount !== 1 ? "s" : ""}`}
+              : `Preview & Generate ${newCount} Variant${newCount !== 1 ? "s" : ""}`}
         </Button>
       </div>
     </div>
+
+    <DesignPlacementPreview
+      open={showPlacementPreview}
+      onConfirm={handlePlacementConfirm}
+      onCancel={() => setShowPlacementPreview(false)}
+      templateDataUrl={previewTemplateBase64}
+      designDataUrl={previewDesignBase64}
+      designStyle={typeConfig.designStyle}
+    />
 
     {organizationId && (
       <MockupReviewDialog
