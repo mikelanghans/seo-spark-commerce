@@ -92,6 +92,8 @@ interface Product {
   features: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  printify_product_id: string | null;
+  size_pricing: Record<string, string> | null;
   tags: string[];
 }
 
@@ -2375,6 +2377,45 @@ const Dashboard = () => {
                     await supabase.from("products").update({ price }).eq("id", selectedProduct.id);
                     setSelectedProduct({ ...selectedProduct, price });
                     if (selectedOrg) loadProducts(selectedOrg.id);
+
+                    // Sync price to Shopify if product is linked
+                    if (selectedProduct.shopify_product_id) {
+                      try {
+                        await supabase.functions.invoke("update-shopify-product", {
+                          body: {
+                            shopifyProductId: selectedProduct.shopify_product_id,
+                            organizationId: selectedOrg?.id,
+                            updates: {
+                              price,
+                              size_pricing: selectedProduct.size_pricing || undefined,
+                            },
+                          },
+                        });
+                        toast.success("Price synced to Shopify");
+                      } catch (err) {
+                        console.error("Shopify price sync failed:", err);
+                        toast.error("Price saved locally but Shopify sync failed");
+                      }
+                    }
+
+                    // Sync price to Printify if product is linked
+                    if (selectedProduct.printify_product_id && selectedOrg) {
+                      try {
+                        await supabase.functions.invoke("printify-create-product", {
+                          body: {
+                            action: "update-price",
+                            printifyProductId: selectedProduct.printify_product_id,
+                            organizationId: selectedOrg.id,
+                            price,
+                            sizePricing: selectedProduct.size_pricing || undefined,
+                          },
+                        });
+                        toast.success("Price synced to Printify");
+                      } catch (err) {
+                        console.error("Printify price sync failed:", err);
+                        toast.error("Price saved locally but Printify sync failed");
+                      }
+                    }
                   }}
                 />
               </div>

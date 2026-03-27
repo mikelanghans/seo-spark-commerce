@@ -58,6 +58,29 @@ serve(async (req) => {
       productPayload.images = updates.images;
     }
 
+    // Update variant prices if provided
+    if (updates.price) {
+      // Fetch current variants to update their prices
+      const variantsRes = await fetch(`https://${domain}/admin/api/2024-01/products/${shopifyProductId}.json`, {
+        method: "GET",
+        headers: { "X-Shopify-Access-Token": connection.access_token },
+      });
+      if (variantsRes.ok) {
+        const variantsData = await variantsRes.json();
+        const variants = variantsData.product?.variants || [];
+        const sizePricing = updates.size_pricing;
+        productPayload.variants = variants.map((v: any) => {
+          let variantPrice = updates.price;
+          // Apply size-specific pricing if available
+          if (sizePricing && typeof sizePricing === "object") {
+            const size = (v.option2 || v.option1 || "").trim();
+            if (sizePricing[size]) variantPrice = sizePricing[size];
+          }
+          return { id: v.id, price: variantPrice };
+        });
+      }
+    }
+
     const shopifyResponse = await fetch(`https://${domain}/admin/api/2024-01/products/${shopifyProductId}.json`, {
       method: "PUT",
       headers: {
