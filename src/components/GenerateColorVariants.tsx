@@ -176,6 +176,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     targetSize: { width: number; height: number } | null,
     designBase64?: string,
     isDarkGarment?: boolean,
+    effectiveInstructions?: string,
   ): Promise<boolean> => {
     const { data, error } = await supabase.functions.invoke("generate-color-variants", {
       body: {
@@ -184,7 +185,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         productTitle,
         sourceWidth: targetSize?.width || null,
         sourceHeight: targetSize?.height || null,
-        customInstructions: customInstructions.trim() || undefined,
+        customInstructions: effectiveInstructions || customInstructions.trim() || undefined,
         swatchHints: typeConfig.swatchHints,
       },
     });
