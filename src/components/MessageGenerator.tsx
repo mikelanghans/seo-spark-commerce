@@ -72,6 +72,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
   const [topic, setTopic] = useState("");
+  const [styleFirst, setStyleFirst] = useState(false);
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
