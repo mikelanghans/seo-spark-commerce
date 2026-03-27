@@ -72,6 +72,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [refiningId, setRefiningId] = useState<string | null>(null);
   const [generateCount, setGenerateCount] = useState(10);
   const [topic, setTopic] = useState("");
+  const [styleFirst, setStyleFirst] = useState(false);
   const [customMessage, setCustomMessage] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
   const cancelDesignsRef = useRef(false);
@@ -131,7 +132,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               audience: organization.audience,
             },
             count: generateCount,
-            designStyle,
+            ...(styleFirst ? { designStyle } : {}),
             existingProducts: (allExisting || []).map((m: any) => m.message_text),
             ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
@@ -584,49 +585,69 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Message Ideas
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Swipe right to keep · Swipe left to discard
-          </p>
+      {/* Mode toggle + generation controls */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Message Ideas
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Swipe right to keep · Swipe left to discard
+            </p>
+          </div>
+          {availableStyles.length > 1 && (
+            <div className="flex items-center rounded-full border border-input bg-muted/50 p-0.5">
+              <button
+                type="button"
+                onClick={() => setStyleFirst(false)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  !styleFirst ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                Message First
+              </button>
+              <button
+                type="button"
+                onClick={() => setStyleFirst(true)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  styleFirst ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                Style First
+              </button>
+            </div>
+          )}
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <Input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Topic (e.g. Christmas, Summer, Dogs)..."
-            className="flex-1 min-w-[160px] h-10"
+            className="flex-1 min-w-[140px] h-9"
             disabled={generating}
           />
-          {availableStyles.length > 1 && (
-            <div className="flex items-center rounded-md border border-input bg-background h-10 overflow-hidden">
+          {styleFirst && availableStyles.length > 1 && (
+            <select
+              value={designStyle}
+              onChange={(e) => setDesignStyle(e.target.value)}
+              disabled={generating}
+              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               {availableStyles.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setDesignStyle(s)}
-                  disabled={generating}
-                  className={`flex items-center gap-1 px-2.5 h-full text-xs font-medium transition-colors ${
-                    designStyle === s
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {s === "text-only" ? <Type className="h-3 w-3" /> : <Image className="h-3 w-3" />}
-                  {s === "text-only" ? "Text" : s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
-                </button>
+                <option key={s} value={s}>
+                  {s === "text-only" ? "Text Only" : s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                </option>
               ))}
-            </div>
+            </select>
           )}
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}
             disabled={generating}
-            className="h-10 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -635,6 +656,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           <Button
             onClick={handleGenerate}
             disabled={generating}
+            size="sm"
             className="gap-2"
           >
             {generating ? (
