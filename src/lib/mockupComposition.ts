@@ -2,6 +2,11 @@ const MASK_DIFF_THRESHOLD = 16;
 const MASK_LUMA_THRESHOLD = 10;
 const MIN_MASK_COVERAGE = 0.01;
 
+export interface DesignPlacement {
+  scale: number;    // fraction of canvas width the design occupies
+  offsetY: number;  // fraction of canvas height for the top of the design
+}
+
 interface CompositionLockParams {
   templateDataUrl: string;
   generatedDataUrl: string;
@@ -13,6 +18,8 @@ interface CompositionLockParams {
   isDarkGarment?: boolean;
   /** Design style — text-only uses a smaller scale to avoid oversized text */
   designStyle?: string;
+  /** Custom placement overrides from the user preview */
+  placement?: DesignPlacement;
 }
 
 export const ensureImageDataUrl = (value: string) =>
@@ -36,6 +43,7 @@ export async function normalizeAndLockToTemplateBlob({
   designDataUrl,
   isDarkGarment,
   designStyle,
+  placement,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -54,7 +62,7 @@ export async function normalizeAndLockToTemplateBlob({
         const designImg = await loadImage(designDataUrl);
         const cleanedDesign = stripSolidEdgeBackground(designImg);
         const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -98,16 +106,17 @@ function drawDesignWithUnderbase(
   targetHeight: number,
   isDarkGarment?: boolean,
   designStyle?: string,
+  placement?: DesignPlacement,
 ) {
   const designWidth = cleanedDesign.width;
   const designHeight = cleanedDesign.height;
 
-  // Text-only designs use a smaller scale to avoid oversized text
-  const designScale = designStyle === "text-only" ? 0.30 : 0.35;
+  // Use custom placement if provided, otherwise use defaults
+  const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.30 : 0.35);
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
-  const dy = targetHeight * 0.25;
+  const dy = targetHeight * (placement?.offsetY ?? 0.25);
 
   // For dark garments, add a subtle white underbase behind the design
   // so dark outlines / shadows in the artwork remain visible on dark fabric.
