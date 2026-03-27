@@ -20,7 +20,7 @@ interface Props {
   designStyle?: string;
 }
 
-const DEFAULT_SCALE = 0.35;
+const DEFAULT_SCALE = 0.55;
 const DEFAULT_OFFSET_X = 0;
 const DEFAULT_OFFSET_Y = 0.25;
 const MIN_SCALE = 0.15;
