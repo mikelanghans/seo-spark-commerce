@@ -543,6 +543,25 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     setRecommendations([]);
     setOpen(false);
     onComplete();
+
+    // Show review dialog if we have an organizationId and generated some mockups
+    if (organizationId && successCount > 0) {
+      try {
+        const { data: newImages } = await supabase
+          .from("product_images")
+          .select("id, image_url, color_name")
+          .eq("product_id", productId)
+          .eq("image_type", "mockup")
+          .order("created_at", { ascending: false })
+          .limit(successCount);
+        if (newImages && newImages.length > 0) {
+          setReviewMockups(newImages);
+          setShowReview(true);
+        }
+      } catch {
+        // silently skip review
+      }
+    }
   };
 
   if (!open) {
