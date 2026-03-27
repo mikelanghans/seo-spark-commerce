@@ -116,7 +116,7 @@ function drawDesignWithUnderbase(
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.30 : 0.35);
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
-  const dx = (targetWidth - drawWidth) / 2;
+  const dx = (targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0);
   const dy = targetHeight * (placement?.offsetY ?? 0.25);
 
   // For dark garments, add a subtle white underbase behind the design
