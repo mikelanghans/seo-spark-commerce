@@ -4,6 +4,7 @@ const MIN_MASK_COVERAGE = 0.01;
 
 export interface DesignPlacement {
   scale: number;    // fraction of canvas width the design occupies
+  offsetX: number;  // fraction of canvas width, 0 = centered
   offsetY: number;  // fraction of canvas height for the top of the design
 }
 
