@@ -291,7 +291,8 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
   const handlePlacementConfirm = (params: PlacementParams) => {
     setPlacementParams(params);
     setShowPlacementPreview(false);
-    setTimeout(() => handleGenerate(), 100);
+    // Pass params directly to avoid stale closure issue
+    setTimeout(() => handleGenerateWithPlacement(params), 100);
   };
 
   const handleGenerate = async () => {
