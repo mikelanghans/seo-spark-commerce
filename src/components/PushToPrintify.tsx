@@ -26,6 +26,7 @@ interface Product {
   keywords: string;
   image_url: string | null;
   printify_product_id?: string | null;
+  shopify_product_id?: number | null;
 }
 
 interface Listing {
