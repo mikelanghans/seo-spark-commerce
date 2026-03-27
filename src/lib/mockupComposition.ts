@@ -97,11 +97,13 @@ function drawDesignWithUnderbase(
   targetWidth: number,
   targetHeight: number,
   isDarkGarment?: boolean,
+  designStyle?: string,
 ) {
   const designWidth = cleanedDesign.width;
   const designHeight = cleanedDesign.height;
 
-  const designScale = 0.60;
+  // Text-only designs use a smaller scale (~20% reduction) to avoid oversized text
+  const designScale = designStyle === "text-only" ? 0.48 : 0.60;
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
