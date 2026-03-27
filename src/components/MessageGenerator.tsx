@@ -131,6 +131,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               audience: organization.audience,
             },
             count: generateCount,
+            designStyle,
             existingProducts: (allExisting || []).map((m: any) => m.message_text),
             ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
@@ -601,7 +602,26 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             className="flex-1 min-w-[160px] h-10"
             disabled={generating}
           />
-          {/* Design style toggle moved to design generation stage */}
+          {availableStyles.length > 1 && (
+            <div className="flex items-center rounded-md border border-input bg-background h-10 overflow-hidden">
+              {availableStyles.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setDesignStyle(s)}
+                  disabled={generating}
+                  className={`flex items-center gap-1 px-2.5 h-full text-xs font-medium transition-colors ${
+                    designStyle === s
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {s === "text-only" ? <Type className="h-3 w-3" /> : <Image className="h-3 w-3" />}
+                  {s === "text-only" ? "Text" : s === "minimalist" ? "Art" : s}
+                </button>
+              ))}
+            </div>
+          )}
           <select
             value={generateCount}
             onChange={(e) => setGenerateCount(Number(e.target.value))}
