@@ -64,7 +64,20 @@ export const DesignPlacementPreview = ({
         img.src = src;
       });
     Promise.all([loadImg(templateDataUrl), loadImg(designDataUrl)]).then(
-      ([t, d]) => { setTemplateImg(t); setDesignImg(d); }
+      ([t, d]) => {
+        setTemplateImg(t);
+        setDesignImg(d);
+
+        // Auto-center the design on the garment for an accurate starting position
+        if (!initialized) {
+          const designAspect = d.height / d.width;
+          const designH = defaultScale * designAspect; // as fraction of garment height
+          // Center vertically: offsetY such that design center aligns with garment center
+          const centeredY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, 0.5 - designH / 2));
+          setOffsetY(centeredY);
+          setInitialized(true);
+        }
+      }
     );
   }, [open, templateDataUrl, designDataUrl]);
 
