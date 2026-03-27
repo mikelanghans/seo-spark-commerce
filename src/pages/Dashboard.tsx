@@ -3,6 +3,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { insertProductImagesDeduped } from "@/lib/productImageUtils";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
