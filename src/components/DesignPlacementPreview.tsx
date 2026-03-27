@@ -39,7 +39,7 @@ export const DesignPlacementPreview = ({
   isDarkGarment,
   designStyle,
 }: Props) => {
-  const defaultScale = designStyle === "text-only" ? 0.30 : DEFAULT_SCALE;
+  const defaultScale = designStyle === "text-only" ? 0.45 : DEFAULT_SCALE;
   const [scale, setScale] = useState(defaultScale);
   const [offsetX, setOffsetX] = useState(DEFAULT_OFFSET_X);
   const [offsetY, setOffsetY] = useState(DEFAULT_OFFSET_Y);
