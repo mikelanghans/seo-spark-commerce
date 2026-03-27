@@ -220,7 +220,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
       targetHeight: targetSize?.height || 1024,
       designDataUrl: designBase64,
       isDarkGarment,
-      placement: placementParams,
+      placement: effectivePlacement,
     });
 
     // Refresh session before upload to prevent RLS failures during long runs
