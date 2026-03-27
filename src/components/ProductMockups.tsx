@@ -150,6 +150,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         productId={productId}
         userId={userId}
         productTitle={productTitle}
+        organizationId={organizationId}
         sourceImageUrl={sourceImageUrl || null}
         designImageUrl={designImageUrl}
         onComplete={loadImages}
