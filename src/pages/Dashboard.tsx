@@ -371,13 +371,30 @@ const Dashboard = () => {
     loadPrintifyShops(org.id);
   };
 
-  const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOrgTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
     setOrgTemplateFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+
+    // Auto-save when uploading from settings tab (not the brand form)
+    if (selectedOrg && view !== "org-form") {
+      try {
+        const filePath = `${user!.id}/templates/${selectedOrg.id}-${Date.now()}.${file.name.split(".").pop()}`;
+        const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, file, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        const templateUrl = urlData.publicUrl;
+        const { error: updateError } = await supabase.from("organizations").update({ template_image_url: templateUrl } as any).eq("id", selectedOrg.id);
+        if (updateError) throw updateError;
+        setSelectedOrg({ ...selectedOrg, template_image_url: templateUrl });
+        toast.success("Template image updated");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to upload template");
+      }
+    }
   };
 
   const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
