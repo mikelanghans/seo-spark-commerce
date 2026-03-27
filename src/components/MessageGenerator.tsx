@@ -617,7 +617,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                   }`}
                 >
                   {s === "text-only" ? <Type className="h-3 w-3" /> : <Image className="h-3 w-3" />}
-                  {s === "text-only" ? "Text" : s === "minimalist" ? "Art" : s}
+                  {s === "text-only" ? "Text" : s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                 </button>
               ))}
             </div>
