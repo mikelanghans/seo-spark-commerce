@@ -25,13 +25,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
+    const body = await req.json();
     const {
       shopId, title, description, tags, printifyImageId,
       darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price, sizePricing,
       blueprintId, printProviderId, productId, printifyProductId,
-      organizationId,
-    } = await req.json();
+      organizationId, action,
+    } = body;
 
     // Try org-level token first, then fall back to env var
     let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
@@ -49,6 +50,54 @@ serve(async (req) => {
     }
 
     if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
+
+    // Handle price-only update action
+    if (action === "update-price") {
+      const pPrintifyProductId = body.printifyProductId;
+      if (!pPrintifyProductId) throw new Error("printifyProductId is required for price update");
+
+      // Look up the shop ID from the organization
+      const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: org } = await adminClient.from("organizations").select("printify_shop_id").eq("id", organizationId).single();
+      const pShopId = org?.printify_shop_id;
+      if (!pShopId) throw new Error("No Printify shop configured");
+
+      // Fetch current product to get variants
+      const fetchRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
+        headers: { Authorization: `Bearer ${printifyToken}` },
+      });
+      if (!fetchRes.ok) throw new Error(`Failed to fetch Printify product: ${fetchRes.status}`);
+      const printifyProduct = await fetchRes.json();
+
+      const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
+      const sizePriceCents: Record<string, number> = {};
+      if (body.sizePricing && typeof body.sizePricing === "object") {
+        for (const [size, p] of Object.entries(body.sizePricing)) {
+          const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
+          if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
+        }
+      }
+
+      const updatedVariants = printifyProduct.variants.map((v: any) => {
+        const vSize = (v.options?.size || v.title || "").trim();
+        const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
+        return { id: v.id, price: priceVal, is_enabled: v.is_enabled };
+      });
+
+      const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ variants: updatedVariants }),
+      });
+      if (!updateRes.ok) {
+        const errText = await updateRes.text();
+        throw new Error(`Printify price update failed: ${updateRes.status} ${errText}`);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!shopId || !title || !printifyImageId) {
       throw new Error("shopId, title, and printifyImageId are required");
