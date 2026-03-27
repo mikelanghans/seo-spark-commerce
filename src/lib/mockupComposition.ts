@@ -103,7 +103,7 @@ function drawDesignWithUnderbase(
   const designHeight = cleanedDesign.height;
 
   // Text-only designs use a smaller scale to avoid oversized text
-  const designScale = designStyle === "text-only" ? 0.42 : 0.50;
+  const designScale = designStyle === "text-only" ? 0.38 : 0.45;
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
