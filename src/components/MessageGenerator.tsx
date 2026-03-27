@@ -164,7 +164,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       const rows = uniqueMessages.map((m: { text: string }) => ({
         user_id: userId,
         organization_id: organization.id,
-        message_text: m.text.toUpperCase(),
+        message_text: m.text,
         is_selected: false,
       }));
 
