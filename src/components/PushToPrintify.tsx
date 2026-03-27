@@ -34,6 +34,11 @@ interface Listing {
   title: string;
   description: string;
   tags: string[];
+  bullet_points?: string[];
+  seo_title?: string;
+  seo_description?: string;
+  url_handle?: string;
+  alt_text?: string;
 }
 
 interface MockupImage {
