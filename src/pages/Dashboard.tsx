@@ -2555,12 +2555,7 @@ const Dashboard = () => {
                       {channels.includes("printify") && (
                         <PushToPrintify
                           product={selectedProduct}
-                          listings={listings.map((l) => ({
-                            marketplace: l.marketplace,
-                            title: l.title,
-                            description: l.description,
-                            tags: l.tags as string[],
-                          }))}
+                          listings={listingsMapped}
                           userId={user!.id}
                           organizationId={selectedOrg?.id}
                           onProductUpdate={(updates) => {

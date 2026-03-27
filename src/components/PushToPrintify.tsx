@@ -11,7 +11,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Loader2, CheckCircle2, Printer, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, CheckCircle2, Printer, AlertTriangle, Store } from "lucide-react";
+import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
+import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
 
 interface Product {
@@ -23,6 +26,7 @@ interface Product {
   keywords: string;
   image_url: string | null;
   printify_product_id?: string | null;
+  shopify_product_id?: number | null;
 }
 
 interface Listing {
@@ -30,6 +34,11 @@ interface Listing {
   title: string;
   description: string;
   tags: string[];
+  bullet_points?: string[];
+  seo_title?: string;
+  seo_description?: string;
+  url_handle?: string;
+  alt_text?: string;
 }
 
 interface MockupImage {
@@ -80,6 +89,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
+  const [alsoUpdateShopify, setAlsoUpdateShopify] = useState(!!product.shopify_product_id);
 
   const loadShops = async () => {
     setLoadingShops(true);
@@ -306,15 +316,62 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setResult({ success: true });
-      setOpen(false);
       if (data.printifyProductId) {
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
-      toast.success(data.updated
+
+      const printifyMsg = data.updated
         ? `Updated on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-      );
+        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
+
+      // Also push mockups to Shopify if toggled on
+      if (alsoUpdateShopify && mockups.length > 0) {
+        try {
+          toast.info("Pushing mockup images to Shopify...");
+          const rawVariants = mockups.map((m) => ({
+            colorName: m.color_name,
+            imageUrl: m.image_url,
+          }));
+          const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
+
+          const typeConfig = getProductType(product.category || "");
+          if (typeConfig.sizeChartUrl) {
+            optimizedVariants.push({ colorName: "Size Chart", imageUrl: typeConfig.sizeChartUrl });
+          }
+
+          const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+          const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
+            body: {
+              organizationId,
+              product: {
+                id: product.id,
+                title: product.title,
+                description: product.description,
+                category: product.category,
+                price: product.price,
+                keywords: product.keywords,
+                shopify_product_id: product.shopify_product_id,
+              },
+              listings: shopifyListing ? [shopifyListing] : listings,
+              imageUrl: product.image_url,
+              variants: optimizedVariants,
+            },
+          });
+
+          if (shopifyError || shopifyData?.error) {
+            toast.error("Printify updated but Shopify mockup push failed: " + (shopifyData?.error || shopifyError?.message));
+          } else {
+            toast.success(printifyMsg + " Mockups also updated on Shopify!");
+          }
+        } catch (shopifyErr: any) {
+          toast.error("Printify updated but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
+        }
+      } else {
+        toast.success(printifyMsg);
+      }
+
+      setResult({ success: true });
+      setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Printify");
       setResult(null);
@@ -447,6 +504,20 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                 ))}
               </div>
             </div>
+
+            {/* Also update Shopify toggle */}
+            {hasMockups && (
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="flex items-center gap-2">
+                  <Store className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Also update Shopify mockups</p>
+                    <p className="text-xs text-muted-foreground">Push AI mockup images to your Shopify listing</p>
+                  </div>
+                </div>
+                <Switch checked={alsoUpdateShopify} onCheckedChange={setAlsoUpdateShopify} />
+              </div>
+            )}
 
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
