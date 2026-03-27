@@ -208,7 +208,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      const isLight = isLightColor(colorName, typeConfig);
+      const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
       // Pre-composite
