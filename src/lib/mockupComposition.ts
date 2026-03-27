@@ -11,6 +11,8 @@ interface CompositionLockParams {
   designDataUrl?: string;
   /** If true, adds a white underbase behind the design for visibility on dark garments */
   isDarkGarment?: boolean;
+  /** Design style — text-only uses a smaller scale to avoid oversized text */
+  designStyle?: string;
 }
 
 export const ensureImageDataUrl = (value: string) =>
@@ -33,6 +35,7 @@ export async function normalizeAndLockToTemplateBlob({
   targetHeight,
   designDataUrl,
   isDarkGarment,
+  designStyle,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -51,7 +54,7 @@ export async function normalizeAndLockToTemplateBlob({
         const designImg = await loadImage(designDataUrl);
         const cleanedDesign = stripSolidEdgeBackground(designImg);
         const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -94,11 +97,13 @@ function drawDesignWithUnderbase(
   targetWidth: number,
   targetHeight: number,
   isDarkGarment?: boolean,
+  designStyle?: string,
 ) {
   const designWidth = cleanedDesign.width;
   const designHeight = cleanedDesign.height;
 
-  const designScale = 0.60;
+  // Text-only designs use a smaller scale (~20% reduction) to avoid oversized text
+  const designScale = designStyle === "text-only" ? 0.48 : 0.60;
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2;
@@ -308,6 +313,7 @@ export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
   designDataUrl: string,
   isDarkGarment?: boolean,
+  designStyle?: string,
 ): Promise<string> {
   const [templateImg, designImg] = await Promise.all([
     loadImage(templateDataUrl),
@@ -329,7 +335,7 @@ export async function compositeDesignOntoTemplate(
   // Clean design (remove solid edge bg if needed)
   const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
   const preparedDesignCanvas = prepareDesignForCompositing(cleanedDesignCanvas);
-  drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment);
+  drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment, designStyle);
 
   return canvas.toDataURL("image/png");
 }
