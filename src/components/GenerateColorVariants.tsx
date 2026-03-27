@@ -247,6 +247,52 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     return true;
   };
 
+  const handlePreviewPlacement = async () => {
+    if (!sourceImageUrl) {
+      toast.error("No source image available. Upload a product image first.");
+      return;
+    }
+    if (colors.length === 0) {
+      toast.error("Add at least one color to generate.");
+      return;
+    }
+    try {
+      const resp = await fetch(sourceImageUrl);
+      const blob = await resp.blob();
+      const templateB64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      setPreviewTemplateBase64(templateB64);
+
+      const designUrl = designImageUrl || sourceImageUrl;
+      if (designUrl && designUrl !== sourceImageUrl) {
+        const dResp = await fetch(designUrl);
+        const dBlob = await dResp.blob();
+        const designB64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(dBlob);
+        });
+        setPreviewDesignBase64(designB64);
+      } else {
+        setPreviewDesignBase64(templateB64);
+      }
+      setShowPlacementPreview(true);
+    } catch {
+      toast.error("Failed to load images for preview");
+    }
+  };
+
+  const handlePlacementConfirm = (params: PlacementParams) => {
+    setPlacementParams(params);
+    setShowPlacementPreview(false);
+    setTimeout(() => handleGenerate(), 100);
+  };
+
   const handleGenerate = async () => {
     if (!sourceImageUrl) {
       toast.error("No source image available. Upload a product image first.");
@@ -839,7 +885,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
       onCancel={() => setShowPlacementPreview(false)}
       templateDataUrl={previewTemplateBase64}
       designDataUrl={previewDesignBase64}
-      designStyle={typeConfig.designStyle}
+      designStyle={undefined}
     />
 
     {organizationId && (
