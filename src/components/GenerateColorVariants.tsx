@@ -767,5 +767,17 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         </Button>
       </div>
     </div>
+
+    {organizationId && (
+      <MockupReviewDialog
+        open={showReview}
+        onClose={() => { setShowReview(false); setReviewMockups([]); }}
+        mockups={reviewMockups}
+        productId={productId}
+        organizationId={organizationId}
+        userId={userId}
+      />
+    )}
+    </>
   );
 };
