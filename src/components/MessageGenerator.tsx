@@ -9,6 +9,7 @@ import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
 import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
+import { ensureValidSession } from "@/lib/sessionRefresh";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
