@@ -416,6 +416,9 @@ const Dashboard = () => {
     setSelectedOrg(org);
     setView("products");
     loadProducts(org.id);
+    // Pre-select org marketplaces so listing generation works immediately
+    const mp = org.enabled_marketplaces?.length ? [...org.enabled_marketplaces] : [...ALL_MARKETPLACES] as string[];
+    setSelectedMarketplaces(mp);
   };
 
   const [deleteConfirmOrg, setDeleteConfirmOrg] = useState<Organization | null>(null);
@@ -687,6 +690,11 @@ const Dashboard = () => {
   const handleViewProduct = async (product: Product) => {
     setSelectedProduct(product);
     setView("product-detail");
+    // Ensure marketplaces are pre-selected
+    if (selectedMarketplaces.length === 0 && selectedOrg) {
+      const mp = selectedOrg.enabled_marketplaces?.length ? [...selectedOrg.enabled_marketplaces] : [...ALL_MARKETPLACES] as string[];
+      setSelectedMarketplaces(mp);
+    }
     await loadListings(product.id);
   };
 
