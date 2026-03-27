@@ -1701,8 +1701,6 @@ const Dashboard = () => {
                   )}
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
-                </div>
-                <div className="rounded-xl border border-border bg-card p-5">
                   <MarketplaceToggleSettings organizationId={selectedOrg!.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
