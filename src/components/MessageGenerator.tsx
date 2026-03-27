@@ -10,6 +10,14 @@ import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s — please try again`)), ms)
+    ),
+  ]);
+
 interface Organization {
   id: string;
   name: string;
@@ -106,20 +114,24 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         (allExisting || []).map((m: any) => m.message_text.toLowerCase().trim())
       );
 
-      const { data, error } = await supabase.functions.invoke("generate-messages", {
-        body: {
-          organization: {
-            id: organization.id,
-            name: organization.name,
-            niche: organization.niche,
-            tone: organization.tone,
-            audience: organization.audience,
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("generate-messages", {
+          body: {
+            organization: {
+              id: organization.id,
+              name: organization.name,
+              niche: organization.niche,
+              tone: organization.tone,
+              audience: organization.audience,
+            },
+            count: generateCount,
+            existingProducts: (allExisting || []).map((m: any) => m.message_text),
+            ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
-          count: generateCount,
-          existingProducts: (allExisting || []).map((m: any) => m.message_text),
-          ...(topic.trim() ? { topic: topic.trim() } : {}),
-        },
-      });
+        }),
+        60000,
+        "Message generation"
+      );
 
       if (error || data?.error) {
         handleAiError(error, data, "Failed to generate messages");
@@ -240,19 +252,23 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
     setRefiningId(id);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-messages", {
-        body: {
-          organization: {
-            id: organization.id,
-            name: organization.name,
-            niche: organization.niche,
-            tone: organization.tone,
-            audience: organization.audience,
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("generate-messages", {
+          body: {
+            organization: {
+              id: organization.id,
+              name: organization.name,
+              niche: organization.niche,
+              tone: organization.tone,
+              audience: organization.audience,
+            },
+            refineOriginal: msg.message_text,
+            refineFeedback: feedback,
           },
-          refineOriginal: msg.message_text,
-          refineFeedback: feedback,
-        },
-      });
+        }),
+        60000,
+        "Message refinement"
+      );
 
       if (error || data?.error) {
         handleAiError(error, data, "Failed to refine message");
