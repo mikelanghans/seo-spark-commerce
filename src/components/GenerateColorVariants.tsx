@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +67,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
   const [showReview, setShowReview] = useState(false);
   const [showPlacementPreview, setShowPlacementPreview] = useState(false);
   const [placementParams, setPlacementParams] = useState<PlacementParams | undefined>(undefined);
+  const placementRef = useRef<PlacementParams | undefined>(undefined);
   const [previewTemplateBase64, setPreviewTemplateBase64] = useState<string>("");
   const [previewDesignBase64, setPreviewDesignBase64] = useState<string>("");
 
@@ -220,7 +221,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
       targetHeight: targetSize?.height || 1024,
       designDataUrl: designBase64,
       isDarkGarment,
-      placement: placementParams,
+      placement: placementRef.current,
     });
 
     // Refresh session before upload to prevent RLS failures during long runs
