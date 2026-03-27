@@ -211,16 +211,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
-      // Pre-composite
-      let preComposited = templateBase64;
-      if (designForComposite) {
-        try {
-          preComposited = await compositeDesignOntoTemplate(templateBase64, designForComposite, !isLight);
-        } catch { /* use template */ }
-      }
-
+      // Send the PLAIN template to AI (no design baked in) to prevent duplication.
+      // The design is composited AFTER AI recoloring in normalizeAndLockToTemplateBlob.
+      let plainTemplate = templateBase64;
       try {
-        preComposited = await compressForEdgeFunction(preComposited, 1024, 0.8);
+        plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
       let targetSize: { width: number; height: number } | null = null;
@@ -234,7 +229,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       // Call edge function
       const { data, error } = await supabase.functions.invoke("generate-color-variants", {
         body: {
-          imageBase64: preComposited,
+          imageBase64: plainTemplate,
           colorName,
           productTitle,
           sourceWidth: targetSize?.width || null,
@@ -254,7 +249,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const generatedDataUrl = ensureImageDataUrl(generatedBase64);
       const blob = await normalizeAndLockToTemplateBlob({
-        templateDataUrl: preComposited,
+        templateDataUrl: plainTemplate,
         generatedDataUrl,
         targetWidth: targetSize?.width || 1024,
         targetHeight: targetSize?.height || 1024,
