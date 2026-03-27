@@ -645,6 +645,48 @@ export type Database = {
         }
         Relationships: []
       }
+      mockup_feedback: {
+        Row: {
+          color_accuracy: string | null
+          color_name: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          organization_id: string
+          product_id: string
+          product_image_id: string
+          rating: string
+          size_feedback: string | null
+          user_id: string
+        }
+        Insert: {
+          color_accuracy?: string | null
+          color_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          product_id: string
+          product_image_id: string
+          rating?: string
+          size_feedback?: string | null
+          user_id: string
+        }
+        Update: {
+          color_accuracy?: string | null
+          color_name?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          product_id?: string
+          product_image_id?: string
+          rating?: string
+          size_feedback?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
