@@ -43,6 +43,7 @@ export const DesignPlacementPreview = ({
   const [scale, setScale] = useState(defaultScale);
   const [offsetX, setOffsetX] = useState(DEFAULT_OFFSET_X);
   const [offsetY, setOffsetY] = useState(DEFAULT_OFFSET_Y);
+  const [initialized, setInitialized] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [templateImg, setTemplateImg] = useState<HTMLImageElement | null>(null);
