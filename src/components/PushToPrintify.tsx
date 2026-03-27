@@ -89,6 +89,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
+  const [alsoUpdateShopify, setAlsoUpdateShopify] = useState(!!product.shopify_product_id);
 
   const loadShops = async () => {
     setLoadingShops(true);
