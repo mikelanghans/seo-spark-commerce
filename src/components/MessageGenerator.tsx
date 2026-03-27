@@ -164,7 +164,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       const rows = uniqueMessages.map((m: { text: string }) => ({
         user_id: userId,
         organization_id: organization.id,
-        message_text: m.text.toUpperCase(),
+        message_text: m.text,
         is_selected: false,
       }));
 
@@ -617,7 +617,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                   }`}
                 >
                   {s === "text-only" ? <Type className="h-3 w-3" /> : <Image className="h-3 w-3" />}
-                  {s === "text-only" ? "Text" : s === "minimalist" ? "Art" : s}
+                  {s === "text-only" ? "Text" : s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                 </button>
               ))}
             </div>
