@@ -14,9 +14,11 @@ import {
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
+import type { DesignPlacement } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { getProductType, getSuggestedColors, getColorHexMap, isLightColor, type ProductTypeConfig } from "@/lib/productTypes";
 import { MockupReviewDialog } from "./MockupReviewDialog";
+import { DesignPlacementPreview, type PlacementParams } from "./DesignPlacementPreview";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
@@ -62,6 +64,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
   const [customInstructions, setCustomInstructions] = useState("");
   const [reviewMockups, setReviewMockups] = useState<{ id: string; image_url: string; color_name: string }[]>([]);
   const [showReview, setShowReview] = useState(false);
+  const [showPlacementPreview, setShowPlacementPreview] = useState(false);
+  const [placementParams, setPlacementParams] = useState<PlacementParams | undefined>(undefined);
+  const [previewTemplateBase64, setPreviewTemplateBase64] = useState<string>("");
+  const [previewDesignBase64, setPreviewDesignBase64] = useState<string>("");
 
   const loadExistingColors = async () => {
     const { data } = await supabase
