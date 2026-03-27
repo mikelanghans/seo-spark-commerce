@@ -3,6 +3,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { insertProductImagesDeduped } from "@/lib/productImageUtils";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,7 +40,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen, DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
@@ -77,6 +78,7 @@ interface Organization {
   enabled_marketplaces?: string[];
   enabled_product_types?: string[];
   enabled_social_platforms?: string[];
+  default_size_pricing?: Record<string, Record<string, string>>;
 }
 
 interface Product {
@@ -142,7 +144,7 @@ const Dashboard = () => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
 
   // Form states
-  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[] });
+  const [orgForm, setOrgForm] = useState({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"] as string[], printify_shop_id: null as number | null, enabled_marketplaces: [] as string[], enabled_product_types: ["t-shirt"] as string[], default_size_pricing: {} as Record<string, Record<string, string>> });
   const [printifyShops, setPrintifyShops] = useState<{ id: number; title: string }[]>([]);
   const [loadingPrintifyShops, setLoadingPrintifyShops] = useState(false);
   const [orgTemplateFile, setOrgTemplateFile] = useState<File | null>(null);
@@ -339,7 +341,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [], enabled_product_types: ["t-shirt"], default_size_pricing: {} });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setOrgLogoFile(null);
@@ -362,7 +364,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null, enabled_marketplaces: (org.enabled_marketplaces as string[]) || [] });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null, enabled_marketplaces: (org.enabled_marketplaces as string[]) || [], enabled_product_types: (org.enabled_product_types as string[]) || ["t-shirt"], default_size_pricing: (org.default_size_pricing as Record<string, Record<string, string>>) || {} });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
@@ -416,6 +418,9 @@ const Dashboard = () => {
     setSelectedOrg(org);
     setView("products");
     loadProducts(org.id);
+    // Pre-select org marketplaces so listing generation works immediately
+    const mp = org.enabled_marketplaces?.length ? [...org.enabled_marketplaces] : [...ALL_MARKETPLACES] as string[];
+    setSelectedMarketplaces(mp);
   };
 
   const [deleteConfirmOrg, setDeleteConfirmOrg] = useState<Organization | null>(null);
@@ -687,6 +692,11 @@ const Dashboard = () => {
   const handleViewProduct = async (product: Product) => {
     setSelectedProduct(product);
     setView("product-detail");
+    // Ensure marketplaces are pre-selected
+    if (selectedMarketplaces.length === 0 && selectedOrg) {
+      const mp = selectedOrg.enabled_marketplaces?.length ? [...selectedOrg.enabled_marketplaces] : [...ALL_MARKETPLACES] as string[];
+      setSelectedMarketplaces(mp);
+    }
     await loadListings(product.id);
   };
 
@@ -1219,7 +1229,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [], enabled_product_types: ["t-shirt"], default_size_pricing: {} }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -1470,6 +1480,83 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">None selected — all marketplaces will be shown by default</p>
               )}
             </div>
+
+            {/* Product Types */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Product Types</h3>
+                <p className="text-xs text-muted-foreground">Select which product types this brand offers</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Object.values(PRODUCT_TYPES).map((pt) => {
+                  const isEnabled = orgForm.enabled_product_types.includes(pt.key);
+                  return (
+                    <label
+                      key={pt.key}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${
+                        isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {
+                          const newTypes = isEnabled
+                            ? orgForm.enabled_product_types.filter((t) => t !== pt.key)
+                            : [...orgForm.enabled_product_types, pt.key];
+                          if (newTypes.length === 0) return;
+                          setOrgForm({ ...orgForm, enabled_product_types: newTypes });
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium">{pt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Size Pricing Defaults */}
+            {orgForm.enabled_product_types.some((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0) && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" /> Default Size Pricing</h3>
+                  <p className="text-xs text-muted-foreground">Set default prices per size for each product type — can be overridden per product</p>
+                </div>
+                {orgForm.enabled_product_types
+                  .filter((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0)
+                  .map((typeKey) => {
+                    const pt = PRODUCT_TYPES[typeKey as ProductTypeKey];
+                    const currentPricing = orgForm.default_size_pricing[typeKey] || pt.defaultSizePricing;
+                    return (
+                      <div key={typeKey} className="rounded-lg border border-border p-4 space-y-3">
+                        <Label className="font-semibold">{pt.label}</Label>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {pt.sizes.map((size) => (
+                            <div key={size} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">{size}</Label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                                <Input
+                                  value={currentPricing[size] || pt.defaultSizePricing[size] || ""}
+                                  onChange={(e) => {
+                                    const newPricing = { ...orgForm.default_size_pricing };
+                                    if (!newPricing[typeKey]) newPricing[typeKey] = { ...pt.defaultSizePricing };
+                                    newPricing[typeKey][size] = e.target.value;
+                                    setOrgForm({ ...orgForm, default_size_pricing: newPricing });
+                                  }}
+                                  className="pl-6 h-9 text-sm"
+                                  placeholder={pt.defaultSizePricing[size]}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
             <div className="flex justify-end">
               <Button type="submit" className="gap-2">
                 {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
