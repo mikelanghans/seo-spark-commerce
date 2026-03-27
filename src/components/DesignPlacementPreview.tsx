@@ -166,8 +166,12 @@ export const DesignPlacementPreview = ({
     const dx = tx + (tw - designW) / 2 + tw * offsetX;
     const dy = ty + th * offsetY;
 
-    // Resize handle (bottom-right corner)
-    if (Math.abs(mx - (dx + designW)) < 20 && Math.abs(my - (dy + designH)) < 20) {
+    // Resize handle (any corner)
+    const corners = [
+      [dx, dy], [dx + designW, dy],
+      [dx, dy + designH], [dx + designW, dy + designH],
+    ];
+    if (corners.some(([cx, cy]) => Math.abs(mx - cx) < 20 && Math.abs(my - cy) < 20)) {
       setResizing(true);
       resizeStart.current = { y: my, startScale: scale };
       e.preventDefault();
