@@ -11,6 +11,8 @@ interface CompositionLockParams {
   designDataUrl?: string;
   /** If true, adds a white underbase behind the design for visibility on dark garments */
   isDarkGarment?: boolean;
+  /** Design style — text-only uses a smaller scale to avoid oversized text */
+  designStyle?: string;
 }
 
 export const ensureImageDataUrl = (value: string) =>
@@ -33,6 +35,7 @@ export async function normalizeAndLockToTemplateBlob({
   targetHeight,
   designDataUrl,
   isDarkGarment,
+  designStyle,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -51,7 +54,7 @@ export async function normalizeAndLockToTemplateBlob({
         const designImg = await loadImage(designDataUrl);
         const cleanedDesign = stripSolidEdgeBackground(designImg);
         const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
