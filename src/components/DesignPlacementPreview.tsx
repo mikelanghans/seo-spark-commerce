@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Move, ZoomIn, Check, RotateCcw } from "lucide-react";
+import { Move, ZoomIn, Check, RotateCcw, ArrowLeftRight, ArrowUpDown } from "lucide-react";
 
 export interface PlacementParams {
   scale: number;    // 0.15 – 0.65
+  offsetX: number;  // -0.30 – 0.30 (fraction of canvas width, 0 = centered)
   offsetY: number;  // 0.05 – 0.70 (fraction of canvas height for design top)
 }
 
@@ -20,11 +21,14 @@ interface Props {
 }
 
 const DEFAULT_SCALE = 0.35;
+const DEFAULT_OFFSET_X = 0;
 const DEFAULT_OFFSET_Y = 0.25;
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 0.65;
-const MIN_OFFSET = 0.05;
-const MAX_OFFSET = 0.70;
+const MIN_OFFSET_X = -0.30;
+const MAX_OFFSET_X = 0.30;
+const MIN_OFFSET_Y = 0.05;
+const MAX_OFFSET_Y = 0.70;
 
 export const DesignPlacementPreview = ({
   open,
@@ -37,6 +41,7 @@ export const DesignPlacementPreview = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? 0.30 : DEFAULT_SCALE;
   const [scale, setScale] = useState(defaultScale);
+  const [offsetX, setOffsetX] = useState(DEFAULT_OFFSET_X);
   const [offsetY, setOffsetY] = useState(DEFAULT_OFFSET_Y);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,10 +49,9 @@ export const DesignPlacementPreview = ({
   const [designImg, setDesignImg] = useState<HTMLImageElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const dragStart = useRef<{ y: number; startOffsetY: number }>({ y: 0, startOffsetY: 0 });
+  const dragStart = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number }>({ x: 0, y: 0, startOffsetX: 0, startOffsetY: 0 });
   const resizeStart = useRef<{ y: number; startScale: number }>({ y: 0, startScale: 0 });
 
-  // Load images
   useEffect(() => {
     if (!open) return;
     const loadImg = (src: string) =>
@@ -59,14 +63,10 @@ export const DesignPlacementPreview = ({
         img.src = src;
       });
     Promise.all([loadImg(templateDataUrl), loadImg(designDataUrl)]).then(
-      ([t, d]) => {
-        setTemplateImg(t);
-        setDesignImg(d);
-      }
+      ([t, d]) => { setTemplateImg(t); setDesignImg(d); }
     );
   }, [open, templateDataUrl, designDataUrl]);
 
-  // Draw preview
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -74,10 +74,8 @@ export const DesignPlacementPreview = ({
 
     const displayW = canvas.width;
     const displayH = canvas.height;
-
     ctx.clearRect(0, 0, displayW, displayH);
 
-    // Draw template
     const tScale = Math.min(displayW / templateImg.width, displayH / templateImg.height);
     const tw = templateImg.width * tScale;
     const th = templateImg.height * tScale;
@@ -85,13 +83,11 @@ export const DesignPlacementPreview = ({
     const ty = (displayH - th) / 2;
     ctx.drawImage(templateImg, tx, ty, tw, th);
 
-    // Draw design
     const designW = tw * scale;
     const designH = designW * (designImg.height / designImg.width);
-    const dx = tx + (tw - designW) / 2;
+    const dx = tx + (tw - designW) / 2 + tw * offsetX;
     const dy = ty + th * offsetY;
 
-    // Semi-transparent underbase indicator for dark garments
     if (isDarkGarment) {
       ctx.globalAlpha = 0.15;
       ctx.fillStyle = "#ffffff";
@@ -101,30 +97,29 @@ export const DesignPlacementPreview = ({
 
     ctx.drawImage(designImg, dx, dy, designW, designH);
 
-    // Draw placement frame (dashed border like the reference)
+    // Dashed placement frame
     ctx.strokeStyle = "rgba(0,0,0,0.4)";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 4]);
     ctx.strokeRect(dx - 2, dy - 2, designW + 4, designH + 4);
     ctx.setLineDash([]);
 
-    // Corner handles (green squares like the reference)
-    const handleSize = 8;
+    // Corner handles
+    const hs = 8;
     ctx.fillStyle = "#22c55e";
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
-    const corners = [
+    for (const [cx, cy] of [
       [dx - 2, dy - 2],
-      [dx + designW + 2 - handleSize, dy - 2],
-      [dx - 2, dy + designH + 2 - handleSize],
-      [dx + designW + 2 - handleSize, dy + designH + 2 - handleSize],
-    ];
-    corners.forEach(([cx, cy]) => {
-      ctx.fillRect(cx, cy, handleSize, handleSize);
-      ctx.strokeRect(cx, cy, handleSize, handleSize);
-    });
+      [dx + designW + 2 - hs, dy - 2],
+      [dx - 2, dy + designH + 2 - hs],
+      [dx + designW + 2 - hs, dy + designH + 2 - hs],
+    ]) {
+      ctx.fillRect(cx, cy, hs, hs);
+      ctx.strokeRect(cx, cy, hs, hs);
+    }
 
-    // Center move indicator
+    // Center move icon
     ctx.fillStyle = "rgba(0,0,0,0.3)";
     ctx.beginPath();
     ctx.arc(dx + designW / 2, dy + designH / 2, 10, 0, Math.PI * 2);
@@ -134,45 +129,31 @@ export const DesignPlacementPreview = ({
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("⊕", dx + designW / 2, dy + designH / 2);
-  }, [templateImg, designImg, scale, offsetY, isDarkGarment]);
+  }, [templateImg, designImg, scale, offsetX, offsetY, isDarkGarment]);
 
-  useEffect(() => {
-    draw();
-  }, [draw]);
+  useEffect(() => { draw(); }, [draw]);
 
-  // Set canvas size
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvasRef.current.width = rect.width * dpr;
-    canvasRef.current.height = rect.height * dpr;
-    canvasRef.current.style.width = `${rect.width}px`;
-    canvasRef.current.style.height = `${rect.height}px`;
-    const ctx = canvasRef.current.getContext("2d");
-    if (ctx) ctx.scale(dpr, dpr);
-    // Reset to logical size for drawing
     canvasRef.current.width = rect.width;
     canvasRef.current.height = rect.height;
     draw();
   }, [templateImg, draw]);
 
-  const getCanvasY = (e: React.MouseEvent | React.TouchEvent) => {
+  const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
-    if (!canvas) return 0;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    return clientY - rect.top;
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const handlePointerDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current || !templateImg || !designImg) return;
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    const mx = clientX - rect.left;
-    const my = clientY - rect.top;
+    const { x: mx, y: my } = getCanvasPos(e);
 
     const tScale = Math.min(canvas.width / templateImg.width, canvas.height / templateImg.height);
     const tw = templateImg.width * tScale;
@@ -182,54 +163,51 @@ export const DesignPlacementPreview = ({
 
     const designW = tw * scale;
     const designH = designW * (designImg.height / designImg.width);
-    const dx = tx + (tw - designW) / 2;
+    const dx = tx + (tw - designW) / 2 + tw * offsetX;
     const dy = ty + th * offsetY;
 
-    // Check if near bottom-right corner (resize handle)
-    const cornerX = dx + designW;
-    const cornerY = dy + designH;
-    if (Math.abs(mx - cornerX) < 20 && Math.abs(my - cornerY) < 20) {
+    // Resize handle (bottom-right corner)
+    if (Math.abs(mx - (dx + designW)) < 20 && Math.abs(my - (dy + designH)) < 20) {
       setResizing(true);
       resizeStart.current = { y: my, startScale: scale };
       e.preventDefault();
       return;
     }
 
-    // Check if inside design area (drag)
+    // Drag (inside design)
     if (mx >= dx && mx <= dx + designW && my >= dy && my <= dy + designH) {
       setDragging(true);
-      dragStart.current = { y: my, startOffsetY: offsetY };
+      dragStart.current = { x: mx, y: my, startOffsetX: offsetX, startOffsetY: offsetY };
       e.preventDefault();
     }
   };
 
   const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canvasRef.current || !templateImg) return;
-    const my = getCanvasY(e);
+    const { x: mx, y: my } = getCanvasPos(e);
     const canvas = canvasRef.current;
     const tScale = Math.min(canvas.width / templateImg.width, canvas.height / templateImg.height);
+    const tw = templateImg.width * tScale;
     const th = templateImg.height * tScale;
 
     if (dragging) {
+      const deltaX = (mx - dragStart.current.x) / tw;
       const deltaY = (my - dragStart.current.y) / th;
-      const newOffset = Math.max(MIN_OFFSET, Math.min(MAX_OFFSET, dragStart.current.startOffsetY + deltaY));
-      setOffsetY(newOffset);
+      setOffsetX(Math.max(MIN_OFFSET_X, Math.min(MAX_OFFSET_X, dragStart.current.startOffsetX + deltaX)));
+      setOffsetY(Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, dragStart.current.startOffsetY + deltaY)));
     }
 
     if (resizing) {
       const deltaY = (my - resizeStart.current.y) / th;
-      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, resizeStart.current.startScale + deltaY * 1.5));
-      setScale(newScale);
+      setScale(Math.max(MIN_SCALE, Math.min(MAX_SCALE, resizeStart.current.startScale + deltaY * 1.5)));
     }
   };
 
-  const handlePointerUp = () => {
-    setDragging(false);
-    setResizing(false);
-  };
+  const handlePointerUp = () => { setDragging(false); setResizing(false); };
 
   const handleReset = () => {
     setScale(defaultScale);
+    setOffsetX(DEFAULT_OFFSET_X);
     setOffsetY(DEFAULT_OFFSET_Y);
   };
 
@@ -244,7 +222,7 @@ export const DesignPlacementPreview = ({
         </DialogHeader>
 
         <p className="text-xs text-muted-foreground">
-          Drag the design to reposition, use corner handles to resize, or adjust with sliders below.
+          Drag to reposition, corner handles to resize, or fine-tune with sliders.
         </p>
 
         <div
@@ -266,7 +244,7 @@ export const DesignPlacementPreview = ({
         </div>
 
         {/* Sliders */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
@@ -276,30 +254,29 @@ export const DesignPlacementPreview = ({
                 {Math.round(scale * 100)}%
               </span>
             </div>
-            <Slider
-              value={[scale]}
-              min={MIN_SCALE}
-              max={MAX_SCALE}
-              step={0.01}
-              onValueChange={([v]) => setScale(v)}
-            />
+            <Slider value={[scale]} min={MIN_SCALE} max={MAX_SCALE} step={0.01} onValueChange={([v]) => setScale(v)} />
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                <Move className="h-3 w-3" /> Vertical
+                <ArrowLeftRight className="h-3 w-3" /> Horizontal
+              </label>
+              <span className="text-[11px] font-mono text-muted-foreground">
+                {offsetX > 0 ? "+" : ""}{Math.round(offsetX * 100)}
+              </span>
+            </div>
+            <Slider value={[offsetX]} min={MIN_OFFSET_X} max={MAX_OFFSET_X} step={0.01} onValueChange={([v]) => setOffsetX(v)} />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                <ArrowUpDown className="h-3 w-3" /> Vertical
               </label>
               <span className="text-[11px] font-mono text-muted-foreground">
                 {Math.round(offsetY * 100)}%
               </span>
             </div>
-            <Slider
-              value={[offsetY]}
-              min={MIN_OFFSET}
-              max={MAX_OFFSET}
-              step={0.01}
-              onValueChange={([v]) => setOffsetY(v)}
-            />
+            <Slider value={[offsetY]} min={MIN_OFFSET_Y} max={MAX_OFFSET_Y} step={0.01} onValueChange={([v]) => setOffsetY(v)} />
           </div>
         </div>
 
@@ -311,7 +288,7 @@ export const DesignPlacementPreview = ({
             <Button variant="outline" size="sm" onClick={onCancel}>
               Cancel
             </Button>
-            <Button size="sm" onClick={() => onConfirm({ scale, offsetY })} className="gap-1">
+            <Button size="sm" onClick={() => onConfirm({ scale, offsetX, offsetY })} className="gap-1">
               <Check className="h-3.5 w-3.5" /> Confirm & Generate
             </Button>
           </div>
