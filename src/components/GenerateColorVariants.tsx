@@ -16,6 +16,7 @@ import {
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { getProductType, getSuggestedColors, getColorHexMap, isLightColor, type ProductTypeConfig } from "@/lib/productTypes";
+import { MockupReviewDialog } from "./MockupReviewDialog";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
