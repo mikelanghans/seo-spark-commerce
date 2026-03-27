@@ -9,6 +9,7 @@ import { DesignPreviewDialog } from "@/components/DesignPreviewDialog";
 import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image } from "lucide-react";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
+import { ensureValidSession } from "@/lib/sessionRefresh";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
@@ -99,6 +100,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   };
 
   const handleGenerate = async () => {
+    const sessionOk = await ensureValidSession();
+    if (!sessionOk) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     if (aiUsage) {
       const allowed = await aiUsage.checkAndLog("generate-messages", userId);
       if (!allowed) return;
@@ -246,6 +252,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleRefine = async (id: string, feedback: string) => {
     const msg = messages.find((m) => m.id === id);
     if (!msg) return;
+    const sessionOk = await ensureValidSession();
+    if (!sessionOk) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     if (aiUsage) {
       const allowed = await aiUsage.checkAndLog("generate-messages", userId);
       if (!allowed) return;
