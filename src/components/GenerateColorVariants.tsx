@@ -566,9 +566,21 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
-        <Palette className="h-3.5 w-3.5" /> Color Variants
-      </Button>
+      <>
+        <Button variant="outline" size="sm" onClick={() => { setOpen(true); loadExistingColors(); }} className="gap-2">
+          <Palette className="h-3.5 w-3.5" /> Color Variants
+        </Button>
+        {organizationId && (
+          <MockupReviewDialog
+            open={showReview}
+            onClose={() => { setShowReview(false); setReviewMockups([]); }}
+            mockups={reviewMockups}
+            productId={productId}
+            organizationId={organizationId}
+            userId={userId}
+          />
+        )}
+      </>
     );
   }
 
