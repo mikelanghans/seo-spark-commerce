@@ -42,22 +42,20 @@ serve(async (req) => {
 
     const prompt = `You are editing a product mockup photo. Your ONLY task: change the t-shirt fabric color to "${colorName}".
 
-IMAGE 1 is the IMMUTABLE master photo with a print/design already on the shirt. Keep it pixel-locked:
+IMAGE 1 is the IMMUTABLE master photo of a garment. Keep it pixel-locked:
 - Same camera angle, distance, focal length, and crop
 - Same shirt geometry (collar, sleeves, hem, fold silhouette)
 - Same background texture, color, lighting, props, and prop positions
 - Same wrinkles and shadow geometry on the shirt
 - Same overall framing and composition — do NOT zoom, pan, reframe, or shift ANY element
-- The print/design on the shirt MUST remain in the EXACT same position, size, and orientation
-- Do NOT move, resize, shift, distort, or alter the print/design in any way
-- The design text must remain 100% legible and crisp
+- If there is any print/design on the shirt, keep it in the EXACT same position, size, and orientation
+- Do NOT add, remove, move, resize, shift, or distort any elements
 
 Your edit scope is ONLY fabric recoloring.
 Color target (must match): ${swatchHint}.
 - Preserve natural fabric texture and shadows while changing only hue/saturation/lightness of shirt fabric
 - Keep white balance neutral; do not add color casts
 - Do NOT over-darken or over-wash the garment
-- Do NOT change print/design colors, contrast, position, or clarity
 
 ${sizeHint}
 
@@ -94,7 +92,7 @@ The output must look like the exact same photo with only the shirt fabric recolo
               messages: [
                 {
                   role: "system",
-                  content: "You are a professional product photo editor. You recolor fabric in existing photos while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, wrinkles, and any print/design on the shirt. The print/design must remain crisp and fully visible. Your output must be indistinguishable from the input except for the fabric color. You ALWAYS output an image. Never respond with text only.",
+                  content: "You are a professional product photo editor. You recolor fabric in existing photos while preserving EVERYTHING else: composition, camera angle, background, props, lighting, shadows, and wrinkles. Your output must be indistinguishable from the input except for the fabric color. You ALWAYS output an image. Never respond with text only.",
                 },
                 { role: "user", content: imageContent },
               ],
