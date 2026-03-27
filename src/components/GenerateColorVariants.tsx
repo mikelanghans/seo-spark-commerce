@@ -255,6 +255,49 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     setProgress({ done: 0, total: colors.length, current: colors[0] });
     setActiveColors([]);
 
+    // Build AI hints from past mockup feedback for this org
+    let feedbackHints = "";
+    if (organizationId) {
+      try {
+        const { data: fbRows } = await supabase
+          .from("mockup_feedback" as any)
+          .select("size_feedback, color_accuracy, notes, rating")
+          .eq("organization_id", organizationId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (fbRows && fbRows.length > 0) {
+          const sizeCounts = { "too-large": 0, "too-small": 0, "just-right": 0 };
+          const colorIssues: string[] = [];
+          const notesList: string[] = [];
+
+          for (const fb of fbRows as any[]) {
+            if (fb.size_feedback && fb.size_feedback in sizeCounts) {
+              sizeCounts[fb.size_feedback as keyof typeof sizeCounts]++;
+            }
+            if (fb.color_accuracy === "inaccurate") colorIssues.push(fb.color_name || "unknown");
+            if (fb.notes?.trim()) notesList.push(fb.notes.trim());
+          }
+
+          const hints: string[] = [];
+          if (sizeCounts["too-large"] > sizeCounts["just-right"] + sizeCounts["too-small"]) {
+            hints.push("IMPORTANT: Previous feedback indicates the design/print on the shirt tends to appear TOO LARGE. Make the design noticeably smaller on the garment.");
+          } else if (sizeCounts["too-small"] > sizeCounts["just-right"] + sizeCounts["too-large"]) {
+            hints.push("IMPORTANT: Previous feedback indicates the design/print appears TOO SMALL. Make the design slightly larger on the garment.");
+          }
+          if (colorIssues.length >= 2) {
+            hints.push(`Color accuracy has been flagged as an issue. Pay extra attention to matching the target color precisely.`);
+          }
+          if (notesList.length > 0) {
+            hints.push(`User notes from past mockups: ${notesList.slice(0, 3).join("; ")}`);
+          }
+          feedbackHints = hints.join("\n");
+        }
+      } catch {
+        // silently skip
+      }
+    }
+
     const { data: existingImages } = await supabase
       .from("product_images")
       .select("color_name")
