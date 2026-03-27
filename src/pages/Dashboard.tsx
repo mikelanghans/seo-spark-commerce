@@ -371,13 +371,30 @@ const Dashboard = () => {
     loadPrintifyShops(org.id);
   };
 
-  const handleOrgTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOrgTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
     setOrgTemplateFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+
+    // Auto-save when uploading from settings tab (not the brand form)
+    if (selectedOrg && view !== "org-form") {
+      try {
+        const filePath = `${user!.id}/templates/${selectedOrg.id}-${Date.now()}.${file.name.split(".").pop()}`;
+        const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, file, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        const templateUrl = urlData.publicUrl;
+        const { error: updateError } = await supabase.from("organizations").update({ template_image_url: templateUrl } as any).eq("id", selectedOrg.id);
+        if (updateError) throw updateError;
+        setSelectedOrg({ ...selectedOrg, template_image_url: templateUrl });
+        toast.success("Template image updated");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to upload template");
+      }
+    }
   };
 
   const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1646,8 +1663,44 @@ const Dashboard = () => {
                 <div className="rounded-xl border border-border bg-card p-5">
                   <PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} />
                 </div>
+                {/* Default Mockup Template */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      Default Mockup Template
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">Fallback image used for AI color variants when a product has no image</p>
+                  </div>
+                  <input type="file" accept="image/*" onChange={handleOrgTemplateUpload} className="hidden" id="org-template-image-settings" />
+                  {(orgTemplatePreview || selectedOrg?.template_image_url) ? (
+                    <div className="relative overflow-hidden rounded-xl border border-border bg-background">
+                      <img src={orgTemplatePreview || selectedOrg?.template_image_url || ""} alt="Template" className="mx-auto max-h-48 object-contain p-4" />
+                      <div className="flex items-center justify-center gap-3 pb-3">
+                        <label htmlFor="org-template-image-settings" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">
+                          Change template
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="org-template-image-settings"
+                      className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-8 transition-colors hover:border-primary/50"
+                    >
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      <p className="text-sm font-medium">Upload template image</p>
+                      <p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
+                    </label>
+                  )}
+                  {(selectedOrg?.template_image_url) && (
+                    <RegenerateAllMockups
+                      organizationId={selectedOrg.id}
+                      userId={user!.id}
+                      templateImageUrl={selectedOrg.template_image_url}
+                    />
+                  )}
+                </div>
                 <div className="rounded-xl border border-border bg-card p-5">
-                  <MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   <MarketplaceToggleSettings organizationId={selectedOrg!.id} />
