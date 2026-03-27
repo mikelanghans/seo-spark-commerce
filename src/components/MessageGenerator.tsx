@@ -100,6 +100,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   };
 
   const handleGenerate = async () => {
+    const sessionOk = await ensureValidSession();
+    if (!sessionOk) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     if (aiUsage) {
       const allowed = await aiUsage.checkAndLog("generate-messages", userId);
       if (!allowed) return;
@@ -247,6 +252,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handleRefine = async (id: string, feedback: string) => {
     const msg = messages.find((m) => m.id === id);
     if (!msg) return;
+    const sessionOk = await ensureValidSession();
+    if (!sessionOk) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     if (aiUsage) {
       const allowed = await aiUsage.checkAndLog("generate-messages", userId);
       if (!allowed) return;
