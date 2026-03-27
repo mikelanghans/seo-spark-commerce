@@ -39,6 +39,7 @@ interface Props {
   brandTone?: string;
   productCategory?: string;
   aiUsage?: AiUsage;
+  onRegenerateSingle?: (colorName: string, feedback: string) => Promise<void>;
 }
 
 interface ColorRecommendation {
@@ -46,7 +47,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage, onRegenerateSingle }: Props) => {
   const typeConfig = getProductType(productCategory || "");
   const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
   const COLOR_HEX = getColorHexMap(typeConfig);
@@ -660,11 +661,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         {organizationId && (
           <MockupReviewDialog
             open={showReview}
-            onClose={() => { setShowReview(false); setReviewMockups([]); }}
+            onClose={() => { setShowReview(false); setReviewMockups([]); onComplete(); }}
             mockups={reviewMockups}
             productId={productId}
             organizationId={organizationId}
             userId={userId}
+            onRegenerateSingle={onRegenerateSingle}
           />
         )}
       </>
