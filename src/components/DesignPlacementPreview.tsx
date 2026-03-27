@@ -43,6 +43,7 @@ export const DesignPlacementPreview = ({
   const [scale, setScale] = useState(defaultScale);
   const [offsetX, setOffsetX] = useState(DEFAULT_OFFSET_X);
   const [offsetY, setOffsetY] = useState(DEFAULT_OFFSET_Y);
+  const [initialized, setInitialized] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [templateImg, setTemplateImg] = useState<HTMLImageElement | null>(null);
@@ -53,7 +54,7 @@ export const DesignPlacementPreview = ({
   const resizeStart = useRef<{ y: number; startScale: number }>({ y: 0, startScale: 0 });
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setInitialized(false); return; }
     const loadImg = (src: string) =>
       new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
@@ -63,7 +64,20 @@ export const DesignPlacementPreview = ({
         img.src = src;
       });
     Promise.all([loadImg(templateDataUrl), loadImg(designDataUrl)]).then(
-      ([t, d]) => { setTemplateImg(t); setDesignImg(d); }
+      ([t, d]) => {
+        setTemplateImg(t);
+        setDesignImg(d);
+
+        // Auto-center the design on the garment for an accurate starting position
+        if (!initialized) {
+          const designAspect = d.height / d.width;
+          const designH = defaultScale * designAspect; // as fraction of garment height
+          // Center vertically: offsetY such that design center aligns with garment center
+          const centeredY = Math.max(MIN_OFFSET_Y, Math.min(MAX_OFFSET_Y, 0.5 - designH / 2));
+          setOffsetY(centeredY);
+          setInitialized(true);
+        }
+      }
     );
   }, [open, templateDataUrl, designDataUrl]);
 
