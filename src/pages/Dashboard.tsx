@@ -1479,6 +1479,83 @@ const Dashboard = () => {
                 <p className="text-xs text-muted-foreground">None selected — all marketplaces will be shown by default</p>
               )}
             </div>
+
+            {/* Product Types */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Product Types</h3>
+                <p className="text-xs text-muted-foreground">Select which product types this brand offers</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Object.values(PRODUCT_TYPES).map((pt) => {
+                  const isEnabled = orgForm.enabled_product_types.includes(pt.key);
+                  return (
+                    <label
+                      key={pt.key}
+                      className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${
+                        isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {
+                          const newTypes = isEnabled
+                            ? orgForm.enabled_product_types.filter((t) => t !== pt.key)
+                            : [...orgForm.enabled_product_types, pt.key];
+                          if (newTypes.length === 0) return;
+                          setOrgForm({ ...orgForm, enabled_product_types: newTypes });
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium">{pt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Size Pricing Defaults */}
+            {orgForm.enabled_product_types.some((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0) && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" /> Default Size Pricing</h3>
+                  <p className="text-xs text-muted-foreground">Set default prices per size for each product type — can be overridden per product</p>
+                </div>
+                {orgForm.enabled_product_types
+                  .filter((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0)
+                  .map((typeKey) => {
+                    const pt = PRODUCT_TYPES[typeKey as ProductTypeKey];
+                    const currentPricing = orgForm.default_size_pricing[typeKey] || pt.defaultSizePricing;
+                    return (
+                      <div key={typeKey} className="rounded-lg border border-border p-4 space-y-3">
+                        <Label className="font-semibold">{pt.label}</Label>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {pt.sizes.map((size) => (
+                            <div key={size} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">{size}</Label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                                <Input
+                                  value={currentPricing[size] || pt.defaultSizePricing[size] || ""}
+                                  onChange={(e) => {
+                                    const newPricing = { ...orgForm.default_size_pricing };
+                                    if (!newPricing[typeKey]) newPricing[typeKey] = { ...pt.defaultSizePricing };
+                                    newPricing[typeKey][size] = e.target.value;
+                                    setOrgForm({ ...orgForm, default_size_pricing: newPricing });
+                                  }}
+                                  className="pl-6 h-9 text-sm"
+                                  placeholder={pt.defaultSizePricing[size]}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
             <div className="flex justify-end">
               <Button type="submit" className="gap-2">
                 {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
