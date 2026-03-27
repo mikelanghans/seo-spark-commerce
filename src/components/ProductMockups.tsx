@@ -223,6 +223,15 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                    {organizationId && (
+                      <MockupFeedback
+                        productImageId={img.id}
+                        productId={productId}
+                        organizationId={organizationId}
+                        userId={userId}
+                        colorName={img.color_name}
+                      />
+                    )}
                   </>
                 )}
               </div>
