@@ -589,6 +589,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
   const recommendedColorNames = new Set(recommendations.map((r) => r.color.toLowerCase()));
 
   return (
+    <>
     <div className="rounded-lg border border-border bg-card p-4 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
