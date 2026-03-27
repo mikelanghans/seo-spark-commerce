@@ -313,6 +313,7 @@ export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
   designDataUrl: string,
   isDarkGarment?: boolean,
+  designStyle?: string,
 ): Promise<string> {
   const [templateImg, designImg] = await Promise.all([
     loadImage(templateDataUrl),
@@ -334,7 +335,7 @@ export async function compositeDesignOntoTemplate(
   // Clean design (remove solid edge bg if needed)
   const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
   const preparedDesignCanvas = prepareDesignForCompositing(cleanedDesignCanvas);
-  drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment);
+  drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment, designStyle);
 
   return canvas.toDataURL("image/png");
 }
