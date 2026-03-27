@@ -316,15 +316,62 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setResult({ success: true });
-      setOpen(false);
       if (data.printifyProductId) {
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
-      toast.success(data.updated
+
+      const printifyMsg = data.updated
         ? `Updated on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-      );
+        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
+
+      // Also push mockups to Shopify if toggled on
+      if (alsoUpdateShopify && mockups.length > 0) {
+        try {
+          toast.info("Pushing mockup images to Shopify...");
+          const rawVariants = mockups.map((m) => ({
+            colorName: m.color_name,
+            imageUrl: m.image_url,
+          }));
+          const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
+
+          const typeConfig = getProductType(product.category || "");
+          if (typeConfig.sizeChartUrl) {
+            optimizedVariants.push({ colorName: "Size Chart", imageUrl: typeConfig.sizeChartUrl });
+          }
+
+          const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+          const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
+            body: {
+              organizationId,
+              product: {
+                id: product.id,
+                title: product.title,
+                description: product.description,
+                category: product.category,
+                price: product.price,
+                keywords: product.keywords,
+                shopify_product_id: product.shopify_product_id,
+              },
+              listings: shopifyListing ? [shopifyListing] : listings,
+              imageUrl: product.image_url,
+              variants: optimizedVariants,
+            },
+          });
+
+          if (shopifyError || shopifyData?.error) {
+            toast.error("Printify updated but Shopify mockup push failed: " + (shopifyData?.error || shopifyError?.message));
+          } else {
+            toast.success(printifyMsg + " Mockups also updated on Shopify!");
+          }
+        } catch (shopifyErr: any) {
+          toast.error("Printify updated but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
+        }
+      } else {
+        toast.success(printifyMsg);
+      }
+
+      setResult({ success: true });
+      setOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Failed to push to Printify");
       setResult(null);
