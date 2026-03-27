@@ -14,9 +14,11 @@ import {
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
+import type { DesignPlacement } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { getProductType, getSuggestedColors, getColorHexMap, isLightColor, type ProductTypeConfig } from "@/lib/productTypes";
 import { MockupReviewDialog } from "./MockupReviewDialog";
+import { DesignPlacementPreview, type PlacementParams } from "./DesignPlacementPreview";
 
 interface AiUsage {
   checkAndLog: (fn: string, userId: string) => Promise<boolean>;
@@ -62,6 +64,10 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
   const [customInstructions, setCustomInstructions] = useState("");
   const [reviewMockups, setReviewMockups] = useState<{ id: string; image_url: string; color_name: string }[]>([]);
   const [showReview, setShowReview] = useState(false);
+  const [showPlacementPreview, setShowPlacementPreview] = useState(false);
+  const [placementParams, setPlacementParams] = useState<PlacementParams | undefined>(undefined);
+  const [previewTemplateBase64, setPreviewTemplateBase64] = useState<string>("");
+  const [previewDesignBase64, setPreviewDesignBase64] = useState<string>("");
 
   const loadExistingColors = async () => {
     const { data } = await supabase
@@ -213,6 +219,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
       targetHeight: targetSize?.height || 1024,
       designDataUrl: designBase64,
       isDarkGarment,
+      placement: placementParams,
     });
 
     // Refresh session before upload to prevent RLS failures during long runs
@@ -238,6 +245,52 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
     });
 
     return true;
+  };
+
+  const handlePreviewPlacement = async () => {
+    if (!sourceImageUrl) {
+      toast.error("No source image available. Upload a product image first.");
+      return;
+    }
+    if (colors.length === 0) {
+      toast.error("Add at least one color to generate.");
+      return;
+    }
+    try {
+      const resp = await fetch(sourceImageUrl);
+      const blob = await resp.blob();
+      const templateB64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      setPreviewTemplateBase64(templateB64);
+
+      const designUrl = designImageUrl || sourceImageUrl;
+      if (designUrl && designUrl !== sourceImageUrl) {
+        const dResp = await fetch(designUrl);
+        const dBlob = await dResp.blob();
+        const designB64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(dBlob);
+        });
+        setPreviewDesignBase64(designB64);
+      } else {
+        setPreviewDesignBase64(templateB64);
+      }
+      setShowPlacementPreview(true);
+    } catch {
+      toast.error("Failed to load images for preview");
+    }
+  };
+
+  const handlePlacementConfirm = (params: PlacementParams) => {
+    setPlacementParams(params);
+    setShowPlacementPreview(false);
+    setTimeout(() => handleGenerate(), 100);
   };
 
   const handleGenerate = async () => {
@@ -505,12 +558,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
 
     if (lightDesign) {
       try {
-        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign, true);
+        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign, true, undefined, placementParams);
       } catch { preCompositedDark = imageBase64; }
     }
     if (darkDesign || lightDesign) {
       try {
-        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!, false);
+        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!, false, undefined, placementParams);
       } catch { preCompositedLight = imageBase64; }
     }
 
@@ -807,7 +860,7 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         )}
 
         <Button
-          onClick={handleGenerate}
+          onClick={handlePreviewPlacement}
           disabled={generating || colors.length === 0 || newCount === 0}
           className="gap-2 w-full"
           size="sm"
@@ -821,10 +874,19 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
             ? `Generating ${progress.done}/${progress.total}…`
             : newCount === 0
               ? "All selected colors already exist"
-              : `Generate ${newCount} Variant${newCount !== 1 ? "s" : ""}`}
+              : `Preview & Generate ${newCount} Variant${newCount !== 1 ? "s" : ""}`}
         </Button>
       </div>
     </div>
+
+    <DesignPlacementPreview
+      open={showPlacementPreview}
+      onConfirm={handlePlacementConfirm}
+      onCancel={() => setShowPlacementPreview(false)}
+      templateDataUrl={previewTemplateBase64}
+      designDataUrl={previewDesignBase64}
+      designStyle={undefined}
+    />
 
     {organizationId && (
       <MockupReviewDialog
