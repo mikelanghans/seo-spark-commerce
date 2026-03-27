@@ -39,6 +39,7 @@ interface Props {
   brandTone?: string;
   productCategory?: string;
   aiUsage?: AiUsage;
+  onRegenerateSingle?: (colorName: string, feedback: string) => Promise<void>;
 }
 
 interface ColorRecommendation {
@@ -46,7 +47,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
+export const GenerateColorVariants = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, onComplete, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage, onRegenerateSingle }: Props) => {
   const typeConfig = getProductType(productCategory || "");
   const SUGGESTED_COLORS = getSuggestedColors(typeConfig);
   const COLOR_HEX = getColorHexMap(typeConfig);
@@ -548,31 +549,20 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
       }
     }
 
-    // Pre-composite: bake the appropriate design into the template for each color group
-    // Light shirts use dark design, dark shirts use light design
+    // DO NOT pre-composite design onto template before sending to AI.
+    // The AI only needs the plain garment photo to recolor the fabric.
+    // The design is composited AFTER AI recoloring in normalizeAndLockToTemplateBlob,
+    // which prevents the AI from duplicating/shifting the design.
     const lightDesign = lightDesignBase64; // white/bright ink for dark shirts
     const darkDesign = darkDesignBase64;   // dark ink for light shirts
 
-    let preCompositedDark: string = imageBase64; // for dark shirts (use light design)
-    let preCompositedLight: string = imageBase64; // for light shirts (use dark design)
+    let plainTemplate = imageBase64;
 
-    if (lightDesign) {
-      try {
-        preCompositedDark = await compositeDesignOntoTemplate(imageBase64, lightDesign, true, undefined, placementParams);
-      } catch { preCompositedDark = imageBase64; }
-    }
-    if (darkDesign || lightDesign) {
-      try {
-        preCompositedLight = await compositeDesignOntoTemplate(imageBase64, darkDesign || lightDesign!, false, undefined, placementParams);
-      } catch { preCompositedLight = imageBase64; }
-    }
-
-    // Compress images to avoid edge function memory limits
+    // Compress plain template to avoid edge function memory limits
     try {
-      preCompositedDark = await compressForEdgeFunction(preCompositedDark, 1024, 0.8);
-      preCompositedLight = await compressForEdgeFunction(preCompositedLight, 1024, 0.8);
+      plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
     } catch (err) {
-      console.warn("Failed to compress images, using originals", err);
+      console.warn("Failed to compress template, using original", err);
     }
 
     // Process with concurrency of 2
@@ -597,11 +587,11 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
 
         try {
           const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
-          const preComposited = isLight ? preCompositedLight : preCompositedDark;
-          // Pass the correct design variant for post-AI recomposite
+          // Send the PLAIN template to AI (no design baked in) to prevent duplication
+          // The design is composited AFTER AI recoloring in normalizeAndLockToTemplateBlob
           const designForRecomposite = isLight ? (darkDesign || lightDesign) : lightDesign;
           const combinedInstructions = [customInstructions.trim(), feedbackHints].filter(Boolean).join("\n") || undefined;
-          const ok = await generateSingleColor(colorName, preComposited, targetSize, designForRecomposite, !isLight, combinedInstructions);
+          const ok = await generateSingleColor(colorName, plainTemplate, targetSize, designForRecomposite, !isLight, combinedInstructions);
           if (ok) successCount++;
         } catch (err: any) {
           if (err?.message === "CREDITS_EXHAUSTED") {
@@ -671,11 +661,12 @@ export const GenerateColorVariants = ({ productId, userId, productTitle, organiz
         {organizationId && (
           <MockupReviewDialog
             open={showReview}
-            onClose={() => { setShowReview(false); setReviewMockups([]); }}
+            onClose={() => { setShowReview(false); setReviewMockups([]); onComplete(); }}
             mockups={reviewMockups}
             productId={productId}
             organizationId={organizationId}
             userId={userId}
+            onRegenerateSingle={onRegenerateSingle}
           />
         )}
       </>
