@@ -3,9 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ThumbsUp, ThumbsDown, ArrowDownFromLine, ArrowUpFromLine, Palette, CheckCircle2 } from "lucide-react";
+import { ThumbsUp, ArrowDownFromLine, ArrowUpFromLine, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface MockupItem {
   id: string;
@@ -22,57 +21,34 @@ interface Props {
   userId: string;
 }
 
-interface FeedbackState {
-  rating: "good" | "bad" | "neutral";
-  sizeFeedback: "too-large" | "too-small" | "just-right" | null;
-  colorAccuracy: "accurate" | "inaccurate" | null;
-  notes: string;
-}
+type SizeFeedback = "too-large" | "too-small" | "just-right" | null;
 
 export const MockupReviewDialog = ({ open, onClose, mockups, productId, organizationId, userId }: Props) => {
-  const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackState>>({});
+  const [sizeFeedback, setSizeFeedback] = useState<SizeFeedback>(null);
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
 
-  const getFeedback = (id: string): FeedbackState =>
-    feedbackMap[id] || { rating: "neutral", sizeFeedback: null, colorAccuracy: null, notes: "" };
-
-  const updateFeedback = (id: string, partial: Partial<FeedbackState>) => {
-    setFeedbackMap((prev) => ({
-      ...prev,
-      [id]: { ...getFeedback(id), ...partial },
-    }));
-  };
-
-  const handleSubmitAll = async () => {
-    const entries = Object.entries(feedbackMap).filter(
-      ([, fb]) => fb.rating !== "neutral" || fb.sizeFeedback || fb.colorAccuracy || fb.notes.trim()
-    );
-    if (entries.length === 0) {
+  const handleSubmit = async () => {
+    if (!sizeFeedback && !notes.trim()) {
       onClose();
       return;
     }
 
     setSaving(true);
     try {
-      const rows = entries.map(([imageId, fb]) => {
-        const mockup = mockups.find((m) => m.id === imageId);
-        return {
-          product_image_id: imageId,
-          product_id: productId,
-          organization_id: organizationId,
-          user_id: userId,
-          rating: fb.rating,
-          size_feedback: fb.sizeFeedback,
-          color_accuracy: fb.colorAccuracy,
-          notes: fb.notes.trim() || null,
-          color_name: mockup?.color_name || "",
-        };
+      // Save one general feedback entry (using first mockup as reference)
+      const { error } = await supabase.from("mockup_feedback" as any).insert({
+        product_image_id: mockups[0]?.id,
+        product_id: productId,
+        organization_id: organizationId,
+        user_id: userId,
+        rating: sizeFeedback === "just-right" ? "good" : sizeFeedback ? "bad" : "neutral",
+        size_feedback: sizeFeedback,
+        notes: notes.trim() || null,
+        color_name: "general",
       });
-
-      const { error } = await supabase.from("mockup_feedback" as any).insert(rows);
       if (error) throw error;
-      toast.success(`Saved feedback for ${rows.length} mockup${rows.length !== 1 ? "s" : ""}`);
+      toast.success("Thanks! Your feedback will improve future mockups.");
       onClose();
     } catch {
       toast.error("Failed to save feedback");
@@ -83,131 +59,75 @@ export const MockupReviewDialog = ({ open, onClose, mockups, productId, organiza
 
   if (mockups.length === 0) return null;
 
-  const current = mockups[activeIdx];
-  const fb = getFeedback(current.id);
-  const reviewedCount = Object.values(feedbackMap).filter(
-    (f) => f.rating !== "neutral" || f.sizeFeedback || f.colorAccuracy || f.notes.trim()
-  ).length;
+  // Show a small grid of generated mockups for context
+  const previewMockups = mockups.slice(0, 4);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="h-4 w-4 text-primary" />
-            Review Mockups ({activeIdx + 1}/{mockups.length})
+            How do the mockups look?
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Image preview */}
-          <div className="rounded-lg border border-border bg-secondary overflow-hidden">
-            <img
-              src={current.image_url}
-              alt={current.color_name}
-              className="w-full object-contain max-h-64"
-              loading="lazy"
-            />
-          </div>
-          <p className="text-center text-xs font-medium">{current.color_name}</p>
-
-          {/* Quick rating */}
-          <div className="flex justify-center gap-3">
-            <Button
-              size="sm"
-              variant={fb.rating === "good" ? "default" : "outline"}
-              className="gap-1"
-              onClick={() => updateFeedback(current.id, { rating: fb.rating === "good" ? "neutral" : "good" })}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" /> Good
-            </Button>
-            <Button
-              size="sm"
-              variant={fb.rating === "bad" ? "default" : "outline"}
-              className="gap-1"
-              onClick={() => updateFeedback(current.id, { rating: fb.rating === "bad" ? "neutral" : "bad" })}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" /> Needs Work
-            </Button>
-          </div>
-
-          {/* Detail fields — always visible for quick access */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Design Size</p>
-              <div className="flex flex-col gap-1">
-                {([
-                  { value: "too-large" as const, label: "Too Large", icon: ArrowUpFromLine },
-                  { value: "just-right" as const, label: "Just Right", icon: ThumbsUp },
-                  { value: "too-small" as const, label: "Too Small", icon: ArrowDownFromLine },
-                ]).map(({ value, label, icon: Icon }) => (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant={fb.sizeFeedback === value ? "default" : "outline"}
-                    className="justify-start gap-1 text-[11px] h-7"
-                    onClick={() => updateFeedback(current.id, { sizeFeedback: fb.sizeFeedback === value ? null : value })}
-                  >
-                    <Icon className="h-3 w-3" /> {label}
-                  </Button>
-                ))}
+          {/* Quick preview grid */}
+          <div className="grid grid-cols-4 gap-1.5 rounded-lg border border-border bg-secondary p-2">
+            {previewMockups.map((m) => (
+              <div key={m.id} className="aspect-square rounded overflow-hidden">
+                <img src={m.image_url} alt={m.color_name} className="h-full w-full object-contain" loading="lazy" />
               </div>
-            </div>
-            <div>
-              <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Color Accuracy</p>
-              <div className="flex flex-col gap-1">
-                <Button
-                  size="sm"
-                  variant={fb.colorAccuracy === "accurate" ? "default" : "outline"}
-                  className="justify-start gap-1 text-[11px] h-7"
-                  onClick={() => updateFeedback(current.id, { colorAccuracy: fb.colorAccuracy === "accurate" ? null : "accurate" })}
-                >
-                  <Palette className="h-3 w-3" /> Accurate
-                </Button>
-                <Button
-                  size="sm"
-                  variant={fb.colorAccuracy === "inaccurate" ? "default" : "outline"}
-                  className="justify-start gap-1 text-[11px] h-7"
-                  onClick={() => updateFeedback(current.id, { colorAccuracy: fb.colorAccuracy === "inaccurate" ? null : "inaccurate" })}
-                >
-                  <Palette className="h-3 w-3" /> Off
-                </Button>
+            ))}
+            {mockups.length > 4 && (
+              <div className="col-span-4 text-center text-[10px] text-muted-foreground pt-1">
+                +{mockups.length - 4} more
               </div>
-            </div>
+            )}
           </div>
 
-          <Textarea
-            value={fb.notes}
-            onChange={(e) => updateFeedback(current.id, { notes: e.target.value })}
-            placeholder="Optional notes (e.g. ghost design, shifted placement...)"
-            className="h-14 text-xs"
-          />
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex gap-1">
-              {mockups.map((_, i) => (
-                <button
-                  key={i}
-                  className={cn(
-                    "h-2 w-2 rounded-full transition-colors",
-                    i === activeIdx ? "bg-primary" : "bg-muted-foreground/30"
-                  )}
-                  onClick={() => setActiveIdx(i)}
-                />
+          {/* Design size — one-time general feedback */}
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Overall design size on the garment</p>
+            <div className="flex gap-2">
+              {([
+                { value: "too-large" as const, label: "Too Large", icon: ArrowUpFromLine },
+                { value: "just-right" as const, label: "Just Right", icon: ThumbsUp },
+                { value: "too-small" as const, label: "Too Small", icon: ArrowDownFromLine },
+              ]).map(({ value, label, icon: Icon }) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={sizeFeedback === value ? "default" : "outline"}
+                  className="flex-1 gap-1 text-xs"
+                  onClick={() => setSizeFeedback(sizeFeedback === value ? null : value)}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </Button>
               ))}
             </div>
-            <div className="flex gap-2">
-              {activeIdx < mockups.length - 1 ? (
-                <Button size="sm" onClick={() => setActiveIdx(activeIdx + 1)}>
-                  Next
-                </Button>
-              ) : (
-                <Button size="sm" onClick={handleSubmitAll} disabled={saving}>
-                  {saving ? "Saving..." : reviewedCount > 0 ? `Submit (${reviewedCount})` : "Skip"}
-                </Button>
-              )}
-            </div>
+          </div>
+
+          {/* General notes */}
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Anything else? (optional)</p>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="e.g. Design placement is too high, colors look washed out…"
+              className="h-14 text-xs"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Skip
+            </Button>
+            <Button size="sm" onClick={handleSubmit} disabled={saving}>
+              {saving ? "Saving…" : "Submit"}
+            </Button>
           </div>
         </div>
       </DialogContent>

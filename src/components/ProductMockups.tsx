@@ -1,13 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { GenerateColorVariants } from "./GenerateColorVariants";
 import { MockupFeedback } from "./MockupFeedback";
+import {
+  ensureImageDataUrl,
+  getImageDimensionsFromDataUrl,
+  normalizeAndLockToTemplateBlob,
+  compositeDesignOntoTemplate,
+  compressForEdgeFunction,
+} from "@/lib/mockupComposition";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
+import { handleAiError } from "@/lib/aiErrors";
+import { getProductType, isLightColor } from "@/lib/productTypes";
 
 interface ProductImage {
   id: string;
@@ -46,6 +56,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [editColor, setEditColor] = useState("");
   const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const typeConfig = getProductType(productCategory || "");
 
   useEffect(() => {
     loadImages();
@@ -112,6 +124,168 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
     setImages((prev) => prev.map((img) => (img.id === id ? { ...img, color_name: editColor } : img)));
     setEditingId(null);
     toast.success("Color name updated");
+  };
+
+  /** Regenerate a single mockup color variant with feedback-informed instructions */
+  const handleRegenerateSingle = async (colorName: string, feedback: string) => {
+    const templateUrl = sourceImageUrl;
+    if (!templateUrl) {
+      toast.error("No template image available.");
+      return;
+    }
+
+    try {
+      // Fetch template
+      const templateResp = await fetch(templateUrl);
+      const templateBlob = await templateResp.blob();
+      const templateBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(templateBlob);
+      });
+
+      // Fetch design
+      const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
+        try {
+          const resp = await fetch(url);
+          const ct = resp.headers.get("content-type") || "";
+          if (!ct.startsWith("image/")) return undefined;
+          const blob = await resp.blob();
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch { return undefined; }
+      };
+
+      // Load design variants
+      const { data: designImages } = await supabase
+        .from("product_images")
+        .select("image_url, color_name")
+        .eq("product_id", productId)
+        .eq("image_type", "design");
+
+      const normalizeKey = (v?: string | null) =>
+        (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
+
+      const lightDesignUrl = designImages?.find((d) => {
+        const key = normalizeKey(d.color_name);
+        return key === "light-on-dark" || key === "light";
+      })?.image_url || designImageUrl;
+
+      const darkDesignUrl = designImages?.find((d) => {
+        const key = normalizeKey(d.color_name);
+        return key === "dark-on-light" || key === "dark";
+      })?.image_url;
+
+      let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
+      let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+
+      // Derive dark variant if missing
+      if (!darkDesignBase64 && lightDesignBase64) {
+        try {
+          const multiColor = await isMultiColorDesign(lightDesignBase64);
+          if (multiColor) {
+            // Use removeBackground + recolor for simple derivation
+            const bgRemoved = await removeBackground(lightDesignBase64, "black");
+            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+          } else {
+            const bgRemoved = await removeBackground(lightDesignBase64, "black");
+            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+          }
+        } catch { /* continue */ }
+      }
+
+      if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+        try {
+          const cleaned = await smartRemoveBackground(designImageUrl);
+          lightDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch {
+          lightDesignBase64 = await fetchAsBase64(designImageUrl);
+        }
+      }
+
+      const isLight = isLightColor(typeConfig, colorName);
+      const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+
+      // Pre-composite
+      let preComposited = templateBase64;
+      if (designForComposite) {
+        try {
+          preComposited = await compositeDesignOntoTemplate(templateBase64, designForComposite, !isLight);
+        } catch { /* use template */ }
+      }
+
+      try {
+        preComposited = await compressForEdgeFunction(preComposited, 1024, 0.8);
+      } catch { /* use uncompressed */ }
+
+      let targetSize: { width: number; height: number } | null = null;
+      try {
+        targetSize = await getImageDimensionsFromDataUrl(templateBase64);
+      } catch { /* null */ }
+
+      // Build feedback-informed instructions
+      const customInstructions = `IMPORTANT FEEDBACK FROM USER: ${feedback}. Please address these issues in the regenerated mockup.`;
+
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke("generate-color-variants", {
+        body: {
+          imageBase64: preComposited,
+          colorName,
+          productTitle,
+          sourceWidth: targetSize?.width || null,
+          sourceHeight: targetSize?.height || null,
+          customInstructions,
+          swatchHints: typeConfig.swatchHints,
+        },
+      });
+
+      if (error || data?.error) {
+        handleAiError(error, data, `Failed to regenerate ${colorName}`);
+        return;
+      }
+
+      const generatedBase64 = data.imageBase64;
+      if (!generatedBase64) throw new Error("No image returned");
+
+      const generatedDataUrl = ensureImageDataUrl(generatedBase64);
+      const blob = await normalizeAndLockToTemplateBlob({
+        templateDataUrl: preComposited,
+        generatedDataUrl,
+        targetWidth: targetSize?.width || 1024,
+        targetHeight: targetSize?.height || 1024,
+        designDataUrl: designForComposite,
+        isDarkGarment: !isLight,
+      });
+
+      // Upload
+      const path = `${userId}/${crypto.randomUUID()}.jpg`;
+      const { error: uploadErr } = await supabase.storage
+        .from("product-images")
+        .upload(path, blob, { contentType: "image/jpeg" });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+      await insertProductImageIfNotExists({
+        product_id: productId,
+        user_id: userId,
+        image_url: urlData.publicUrl,
+        image_type: "mockup",
+        color_name: colorName,
+        position: 0,
+      });
+
+      await loadImages();
+      toast.success(`${colorName} mockup regenerated!`);
+    } catch (err: any) {
+      console.error("Regenerate single error:", err);
+      toast.error(err.message || "Failed to regenerate mockup");
+    }
   };
 
   return (
@@ -231,6 +405,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                         organizationId={organizationId}
                         userId={userId}
                         colorName={img.color_name}
+                        imageUrl={img.image_url}
+                        onRegenerate={handleRegenerateSingle}
                       />
                     )}
                   </>
