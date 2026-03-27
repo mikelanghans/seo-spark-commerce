@@ -339,7 +339,7 @@ const Dashboard = () => {
       if (error) { toast.error(error.message); return; }
       toast.success("Organization created!");
     }
-    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] });
+    setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [], enabled_product_types: ["t-shirt"], default_size_pricing: {} });
     setOrgTemplateFile(null);
     setOrgTemplatePreview(null);
     setOrgLogoFile(null);
@@ -362,7 +362,7 @@ const Dashboard = () => {
 
   const handleEditOrg = (org: Organization) => {
     setEditingOrg(org);
-    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null, enabled_marketplaces: (org.enabled_marketplaces as string[]) || [] });
+    setOrgForm({ name: org.name, niche: org.niche, tone: org.tone, audience: org.audience, brand_font: org.brand_font || "", brand_color: org.brand_color || "", brand_font_size: org.brand_font_size || "large", brand_style_notes: org.brand_style_notes || "", design_styles: (org.design_styles as string[]) || ["text-only"], printify_shop_id: org.printify_shop_id || null, enabled_marketplaces: (org.enabled_marketplaces as string[]) || [], enabled_product_types: (org.enabled_product_types as string[]) || ["t-shirt"], default_size_pricing: (org.default_size_pricing as Record<string, Record<string, string>>) || {} });
     setOrgTemplatePreview(org.template_image_url || null);
     setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
@@ -1227,7 +1227,7 @@ const Dashboard = () => {
         {view === "org-form" && (
           <form onSubmit={handleCreateOrg} className="space-y-8">
             <div className="flex items-center gap-3">
-              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [] }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setView("orgs"); setEditingOrg(null); setOrgForm({ name: "", niche: "", tone: "", audience: "", brand_font: "", brand_color: "", brand_font_size: "large", brand_style_notes: "", design_styles: ["text-only"], printify_shop_id: null, enabled_marketplaces: [], enabled_product_types: ["t-shirt"], default_size_pricing: {} }); setOrgLogoFile(null); setOrgLogoPreview(null); }}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
