@@ -1322,6 +1322,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invite: { Args: { _invite_token: string }; Returns: Json }
       add_user_credits: {
         Args: { _delta: number; _user_id: string }
         Returns: undefined
