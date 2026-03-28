@@ -37,6 +37,7 @@ interface Props {
   enabledProductTypes?: string[];
   onCreateProductFromDesign?: (designUrl: string, productTypeKey: ProductTypeKey) => void;
   onReassignDesign?: (productId: string, newDesignUrl: string) => void;
+  onArchiveDesign?: (designUrl: string, archive: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -57,9 +58,11 @@ export const ProductGrid = ({
   enabledProductTypes = [],
   onCreateProductFromDesign,
   onReassignDesign,
+  onArchiveDesign,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
+  const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
