@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListingOutput, ListingData } from "@/components/ListingOutput";
 import { BulkUpload } from "@/components/BulkUpload";
+import { DesignRematcher } from "@/components/DesignRematcher";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ProductMockups } from "@/components/ProductMockups";
@@ -945,6 +946,9 @@ const Dashboard = () => {
                         <Store className="h-4 w-4" /> Import from Shopify
                         {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setView("design-rematch")} className="gap-2">
+                        <ImageIcon className="h-4 w-4" /> Replace Designs / Duplicates
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -1332,6 +1336,9 @@ const Dashboard = () => {
 
         {/* Bulk Upload */}
         {view === "bulk-upload" && selectedOrg && <BulkUpload organizationId={selectedOrg.id} userId={user!.id} onComplete={() => { setView("products"); loadProducts(selectedOrg.id); }} onBack={() => setView("products")} aiUsage={aiUsage} />}
+
+        {/* Design Rematcher */}
+        {view === "design-rematch" && selectedOrg && <DesignRematcher products={products} organizationId={selectedOrg.id} userId={user!.id} onComplete={() => { setView("products"); loadProducts(selectedOrg.id); }} onBack={() => setView("products")} />}
 
         {/* Account Settings */}
         {view === "settings" && user && (
