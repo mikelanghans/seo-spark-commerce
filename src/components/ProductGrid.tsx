@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown,
+  ArrowUpDown, Archive, ArchiveRestore,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ interface Props {
   enabledProductTypes?: string[];
   onCreateProductFromDesign?: (designUrl: string, productTypeKey: ProductTypeKey) => void;
   onReassignDesign?: (productId: string, newDesignUrl: string) => void;
+  onArchiveDesign?: (designUrl: string, archive: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -57,9 +58,11 @@ export const ProductGrid = ({
   enabledProductTypes = [],
   onCreateProductFromDesign,
   onReassignDesign,
+  onArchiveDesign,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
+  const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
@@ -94,25 +97,25 @@ export const ProductGrid = ({
     return list;
   }, [products, searchQuery, activeFilter, sort]);
 
+  // Split active vs archived
+  const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
+  const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
+
   // Group products by design URL
-  const grouped = useMemo(() => {
+  const groupByDesign = (list: Product[]) => {
     const groups = new Map<string, Product[]>();
     const noDesign: Product[] = [];
-
-    for (const p of filtered) {
-      if (!p.image_url) {
-        noDesign.push(p);
-        continue;
-      }
+    for (const p of list) {
+      if (!p.image_url) { noDesign.push(p); continue; }
       const key = p.image_url;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(p);
     }
+    return { allDesigns: [...groups.entries()], noDesign };
+  };
 
-    const allDesigns = [...groups.entries()];
-
-    return { allDesigns, noDesign };
-  }, [filtered]);
+  const grouped = useMemo(() => groupByDesign(activeProducts), [activeProducts]);
+  const archivedGrouped = useMemo(() => groupByDesign(archivedProducts), [archivedProducts]);
 
   const sortLabel: Record<SortOption, string> = {
     newest: "Newest",
@@ -236,11 +239,11 @@ export const ProductGrid = ({
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {filtered.length} of {products.length} products
-        {searchQuery && ` matching "${searchQuery}"`}
+        {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
+        {searchQuery && ` — matching "${searchQuery}"`}
       </p>
 
-      {/* Design cards */}
+      {/* Active design cards */}
       {grouped.allDesigns.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {grouped.allDesigns.map(([designUrl, prods]) => (
@@ -248,12 +251,13 @@ export const ProductGrid = ({
               key={designUrl}
               designUrl={designUrl}
               products={prods}
-              allProducts={filtered}
+              allProducts={activeProducts}
               enabledProductTypes={enabledProductTypes}
               onCreateProduct={onCreateProductFromDesign}
               onViewProduct={onViewProduct}
               onDeleteProduct={onDeleteProduct}
               onReassignDesign={onReassignDesign}
+              onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
             />
           ))}
         </div>
@@ -279,6 +283,38 @@ export const ProductGrid = ({
           </div>
         </div>
       )}
+
+      {/* Archive section */}
+      {archivedProducts.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-border">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Archive className="h-4 w-4" />
+            Archived ({archivedProducts.length} products, {archivedGrouped.allDesigns.length} designs)
+            <span className="text-xs">{showArchived ? "▾" : "▸"}</span>
+          </button>
+
+          {showArchived && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
+              {archivedGrouped.allDesigns.map(([designUrl, prods]) => (
+                <DesignGroupCard
+                  key={designUrl}
+                  designUrl={designUrl}
+                  products={prods}
+                  allProducts={archivedProducts}
+                  enabledProductTypes={enabledProductTypes}
+                  onViewProduct={onViewProduct}
+                  onDeleteProduct={onDeleteProduct}
+                  onRestore={onArchiveDesign ? () => onArchiveDesign(designUrl, false) : undefined}
+                  isArchived
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -294,6 +330,9 @@ interface DesignGroupCardProps {
   onViewProduct: (p: Product) => void;
   onDeleteProduct: (id: string) => void;
   onReassignDesign?: (productId: string, newDesignUrl: string) => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+  isArchived?: boolean;
 }
 
 const DesignGroupCard = ({
@@ -305,6 +344,9 @@ const DesignGroupCard = ({
   onViewProduct,
   onDeleteProduct,
   onReassignDesign,
+  onArchive,
+  onRestore,
+  isArchived,
 }: DesignGroupCardProps) => {
   const [showPicker, setShowPicker] = useState(false);
   const existingCategories = new Set(
@@ -350,13 +392,33 @@ const DesignGroupCard = ({
           alt={designName}
           className="h-full w-full object-contain p-3"
         />
-        <button
-          onClick={handleDownload}
-          className="absolute top-2 right-2 rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Download design"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          {onArchive && (
+            <button
+              onClick={onArchive}
+              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
+              title="Archive design"
+            >
+              <Archive className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onRestore && (
+            <button
+              onClick={onRestore}
+              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-primary"
+              title="Restore design"
+            >
+              <ArchiveRestore className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            onClick={handleDownload}
+            className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
+            title="Download design"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-3">

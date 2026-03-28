@@ -1086,6 +1086,14 @@ const Dashboard = () => {
                      toast.success("Product moved to design group");
                      if (selectedOrg) loadProducts(selectedOrg.id);
                    }}
+                   onArchiveDesign={async (designUrl, archive) => {
+                     const ids = products.filter((p) => p.image_url === designUrl).map((p) => p.id);
+                     if (ids.length === 0) return;
+                     const { error } = await supabase.from("products").update({ archived_at: archive ? new Date().toISOString() : null }).in("id", ids);
+                     if (error) { toast.error(error.message); return; }
+                     toast.success(archive ? `Archived ${ids.length} product${ids.length > 1 ? "s" : ""}` : `Restored ${ids.length} product${ids.length > 1 ? "s" : ""}`);
+                     if (selectedOrg) loadProducts(selectedOrg.id);
+                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {generatingAll ? (

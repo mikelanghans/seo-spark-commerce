@@ -34,6 +34,7 @@ export interface Product {
   printify_product_id: string | null;
   size_pricing: Record<string, string> | null;
   tags: string[];
+  archived_at: string | null;
 }
 
 export interface Listing {
