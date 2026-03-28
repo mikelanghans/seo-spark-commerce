@@ -1130,6 +1130,20 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Product Triage */}
+        {view === "triage" && selectedOrg && (
+          <ProductTriage
+            organizationId={selectedOrg.id}
+            userId={user!.id}
+            onBack={() => setView("products")}
+            onViewProduct={(product) => {
+              setSelectedProduct(product as Product);
+              setView("product-detail");
+              loadListings(product.id);
+            }}
+          />
+        )}
+
         {/* Product Form */}
         {view === "product-form" && selectedOrg && (
           <form onSubmit={handleCreateProduct} className="space-y-8">
