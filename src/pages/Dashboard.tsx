@@ -35,6 +35,7 @@ import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
+import { ProductTriage } from "@/components/ProductTriage";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
