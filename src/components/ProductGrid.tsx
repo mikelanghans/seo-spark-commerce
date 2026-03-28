@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import type { Product } from "@/types/dashboard";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
@@ -33,6 +34,8 @@ interface Props {
   onRemoveTag: (productId: string, tag: string) => void;
   onUploadDesign: (productId: string, file: File) => void;
   onAddProduct: () => void;
+  enabledProductTypes?: string[];
+  onCreateProductFromDesign?: (designUrl: string, productTypeKey: ProductTypeKey) => void;
   children?: React.ReactNode; // bulk action buttons
 }
 
@@ -50,6 +53,8 @@ export const ProductGrid = ({
   onRemoveTag,
   onUploadDesign,
   onAddProduct,
+  enabledProductTypes = [],
+  onCreateProductFromDesign,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
@@ -293,28 +298,12 @@ export const ProductGrid = ({
               </h3>
               {grouped.shared.map(([designUrl, prods]) => (
                 <div key={designUrl} className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <img
-                      src={designUrl}
-                      alt="Shared design"
-                      className="h-12 w-12 rounded-lg border border-border object-contain bg-secondary p-1"
-                    />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {prods.length} products share this design
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {prods.map((p) => (
-                          <span
-                            key={p.id}
-                            className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground"
-                          >
-                            {p.category || "Uncategorized"}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <DesignTypeChips
+                    designUrl={designUrl}
+                    existingProducts={prods}
+                    enabledProductTypes={enabledProductTypes}
+                    onCreateProduct={onCreateProductFromDesign}
+                  />
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {prods.map((product) => (
                       <ProductCard
@@ -379,6 +368,74 @@ export const ProductGrid = ({
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+/* ─── Design Type Chips ─── */
+
+interface DesignTypeChipsProps {
+  designUrl: string;
+  existingProducts: Product[];
+  enabledProductTypes: string[];
+  onCreateProduct?: (designUrl: string, typeKey: ProductTypeKey) => void;
+}
+
+const DesignTypeChips = ({
+  designUrl,
+  existingProducts,
+  enabledProductTypes,
+  onCreateProduct,
+}: DesignTypeChipsProps) => {
+  const existingCategories = new Set(
+    existingProducts.map((p) => (p.category || "").toLowerCase())
+  );
+
+  // Map enabled type keys to configs
+  const enabledTypes = enabledProductTypes
+    .filter((k) => k in PRODUCT_TYPES)
+    .map((k) => PRODUCT_TYPES[k as ProductTypeKey]);
+
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <img
+        src={designUrl}
+        alt="Shared design"
+        className="h-12 w-12 rounded-lg border border-border object-contain bg-secondary p-1"
+      />
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          {existingProducts.length} product{existingProducts.length !== 1 ? "s" : ""}
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {enabledTypes.map((typeConfig) => {
+            const exists = existingCategories.has(typeConfig.category.toLowerCase());
+            return (
+              <button
+                key={typeConfig.key}
+                type="button"
+                disabled={exists || !onCreateProduct}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!exists && onCreateProduct) {
+                    onCreateProduct(designUrl, typeConfig.key);
+                  }
+                }}
+                className={cn(
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                  exists
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary cursor-pointer"
+                )}
+                title={exists ? `Already on ${typeConfig.label}` : `Create ${typeConfig.label} with this design`}
+              >
+                {!exists && <Plus className="h-2.5 w-2.5 mr-0.5" />}
+                {typeConfig.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
