@@ -1055,6 +1055,7 @@ export type Database = {
       }
       products: {
         Row: {
+          archived_at: string | null
           category: string
           created_at: string
           description: string
@@ -1076,6 +1077,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           category?: string
           created_at?: string
           description?: string
@@ -1097,6 +1099,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           category?: string
           created_at?: string
           description?: string
