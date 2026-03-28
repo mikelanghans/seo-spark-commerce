@@ -348,6 +348,12 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="collections" className="mt-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <ShopifyCollections organization={selectedOrg!} products={products} />
+                </div>
+              </TabsContent>
+
               <TabsContent value="analytics" className="mt-4 space-y-4">
                 <div className="rounded-xl border border-border bg-card p-5"><ListingRefreshQueue organizationId={selectedOrg!.id} userId={user!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><ABTestDashboard organizationId={selectedOrg!.id} userId={user!.id} products={products as any} /></div>
