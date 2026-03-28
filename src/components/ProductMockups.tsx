@@ -5,8 +5,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { GenerateColorVariants } from "./GenerateColorVariants";
-import { MockupFeedback } from "./MockupFeedback";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
@@ -314,23 +312,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         </div>
       </div>
 
-      {/* AI Color Variant Generator */}
-      <GenerateColorVariants
-        productId={productId}
-        userId={userId}
-        productTitle={productTitle}
-        organizationId={organizationId}
-        sourceImageUrl={sourceImageUrl || null}
-        designImageUrl={designImageUrl}
-        onComplete={loadImages}
-        brandName={brandName}
-        brandNiche={brandNiche}
-        brandAudience={brandAudience}
-        brandTone={brandTone}
-        productCategory={productCategory}
-        aiUsage={aiUsage}
-        onRegenerateSingle={handleRegenerateSingle}
-      />
 
       <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
@@ -394,17 +375,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
-                    {organizationId && (
-                      <MockupFeedback
-                        productImageId={img.id}
-                        productId={productId}
-                        organizationId={organizationId}
-                        userId={userId}
-                        colorName={img.color_name}
-                        imageUrl={img.image_url}
-                        onRegenerate={handleRegenerateSingle}
-                      />
-                    )}
                   </>
                 )}
               </div>
