@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown, Layers, Grid3X3, List,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import type { Product } from "@/types/dashboard";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
-type ViewMode = "grid" | "grouped";
+
 
 interface Props {
   products: Product[];
@@ -58,7 +58,6 @@ export const ProductGrid = ({
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
@@ -95,7 +94,6 @@ export const ProductGrid = ({
 
   // Group products by design URL
   const grouped = useMemo(() => {
-    if (viewMode !== "grouped") return null;
     const groups = new Map<string, Product[]>();
     const noDesign: Product[] = [];
 
@@ -112,7 +110,7 @@ export const ProductGrid = ({
     const allDesigns = [...groups.entries()];
 
     return { allDesigns, noDesign };
-  }, [filtered, viewMode]);
+  }, [filtered]);
 
   const sortLabel: Record<SortOption, string> = {
     newest: "Newest",
@@ -141,7 +139,7 @@ export const ProductGrid = ({
     );
   }
 
-  const sharedDesignCount = grouped?.allDesigns.filter(([, v]) => v.length > 1).length ?? 0;
+  const sharedDesignCount = grouped.allDesigns.filter(([, v]) => v.length > 1).length;
 
   return (
     <div className="space-y-4">
@@ -173,34 +171,6 @@ export const ProductGrid = ({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* View toggle */}
-          <div className="flex rounded-md border border-input overflow-hidden">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "px-2.5 py-1.5 transition-colors",
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent"
-              )}
-              title="Grid view"
-            >
-              <Grid3X3 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setViewMode("grouped")}
-              className={cn(
-                "px-2.5 py-1.5 transition-colors",
-                viewMode === "grouped"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent"
-              )}
-              title="Group by design"
-            >
-              <Layers className="h-3.5 w-3.5" />
-            </button>
-          </div>
 
           {/* Bulk actions from parent */}
           {children}
@@ -255,7 +225,7 @@ export const ProductGrid = ({
             🏷️ {tag}
           </button>
         ))}
-        {viewMode === "grouped" && sharedDesignCount > 0 && (
+        {sharedDesignCount > 0 && (
           <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
             ⚠️ {sharedDesignCount} shared design{sharedDesignCount > 1 ? "s" : ""}
           </span>
@@ -268,62 +238,41 @@ export const ProductGrid = ({
         {searchQuery && ` matching "${searchQuery}"`}
       </p>
 
-      {/* Grid view */}
-      {viewMode === "grid" && (
+      {/* Design cards */}
+      {grouped.allDesigns.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onView={onViewProduct}
-              onDelete={onDeleteProduct}
-              onAddTag={onAddTag}
-              onRemoveTag={onRemoveTag}
-              onUploadDesign={onUploadDesign}
+          {grouped.allDesigns.map(([designUrl, prods]) => (
+            <DesignGroupCard
+              key={designUrl}
+              designUrl={designUrl}
+              products={prods}
+              enabledProductTypes={enabledProductTypes}
+              onCreateProduct={onCreateProductFromDesign}
+              onViewProduct={onViewProduct}
+              onDeleteProduct={onDeleteProduct}
             />
           ))}
         </div>
       )}
 
-      {/* Grouped view — one card per design */}
-      {viewMode === "grouped" && grouped && (
-        <div className="space-y-6">
-          {grouped.allDesigns.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {grouped.allDesigns.map(([designUrl, prods]) => (
-                <DesignGroupCard
-                  key={designUrl}
-                  designUrl={designUrl}
-                  products={prods}
-                  enabledProductTypes={enabledProductTypes}
-                  onCreateProduct={onCreateProductFromDesign}
-                  onViewProduct={onViewProduct}
-                  onDeleteProduct={onDeleteProduct}
-                />
-              ))}
-            </div>
-          )}
-
-          {grouped.noDesign.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                No Design ({grouped.noDesign.length})
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {grouped.noDesign.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onView={onViewProduct}
-                    onDelete={onDeleteProduct}
-                    onAddTag={onAddTag}
-                    onRemoveTag={onRemoveTag}
-                    onUploadDesign={onUploadDesign}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+      {grouped.noDesign.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">
+            No Design ({grouped.noDesign.length})
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {grouped.noDesign.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onView={onViewProduct}
+                onDelete={onDeleteProduct}
+                onAddTag={onAddTag}
+                onRemoveTag={onRemoveTag}
+                onUploadDesign={onUploadDesign}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
