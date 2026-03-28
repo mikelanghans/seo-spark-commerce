@@ -213,7 +213,7 @@ const Dashboard = () => {
         const prod = (prods || []).find((p: Product) => p.id === savedProductId);
         if (prod) { setSelectedProduct(prod); loadListings(prod.id); }
         else setView("products");
-      } else if (!["orgs", "org-form", "products", "product-detail", "settings", "autopilot", "bulk-upload", "shopify-enrich"].includes(view)) {
+      } else if (!["orgs", "org-form", "products", "product-detail", "settings", "autopilot", "bulk-upload", "shopify-enrich", "triage"].includes(view)) {
         setView("products");
       }
     });
