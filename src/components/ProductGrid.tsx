@@ -97,25 +97,25 @@ export const ProductGrid = ({
     return list;
   }, [products, searchQuery, activeFilter, sort]);
 
+  // Split active vs archived
+  const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
+  const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
+
   // Group products by design URL
-  const grouped = useMemo(() => {
+  const groupByDesign = (list: Product[]) => {
     const groups = new Map<string, Product[]>();
     const noDesign: Product[] = [];
-
-    for (const p of filtered) {
-      if (!p.image_url) {
-        noDesign.push(p);
-        continue;
-      }
+    for (const p of list) {
+      if (!p.image_url) { noDesign.push(p); continue; }
       const key = p.image_url;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(p);
     }
+    return { allDesigns: [...groups.entries()], noDesign };
+  };
 
-    const allDesigns = [...groups.entries()];
-
-    return { allDesigns, noDesign };
-  }, [filtered]);
+  const grouped = useMemo(() => groupByDesign(activeProducts), [activeProducts]);
+  const archivedGrouped = useMemo(() => groupByDesign(archivedProducts), [archivedProducts]);
 
   const sortLabel: Record<SortOption, string> = {
     newest: "Newest",
