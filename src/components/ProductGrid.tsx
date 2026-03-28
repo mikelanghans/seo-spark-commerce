@@ -36,7 +36,8 @@ interface Props {
   onAddProduct: () => void;
   enabledProductTypes?: string[];
   onCreateProductFromDesign?: (designUrl: string, productTypeKey: ProductTypeKey) => void;
-  children?: React.ReactNode; // bulk action buttons
+  onReassignDesign?: (productId: string, newDesignUrl: string) => void;
+  children?: React.ReactNode;
 }
 
 export const ProductGrid = ({
@@ -55,6 +56,7 @@ export const ProductGrid = ({
   onAddProduct,
   enabledProductTypes = [],
   onCreateProductFromDesign,
+  onReassignDesign,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
