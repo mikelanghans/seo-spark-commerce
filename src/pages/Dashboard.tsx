@@ -35,6 +35,7 @@ import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
+import { ProductGrid } from "@/components/ProductGrid";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
@@ -1040,104 +1041,41 @@ const Dashboard = () => {
               </TabsContent>
 
               <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
-                {products.length > 0 && (
-                  <>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {generatingAll ? (
-                          <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})</Button>
-                        ) : (
-                          <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span></Button>
-                        )}
-                        {pushingAllShopify ? (
-                          <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})</Button>
-                        ) : (
-                          <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span></Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <button type="button" onClick={() => setActiveFilter(activeFilter === "__not_on_shopify" ? null : "__not_on_shopify")} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${activeFilter === "__not_on_shopify" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>🔴 Not on Shopify</button>
-                      {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map((cat) => (
-                        <button key={cat} type="button" onClick={() => setActiveFilter(activeFilter === cat ? null : cat)} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${activeFilter === cat ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>{cat}</button>
-                      ))}
-                      {allTags.map((tag) => (
-                        <button key={`tag:${tag}`} type="button" onClick={() => setActiveFilter(activeFilter === `tag:${tag}` ? null : `tag:${tag}`)} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${activeFilter === `tag:${tag}` ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>🏷️ {tag}</button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {loading ? (
-                  <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-                ) : products.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
-                    <Package className="mb-3 h-10 w-10 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">No products yet</p>
-                    <Button variant="link" onClick={() => setView("product-form")} className="mt-2">Add your first product</Button>
+                <ProductGrid
+                  products={products}
+                  loading={loading}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  activeFilter={activeFilter}
+                  onFilterChange={setActiveFilter}
+                  allTags={allTags}
+                  onViewProduct={handleViewProduct}
+                  onDeleteProduct={handleDeleteProduct}
+                  onAddTag={handleAddTag}
+                  onRemoveTag={handleRemoveTag}
+                  onUploadDesign={async (productId, file) => {
+                    const url = await uploadImageToStorage(file);
+                    if (url) {
+                      await supabase.from("products").update({ image_url: url }).eq("id", productId);
+                      toast.success("Design uploaded!");
+                      if (selectedOrg) loadProducts(selectedOrg.id);
+                    }
+                  }}
+                  onAddProduct={() => setView("product-form")}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {generatingAll ? (
+                      <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm"><X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})</Button>
+                    ) : (
+                      <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span></Button>
+                    )}
+                    {pushingAllShopify ? (
+                      <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm"><X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})</Button>
+                    ) : (
+                      <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm"><Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span></Button>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {getFilteredProducts().map((product) => (
-                      <div key={product.id} className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40" onClick={() => handleViewProduct(product)}>
-                        {product.image_url ? (
-                          <div className="h-48 overflow-hidden bg-secondary"><img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" /></div>
-                        ) : (
-                          <div className="relative flex h-48 items-center justify-center bg-secondary">
-                            <Package className="h-8 w-8 text-muted-foreground/40" />
-                            <label onClick={(e) => e.stopPropagation()} className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-secondary/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                              <Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs font-medium text-muted-foreground">Upload Design</span>
-                              <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; const url = await uploadImageToStorage(file); if (url) { await supabase.from("products").update({ image_url: url }).eq("id", product.id); toast.success("Design uploaded!"); if (selectedOrg) loadProducts(selectedOrg.id); } }} />
-                            </label>
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <div className="flex items-start justify-between">
-                            <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
-                            <div className="flex shrink-0 gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                              {product.image_url && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"><Download className="h-3.5 w-3.5" /></button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-40">
-                                    <DropdownMenuItem onClick={async () => {
-                                      try { const res = await fetch(product.image_url!); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); } catch { toast.error("Failed to download"); }
-                                    }}>Light variant</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={async () => {
-                                      try { const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1); const darkUrl = imgs?.[0]?.image_url; if (!darkUrl) { toast.error("No dark variant found"); return; } const res = await fetch(darkUrl); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); } catch { toast.error("Failed to download dark variant"); }
-                                    }}>Dark variant</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={async () => {
-                                      const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-                                      try { const lightRes = await fetch(product.image_url!); const lightBlob = await lightRes.blob(); const lUrl = URL.createObjectURL(lightBlob); const a1 = document.createElement("a"); a1.href = lUrl; a1.download = `${slug}_light.png`; document.body.appendChild(a1); a1.click(); document.body.removeChild(a1); URL.revokeObjectURL(lUrl); const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1); const darkUrl = imgs?.[0]?.image_url; if (darkUrl) { const dRes = await fetch(darkUrl); const dBlob = await dRes.blob(); const dUrl = URL.createObjectURL(dBlob); const a2 = document.createElement("a"); a2.href = dUrl; a2.download = `${slug}_dark.png`; document.body.appendChild(a2); setTimeout(() => { a2.click(); document.body.removeChild(a2); URL.revokeObjectURL(dUrl); }, 300); } else { toast("Only light variant available"); } } catch { toast.error("Failed to download"); }
-                                    }}>Both variants</DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                              <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }} className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
-                          {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
-                          <div className="mt-2 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            {(product.tags || []).map((tag) => (
-                              <span key={tag} className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                {tag}<button onClick={() => handleRemoveTag(product.id, tag)} className="ml-0.5 hover:text-destructive"><X className="h-2.5 w-2.5" /></button>
-                              </span>
-                            ))}
-                            <button onClick={() => { const tag = prompt("Enter tag name:"); if (tag?.trim()) handleAddTag(product.id, tag.trim()); }} className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors"><Plus className="h-2.5 w-2.5 mr-0.5" /> Tag</button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                </ProductGrid>
               </TabsContent>
             </Tabs>
           </div>
