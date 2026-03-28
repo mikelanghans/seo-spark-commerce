@@ -225,7 +225,7 @@ export const ProductGrid = ({
             🏷️ {tag}
           </button>
         ))}
-        {viewMode === "grouped" && sharedDesignCount > 0 && (
+        {sharedDesignCount > 0 && (
           <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
             ⚠️ {sharedDesignCount} shared design{sharedDesignCount > 1 ? "s" : ""}
           </span>
