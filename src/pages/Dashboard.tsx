@@ -61,6 +61,7 @@ import { removeBackground, smartRemoveBackground, recolorOpaquePixels, upscaleBa
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { SettingsView } from "@/components/dashboard/SettingsView";
 import { DeleteOrgDialog } from "@/components/dashboard/DeleteOrgDialog";
+import { OrgFormView } from "@/components/dashboard/OrgFormView";
 
 // Shared types
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
