@@ -6,7 +6,7 @@ import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,7 +91,7 @@ const Dashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
@@ -555,20 +555,6 @@ const Dashboard = () => {
     if (selectedOrg) loadProducts(selectedOrg.id);
   };
 
-  const toggleProductSelection = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setSelectedProductIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    const filtered = getFilteredProducts();
-    if (selectedProductIds.size === filtered.length) setSelectedProductIds(new Set());
-    else setSelectedProductIds(new Set(filtered.map((p) => p.id)));
-  };
 
   const getFilteredProducts = () =>
     products.filter((p) => {
@@ -599,74 +585,6 @@ const Dashboard = () => {
     setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, tags: updated } : p));
   };
 
-  // ─── Bulk operations ───
-  const handleBulkDelete = async () => {
-    if (selectedProductIds.size === 0) return;
-    const count = selectedProductIds.size;
-    for (const id of selectedProductIds) await supabase.from("products").delete().eq("id", id);
-    setSelectedProductIds(new Set());
-    toast.success(`Deleted ${count} products`);
-    if (selectedOrg) loadProducts(selectedOrg.id);
-  };
-
-  const [bulkAction, setBulkAction] = useState<string | null>(null);
-
-  const handleBulkRegenerateListings = async () => {
-    if (!selectedOrg || selectedProductIds.size === 0) return;
-    setBulkAction("regenerate");
-    const ids = Array.from(selectedProductIds);
-    let success = 0;
-    for (const id of ids) {
-      const product = products.find((p) => p.id === id);
-      if (!product) continue;
-      try {
-        if (aiUsage) { const allowed = await aiUsage.checkAndLog("generate-listings", user!.id); if (!allowed) { toast.error("AI limit reached"); break; } }
-        const { data: result, error } = await supabase.functions.invoke("generate-listings", {
-          body: { business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience }, product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features } },
-        });
-        if (error) throw error;
-        if (result?.error) throw new Error(result.error);
-        await supabase.from("listings").delete().eq("product_id", product.id);
-        const bulkMarketplaces = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : ["etsy", "ebay", "shopify"];
-        const listingRows = bulkMarketplaces.map((m) => ({ product_id: product.id, user_id: user!.id, marketplace: m, title: result[m].title, description: result[m].description, bullet_points: result[m].bulletPoints, tags: result[m].tags, seo_title: result[m].seoTitle || "", seo_description: result[m].seoDescription || "", url_handle: result[m].urlHandle || "", alt_text: result[m].altText || "" }));
-        await supabase.from("listings").insert(listingRows);
-        if (aiUsage) await aiUsage.logUsage("generate-listings", user!.id);
-        success++;
-      } catch (err: any) { console.error(`Failed listings for ${product.title}:`, err); }
-      if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1500));
-    }
-    setBulkAction(null); setSelectedProductIds(new Set());
-    toast.success(`Regenerated listings for ${success}/${ids.length} products`);
-  };
-
-  const handleBulkPushToShopify = async () => {
-    if (!selectedOrg || selectedProductIds.size === 0) return;
-    setBulkAction("push");
-    const ids = Array.from(selectedProductIds);
-    let success = 0;
-    for (const id of ids) {
-      const product = products.find((p) => p.id === id);
-      if (!product) continue;
-      try {
-        const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
-        if (!productListings?.length) continue;
-        const shopifyListing = productListings.find((l) => l.marketplace === "shopify") || productListings[0];
-        const { data, error } = await supabase.functions.invoke("push-to-shopify", {
-          body: { organizationId: selectedOrg.id, product: { id: product.id, title: product.title, description: product.description, category: product.category, price: product.price, keywords: product.keywords, shopify_product_id: product.shopify_product_id }, listings: [{ marketplace: "shopify", title: shopifyListing.title, description: shopifyListing.description, bullet_points: shopifyListing.bullet_points, tags: shopifyListing.tags, seo_title: shopifyListing.seo_title, seo_description: shopifyListing.seo_description, url_handle: shopifyListing.url_handle, alt_text: shopifyListing.alt_text }], imageUrl: product.image_url, variants: [] },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        success++;
-      } catch (err: any) {
-        console.error(`Failed push ${product.title}:`, err);
-        if (user && selectedOrg) notifySyncFailure(user.id, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
-      }
-      if (ids.indexOf(id) < ids.length - 1) await new Promise((r) => setTimeout(r, 1000));
-    }
-    setBulkAction(null); setSelectedProductIds(new Set());
-    toast.success(`Pushed ${success}/${ids.length} products to Shopify`);
-    if (selectedOrg) loadProducts(selectedOrg.id);
-  };
 
   // ─── Shopify import ───
   const [importingShopify, setImportingShopify] = useState(false);
@@ -1127,23 +1045,20 @@ const Dashboard = () => {
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        {selectedProductIds.size === 0 && <Checkbox checked={false} onCheckedChange={toggleSelectAll} className="mr-1 hidden sm:block" />}
                         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Search products…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" /></div>
                       </div>
-                      {selectedProductIds.size === 0 && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {generatingAll ? (
-                            <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})</Button>
-                          ) : (
-                            <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span></Button>
-                          )}
-                          {pushingAllShopify ? (
-                            <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})</Button>
-                          ) : (
-                            <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span></Button>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {generatingAll ? (
+                          <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})</Button>
+                        ) : (
+                          <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span></Button>
+                        )}
+                        {pushingAllShopify ? (
+                          <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})</Button>
+                        ) : (
+                          <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm flex-1 sm:flex-none"><Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span></Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Filters */}
@@ -1170,10 +1085,7 @@ const Dashboard = () => {
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {getFilteredProducts().map((product) => (
-                      <div key={product.id} className={`group relative cursor-pointer rounded-xl border bg-card overflow-hidden transition-colors hover:border-primary/40 ${selectedProductIds.has(product.id) ? "border-primary ring-1 ring-primary/30" : "border-border"}`} onClick={() => handleViewProduct(product)}>
-                        <div className={`absolute top-2 left-2 z-10 transition-opacity ${selectedProductIds.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} onClick={(e) => e.stopPropagation()}>
-                          <Checkbox checked={selectedProductIds.has(product.id)} onCheckedChange={() => toggleProductSelection(product.id)} className="bg-background/80 backdrop-blur-sm" />
-                        </div>
+                      <div key={product.id} className="group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40" onClick={() => handleViewProduct(product)}>
                         {product.image_url ? (
                           <div className="h-48 overflow-hidden bg-secondary"><img src={product.image_url} alt={product.title} className="h-full w-full object-contain p-2" /></div>
                         ) : (
