@@ -1100,9 +1100,25 @@ const Dashboard = () => {
                         <div className="p-4">
                           <div className="flex items-start justify-between">
                             <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
-                            <div className="flex shrink-0 gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex shrink-0 gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                               {product.image_url && (
-                                <button onClick={async (e) => { e.stopPropagation(); try { const res = await fetch(product.image_url!); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); toast.success("Downloaded!"); } catch { toast.error("Failed to download"); } }} className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"><Download className="h-3.5 w-3.5" /></button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"><Download className="h-3.5 w-3.5" /></button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem onClick={async () => {
+                                      try { const res = await fetch(product.image_url!); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); } catch { toast.error("Failed to download"); }
+                                    }}>Light variant</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      try { const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1); const darkUrl = imgs?.[0]?.image_url; if (!darkUrl) { toast.error("No dark variant found"); return; } const res = await fetch(darkUrl); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); } catch { toast.error("Failed to download dark variant"); }
+                                    }}>Dark variant</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={async () => {
+                                      const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+                                      try { const lightRes = await fetch(product.image_url!); const lightBlob = await lightRes.blob(); const lUrl = URL.createObjectURL(lightBlob); const a1 = document.createElement("a"); a1.href = lUrl; a1.download = `${slug}_light.png`; document.body.appendChild(a1); a1.click(); document.body.removeChild(a1); URL.revokeObjectURL(lUrl); const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1); const darkUrl = imgs?.[0]?.image_url; if (darkUrl) { const dRes = await fetch(darkUrl); const dBlob = await dRes.blob(); const dUrl = URL.createObjectURL(dBlob); const a2 = document.createElement("a"); a2.href = dUrl; a2.download = `${slug}_dark.png`; document.body.appendChild(a2); setTimeout(() => { a2.click(); document.body.removeChild(a2); URL.revokeObjectURL(dUrl); }, 300); } else { toast("Only light variant available"); } } catch { toast.error("Failed to download"); }
+                                    }}>Both variants</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               )}
                               <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }} className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
