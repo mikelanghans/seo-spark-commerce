@@ -24,7 +24,7 @@ serve(async (req) => {
     if (authError || !user) throw new Error("Unauthorized");
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const { organizationId } = await req.json();
+    const { organizationId, collectionId } = await req.json();
 
     let connection = null;
     if (organizationId) {
@@ -51,14 +51,29 @@ serve(async (req) => {
     }
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const shopifyHeaders = { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" };
+
+    // If collectionId is provided, fetch product IDs for that collection
+    if (collectionId) {
+      const collectsRes = await fetch(
+        `https://${domain}/admin/api/2024-01/collects.json?collection_id=${collectionId}&limit=250&fields=product_id`,
+        { headers: shopifyHeaders }
+      );
+      if (!collectsRes.ok) throw new Error(`Shopify API error: ${collectsRes.status}`);
+      const collectsData = await collectsRes.json();
+      const productIds = (collectsData.collects || []).map((c: any) => c.product_id);
+      return new Response(JSON.stringify({ productIds }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch both custom collections and smart collections in parallel
     const [customRes, smartRes] = await Promise.all([
       fetch(`https://${domain}/admin/api/2024-01/custom_collections.json?limit=250&fields=id,title,handle,body_html,image,products_count,published_at,sort_order,updated_at`, {
-        headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+        headers: shopifyHeaders,
       }),
       fetch(`https://${domain}/admin/api/2024-01/smart_collections.json?limit=250&fields=id,title,handle,body_html,image,products_count,published_at,sort_order,updated_at,rules,disjunctive`, {
-        headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+        headers: shopifyHeaders,
       }),
     ]);
 

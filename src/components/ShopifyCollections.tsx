@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FolderOpen, RefreshCw, ExternalLink, Layers, Zap } from "lucide-react";
+import { Loader2, FolderOpen, RefreshCw, Layers, Zap, ChevronLeft, Package } from "lucide-react";
 import { toast } from "sonner";
 import type { Organization, Product } from "@/types/dashboard";
 
@@ -30,6 +30,9 @@ export const ShopifyCollections = ({ organization, products }: Props) => {
   const [collections, setCollections] = useState<ShopifyCollection[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [expandedCollection, setExpandedCollection] = useState<ShopifyCollection | null>(null);
+  const [collectionProductIds, setCollectionProductIds] = useState<number[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const fetchCollections = async () => {
     setLoading(true);
@@ -48,7 +51,28 @@ export const ShopifyCollections = ({ organization, products }: Props) => {
     }
   };
 
+  const handleCollectionClick = async (collection: ShopifyCollection) => {
+    setExpandedCollection(collection);
+    setLoadingProducts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-shopify-collections", {
+        body: { organizationId: organization.id, collectionId: collection.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCollectionProductIds(data.productIds || []);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch collection products");
+      setCollectionProductIds([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
   const shopifyProducts = products.filter((p) => p.shopify_product_id);
+  const matchedProducts = expandedCollection
+    ? shopifyProducts.filter((p) => collectionProductIds.includes(Number(p.shopify_product_id)))
+    : [];
 
   if (!loaded) {
     return (
@@ -64,6 +88,84 @@ export const ShopifyCollections = ({ organization, products }: Props) => {
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderOpen className="h-4 w-4" />}
           Load Collections
         </Button>
+      </div>
+    );
+  }
+
+  if (expandedCollection) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setExpandedCollection(null); setCollectionProductIds([]); }}
+            className="gap-1.5"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg truncate flex items-center gap-2">
+              {expandedCollection.title}
+              <Badge variant="outline" className="text-[10px] gap-1">
+                {expandedCollection.collection_type === "smart" ? (
+                  <><Zap className="h-2.5 w-2.5" /> Smart</>
+                ) : (
+                  <><Layers className="h-2.5 w-2.5" /> Manual</>
+                )}
+              </Badge>
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {expandedCollection.products_count} product{expandedCollection.products_count !== 1 ? "s" : ""} in Shopify
+              {!loadingProducts && ` · ${matchedProducts.length} synced locally`}
+            </p>
+          </div>
+        </div>
+
+        {loadingProducts ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : matchedProducts.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground space-y-1">
+            <Package className="h-8 w-8 mx-auto opacity-50" />
+            <p className="text-sm">No synced products found in this collection.</p>
+            <p className="text-xs">Products need to be imported from Shopify first to appear here.</p>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {matchedProducts.map((product) => (
+              <div
+                key={product.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+              >
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.title}
+                    className="h-10 w-10 rounded-md object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{product.title}</p>
+                  <p className="text-xs text-muted-foreground">{product.category}{product.price ? ` · $${product.price}` : ""}</p>
+                </div>
+                {product.tags && product.tags.length > 0 && (
+                  <div className="hidden sm:flex gap-1">
+                    {product.tags.slice(0, 2).map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -94,7 +196,11 @@ export const ShopifyCollections = ({ organization, products }: Props) => {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {collections.map((collection) => (
-            <CollectionCard key={collection.id} collection={collection} />
+            <CollectionCard
+              key={collection.id}
+              collection={collection}
+              onClick={() => handleCollectionClick(collection)}
+            />
           ))}
         </div>
       )}
@@ -102,11 +208,12 @@ export const ShopifyCollections = ({ organization, products }: Props) => {
   );
 };
 
-const CollectionCard = ({ collection }: { collection: ShopifyCollection }) => {
-  const storeDomain = ""; // We don't expose the domain client-side
-
+const CollectionCard = ({ collection, onClick }: { collection: ShopifyCollection; onClick: () => void }) => {
   return (
-    <div className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
+    <div
+      className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30 cursor-pointer"
+      onClick={onClick}
+    >
       <div className="flex gap-3">
         {collection.image ? (
           <img
