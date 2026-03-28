@@ -35,11 +35,12 @@ import { ContentCalendar } from "@/components/ContentCalendar";
 import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { DesignTriage } from "@/components/DesignTriage";
+import { ProductTriage } from "@/components/ProductTriage";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { canAccess, type AppFeature } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen, DollarSign,
+  Sparkles, Plus, Building2, Package, ArrowLeft, LogOut, Loader2, Trash2, Eye, ImageIcon, Upload, Search, Edit2, Check, Settings, RefreshCw, Store, Download, X, Users, Share2, CalendarDays, GitCompare, ChevronDown, Zap, Rocket, Sun, Moon, Lock, Shield, BarChart3, BookOpen, DollarSign, Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
@@ -212,7 +213,7 @@ const Dashboard = () => {
         const prod = (prods || []).find((p: Product) => p.id === savedProductId);
         if (prod) { setSelectedProduct(prod); loadListings(prod.id); }
         else setView("products");
-      } else if (!["orgs", "org-form", "products", "product-detail", "settings", "autopilot", "bulk-upload", "shopify-enrich"].includes(view)) {
+      } else if (!["orgs", "org-form", "products", "product-detail", "settings", "autopilot", "bulk-upload", "shopify-enrich", "triage"].includes(view)) {
         setView("products");
       }
     });
@@ -909,20 +910,25 @@ const Dashboard = () => {
                     <Button variant="destructive" size="sm" onClick={handleCancelImport} className="gap-2"><X className="h-4 w-4" /> Cancel</Button>
                   </div>
                 ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2"><Plus className="h-4 w-4" /> Add Manually</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { if (canAccess(effectiveTier, "bulk-upload")) setView("bulk-upload"); else toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } }); }} className="gap-2">
-                        <Upload className="h-4 w-4" /> AI from Images / CSV
-                        {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
-                        <Store className="h-4 w-4" /> Import from Shopify
-                        {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setView("triage")}>
+                      <Filter className="h-4 w-4" /> Triage
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2"><Plus className="h-4 w-4" /> Add Manually</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { if (canAccess(effectiveTier, "bulk-upload")) setView("bulk-upload"); else toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } }); }} className="gap-2">
+                          <Upload className="h-4 w-4" /> AI from Images / CSV
+                          {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
+                          <Store className="h-4 w-4" /> Import from Shopify
+                          {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
               </div>
             </div>
@@ -1122,6 +1128,20 @@ const Dashboard = () => {
               </TabsContent>
             </Tabs>
           </div>
+        )}
+
+        {/* Product Triage */}
+        {view === "triage" && selectedOrg && (
+          <ProductTriage
+            organizationId={selectedOrg.id}
+            userId={user!.id}
+            onBack={() => setView("products")}
+            onViewProduct={(product) => {
+              setSelectedProduct(product as Product);
+              setView("product-detail");
+              loadListings(product.id);
+            }}
+          />
         )}
 
         {/* Product Form */}
