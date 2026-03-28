@@ -109,11 +109,9 @@ export const ProductGrid = ({
       groups.get(key)!.push(p);
     }
 
-    // Sort groups: shared designs first
-    const shared = [...groups.entries()].filter(([, v]) => v.length > 1);
-    const unique = [...groups.entries()].filter(([, v]) => v.length === 1);
+    const allDesigns = [...groups.entries()];
 
-    return { shared, unique, noDesign };
+    return { allDesigns, noDesign };
   }, [filtered, viewMode]);
 
   const sortLabel: Record<SortOption, string> = {
@@ -143,7 +141,7 @@ export const ProductGrid = ({
     );
   }
 
-  const sharedDesignCount = grouped?.shared.length ?? 0;
+  const sharedDesignCount = grouped?.allDesigns.filter(([, v]) => v.length > 1).length ?? 0;
 
   return (
     <div className="space-y-4">
@@ -287,62 +285,22 @@ export const ProductGrid = ({
         </div>
       )}
 
-      {/* Grouped view */}
+      {/* Grouped view — one card per design */}
       {viewMode === "grouped" && grouped && (
         <div className="space-y-6">
-          {grouped.shared.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
-                <Layers className="h-4 w-4" />
-                Shared Designs ({grouped.shared.length} designs, {grouped.shared.reduce((s, [, v]) => s + v.length, 0)} products)
-              </h3>
-              {grouped.shared.map(([designUrl, prods]) => (
-                <div key={designUrl} className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
-                  <DesignTypeChips
-                    designUrl={designUrl}
-                    existingProducts={prods}
-                    enabledProductTypes={enabledProductTypes}
-                    onCreateProduct={onCreateProductFromDesign}
-                  />
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {prods.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onView={onViewProduct}
-                        onDelete={onDeleteProduct}
-                        onAddTag={onAddTag}
-                        onRemoveTag={onRemoveTag}
-                        onUploadDesign={onUploadDesign}
-                        compact
-                      />
-                    ))}
-                  </div>
-                </div>
+          {grouped.allDesigns.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {grouped.allDesigns.map(([designUrl, prods]) => (
+                <DesignGroupCard
+                  key={designUrl}
+                  designUrl={designUrl}
+                  products={prods}
+                  enabledProductTypes={enabledProductTypes}
+                  onCreateProduct={onCreateProductFromDesign}
+                  onViewProduct={onViewProduct}
+                  onDeleteProduct={onDeleteProduct}
+                />
               ))}
-            </div>
-          )}
-
-          {grouped.unique.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                Unique Designs ({grouped.unique.length})
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {grouped.unique.map(([, prods]) =>
-                  prods.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onView={onViewProduct}
-                      onDelete={onDeleteProduct}
-                      onAddTag={onAddTag}
-                      onRemoveTag={onRemoveTag}
-                      onUploadDesign={onUploadDesign}
-                    />
-                  ))
-                )}
-              </div>
             </div>
           )}
 
