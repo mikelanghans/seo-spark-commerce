@@ -288,20 +288,25 @@ export const ProductGrid = ({
 interface DesignGroupCardProps {
   designUrl: string;
   products: Product[];
+  allProducts: Product[];
   enabledProductTypes: string[];
   onCreateProduct?: (designUrl: string, typeKey: ProductTypeKey) => void;
   onViewProduct: (p: Product) => void;
   onDeleteProduct: (id: string) => void;
+  onReassignDesign?: (productId: string, newDesignUrl: string) => void;
 }
 
 const DesignGroupCard = ({
   designUrl,
   products: prods,
+  allProducts,
   enabledProductTypes,
   onCreateProduct,
   onViewProduct,
   onDeleteProduct,
+  onReassignDesign,
 }: DesignGroupCardProps) => {
+  const [showPicker, setShowPicker] = useState(false);
   const existingCategories = new Set(
     prods.map((p) => (p.category || "").toLowerCase())
   );
