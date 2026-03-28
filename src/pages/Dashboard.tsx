@@ -1061,7 +1061,25 @@ const Dashboard = () => {
                       if (selectedOrg) loadProducts(selectedOrg.id);
                     }
                   }}
-                  onAddProduct={() => setView("product-form")}
+                   onAddProduct={() => setView("product-form")}
+                   enabledProductTypes={selectedOrg?.enabled_product_types || []}
+                   onCreateProductFromDesign={async (designUrl, typeKey) => {
+                     if (!selectedOrg || !user) return;
+                     const typeConfig = (await import("@/lib/productTypes")).PRODUCT_TYPES[typeKey];
+                     const baseName = products.find(p => p.image_url === designUrl)?.title?.replace(/\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\s*/gi, "").trim() || "New Product";
+                     const title = `${baseName} ${typeConfig.label}`;
+                     const { data: newProduct, error } = await supabase.from("products").insert({
+                       title,
+                       category: typeConfig.category,
+                       price: typeConfig.defaultPrice,
+                       organization_id: selectedOrg.id,
+                       user_id: user.id,
+                       image_url: designUrl,
+                     }).select().single();
+                     if (error) { toast.error(error.message); return; }
+                     toast.success(`Created ${title}`);
+                     loadProducts(selectedOrg.id);
+                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {generatingAll ? (

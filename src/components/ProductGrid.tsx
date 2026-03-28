@@ -372,6 +372,74 @@ export const ProductGrid = ({
   );
 };
 
+/* ─── Design Type Chips ─── */
+
+interface DesignTypeChipsProps {
+  designUrl: string;
+  existingProducts: Product[];
+  enabledProductTypes: string[];
+  onCreateProduct?: (designUrl: string, typeKey: ProductTypeKey) => void;
+}
+
+const DesignTypeChips = ({
+  designUrl,
+  existingProducts,
+  enabledProductTypes,
+  onCreateProduct,
+}: DesignTypeChipsProps) => {
+  const existingCategories = new Set(
+    existingProducts.map((p) => (p.category || "").toLowerCase())
+  );
+
+  // Map enabled type keys to configs
+  const enabledTypes = enabledProductTypes
+    .filter((k) => k in PRODUCT_TYPES)
+    .map((k) => PRODUCT_TYPES[k as ProductTypeKey]);
+
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <img
+        src={designUrl}
+        alt="Shared design"
+        className="h-12 w-12 rounded-lg border border-border object-contain bg-secondary p-1"
+      />
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          {existingProducts.length} product{existingProducts.length !== 1 ? "s" : ""}
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {enabledTypes.map((typeConfig) => {
+            const exists = existingCategories.has(typeConfig.category.toLowerCase());
+            return (
+              <button
+                key={typeConfig.key}
+                type="button"
+                disabled={exists || !onCreateProduct}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!exists && onCreateProduct) {
+                    onCreateProduct(designUrl, typeConfig.key);
+                  }
+                }}
+                className={cn(
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                  exists
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary cursor-pointer"
+                )}
+                title={exists ? `Already on ${typeConfig.label}` : `Create ${typeConfig.label} with this design`}
+              >
+                {!exists && <Plus className="h-2.5 w-2.5 mr-0.5" />}
+                {typeConfig.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Product Card ─── */
 
 interface CardProps {
