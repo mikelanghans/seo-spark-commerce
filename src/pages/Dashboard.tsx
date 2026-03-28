@@ -1080,6 +1080,12 @@ const Dashboard = () => {
                      toast.success(`Created ${title}`);
                      loadProducts(selectedOrg.id);
                    }}
+                   onReassignDesign={async (productId, newDesignUrl) => {
+                     const { error } = await supabase.from("products").update({ image_url: newDesignUrl }).eq("id", productId);
+                     if (error) { toast.error(error.message); return; }
+                     toast.success("Product moved to design group");
+                     if (selectedOrg) loadProducts(selectedOrg.id);
+                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {generatingAll ? (
