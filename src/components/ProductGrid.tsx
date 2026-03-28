@@ -330,41 +330,79 @@ export const ProductGrid = ({
   );
 };
 
-/* ─── Design Type Chips ─── */
+/* ─── Design Group Card ─── */
 
-interface DesignTypeChipsProps {
+interface DesignGroupCardProps {
   designUrl: string;
-  existingProducts: Product[];
+  products: Product[];
   enabledProductTypes: string[];
   onCreateProduct?: (designUrl: string, typeKey: ProductTypeKey) => void;
+  onViewProduct: (p: Product) => void;
+  onDeleteProduct: (id: string) => void;
 }
 
-const DesignTypeChips = ({
+const DesignGroupCard = ({
   designUrl,
-  existingProducts,
+  products: prods,
   enabledProductTypes,
   onCreateProduct,
-}: DesignTypeChipsProps) => {
+  onViewProduct,
+  onDeleteProduct,
+}: DesignGroupCardProps) => {
   const existingCategories = new Set(
-    existingProducts.map((p) => (p.category || "").toLowerCase())
+    prods.map((p) => (p.category || "").toLowerCase())
   );
 
-  // Map enabled type keys to configs
   const enabledTypes = enabledProductTypes
     .filter((k) => k in PRODUCT_TYPES)
     .map((k) => PRODUCT_TYPES[k as ProductTypeKey]);
 
+  // Derive a design name from shared product titles
+  const designName = prods[0]?.title
+    ?.replace(/\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\s*/gi, "")
+    .trim() || "Untitled Design";
+
+  const handleDownload = async () => {
+    const slug = designName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    try {
+      const res = await fetch(designUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${slug}_design.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Failed to download");
+    }
+  };
+
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <img
-        src={designUrl}
-        alt="Shared design"
-        className="h-12 w-12 rounded-lg border border-border object-contain bg-secondary p-1"
-      />
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground">
-          {existingProducts.length} product{existingProducts.length !== 1 ? "s" : ""}
-        </span>
+    <div className="group rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40">
+      {/* Design preview */}
+      <div className="h-48 overflow-hidden bg-secondary relative">
+        <img
+          src={designUrl}
+          alt={designName}
+          className="h-full w-full object-contain p-3"
+        />
+        <button
+          onClick={handleDownload}
+          className="absolute top-2 right-2 rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Download design"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Design name */}
+        <h3 className="font-semibold text-sm leading-tight">{designName}</h3>
+
+        {/* Product type chips */}
         <div className="flex flex-wrap gap-1">
           {enabledTypes.map((typeConfig) => {
             const exists = existingCategories.has(typeConfig.category.toLowerCase());
@@ -392,6 +430,35 @@ const DesignTypeChips = ({
               </button>
             );
           })}
+        </div>
+
+        {/* Compact product list */}
+        <div className="space-y-1">
+          {prods.map((product) => (
+            <div
+              key={product.id}
+              className="flex items-center justify-between rounded-lg px-2 py-1.5 text-xs hover:bg-accent/50 cursor-pointer transition-colors group/item"
+              onClick={() => onViewProduct(product)}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground shrink-0">
+                  {product.category || "—"}
+                </span>
+                <span className="truncate text-foreground">{product.title}</span>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                {product.price && (
+                  <span className="text-[10px] text-muted-foreground mr-1">{product.price}</span>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }}
+                  className="rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
