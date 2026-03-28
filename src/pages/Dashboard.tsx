@@ -910,20 +910,25 @@ const Dashboard = () => {
                     <Button variant="destructive" size="sm" onClick={handleCancelImport} className="gap-2"><X className="h-4 w-4" /> Cancel</Button>
                   </div>
                 ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2"><Plus className="h-4 w-4" /> Add Manually</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { if (canAccess(effectiveTier, "bulk-upload")) setView("bulk-upload"); else toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } }); }} className="gap-2">
-                        <Upload className="h-4 w-4" /> AI from Images / CSV
-                        {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
-                        <Store className="h-4 w-4" /> Import from Shopify
-                        {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setView("triage")}>
+                      <Filter className="h-4 w-4" /> Triage
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2"><Plus className="h-4 w-4" /> Add Manually</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { if (canAccess(effectiveTier, "bulk-upload")) setView("bulk-upload"); else toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } }); }} className="gap-2">
+                          <Upload className="h-4 w-4" /> AI from Images / CSV
+                          {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
+                          <Store className="h-4 w-4" /> Import from Shopify
+                          {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
               </div>
             </div>
