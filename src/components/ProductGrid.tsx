@@ -331,8 +331,11 @@ const DesignGroupCard = ({
 
   return (
     <div className="group rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40">
-      {/* Design preview */}
-      <div className="h-48 overflow-hidden bg-secondary relative">
+      {/* Design preview — click opens first product */}
+      <div
+        className="h-48 overflow-hidden bg-secondary relative cursor-pointer"
+        onClick={() => onViewProduct(prods[0])}
+      >
         <img
           src={designUrl}
           alt={designName}
