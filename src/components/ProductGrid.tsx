@@ -248,10 +248,12 @@ export const ProductGrid = ({
               key={designUrl}
               designUrl={designUrl}
               products={prods}
+              allProducts={filtered}
               enabledProductTypes={enabledProductTypes}
               onCreateProduct={onCreateProductFromDesign}
               onViewProduct={onViewProduct}
               onDeleteProduct={onDeleteProduct}
+              onReassignDesign={onReassignDesign}
             />
           ))}
         </div>
