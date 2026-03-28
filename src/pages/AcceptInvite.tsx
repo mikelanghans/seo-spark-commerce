@@ -11,12 +11,10 @@ const AcceptInvite = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth-required">("loading");
   const [message, setMessage] = useState("");
-  const [orgName, setOrgName] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      // Store invite token and redirect to auth
       localStorage.setItem("pending_invite_token", token || "");
       setStatus("auth-required");
       return;
@@ -29,62 +27,26 @@ const AcceptInvite = () => {
     setStatus("loading");
 
     try {
-      // Look up the invite
-      const { data: invite, error: inviteError } = await supabase
-        .from("organization_invites")
-        .select("*")
-        .eq("invite_token", token)
-        .is("accepted_at", null)
-        .single();
+      const { data, error } = await supabase.rpc("accept_invite", {
+        _invite_token: token,
+      });
 
-      if (inviteError || !invite) {
+      if (error) throw error;
+
+      const result = data as any;
+
+      if (result?.error) {
         setStatus("error");
-        setMessage("This invite link is invalid or has already been used.");
+        setMessage(result.error);
         return;
       }
-
-      // Get org name
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("name")
-        .eq("id", invite.organization_id)
-        .single();
-
-      setOrgName(org?.name || "the brand");
-
-      // Check if already a member
-      const { data: existing } = await supabase
-        .from("organization_members")
-        .select("id")
-        .eq("organization_id", invite.organization_id)
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (existing) {
-        setStatus("success");
-        setMessage(`You're already a member of ${org?.name || "this brand"}.`);
-        return;
-      }
-
-      // Add as member
-      const { error: memberError } = await supabase
-        .from("organization_members")
-        .insert({
-          organization_id: invite.organization_id,
-          user_id: user.id,
-          role: invite.role as any,
-        });
-
-      if (memberError) throw memberError;
-
-      // Mark invite as accepted
-      await supabase
-        .from("organization_invites")
-        .update({ accepted_at: new Date().toISOString() })
-        .eq("id", invite.id);
 
       setStatus("success");
-      setMessage(`You've joined ${org?.name || "the brand"} as ${invite.role}!`);
+      if (result?.status === "already_member") {
+        setMessage(`You're already a member of ${result.org_name}.`);
+      } else {
+        setMessage(`You've joined ${result.org_name} as ${result.role}!`);
+      }
     } catch (err: any) {
       setStatus("error");
       setMessage(err.message || "Something went wrong.");
