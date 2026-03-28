@@ -1124,18 +1124,6 @@ const Dashboard = () => {
               <TabsContent value="products" forceMount className="mt-4 space-y-4 data-[state=inactive]:hidden">
                 {products.length > 0 && (
                   <>
-                    {selectedProductIds.size > 0 && (
-                      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 sm:px-4">
-                        <div className="flex items-center gap-2">
-                          <Checkbox checked={selectedProductIds.size === getFilteredProducts().length} onCheckedChange={toggleSelectAll} />
-                          <span className="text-sm font-medium">{selectedProductIds.size} selected</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-                          <Button size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkDelete}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setSelectedProductIds(new Set())}><X className="h-4 w-4" /></Button>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <div className="flex items-center gap-2 flex-1">
