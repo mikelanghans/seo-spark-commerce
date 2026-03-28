@@ -9,9 +9,9 @@ interface Props {
   userId: string;
   userEmail: string;
   selectedOrg: Organization | null;
-  effectiveTier: string;
+  effectiveTier: "free" | "pro" | "starter";
   isFf: boolean;
-  onRefresh: () => void;
+  onRefresh: () => Promise<void>;
   setView: (v: View) => void;
 }
 
