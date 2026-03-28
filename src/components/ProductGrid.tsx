@@ -420,6 +420,54 @@ const DesignGroupCard = ({
               </div>
             </div>
           ))}
+
+          {/* Add existing product button */}
+          {onReassignDesign && (
+            <div className="pt-1">
+              {!showPicker ? (
+                <button
+                  onClick={() => setShowPicker(true)}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors w-full"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add existing product
+                </button>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-2">
+                    <span className="text-[10px] font-medium text-muted-foreground">Select a product to move here:</span>
+                    <button onClick={() => setShowPicker(false)} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-border bg-background">
+                    {allProducts
+                      .filter((p) => p.image_url !== designUrl && p.image_url)
+                      .map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            onReassignDesign(product.id, designUrl);
+                            setShowPicker(false);
+                          }}
+                          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-left hover:bg-accent/50 transition-colors"
+                        >
+                          <img
+                            src={product.image_url!}
+                            alt=""
+                            className="h-6 w-6 rounded border border-border object-contain bg-secondary shrink-0"
+                          />
+                          <span className="truncate">{product.title}</span>
+                        </button>
+                      ))}
+                    {allProducts.filter((p) => p.image_url !== designUrl && p.image_url).length === 0 && (
+                      <p className="px-2 py-2 text-[10px] text-muted-foreground">No other products to move</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
