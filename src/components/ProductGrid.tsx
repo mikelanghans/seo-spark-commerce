@@ -293,15 +293,27 @@ export const ProductGrid = ({
               </h3>
               {grouped.shared.map(([designUrl, prods]) => (
                 <div key={designUrl} className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <img
                       src={designUrl}
                       alt="Shared design"
                       className="h-12 w-12 rounded-lg border border-border object-contain bg-secondary p-1"
                     />
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {prods.length} products share this design
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {prods.length} products share this design
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {prods.map((p) => (
+                          <span
+                            key={p.id}
+                            className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground"
+                          >
+                            {p.category || "Uncategorized"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {prods.map((product) => (
