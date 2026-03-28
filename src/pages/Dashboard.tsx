@@ -1135,10 +1135,6 @@ const Dashboard = () => {
                             {bulkAction === "regenerate" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                             {bulkAction === "regenerate" ? "Regenerating…" : "Regenerate"}
                           </Button>
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkPushToShopify}>
-                            {bulkAction === "push" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />}
-                            {bulkAction === "push" ? "Pushing…" : "Push"}
-                          </Button>
                           <Button size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm" disabled={!!bulkAction} onClick={handleBulkDelete}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
                           <Button size="sm" variant="ghost" onClick={() => setSelectedProductIds(new Set())}><X className="h-4 w-4" /></Button>
                         </div>
