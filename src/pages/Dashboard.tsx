@@ -1100,7 +1100,12 @@ const Dashboard = () => {
                         <div className="p-4">
                           <div className="flex items-start justify-between">
                             <h3 className="font-semibold text-sm leading-tight">{product.title}</h3>
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }} className="ml-2 shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>
+                            <div className="flex shrink-0 gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {product.image_url && (
+                                <button onClick={async (e) => { e.stopPropagation(); try { const res = await fetch(product.image_url!); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); toast.success("Downloaded!"); } catch { toast.error("Failed to download"); } }} className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"><Download className="h-3.5 w-3.5" /></button>
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product.id); }} className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
                           </div>
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                           {product.price && <p className="mt-2 text-sm font-semibold text-primary">{product.price}</p>}
