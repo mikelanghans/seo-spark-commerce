@@ -330,6 +330,9 @@ interface DesignGroupCardProps {
   onViewProduct: (p: Product) => void;
   onDeleteProduct: (id: string) => void;
   onReassignDesign?: (productId: string, newDesignUrl: string) => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+  isArchived?: boolean;
 }
 
 const DesignGroupCard = ({
@@ -341,6 +344,9 @@ const DesignGroupCard = ({
   onViewProduct,
   onDeleteProduct,
   onReassignDesign,
+  onArchive,
+  onRestore,
+  isArchived,
 }: DesignGroupCardProps) => {
   const [showPicker, setShowPicker] = useState(false);
   const existingCategories = new Set(
