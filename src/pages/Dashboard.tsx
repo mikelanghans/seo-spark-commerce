@@ -39,6 +39,7 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
 import { ABTestDashboard } from "@/components/ABTestDashboard";
+import { ShopifyCollections } from "@/components/ShopifyCollections";
 
 // Extracted components & hooks
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
