@@ -392,13 +392,33 @@ const DesignGroupCard = ({
           alt={designName}
           className="h-full w-full object-contain p-3"
         />
-        <button
-          onClick={handleDownload}
-          className="absolute top-2 right-2 rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          title="Download design"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          {onArchive && (
+            <button
+              onClick={onArchive}
+              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
+              title="Archive design"
+            >
+              <Archive className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onRestore && (
+            <button
+              onClick={onRestore}
+              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-primary"
+              title="Restore design"
+            >
+              <ArchiveRestore className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            onClick={handleDownload}
+            className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
+            title="Download design"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-3">
