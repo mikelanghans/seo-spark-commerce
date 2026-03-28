@@ -239,11 +239,11 @@ export const ProductGrid = ({
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {filtered.length} of {products.length} products
-        {searchQuery && ` matching "${searchQuery}"`}
+        {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
+        {searchQuery && ` — matching "${searchQuery}"`}
       </p>
 
-      {/* Design cards */}
+      {/* Active design cards */}
       {grouped.allDesigns.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {grouped.allDesigns.map(([designUrl, prods]) => (
@@ -251,12 +251,13 @@ export const ProductGrid = ({
               key={designUrl}
               designUrl={designUrl}
               products={prods}
-              allProducts={filtered}
+              allProducts={activeProducts}
               enabledProductTypes={enabledProductTypes}
               onCreateProduct={onCreateProductFromDesign}
               onViewProduct={onViewProduct}
               onDeleteProduct={onDeleteProduct}
               onReassignDesign={onReassignDesign}
+              onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
             />
           ))}
         </div>
@@ -280,6 +281,38 @@ export const ProductGrid = ({
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Archive section */}
+      {archivedProducts.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-border">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Archive className="h-4 w-4" />
+            Archived ({archivedProducts.length} products, {archivedGrouped.allDesigns.length} designs)
+            <span className="text-xs">{showArchived ? "▾" : "▸"}</span>
+          </button>
+
+          {showArchived && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
+              {archivedGrouped.allDesigns.map(([designUrl, prods]) => (
+                <DesignGroupCard
+                  key={designUrl}
+                  designUrl={designUrl}
+                  products={prods}
+                  allProducts={archivedProducts}
+                  enabledProductTypes={enabledProductTypes}
+                  onViewProduct={onViewProduct}
+                  onDeleteProduct={onDeleteProduct}
+                  onRestore={onArchiveDesign ? () => onArchiveDesign(designUrl, false) : undefined}
+                  isArchived
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
