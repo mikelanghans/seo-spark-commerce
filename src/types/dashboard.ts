@@ -50,7 +50,7 @@ export interface Listing {
   alt_text: string;
 }
 
-export type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
+export type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings" | "triage";
 
 export const ALL_MARKETPLACES = ["etsy", "ebay"] as const;
 export const ALL_PUSH_CHANNELS = ["etsy", "ebay"] as const;
