@@ -21,6 +21,8 @@ interface CompositionLockParams {
   designStyle?: string;
   /** Custom placement overrides from the user preview */
   placement?: DesignPlacement;
+  /** Reference design dimensions to ensure consistent sizing across variants */
+  referenceDesignSize?: { width: number; height: number };
 }
 
 export const ensureImageDataUrl = (value: string) =>
@@ -45,6 +47,7 @@ export async function normalizeAndLockToTemplateBlob({
   isDarkGarment,
   designStyle,
   placement,
+  referenceDesignSize,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -63,7 +66,7 @@ export async function normalizeAndLockToTemplateBlob({
         const designImg = await loadImage(designDataUrl);
         const cleanedDesign = stripSolidEdgeBackground(designImg);
         const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -108,9 +111,11 @@ function drawDesignWithUnderbase(
   isDarkGarment?: boolean,
   designStyle?: string,
   placement?: DesignPlacement,
+  referenceDesignSize?: { width: number; height: number },
 ) {
-  const designWidth = cleanedDesign.width;
-  const designHeight = cleanedDesign.height;
+  // Use reference dimensions if provided for cross-variant consistency
+  const designWidth = referenceDesignSize?.width ?? cleanedDesign.width;
+  const designHeight = referenceDesignSize?.height ?? cleanedDesign.height;
 
   // Use custom placement if provided, otherwise use defaults
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.35 : 0.55);
@@ -316,9 +321,36 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Composite a design onto a template photo (center-chest placement).
- * If the design has a solid edge background (black/white), it is stripped first.
+ * Compute the prepared (tight-cropped) dimensions of a design image.
+ * Used to establish a consistent reference size across light/dark variants.
  */
+export async function getPreparedDesignSize(
+  designDataUrl: string,
+): Promise<{ width: number; height: number }> {
+  const img = await loadImage(designDataUrl);
+  const cleaned = stripSolidEdgeBackground(img);
+  const prepared = prepareDesignForCompositing(cleaned);
+  return { width: prepared.width, height: prepared.height };
+}
+
+/**
+ * Compute a unified reference size from multiple design variants.
+ * Uses the maximum bounding box so all variants render at the same visual scale.
+ */
+export async function getUnifiedDesignSize(
+  ...designDataUrls: (string | undefined)[]
+): Promise<{ width: number; height: number } | undefined> {
+  const urls = designDataUrls.filter(Boolean) as string[];
+  if (urls.length === 0) return undefined;
+
+  const sizes = await Promise.all(urls.map(u => getPreparedDesignSize(u)));
+  return {
+    width: Math.max(...sizes.map(s => s.width)),
+    height: Math.max(...sizes.map(s => s.height)),
+  };
+}
+
+
 export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
   designDataUrl: string,
