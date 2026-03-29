@@ -144,32 +144,62 @@ function enhanceDarkPixelsForDarkGarment(source: HTMLCanvasElement): HTMLCanvasE
   ctx.drawImage(source, 0, 0);
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = image.data;
+  const w = canvas.width;
+  const h = canvas.height;
 
-  for (let i = 0; i < data.length; i += 4) {
-    const alpha = data[i + 3];
+  // Pre-compute a brightness map and identify which dark pixels are adjacent
+  // to bright opaque pixels (i.e., actual design strokes vs trapped background).
+  const totalPixels = w * h;
+  const lumaMap = new Float32Array(totalPixels);
+  const alphaMap = new Uint8Array(totalPixels);
+
+  for (let i = 0; i < totalPixels; i++) {
+    const idx = i * 4;
+    lumaMap[i] = (0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2]) / 255;
+    alphaMap[i] = data[idx + 3];
+  }
+
+  // A dark pixel should only be enhanced if it neighbors a bright opaque pixel
+  // (luma > 0.5, alpha > 128). This means it's a dark outline/stroke next to
+  // visible design content, not a trapped background pixel inside a letter counter.
+  const hasBrightNeighbor = (px: number): boolean => {
+    const x = px % w;
+    const y = Math.floor(px / w);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+        const ni = ny * w + nx;
+        if (alphaMap[ni] > 128 && lumaMap[ni] > 0.5) return true;
+      }
+    }
+    return false;
+  };
+
+  for (let i = 0; i < totalPixels; i++) {
+    const idx = i * 4;
+    const alpha = data[idx + 3];
     if (alpha < 20) continue;
 
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    const luma = lumaMap[i];
+    if (luma >= 0.18) continue;
 
-    // Only lift near-NEUTRAL dark pixels (text outlines, black strokes).
-    // Leave chromatic/colorful dark pixels alone — they're intentional
-    // design colors (dark blue, purple, etc.) that are already visible
-    // through their chromaticity on dark garments.
+    const r = data[idx];
+    const g = data[idx + 1];
+    const b = data[idx + 2];
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     const saturation = max === 0 ? 0 : (max - min) / max;
 
-    if (luma < 0.18 && saturation < 0.15) {
-      // Only lift truly black/near-black neutral pixels
+    if (saturation < 0.15 && hasBrightNeighbor(i)) {
       const lift = Math.min(1, (0.18 - luma) / 0.18);
       const blend = 0.5 * lift;
-      data[i] = Math.round(r * (1 - blend) + 200 * blend);
-      data[i + 1] = Math.round(g * (1 - blend) + 200 * blend);
-      data[i + 2] = Math.round(b * (1 - blend) + 200 * blend);
-      data[i + 3] = Math.max(alpha, Math.round(170 + 85 * lift));
+      data[idx] = Math.round(r * (1 - blend) + 200 * blend);
+      data[idx + 1] = Math.round(g * (1 - blend) + 200 * blend);
+      data[idx + 2] = Math.round(b * (1 - blend) + 200 * blend);
+      data[idx + 3] = Math.max(alpha, Math.round(170 + 85 * lift));
     }
   }
 
