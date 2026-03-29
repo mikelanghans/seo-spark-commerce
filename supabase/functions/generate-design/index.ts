@@ -313,8 +313,12 @@ async function generateImage(
   let lastError = "";
 
   for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        // Exponential backoff: 3s, 8s for retries; longer for rate limits
+        const baseDelay = attempt === 1 ? 3000 : 8000;
+        await new Promise((r) => setTimeout(r, baseDelay));
+      }
 
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -339,9 +343,22 @@ async function generateImage(
       });
 
       if (response.ok) break;
-      if (response.status === 503 || response.status === 500) {
-        lastError = `${model} returned ${response.status}`;
-        console.error(`Attempt ${attempt + 1} with ${model}: ${response.status}`);
+
+      const status = response.status;
+      if (status === 429) {
+        lastError = `${model} rate limited (429)`;
+        console.error(`Attempt ${attempt + 1} with ${model}: 429 rate limited, backing off...`);
+        // Consume body to prevent leak
+        await response.text();
+        response = null;
+        // Extra wait on rate limit
+        await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+        continue;
+      }
+      if (status === 503 || status === 500) {
+        lastError = `${model} returned ${status}`;
+        console.error(`Attempt ${attempt + 1} with ${model}: ${status}`);
+        await response.text();
         response = null;
         continue;
       }
