@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
@@ -48,17 +49,17 @@ export const OrgFormView = ({
       </div>
       <div className="space-y-2">
         <Label>Niche / Industry</Label>
-        <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" />
+        <Textarea value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">What type of products you sell</p>
       </div>
       <div className="space-y-2">
         <Label>Brand Voice & Tone</Label>
-        <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" />
+        <Textarea value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">How AI should write — e.g. casual, professional, playful</p>
       </div>
       <div className="space-y-2">
         <Label>Target Audience</Label>
-        <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
+        <Textarea value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
       </div>
     </div>
@@ -85,12 +86,12 @@ export const OrgFormView = ({
     <div className="grid gap-6 sm:grid-cols-2">
       <div className="space-y-2">
         <Label>Brand Font (optional)</Label>
-        <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Poppins, Montserrat" />
+        <Textarea value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Poppins, Montserrat" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Font name used on your designs</p>
       </div>
       <div className="space-y-2">
         <Label>Brand Color (optional)</Label>
-        <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. #FF5733" />
+        <Textarea value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. #FF5733" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Primary brand color for designs</p>
       </div>
       <div className="space-y-2">
@@ -101,7 +102,7 @@ export const OrgFormView = ({
       </div>
       <div className="space-y-2">
         <Label>Design Style Notes</Label>
-        <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Minimalist, bold typography" />
+        <Textarea value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Minimalist, bold typography" rows={3} className="resize-none" />
         <p className="text-xs text-muted-foreground">Style hints for AI-generated designs</p>
       </div>
     </div>
