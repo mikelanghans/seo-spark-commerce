@@ -112,13 +112,24 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     }
     setGenerating(true);
     try {
-      // Collect existing message texts to avoid duplicates
+      // Collect existing messages — deduplicate by design_url so we only
+      // compare against unique design concepts, not every message row
       const { data: allExisting } = await supabase
         .from("generated_messages")
-        .select("message_text")
+        .select("message_text, design_url")
         .eq("organization_id", organization.id);
+      
+      // Build a set of unique message texts, keeping only one per design_url
+      const seenDesigns = new Set<string>();
+      const uniqueExisting: string[] = [];
+      for (const m of (allExisting || []) as any[]) {
+        const designKey = m.design_url || m.message_text; // fallback for messages without designs
+        if (seenDesigns.has(designKey)) continue;
+        seenDesigns.add(designKey);
+        uniqueExisting.push(m.message_text);
+      }
       const existingTexts = new Set(
-        (allExisting || []).map((m: any) => m.message_text.toLowerCase().trim())
+        uniqueExisting.map((t: string) => t.toLowerCase().trim())
       );
 
       const { data, error } = await withTimeout(
@@ -133,7 +144,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             },
             count: generateCount,
             ...(styleFirst ? { designStyle } : {}),
-            existingProducts: (allExisting || []).map((m: any) => m.message_text),
+            existingProducts: uniqueExisting,
             ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
         }),
