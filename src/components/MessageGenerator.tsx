@@ -10,6 +10,7 @@ import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
+import { getStyleLabel } from "@/lib/designStyles";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
@@ -647,24 +648,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               disabled={generating}
               className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {availableStyles.map((s) => {
-                const styleLabels: Record<string, string> = {
-                  "text-only": "Text",
-                  "text-with-graphics": "Text + Graphics",
-                  "minimalist": "Art",
-                  "retro": "Retro",
-                  "hand-drawn": "Sketch",
-                  "bold-graphic": "Bold",
-                  "distressed": "Grunge",
-                  "illustration": "Illustration",
-                  "photo-based": "Photo-Based",
-                };
-                return (
+              {availableStyles.map((s) => (
                   <option key={s} value={s}>
-                    {styleLabels[s] || s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    {getStyleLabel(s)}
                   </option>
-                );
-              })}
+              ))}
             </select>
           )}
           <select

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { getStyleLabel } from "@/lib/designStyles";
 
 interface SwipeableMessageCardProps {
   id: string;
@@ -334,15 +335,8 @@ export const SwipeableMessageCard = ({
           {!hasProduct && availableStyles.length > 1 && (
             <div className="flex items-center rounded-md border border-input bg-background h-8 overflow-hidden shrink-0">
               {availableStyles.map((s, i) => {
-                const labels: Record<string, { label: string; icon: "type" | "image" }> = {
-                  "text-only": { label: "Text", icon: "type" },
-                  "minimalist": { label: "Art", icon: "image" },
-                  "retro": { label: "Retro", icon: "image" },
-                  "hand-drawn": { label: "Sketch", icon: "image" },
-                  "bold-graphic": { label: "Bold", icon: "image" },
-                  "distressed": { label: "Grunge", icon: "image" },
-                };
-                const info = labels[s] || { label: s, icon: "image" as const };
+                const label = getStyleLabel(s);
+                const info = { label, icon: s === "text-only" ? "type" as const : "image" as const };
                 const IconComp = info.icon === "type" ? Type : Image;
                 return (
                   <span key={s} className="contents">
