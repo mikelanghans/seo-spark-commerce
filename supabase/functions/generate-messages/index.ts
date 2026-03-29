@@ -91,7 +91,7 @@ serve(async (req) => {
 
     const isRefine = !!refineOriginal && !!refineFeedback;
 
-    // Fetch past design feedback to inform message generation
+    // Build feedback context from ACTUAL user selection behavior
     const userId = user.id;
     let feedbackContext = "";
     if (organization.id) {
@@ -100,28 +100,62 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
+      // 1) Selected messages = strong positive signal (user kept these)
+      const { data: selectedMsgs } = await serviceClient
+        .from("generated_messages")
+        .select("message_text")
+        .eq("organization_id", organization.id)
+        .eq("is_selected", true)
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      // 2) Recent unselected messages = negative signal (user skipped these)
+      const { data: skippedMsgs } = await serviceClient
+        .from("generated_messages")
+        .select("message_text")
+        .eq("organization_id", organization.id)
+        .eq("is_selected", false)
+        .is("product_id", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      // 3) Top product titles = proven commercial winners
+      const { data: topProducts } = await serviceClient
+        .from("products")
+        .select("title")
+        .eq("organization_id", organization.id)
+        .is("archived_at", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const selectedTexts = (selectedMsgs || []).map((m: any) => m.message_text).filter(Boolean);
+      const skippedTexts = (skippedMsgs || []).map((m: any) => m.message_text).filter(Boolean);
+      const productTitles = (topProducts || []).map((p: any) => p.title).filter(Boolean);
+
+      if (selectedTexts.length > 0) {
+        feedbackContext += `\n\nMESSAGES THE USER LOVED (generate MORE like these in style, tone, and energy):\n${selectedTexts.map(t => `- "${t}"`).join("\n")}`;
+      }
+      if (skippedTexts.length > 0) {
+        feedbackContext += `\n\nMESSAGES THE USER SKIPPED (AVOID this style/tone):\n${skippedTexts.map(t => `- "${t}"`).join("\n")}`;
+      }
+      if (productTitles.length > 0) {
+        feedbackContext += `\n\nEXISTING BEST-SELLING PRODUCTS (for thematic alignment):\n${productTitles.map(t => `- "${t}"`).join("\n")}`;
+      }
+
+      // 4) Also pull design feedback notes if any exist
       const { data: feedback } = await serviceClient
         .from("design_feedback")
         .select("rating, notes")
         .eq("organization_id", organization.id)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(10);
 
       if (feedback && feedback.length > 0) {
-        const liked = feedback
-          .filter((f: any) => f.rating === "up" && f.notes)
-          .map((f: any) => f.notes);
-        const disliked = feedback
-          .filter((f: any) => f.rating === "down" && f.notes)
-          .map((f: any) => f.notes);
-
-        if (liked.length > 0) {
-          feedbackContext += `\nLiked elements: ${liked.join("; ")}`;
-        }
-        if (disliked.length > 0) {
-          feedbackContext += `\nDisliked elements: ${disliked.join("; ")}`;
-        }
+        const likedNotes = feedback.filter((f: any) => f.rating === "up" && f.notes).map((f: any) => f.notes);
+        const dislikedNotes = feedback.filter((f: any) => f.rating === "down" && f.notes).map((f: any) => f.notes);
+        if (likedNotes.length > 0) feedbackContext += `\nDesign elements user liked: ${likedNotes.join("; ")}`;
+        if (dislikedNotes.length > 0) feedbackContext += `\nDesign elements user disliked: ${dislikedNotes.join("; ")}`;
       }
     }
 
