@@ -289,7 +289,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             const bgRemoved = await removeBackground(lightDesignBase64, "black");
             darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
           } else {
-            darkDesignBase64 = lightDesignBase64;
+            // Multi-color: selectively darken bright/near-white pixels for contrast on light garments
+            const darkened = await darkenBrightPixels(lightDesignBase64);
+            darkDesignBase64 = ensureImageDataUrl(darkened);
           }
         } catch { /* continue */ }
       }
@@ -448,7 +450,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         try {
           const multiColor = await isMultiColorDesign(lightDesignBase64);
           if (multiColor) {
-            darkDesignBase64 = lightDesignBase64;
+            const darkened = await darkenBrightPixels(lightDesignBase64);
+            darkDesignBase64 = ensureImageDataUrl(darkened);
           } else {
             const bgRemoved = await removeBackground(lightDesignBase64, "black");
             darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
