@@ -109,6 +109,15 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(15);
 
+      // 1b) Messages that made it to design = strongest signal (user invested in these)
+      const { data: designedMsgs } = await serviceClient
+        .from("generated_messages")
+        .select("message_text")
+        .eq("organization_id", organization.id)
+        .not("design_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
       // 2) Recent unselected messages = negative signal (user skipped these)
       const { data: skippedMsgs } = await serviceClient
         .from("generated_messages")
