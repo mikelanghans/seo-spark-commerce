@@ -66,7 +66,7 @@ export async function normalizeAndLockToTemplateBlob({
         const designImg = await loadImage(designDataUrl);
         const cleanedDesign = stripSolidEdgeBackground(designImg);
         const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement);
+        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
