@@ -49,17 +49,17 @@ export const OrgFormView = ({
       </div>
       <div className="space-y-2">
         <Label>Niche / Industry</Label>
-        <Input value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" />
+        <Textarea value={orgForm.niche} onChange={(e) => setOrgForm({ ...orgForm, niche: e.target.value })} required placeholder="e.g. Custom t-shirts, handmade candles" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">What type of products you sell</p>
       </div>
       <div className="space-y-2">
         <Label>Brand Voice & Tone</Label>
-        <Input value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" />
+        <Textarea value={orgForm.tone} onChange={(e) => setOrgForm({ ...orgForm, tone: e.target.value })} required placeholder="e.g. Warm & friendly, Bold & edgy" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">How AI should write — e.g. casual, professional, playful</p>
       </div>
       <div className="space-y-2">
         <Label>Target Audience</Label>
-        <Input value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" />
+        <Textarea value={orgForm.audience} onChange={(e) => setOrgForm({ ...orgForm, audience: e.target.value })} required placeholder="e.g. Young professionals, gift shoppers" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Who your ideal customers are</p>
       </div>
     </div>
