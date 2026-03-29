@@ -69,6 +69,7 @@ export const EMPTY_ORG_FORM = {
   printify_shop_id: null as number | null,
   enabled_marketplaces: [] as string[],
   enabled_product_types: ["t-shirt"] as string[],
+  enabled_social_platforms: [] as string[],
   default_size_pricing: {} as Record<string, Record<string, string>>,
 };
 

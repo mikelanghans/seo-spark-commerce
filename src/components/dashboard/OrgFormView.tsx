@@ -173,6 +173,23 @@ export const OrgFormView = ({
       {orgForm.enabled_marketplaces.length === 0 && <p className="text-xs text-muted-foreground">None selected — all marketplaces will be shown by default</p>}
     </div>
 
+    {/* Social Media Platforms */}
+    <div className="space-y-3">
+      <div><h3 className="text-lg font-semibold">Social Media Platforms</h3><p className="text-xs text-muted-foreground">Choose which social platforms are available for post generation and scheduling</p></div>
+      <div className="flex flex-wrap gap-2">
+        {[{ value: "instagram", label: "Instagram", icon: "📸" }, { value: "facebook", label: "Facebook", icon: "📘" }, { value: "twitter", label: "Twitter / X", icon: "🐦" }, { value: "tiktok", label: "TikTok", icon: "🎵" }, { value: "pinterest", label: "Pinterest", icon: "📌" }].map((sp) => {
+          const isEnabled = orgForm.enabled_social_platforms.includes(sp.value);
+          return (
+            <label key={sp.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
+              <input type="checkbox" checked={isEnabled} onChange={() => { const newSp = isEnabled ? orgForm.enabled_social_platforms.filter((s) => s !== sp.value) : [...orgForm.enabled_social_platforms, sp.value]; setOrgForm({ ...orgForm, enabled_social_platforms: newSp }); }} className="rounded" />
+              <span className="text-base">{sp.icon}</span><span className="text-sm font-medium">{sp.label}</span>
+            </label>
+          );
+        })}
+      </div>
+      {orgForm.enabled_social_platforms.length === 0 && <p className="text-xs text-muted-foreground">No platforms enabled — enable at least one to use the Social Media tab</p>}
+    </div>
+
     {/* Product Types */}
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Product Types</h3><p className="text-xs text-muted-foreground">Select which product types this brand offers</p></div>
