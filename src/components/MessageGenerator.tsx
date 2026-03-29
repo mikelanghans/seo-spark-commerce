@@ -144,7 +144,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             },
             count: generateCount,
             ...(styleFirst ? { designStyle } : {}),
-            existingProducts: (allExisting || []).map((m: any) => m.message_text),
+            existingProducts: uniqueExisting,
             ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
         }),
