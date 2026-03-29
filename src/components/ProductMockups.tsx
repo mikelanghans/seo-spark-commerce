@@ -633,6 +633,17 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           </div>
         </div>
 
+        {/* Custom Instructions */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Custom instructions (optional)</label>
+          <Input
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            placeholder="e.g. lifestyle background, folded shirt, wooden table…"
+            className="h-8 text-xs"
+          />
+        </div>
+
         {selectedColors.length > 0 && (
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">{selectedColors.length} color{selectedColors.length !== 1 ? "s" : ""} selected</p>
