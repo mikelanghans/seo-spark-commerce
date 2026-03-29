@@ -201,7 +201,12 @@ Generate exactly 3 refined variations. Each variation should:
         : `\nSTYLE: TEXT-ONLY TYPOGRAPHY\nMessages must stand alone as strong typographic statements.`;
 
       const brandRule = isYouniverses
-        ? `\nCRITICAL BRAND RULE: Every message must end with "— the universe" and keep phrase length 2-5 words before the dash.`
+        ? `\nCRITICAL BRAND RULE FOR YOUNIVERSES:
+- The brand voice is SARCASTIC, LIGHTHEARTED, and FUN — like a witty friend who says what everyone's thinking.
+- Only SHORT punchy phrases (2-5 words) should end with " — the universe" (e.g. "Can you not — the universe", "Oh, we're improvising now — the universe").
+- Longer messages (6+ words) should NOT have "— the universe" — they stand alone.
+- Think dry humor, relatable chaos, gentle roasts, and playful sarcasm.
+- Avoid inspirational, motivational, or earnest tones — lean into irreverence.`
         : "";
 
       let existingProductsContext = "";
