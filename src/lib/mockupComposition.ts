@@ -321,9 +321,36 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Composite a design onto a template photo (center-chest placement).
- * If the design has a solid edge background (black/white), it is stripped first.
+ * Compute the prepared (tight-cropped) dimensions of a design image.
+ * Used to establish a consistent reference size across light/dark variants.
  */
+export async function getPreparedDesignSize(
+  designDataUrl: string,
+): Promise<{ width: number; height: number }> {
+  const img = await loadImage(designDataUrl);
+  const cleaned = stripSolidEdgeBackground(img);
+  const prepared = prepareDesignForCompositing(cleaned);
+  return { width: prepared.width, height: prepared.height };
+}
+
+/**
+ * Compute a unified reference size from multiple design variants.
+ * Uses the maximum bounding box so all variants render at the same visual scale.
+ */
+export async function getUnifiedDesignSize(
+  ...designDataUrls: (string | undefined)[]
+): Promise<{ width: number; height: number } | undefined> {
+  const urls = designDataUrls.filter(Boolean) as string[];
+  if (urls.length === 0) return undefined;
+
+  const sizes = await Promise.all(urls.map(u => getPreparedDesignSize(u)));
+  return {
+    width: Math.max(...sizes.map(s => s.width)),
+    height: Math.max(...sizes.map(s => s.height)),
+  };
+}
+
+
 export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
   designDataUrl: string,
