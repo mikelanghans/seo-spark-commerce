@@ -770,12 +770,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                   </button>
                 ))}
               </div>
+              <textarea
+                value={feedbackDetails}
+                onChange={(e) => setFeedbackDetails(e.target.value)}
+                placeholder="Add details… e.g. 'Design should be the same size as the black variant' or 'Move design up slightly'"
+                className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                rows={2}
+              />
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs"
-                  onClick={() => { setFeedbackMockupId(null); setFeedbackReason(""); }}
+                  onClick={() => { setFeedbackMockupId(null); setFeedbackReason(""); setFeedbackDetails(""); }}
                 >
                   Cancel
                 </Button>
@@ -783,7 +790,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                   size="sm"
                   className="h-7 text-xs gap-1.5"
                   disabled={!feedbackReason || regeneratingId === img.color_name}
-                  onClick={() => handleRegenerateSingle(img.color_name, feedbackReason)}
+                  onClick={() => {
+                    const fullFeedback = feedbackDetails
+                      ? `${feedbackReason}: ${feedbackDetails}`
+                      : feedbackReason;
+                    handleRegenerateSingle(img.color_name, fullFeedback);
+                  }}
                 >
                   <RotateCw className="h-3 w-3" /> Regenerate
                 </Button>
