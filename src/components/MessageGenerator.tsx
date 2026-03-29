@@ -144,11 +144,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             },
             count: generateCount,
             ...(styleFirst ? { designStyle } : {}),
-            existingProducts: uniqueExisting,
+            existingProducts: uniqueExisting.slice(0, 50),
             ...(topic.trim() ? { topic: topic.trim() } : {}),
           },
         }),
-        60000,
+        120000,
         "Message generation"
       );
 
