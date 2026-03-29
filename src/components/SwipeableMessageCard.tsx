@@ -332,26 +332,23 @@ export const SwipeableMessageCard = ({
               )}
             </Button>
           )}
-          {!hasProduct && availableStyles.length > 1 && (
-            <div className="flex items-center rounded-md border border-input bg-background h-8 overflow-hidden shrink-0">
-              {availableStyles.map((s, i) => {
+        {!hasProduct && availableStyles.length > 1 && (
+            <div className="flex flex-wrap items-center gap-1 shrink-0">
+              {availableStyles.map((s) => {
                 const label = getStyleLabel(s);
-                const info = { label, icon: s === "text-only" ? "type" as const : "image" as const };
-                const IconComp = info.icon === "type" ? Type : Image;
+                const IconComp = s === "text-only" ? Type : Image;
                 return (
-                  <span key={s} className="contents">
-                    {i > 0 && <div className="w-px h-4 bg-border" />}
-                    <button
-                      type="button"
-                      disabled={isGeneratingDesign || disableDesignActions}
-                      onClick={() => { setActiveStyle(s); onGenerateDesign(id, s); }}
-                      className="flex items-center gap-1 px-2 h-full text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50"
-                      title={`${hasDesign ? "Regenerate" : "Generate"} ${info.label} design`}
-                    >
-                      {isGeneratingDesign && activeStyle === s ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
-                      {info.label}
-                    </button>
-                  </span>
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={isGeneratingDesign || disableDesignActions}
+                    onClick={() => { setActiveStyle(s); onGenerateDesign(id, s); }}
+                    className="flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50"
+                    title={`${hasDesign ? "Regenerate" : "Generate"} ${label} design`}
+                  >
+                    {isGeneratingDesign && activeStyle === s ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
+                    {label}
+                  </button>
                 );
               })}
             </div>
