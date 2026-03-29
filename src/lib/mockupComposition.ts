@@ -47,6 +47,7 @@ export async function normalizeAndLockToTemplateBlob({
   isDarkGarment,
   designStyle,
   placement,
+  referenceDesignSize,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
