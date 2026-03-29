@@ -83,6 +83,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [feedbackReason, setFeedbackReason] = useState("");
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState("");
+  const [feedbackDetails, setFeedbackDetails] = useState("");
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
