@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn } from "lucide-react";
+import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -46,6 +46,21 @@ interface Props {
   aiUsage?: AiUsage;
 }
 
+interface ColorRecommendation {
+  color: string;
+  reason: string;
+}
+
+type GenerationStep = "choose-colors" | "generating" | "size-check" | "review";
+
+const FEEDBACK_OPTIONS = [
+  "Color is wrong",
+  "Placement is off",
+  "Design distorted",
+  "Background issue",
+  "Other",
+];
+
 export const ProductMockups = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +70,22 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // AI generation state
+  const [genStep, setGenStep] = useState<GenerationStep | null>(null);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [aiRecommendations, setAiRecommendations] = useState<ColorRecommendation[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
+  const [generatingColors, setGeneratingColors] = useState<Map<string, "pending" | "done" | "error">>(new Map());
+  const [generationProgress, setGenerationProgress] = useState({ done: 0, total: 0, current: "" });
+
+  // Feedback state
+  const [feedbackMockupId, setFeedbackMockupId] = useState<string | null>(null);
+  const [feedbackReason, setFeedbackReason] = useState("");
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
   const typeConfig = getProductType(productCategory || "");
+  const availableColors = typeConfig.colors;
+  const availablePalette = availableColors.map(c => c.name).join(", ");
 
   useEffect(() => {
     loadImages();
@@ -124,13 +154,86 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
     toast.success("Color name updated");
   };
 
-  /** Regenerate a single mockup color variant with feedback-informed instructions */
-  const handleRegenerateSingle = async (colorName: string, feedback: string) => {
-    const templateUrl = sourceImageUrl;
-    if (!templateUrl) {
-      toast.error("No template image available.");
+  // ─── AI Color Recommendations ──────────────────────────────────
+  const fetchAiRecommendations = async () => {
+    setLoadingRecs(true);
+    try {
+      const existingColors = images.map(img => img.color_name);
+
+      // Get design image for visual analysis
+      let designBase64: string | undefined;
+      if (designImageUrl) {
+        try {
+          const resp = await fetch(designImageUrl);
+          const blob = await resp.blob();
+          designBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch { /* continue without design */ }
+      }
+
+      const { data, error } = await supabase.functions.invoke("recommend-colors", {
+        body: {
+          productTitle,
+          productCategory: productCategory || typeConfig.label,
+          brandName,
+          brandNiche,
+          brandAudience,
+          brandTone,
+          existingColors,
+          designImageBase64: designBase64,
+          availablePalette,
+          productTypeLabel: typeConfig.label,
+        },
+      });
+
+      if (error || data?.error) {
+        handleAiError(error, data, "Failed to get color recommendations");
+        return;
+      }
+
+      const recs = data.recommendations || [];
+      setAiRecommendations(recs);
+      // Auto-select recommended colors that aren't already generated
+      const existingSet = new Set(existingColors.map(c => c.toLowerCase()));
+      const newColors = recs
+        .map((r: ColorRecommendation) => r.color)
+        .filter((c: string) => !existingSet.has(c.toLowerCase()));
+      setSelectedColors(newColors);
+    } catch (err: any) {
+      toast.error("Failed to get recommendations: " + (err.message || "Unknown error"));
+    } finally {
+      setLoadingRecs(false);
+    }
+  };
+
+  const toggleColor = (colorName: string) => {
+    setSelectedColors(prev =>
+      prev.includes(colorName) ? prev.filter(c => c !== colorName) : [...prev, colorName]
+    );
+  };
+
+  // ─── Generate Mockups ──────────────────────────────────────────
+  const generateMockups = async () => {
+    if (selectedColors.length === 0) {
+      toast.error("Select at least one color to generate");
       return;
     }
+
+    const templateUrl = sourceImageUrl;
+    if (!templateUrl) {
+      toast.error("No template image available. Upload a design first.");
+      return;
+    }
+
+    setGenStep("generating");
+    const statusMap = new Map<string, "pending" | "done" | "error">();
+    selectedColors.forEach(c => statusMap.set(c, "pending"));
+    setGeneratingColors(new Map(statusMap));
+    setGenerationProgress({ done: 0, total: selectedColors.length, current: "" });
 
     try {
       // Fetch template
@@ -143,12 +246,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         reader.readAsDataURL(templateBlob);
       });
 
-      // Fetch design
+      // Fetch design variants
       const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
         try {
           const resp = await fetch(url);
-          const ct = resp.headers.get("content-type") || "";
-          if (!ct.startsWith("image/")) return undefined;
           const blob = await resp.blob();
           return new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -159,7 +260,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch { return undefined; }
       };
 
-      // Load design variants
       const { data: designImages } = await supabase
         .from("product_images")
         .select("image_url, color_name")
@@ -169,12 +269,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const normalizeKey = (v?: string | null) =>
         (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
 
-      const lightDesignUrl = designImages?.find((d) => {
+      const lightDesignUrl = designImages?.find(d => {
         const key = normalizeKey(d.color_name);
         return key === "light-on-dark" || key === "light";
       })?.image_url || designImageUrl;
 
-      const darkDesignUrl = designImages?.find((d) => {
+      const darkDesignUrl = designImages?.find(d => {
         const key = normalizeKey(d.color_name);
         return key === "dark-on-light" || key === "dark";
       })?.image_url;
@@ -182,14 +282,173 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
       let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
 
-      // Derive dark variant if missing
+      if (!darkDesignBase64 && lightDesignBase64) {
+        try {
+          const multiColor = await isMultiColorDesign(lightDesignBase64);
+          if (!multiColor) {
+            const bgRemoved = await removeBackground(lightDesignBase64, "black");
+            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+          } else {
+            darkDesignBase64 = lightDesignBase64;
+          }
+        } catch { /* continue */ }
+      }
+
+      if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+        try {
+          const cleaned = await smartRemoveBackground(designImageUrl);
+          lightDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch {
+          lightDesignBase64 = await fetchAsBase64(designImageUrl);
+        }
+      }
+
+      let plainTemplate = templateBase64;
+      try {
+        plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
+      } catch { /* use uncompressed */ }
+
+      let targetSize: { width: number; height: number } | null = null;
+      try {
+        targetSize = await getImageDimensionsFromDataUrl(templateBase64);
+      } catch { /* null */ }
+
+      // Generate sequentially (respect rate limits)
+      let doneCount = 0;
+      for (const colorName of selectedColors) {
+        setGenerationProgress({ done: doneCount, total: selectedColors.length, current: colorName });
+
+        try {
+          const isLight = isLightColor(typeConfig, colorName);
+          const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+
+          const { data, error } = await supabase.functions.invoke("generate-color-variants", {
+            body: {
+              imageBase64: plainTemplate,
+              colorName,
+              productTitle,
+              sourceWidth: targetSize?.width || null,
+              sourceHeight: targetSize?.height || null,
+              swatchHints: typeConfig.swatchHints,
+            },
+          });
+
+          if (error || data?.error) {
+            statusMap.set(colorName, "error");
+            setGeneratingColors(new Map(statusMap));
+            continue;
+          }
+
+          const generatedBase64 = data.imageBase64;
+          if (!generatedBase64) throw new Error("No image returned");
+
+          const generatedDataUrl = ensureImageDataUrl(generatedBase64);
+          const blob = await normalizeAndLockToTemplateBlob({
+            templateDataUrl: plainTemplate,
+            generatedDataUrl,
+            targetWidth: targetSize?.width || 1024,
+            targetHeight: targetSize?.height || 1024,
+            designDataUrl: designForComposite,
+            isDarkGarment: !isLight,
+          });
+
+          const path = `${userId}/${crypto.randomUUID()}.jpg`;
+          const { error: uploadErr } = await supabase.storage
+            .from("product-images")
+            .upload(path, blob, { contentType: "image/jpeg" });
+          if (uploadErr) throw uploadErr;
+
+          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+          await insertProductImageIfNotExists({
+            product_id: productId,
+            user_id: userId,
+            image_url: urlData.publicUrl,
+            image_type: "mockup",
+            color_name: colorName,
+            position: doneCount,
+          });
+
+          statusMap.set(colorName, "done");
+        } catch (err) {
+          console.error(`Error generating ${colorName}:`, err);
+          statusMap.set(colorName, "error");
+        }
+
+        setGeneratingColors(new Map(statusMap));
+        doneCount++;
+        setGenerationProgress({ done: doneCount, total: selectedColors.length, current: "" });
+      }
+
+      await loadImages();
+      setGenStep("review");
+      toast.success(`Generated ${doneCount} mockups!`);
+    } catch (err: any) {
+      console.error("Generation error:", err);
+      toast.error(err.message || "Failed to generate mockups");
+      setGenStep("choose-colors");
+    }
+  };
+
+  // ─── Regenerate Single (Feedback-informed) ─────────────────────
+  const handleRegenerateSingle = async (colorName: string, feedback: string) => {
+    const templateUrl = sourceImageUrl;
+    if (!templateUrl) {
+      toast.error("No template image available.");
+      return;
+    }
+
+    setRegeneratingId(colorName);
+    try {
+      const templateResp = await fetch(templateUrl);
+      const templateBlob = await templateResp.blob();
+      const templateBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(templateBlob);
+      });
+
+      const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch { return undefined; }
+      };
+
+      const { data: designImages } = await supabase
+        .from("product_images")
+        .select("image_url, color_name")
+        .eq("product_id", productId)
+        .eq("image_type", "design");
+
+      const normalizeKey = (v?: string | null) =>
+        (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
+
+      const lightDesignUrl = designImages?.find(d => {
+        const key = normalizeKey(d.color_name);
+        return key === "light-on-dark" || key === "light";
+      })?.image_url || designImageUrl;
+
+      const darkDesignUrl = designImages?.find(d => {
+        const key = normalizeKey(d.color_name);
+        return key === "dark-on-light" || key === "dark";
+      })?.image_url;
+
+      let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
+      let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+
       if (!darkDesignBase64 && lightDesignBase64) {
         try {
           const multiColor = await isMultiColorDesign(lightDesignBase64);
           if (multiColor) {
-            // Use removeBackground + recolor for simple derivation
-            const bgRemoved = await removeBackground(lightDesignBase64, "black");
-            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+            darkDesignBase64 = lightDesignBase64;
           } else {
             const bgRemoved = await removeBackground(lightDesignBase64, "black");
             darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
@@ -209,8 +468,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
-      // Send the PLAIN template to AI (no design baked in) to prevent duplication.
-      // The design is composited AFTER AI recoloring in normalizeAndLockToTemplateBlob.
       let plainTemplate = templateBase64;
       try {
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
@@ -221,10 +478,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
 
-      // Build feedback-informed instructions
       const customInstructions = `IMPORTANT FEEDBACK FROM USER: ${feedback}. Please address these issues in the regenerated mockup.`;
 
-      // Call edge function
       const { data, error } = await supabase.functions.invoke("generate-color-variants", {
         body: {
           imageBase64: plainTemplate,
@@ -255,7 +510,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         isDarkGarment: !isLight,
       });
 
-      // Upload
       const path = `${userId}/${crypto.randomUUID()}.jpg`;
       const { error: uploadErr } = await supabase.storage
         .from("product-images")
@@ -278,8 +532,252 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
     } catch (err: any) {
       console.error("Regenerate single error:", err);
       toast.error(err.message || "Failed to regenerate mockup");
+    } finally {
+      setRegeneratingId(null);
+      setFeedbackMockupId(null);
+      setFeedbackReason("");
     }
   };
+
+  // ─── Render: Color Picker Panel ────────────────────────────────
+  const renderColorPicker = () => {
+    const existingColorNames = new Set(images.map(img => img.color_name.toLowerCase()));
+
+    return (
+      <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-semibold">Choose Colors</h4>
+            <p className="text-xs text-muted-foreground">Select colors to generate mockups for</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchAiRecommendations}
+              disabled={loadingRecs}
+              className="gap-2"
+            >
+              {loadingRecs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              AI Recommend
+            </Button>
+            <Button size="sm" onClick={() => setGenStep(null)} variant="ghost">Cancel</Button>
+          </div>
+        </div>
+
+        {/* AI Recommendation Chips */}
+        {aiRecommendations.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">AI Recommendations:</p>
+            <div className="flex flex-wrap gap-2">
+              {aiRecommendations.map((rec) => {
+                const isSelected = selectedColors.includes(rec.color);
+                const alreadyExists = existingColorNames.has(rec.color.toLowerCase());
+                return (
+                  <button
+                    key={rec.color}
+                    type="button"
+                    disabled={alreadyExists}
+                    onClick={() => toggleColor(rec.color)}
+                    className={`group relative rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      alreadyExists
+                        ? "bg-muted text-muted-foreground/50 cursor-not-allowed line-through"
+                        : isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                    title={alreadyExists ? "Already generated" : rec.reason}
+                  >
+                    {rec.color}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Full Palette Grid */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Available palette:</p>
+          <div className="flex flex-wrap gap-2">
+            {availableColors.map((color) => {
+              const isSelected = selectedColors.includes(color.name);
+              const alreadyExists = existingColorNames.has(color.name.toLowerCase());
+              return (
+                <button
+                  key={color.name}
+                  type="button"
+                  disabled={alreadyExists}
+                  onClick={() => toggleColor(color.name)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    alreadyExists
+                      ? "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                      : isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  <span
+                    className="inline-block h-3 w-3 rounded-full border border-border shrink-0"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.name}
+                  {alreadyExists && <span className="text-[10px]">(done)</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedColors.length > 0 && (
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <p className="text-xs text-muted-foreground">{selectedColors.length} color{selectedColors.length !== 1 ? "s" : ""} selected</p>
+            <Button size="sm" onClick={generateMockups} className="gap-2">
+              <Sparkles className="h-3.5 w-3.5" /> Generate Mockups
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── Render: Generation Progress ───────────────────────────────
+  const renderGenerationProgress = () => (
+    <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+      <div className="text-center space-y-2">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+        <h4 className="text-sm font-semibold">Generating Mockups</h4>
+        <p className="text-xs text-muted-foreground">
+          {generationProgress.current
+            ? `Creating ${generationProgress.current}…`
+            : `${generationProgress.done} of ${generationProgress.total} complete`}
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        {Array.from(generatingColors.entries()).map(([color, status]) => (
+          <div key={color} className="flex items-center justify-between text-xs px-2 py-1 rounded bg-muted/50">
+            <span>{color}</span>
+            <span className={
+              status === "done" ? "text-green-600" :
+              status === "error" ? "text-destructive" :
+              "text-muted-foreground"
+            }>
+              {status === "done" ? "✓" : status === "error" ? "✗ Failed" : "⏳ Pending"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ─── Render: Mockup Grid with Feedback ─────────────────────────
+  const renderMockupGrid = (showFeedback = false) => (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {images.map((img) => (
+        <div key={img.id} className="group relative rounded-lg border border-border bg-card overflow-hidden">
+          <div className="relative h-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => setPreviewImage(img)}>
+            <img src={img.image_url} alt={img.color_name} loading="lazy" decoding="async" className="h-full w-full object-contain p-2" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+              <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            {regeneratingId === img.color_name && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            {editingId === img.id ? (
+              <>
+                <Input
+                  value={editColor}
+                  onChange={(e) => setEditColor(e.target.value)}
+                  className="h-7 text-xs"
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveColor(img.id)}
+                />
+                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => handleSaveColor(img.id)}>
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span className="flex-1 truncate text-xs font-medium">{img.color_name || "Untitled"}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
+                  onClick={() => { setEditingId(img.id); setEditColor(img.color_name); }}
+                >
+                  <Edit2 className="h-3 w-3" />
+                </Button>
+                {showFeedback && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:text-orange-500"
+                    onClick={() => { setFeedbackMockupId(img.id); setFeedbackReason(""); }}
+                    title="Report issue & regenerate"
+                  >
+                    <ThumbsDown className="h-3 w-3" />
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
+                  onClick={() => handleDelete(img.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Feedback popover inline */}
+          {feedbackMockupId === img.id && (
+            <div className="border-t border-border px-3 py-2 space-y-2 bg-muted/30">
+              <p className="text-[11px] font-medium">What's wrong?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {FEEDBACK_OPTIONS.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setFeedbackReason(opt)}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                      feedbackReason === opt
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => { setFeedbackMockupId(null); setFeedbackReason(""); }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  disabled={!feedbackReason || regeneratingId === img.color_name}
+                  onClick={() => handleRegenerateSingle(img.color_name, feedbackReason)}
+                >
+                  <RotateCw className="h-3 w-3" /> Regenerate
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -299,88 +797,81 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             onChange={handleUpload}
             className="hidden"
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="gap-2"
-          >
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Upload
-          </Button>
+          {genStep === "review" && (
+            <Button variant="ghost" size="sm" onClick={() => setGenStep(null)} className="gap-2">
+              <ChevronLeft className="h-3.5 w-3.5" /> Done
+            </Button>
+          )}
+          {!genStep && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Upload
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }}
+                className="gap-2"
+                disabled={!sourceImageUrl && !designImageUrl}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Generate
+              </Button>
+            </>
+          )}
         </div>
       </div>
-
 
       <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
         <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
       </p>
 
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      {/* Step: Choose Colors */}
+      {genStep === "choose-colors" && renderColorPicker()}
+
+      {/* Step: Generating */}
+      {genStep === "generating" && renderGenerationProgress()}
+
+      {/* Step: Review with Feedback */}
+      {genStep === "review" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Review your mockups — click 👎 to report issues and regenerate</p>
+            <Button size="sm" variant="outline" onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }} className="gap-2">
+              <Plus className="h-3.5 w-3.5" /> Add More Colors
+            </Button>
+          </div>
+          {renderMockupGrid(true)}
         </div>
-      ) : images.length === 0 ? (
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-card/50 py-10 transition-colors hover:border-primary/50"
-        >
-          <ImageIcon className="h-8 w-8 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            Upload mockup images (filename = color name)
-          </p>
-        </button>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {images.map((img) => (
-            <div key={img.id} className="group relative rounded-lg border border-border bg-card overflow-hidden">
-              <div className="relative h-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => setPreviewImage(img)}>
-                <img src={img.image_url} alt={img.color_name} loading="lazy" decoding="async" className="h-full w-full object-contain p-2" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-                  <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2">
-                {editingId === img.id ? (
-                  <>
-                    <Input
-                      value={editColor}
-                      onChange={(e) => setEditColor(e.target.value)}
-                      className="h-7 text-xs"
-                      autoFocus
-                      onKeyDown={(e) => e.key === "Enter" && handleSaveColor(img.id)}
-                    />
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => handleSaveColor(img.id)}>
-                      <Check className="h-3.5 w-3.5" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex-1 truncate text-xs font-medium">{img.color_name || "Untitled"}</span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
-                      onClick={() => { setEditingId(img.id); setEditColor(img.color_name); }}
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:text-destructive"
-                      onClick={() => handleDelete(img.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </>
-                )}
-              </div>
+      )}
+
+      {/* Default: Show existing mockups */}
+      {!genStep && (
+        <>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ))}
-        </div>
+          ) : images.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-card/50 py-10 transition-colors hover:border-primary/50"
+            >
+              <ImageIcon className="h-8 w-8 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Upload mockup images (filename = color name)
+              </p>
+            </button>
+          ) : (
+            renderMockupGrid(true)
+          )}
+        </>
       )}
 
       {/* Fullscreen preview dialog */}
@@ -388,7 +879,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         <DialogContent className="max-w-3xl p-2">
           {previewImage && (
             <div className="space-y-2">
-                <img loading="lazy" decoding="async"
+              <img loading="lazy" decoding="async"
                 src={previewImage.image_url}
                 alt={previewImage.color_name}
                 className="w-full rounded-lg object-contain max-h-[80vh]"
