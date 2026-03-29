@@ -6,6 +6,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MODEL_FALLBACKS = [
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+];
+
+const MAX_EXISTING_PRODUCTS = 25;
+const MAX_EXISTING_PRODUCT_LENGTH = 90;
+const MAX_BATCH_SIZE = 10;
+
+const cleanString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+
+const compactExistingProducts = (existingProducts: unknown): string[] => {
+  if (!Array.isArray(existingProducts)) return [];
+
+  const seen = new Set<string>();
+  const compact: string[] = [];
+
+  for (const item of existingProducts) {
+    const text = cleanString(item);
+    if (!text) continue;
+
+    const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
+    if (seen.has(normalized)) continue;
+
+    seen.add(normalized);
+    compact.push(text.slice(0, MAX_EXISTING_PRODUCT_LENGTH));
+
+    if (compact.length >= MAX_EXISTING_PRODUCTS) break;
+  }
+
+  return compact;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,21 +53,53 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) throw new Error("Unauthorized");
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { organization, count, refineOriginal, refineFeedback, topic, designStyle, existingProducts } = await req.json();
-    const batchSize = count || 10;
+    const payload = await req.json();
+    const organization = payload?.organization;
+
+    if (!organization?.id || !organization?.name) {
+      return new Response(JSON.stringify({ error: "organization.id and organization.name are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const countRaw = Number(payload?.count ?? 10);
+    const batchSize = Number.isFinite(countRaw)
+      ? Math.max(1, Math.min(MAX_BATCH_SIZE, Math.floor(countRaw)))
+      : 10;
+
+    const refineOriginal = cleanString(payload?.refineOriginal);
+    const refineFeedback = cleanString(payload?.refineFeedback);
+    const topic = cleanString(payload?.topic);
+    const designStyle = cleanString(payload?.designStyle);
+    const existingProducts = compactExistingProducts(payload?.existingProducts);
+
     const isRefine = !!refineOriginal && !!refineFeedback;
 
     // Fetch past design feedback to inform message generation
     const userId = user.id;
     let feedbackContext = "";
     if (organization.id) {
-      const serviceClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const serviceClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
       const { data: feedback } = await serviceClient
         .from("design_feedback")
         .select("rating, notes")
@@ -43,10 +109,19 @@ serve(async (req) => {
         .limit(20);
 
       if (feedback && feedback.length > 0) {
-        const liked = feedback.filter((f: any) => f.rating === "up" && f.notes).map((f: any) => f.notes);
-        const disliked = feedback.filter((f: any) => f.rating === "down" && f.notes).map((f: any) => f.notes);
-        if (liked.length > 0) feedbackContext += `\nThe user LIKED these past design elements: ${liked.join("; ")}`;
-        if (disliked.length > 0) feedbackContext += `\nThe user DISLIKED these past design elements: ${disliked.join("; ")}`;
+        const liked = feedback
+          .filter((f: any) => f.rating === "up" && f.notes)
+          .map((f: any) => f.notes);
+        const disliked = feedback
+          .filter((f: any) => f.rating === "down" && f.notes)
+          .map((f: any) => f.notes);
+
+        if (liked.length > 0) {
+          feedbackContext += `\nLiked elements: ${liked.join("; ")}`;
+        }
+        if (disliked.length > 0) {
+          feedbackContext += `\nDisliked elements: ${disliked.join("; ")}`;
+        }
       }
     }
 
@@ -61,183 +136,169 @@ Brand context:
 - Target Audience: ${organization.audience}
 ${feedbackContext}
 
-The user has an existing t-shirt message that's close but needs refinement:
-
 ORIGINAL MESSAGE: "${refineOriginal}"
-
 USER FEEDBACK: "${refineFeedback}"
 
-Generate exactly 3 refined variations of this message based on the feedback. Each variation should:
-- Address the user's feedback while keeping the core idea
-- Stay short enough for a t-shirt (2-12 words)
-- Match the brand tone
-- Be distinct from each other — give meaningfully different takes`;
+Generate exactly 3 refined variations. Each variation should:
+- Address the feedback while keeping the core idea
+- Stay short for apparel (2-12 words)
+- Match brand tone
+- Be meaningfully distinct`;
     } else {
       const isMinimalist = designStyle === "minimalist";
-      const isYouniverses = organization.name?.toLowerCase().includes("youniverse");
+      const isYouniverses = String(organization.name || "").toLowerCase().includes("youniverse");
+
       const styleDirective = isMinimalist
-        ? `\n🎨 DESIGN STYLE: MINIMALIST ILLUSTRATION
-These messages will be paired with minimalist artwork/illustrations. Generate messages that:
-- Work alongside a visual element (icon, illustration, or symbol)
-- Can be shorter since the illustration carries meaning too
-- Evoke imagery — animals, objects, nature, abstract concepts
-- Think: a simple line drawing of a cat + "nope" or a wilting flower + "still growing"
-- The message + illustration together should tell a complete story\n`
-        : `\n🎨 DESIGN STYLE: TEXT-ONLY TYPOGRAPHY
-These messages will be pure typography designs — no illustrations. Generate messages that:
-- Stand on their own visually as bold text
-- Sound powerful when read aloud — the words ARE the design
-${isYouniverses
-  ? `
+        ? `\nSTYLE: MINIMALIST ILLUSTRATION\nMessages should pair with simple icons/line art and work as short supporting text.`
+        : `\nSTYLE: TEXT-ONLY TYPOGRAPHY\nMessages must stand alone as strong typographic statements.`;
 
-⚠️ CRITICAL BRAND RULE — READ CAREFULLY:
-Every single message MUST follow this EXACT format: "[short phrase] — the universe"
-The phrase before " — the universe" must be 2-5 words. Shorter is always better.
-DO NOT use {BRACKETS}, long sentences, periods mid-message, or parentheticals.
+      const brandRule = isYouniverses
+        ? `\nCRITICAL BRAND RULE: Every message must end with "— the universe" and keep phrase length 2-5 words before the dash.`
+        : "";
 
-GOOD examples:
-- "you got this — the universe"
-- "plot twist — the universe"  
-- "trust the timing — the universe"
-- "breathe — the universe"
-- "it's happening — the universe"
-- "keep going — the universe"
-- "not yet — the universe"
-
-BAD examples (DO NOT generate these):
-- "{ORBITING} but not quite reaching the point" ← WRONG, no brackets, no long text
-- "DON'T PANIC. Everything is temporary." ← WRONG, missing "— the universe"
-- "YOU ARE HERE. (Unfortunately) — The Universe" ← WRONG, too long, has parenthetical
-
-`
-  : `- Have natural typographic hierarchy (big word + small attribution works great)
-- Work in a variety of formats: "quotes — attribution", standalone bold statements, or occasionally {CURLY BRACES} when the word genuinely benefits from that framing (e.g., a single punchy word like {NOPE}). Do NOT overuse braces — most messages should NOT have them.`}
-- Think: the kind of text you'd see on a premium streetwear tee\n`;
-
-      // Build existing products exclusion list
       let existingProductsContext = "";
-      if (existingProducts && existingProducts.length > 0) {
-        const productList = existingProducts.slice(0, 100).map((t: string) => `- "${t}"`).join("\n");
-        existingProductsContext = `\n⚠️ DUPLICATE AVOIDANCE — CRITICAL:
-The brand already has the following products. DO NOT generate messages that are the same as, or very similar to, any of these existing products. Each new message must be clearly distinct:
-${productList}\n`;
+      if (existingProducts.length > 0) {
+        const productList = existingProducts.map((t) => `- "${t}"`).join("\n");
+        existingProductsContext = `\nDUPLICATE AVOIDANCE:\nDo not generate the same or very similar messages as:\n${productList}\n`;
       }
 
-      prompt = `You are a creative copywriter AND trend analyst for "${organization.name}".
-
-${topic ? `🎯 TOPIC/THEME: "${topic}" — ALL messages MUST be themed around this topic. Every single message should relate to "${topic}" while staying on-brand.\n` : ""}${styleDirective}${existingProductsContext}
+      prompt = `You are a creative copywriter and trend analyst for "${organization.name}".
+${topic ? `\nTOPIC: "${topic}". Every message must relate to this topic.` : ""}
+${styleDirective}
+${brandRule}
+${existingProductsContext}
 Brand context:
 - Niche: ${organization.niche}
 - Tone: ${organization.tone}
 - Target Audience: ${organization.audience}
 ${feedbackContext}
 
-TREND & BEST-SELLING ANALYSIS:
-Before generating messages, apply your knowledge of what sells well in the print-on-demand (POD) industry:
-
-1. TOP-SELLING POD MESSAGE CATEGORIES (prioritize these):
-   - Self-deprecating humor about adulting, burnout, overthinking, anxiety
-   - Sarcastic motivational quotes that subvert toxic positivity
-   - Niche identity statements ("I'm not lazy, I'm on energy-saving mode")
-   - Minimalist one-word or two-word statements with strong typography potential
-   - Pop-culture-adjacent vibes without IP infringement
-   - "Seen on TikTok/Instagram" relatable humor
-
-2. DESIGN-FIRST THINKING:
-   - ${isMinimalist ? "Messages that pair beautifully with a simple illustration or icon" : "Messages that look GREAT as minimalist typography (bold + thin font combos)"}
-   - Short messages (2-5 words) consistently outsell longer ones
-   - ${isMinimalist ? "Think about what visual would accompany each message" : "Messages with natural visual hierarchy (a bold word + a smaller attribution)"}
-   - ${isMinimalist ? "The illustration should be obvious from the message context" : "Curly brace format {LIKE THIS} can work for single punchy words, but do NOT overuse — most messages should be plain text or quote-style"}
-
-3. AUDIENCE PSYCHOLOGY:
-   - Gen Z/Millennial buyers want to feel "seen" — messages should feel like an inside joke
-   - Buyers purchase messages that express what they can't say out loud
-   - The best sellers make people screenshot and share before they even buy
-
-Generate exactly ${batchSize} short, punchy messages that could be printed on t-shirts, mugs, or stickers. Each message should be:
-- Perfectly aligned with the "${organization.name}" brand identity, niche ("${organization.niche}"), and target audience ("${organization.audience}")
-- Written in the brand's tone: "${organization.tone}"
-- Short enough for a t-shirt print (ideally 2-8 words, max 12 words)
-- Memorable, quotable, and slightly irreverent
-- ${isMinimalist ? "Designed to pair with a simple minimalist illustration" : "Variety of formats: some with attributions, some standalone bold statements, and only occasionally {curly braces} when it truly fits (1-2 max per batch)"}
-- Optimized for SELLING — think about what someone would actually pay $29 to wear
-
-Make each one distinct in style and energy. Some funny, some surprisingly deep, some deadpan. Prioritize messages that have the highest commercial potential based on current POD trends and that authentically represent the "${organization.name}" brand.`;
+Generate exactly ${batchSize} short, punchy messages for POD products.
+Requirements:
+- 2-8 words ideal, max 12
+- High commercial appeal and shareability
+- Distinct from each other
+- Match brand voice exactly
+- ${isMinimalist ? "Suitable for icon + phrase compositions" : "Strong as pure typography"}`;
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "system", content: "You are a creative copywriter. You MUST call the generate_messages function with your output." },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_messages",
-              description: "Return an array of generated t-shirt messages",
-              parameters: {
-                type: "object",
-                properties: {
-                  messages: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        text: { type: "string", description: "The message text for the product" },
+    let lastError: Error | null = null;
+
+    for (const model of MODEL_FALLBACKS) {
+      try {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(25000),
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a creative copywriter. You MUST call the generate_messages function with your output.",
+              },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.8,
+            max_tokens: 700,
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "generate_messages",
+                  description: "Return an array of generated t-shirt messages",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      messages: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            text: {
+                              type: "string",
+                              description: "The message text for the product",
+                            },
+                          },
+                          required: ["text"],
+                          additionalProperties: false,
+                        },
                       },
-                      required: ["text"],
-                      additionalProperties: false,
                     },
+                    required: ["messages"],
+                    additionalProperties: false,
                   },
                 },
-                required: ["messages"],
-                additionalProperties: false,
               },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "generate_messages" } },
-      }),
-    });
+            ],
+            tool_choice: { type: "function", function: { name: "generate_messages" } },
+          }),
+        });
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        if (!response.ok) {
+          const status = response.status;
+          const bodyText = await response.text();
+
+          if (status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          if (status === 402) {
+            return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          const retryable = status === 404 || status === 410 || status >= 500;
+          const modelError = new Error(`Model ${model} failed (${status}): ${bodyText.slice(0, 500)}`);
+
+          if (retryable) {
+            lastError = modelError;
+            continue;
+          }
+
+          throw modelError;
+        }
+
+        const data = await response.json();
+        const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+
+        if (!toolCall?.function?.arguments) {
+          lastError = new Error(`Model ${model} returned no tool call`);
+          continue;
+        }
+
+        const result = JSON.parse(toolCall.function.arguments);
+        const messages = Array.isArray(result?.messages) ? result.messages : [];
+
+        if (messages.length === 0) {
+          lastError = new Error(`Model ${model} returned empty messages`);
+          continue;
+        }
+
+        return new Response(JSON.stringify({ messages }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        continue;
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", status, t);
-      throw new Error(`AI gateway error: ${status}`);
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
-
-    const result = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify({ messages: result.messages }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    throw lastError || new Error("All AI model attempts failed");
   } catch (e) {
     console.error("generate-messages error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
