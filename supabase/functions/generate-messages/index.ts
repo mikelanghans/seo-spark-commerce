@@ -138,9 +138,14 @@ serve(async (req) => {
         .limit(10);
 
       const selectedTexts = (selectedMsgs || []).map((m: any) => m.message_text).filter(Boolean);
+      const designedTexts = (designedMsgs || []).map((m: any) => m.message_text).filter(Boolean);
       const skippedTexts = (skippedMsgs || []).map((m: any) => m.message_text).filter(Boolean);
       const productTitles = (topProducts || []).map((p: any) => p.title).filter(Boolean);
 
+      // Designed messages are the strongest signal — user actually turned these into products
+      if (designedTexts.length > 0) {
+        feedbackContext += `\n\nMESSAGES THAT BECAME ACTUAL DESIGNS (highest priority — match this quality and style):\n${designedTexts.map(t => `- "${t}"`).join("\n")}`;
+      }
       if (selectedTexts.length > 0) {
         feedbackContext += `\n\nMESSAGES THE USER LOVED (generate MORE like these in style, tone, and energy):\n${selectedTexts.map(t => `- "${t}"`).join("\n")}`;
       }
