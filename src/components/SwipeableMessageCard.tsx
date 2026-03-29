@@ -332,27 +332,6 @@ export const SwipeableMessageCard = ({
               )}
             </Button>
           )}
-        {!hasProduct && availableStyles.length > 1 && (
-            <div className="flex flex-wrap items-center gap-1 shrink-0">
-              {availableStyles.map((s) => {
-                const label = getStyleLabel(s);
-                const IconComp = s === "text-only" ? Type : Image;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    disabled={isGeneratingDesign || disableDesignActions}
-                    onClick={() => { setActiveStyle(s); onGenerateDesign(id, s); }}
-                    className="flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50"
-                    title={`${hasDesign ? "Regenerate" : "Generate"} ${label} design`}
-                  >
-                    {isGeneratingDesign && activeStyle === s ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
           {!hasProduct && (availableStyles.length <= 1) && (
             <Button
               variant="ghost"
@@ -374,6 +353,29 @@ export const SwipeableMessageCard = ({
         </div>
       </div>
       </div>
+
+      {/* Style buttons — separate row below card */}
+      {!hasProduct && availableStyles.length > 1 && (
+        <div className="mt-1 flex flex-wrap gap-1 px-1">
+          {availableStyles.map((s) => {
+            const label = getStyleLabel(s);
+            const IconComp = s === "text-only" ? Type : Image;
+            return (
+              <button
+                key={s}
+                type="button"
+                disabled={isGeneratingDesign || disableDesignActions}
+                onClick={() => { setActiveStyle(s); onGenerateDesign(id, s); }}
+                className="flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[11px] transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50"
+                title={`${hasDesign ? "Regenerate" : "Generate"} ${label} design`}
+              >
+                {isGeneratingDesign && activeStyle === s ? <Loader2 className="h-3 w-3 animate-spin" /> : <IconComp className="h-3 w-3" />}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Refine feedback panel - onMouseDown stopped to prevent swipe interference */}
       {showRefine && (
