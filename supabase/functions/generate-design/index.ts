@@ -273,20 +273,26 @@ STYLE: ILLUSTRATION
 - Create a complete illustrated artwork that tells the story of the message
 - Think: indie poster art, editorial illustration, tattoo flash art, or graphic novel panels
 - Rich detail but still clean enough for screen printing — avoid tiny intricate details
-- The illustration should be the HERO — text is secondary and integrated into the composition
 - Style should feel hand-crafted, artistic, and unique — NOT stock illustration or clip art
 
+⚠️ CRITICAL LAYOUT RULE — TEXT AND ILLUSTRATION MUST BE SEPARATED:
+- The text and the illustration graphic MUST occupy SEPARATE zones — they must NOT overlap each other
+- Place the text in the TOP portion of the canvas, and the illustration BELOW the text (or vice versa)
+- There should be clear visual breathing room between the text block and the illustration
+- Think of a classic vintage poster layout: bold text on top, artwork below — cleanly divided
+- The illustration should be the HERO visual element, and the text should be bold and prominent in its own space
+- Do NOT weave text through the illustration or place text on top of detailed artwork
+
 TYPOGRAPHY:
-- Font style: ${fontDirection} — integrated into or around the illustration
-- Text should complement the artwork, not compete with it
+- Font style: ${fontDirection} — bold, prominent, and clearly separated from the illustration
+- Text should be large, confident, and command its own space
 - ${sizeDirection}
-- ⚠️ TEXT LEGIBILITY IS CRITICAL: Even within an illustration, text must be readable
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Text must be perfectly readable in its own clear zone
+- If the message has a sub-attribution (like "— the universe"), place it small and elegant below the illustration or at the bottom
 
 COLOR: ${colorDirection} as primary ink on ${bgColor}.
 ${isLightOnDark ? "IMPORTANT: For dark garments. Use white/light ink with optional muted accent colors on illustration elements." : "IMPORTANT: For light garments. Use dark ink with optional muted accent colors."}
 - May use 1-3 muted accent colors on illustration elements (dusty teal, warm amber, sage, muted coral)
-
-LAYOUT: ${randomLayout}
 
 SIZE & FILL: The design should FILL at least 70-85% of the canvas.
 
