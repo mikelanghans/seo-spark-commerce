@@ -462,6 +462,53 @@ export async function upscaleBase64Png(
   return canvasToPngBase64(canvas);
 }
 
+/**
+ * Selectively darken bright/near-white pixels in a multi-color design
+ * to create a contrast-safe variant for light garments.
+ * Preserves chromatic (colored) pixels — only darkens near-neutral bright pixels.
+ */
+export async function darkenBrightPixels(
+  sourceImage: string,
+  targetLuma = 24,
+): Promise<string> {
+  const normalizedSource = sourceImage.startsWith("data:image/")
+    ? sourceImage
+    : `data:image/png;base64,${sourceImage.replace(/^data:image\/[^;]+;base64,/, "")}`;
+  const img = await loadImage(normalizedSource);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imageData.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 30) continue; // skip transparent
+
+    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const sat = max === 0 ? 0 : (max - min) / max;
+
+    // Only darken near-neutral bright pixels (low saturation, high luminance)
+    if (sat < 0.15 && luma > 0.55) {
+      // Aggressively darken very bright near-whites
+      const darkFactor = luma > 0.82 ? targetLuma / 255 : Math.max(0.15, 1 - luma);
+      d[i] = Math.round(d[i] * darkFactor);
+      d[i + 1] = Math.round(d[i + 1] * darkFactor);
+      d[i + 2] = Math.round(d[i + 2] * darkFactor);
+      // Enforce minimum alpha for text crispness
+      d[i + 3] = Math.max(d[i + 3], 210);
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvasToPngBase64(canvas);
+}
+
 function canvasToPngBase64(canvas: HTMLCanvasElement): string {
   const dataUrl = canvas.toDataURL("image/png");
   return dataUrl.replace(/^data:image\/png;base64,/, "");

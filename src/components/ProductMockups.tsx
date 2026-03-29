@@ -12,7 +12,7 @@ import {
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -82,6 +82,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [feedbackMockupId, setFeedbackMockupId] = useState<string | null>(null);
   const [feedbackReason, setFeedbackReason] = useState("");
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [customInstructions, setCustomInstructions] = useState("");
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
@@ -289,7 +290,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             const bgRemoved = await removeBackground(lightDesignBase64, "black");
             darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
           } else {
-            darkDesignBase64 = lightDesignBase64;
+            // Multi-color: selectively darken bright/near-white pixels for contrast on light garments
+            const darkened = await darkenBrightPixels(lightDesignBase64);
+            darkDesignBase64 = ensureImageDataUrl(darkened);
           }
         } catch { /* continue */ }
       }
@@ -329,6 +332,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               productTitle,
               sourceWidth: targetSize?.width || null,
               sourceHeight: targetSize?.height || null,
+              customInstructions: customInstructions || undefined,
               swatchHints: typeConfig.swatchHints,
             },
           });
@@ -448,7 +452,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         try {
           const multiColor = await isMultiColorDesign(lightDesignBase64);
           if (multiColor) {
-            darkDesignBase64 = lightDesignBase64;
+            const darkened = await darkenBrightPixels(lightDesignBase64);
+            darkDesignBase64 = ensureImageDataUrl(darkened);
           } else {
             const bgRemoved = await removeBackground(lightDesignBase64, "black");
             darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
@@ -627,6 +632,17 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               );
             })}
           </div>
+        </div>
+
+        {/* Custom Instructions */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Custom instructions (optional)</label>
+          <Input
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            placeholder="e.g. lifestyle background, folded shirt, wooden table…"
+            className="h-8 text-xs"
+          />
         </div>
 
         {selectedColors.length > 0 && (
