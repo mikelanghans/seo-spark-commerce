@@ -332,6 +332,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               productTitle,
               sourceWidth: targetSize?.width || null,
               sourceHeight: targetSize?.height || null,
+              customInstructions: customInstructions || undefined,
               swatchHints: typeConfig.swatchHints,
             },
           });
