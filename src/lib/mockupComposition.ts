@@ -21,6 +21,8 @@ interface CompositionLockParams {
   designStyle?: string;
   /** Custom placement overrides from the user preview */
   placement?: DesignPlacement;
+  /** Reference design dimensions to ensure consistent sizing across variants */
+  referenceDesignSize?: { width: number; height: number };
 }
 
 export const ensureImageDataUrl = (value: string) =>
