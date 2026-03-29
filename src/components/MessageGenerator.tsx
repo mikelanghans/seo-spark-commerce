@@ -650,11 +650,14 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               {availableStyles.map((s) => {
                 const styleLabels: Record<string, string> = {
                   "text-only": "Text",
+                  "text-with-graphics": "Text + Graphics",
                   "minimalist": "Art",
                   "retro": "Retro",
                   "hand-drawn": "Sketch",
                   "bold-graphic": "Bold",
                   "distressed": "Grunge",
+                  "illustration": "Illustration",
+                  "photo-based": "Photo-Based",
                 };
                 return (
                   <option key={s} value={s}>
