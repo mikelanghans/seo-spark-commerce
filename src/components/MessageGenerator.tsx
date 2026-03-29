@@ -651,8 +651,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
                   <option key={s} value={s}>
                     {getStyleLabel(s)}
                   </option>
-                );
-              })}
+              ))}
             </select>
           )}
           <select
