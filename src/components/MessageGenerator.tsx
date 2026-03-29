@@ -10,6 +10,7 @@ import { Loader2, Sparkles, Trash2, ArrowRight, Paintbrush, X, Plus, Type, Image
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
+import { getStyleLabel } from "@/lib/designStyles";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([

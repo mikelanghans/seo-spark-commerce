@@ -18,6 +18,7 @@ import { Rocket, Loader2, X, CheckCircle2, XCircle, AlertTriangle } from "lucide
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { withRetry } from "@/lib/pipelineUtils";
+import { getStyleLabel } from "@/lib/designStyles";
 
 interface Organization {
   id: string;
