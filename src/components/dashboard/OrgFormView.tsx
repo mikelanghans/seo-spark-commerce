@@ -110,7 +110,7 @@ export const OrgFormView = ({
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Design Styles</h3><p className="text-xs text-muted-foreground">Select which styles AI should use when generating designs</p></div>
       <div className="flex flex-wrap gap-2">
-        {[{ value: "text-only", label: "Text Only" }, { value: "text-with-graphics", label: "Text + Graphics" }, { value: "illustration", label: "Illustration" }, { value: "photo-based", label: "Photo-Based" }].map((style) => {
+        {[{ value: "text-only", label: "Text Only" }, { value: "text-with-graphics", label: "Text + Graphics" }, { value: "minimalist", label: "Art" }, { value: "retro", label: "Retro" }, { value: "hand-drawn", label: "Sketch" }, { value: "bold-graphic", label: "Bold" }, { value: "distressed", label: "Grunge" }, { value: "illustration", label: "Illustration" }, { value: "photo-based", label: "Photo-Based" }].map((style) => {
           const isEnabled = orgForm.design_styles.includes(style.value);
           return (
             <label key={style.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
