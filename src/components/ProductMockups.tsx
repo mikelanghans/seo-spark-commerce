@@ -11,6 +11,7 @@ import {
   normalizeAndLockToTemplateBlob,
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
+  getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
