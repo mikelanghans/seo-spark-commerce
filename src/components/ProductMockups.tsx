@@ -12,7 +12,7 @@ import {
   compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
