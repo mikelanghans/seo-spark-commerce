@@ -102,6 +102,7 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
       printify_shop_id: org.printify_shop_id || null,
       enabled_marketplaces: (org.enabled_marketplaces as string[]) || [],
       enabled_product_types: (org.enabled_product_types as string[]) || ["t-shirt"],
+      enabled_social_platforms: (org.enabled_social_platforms as string[]) || [],
       default_size_pricing: (org.default_size_pricing as Record<string, Record<string, string>>) || {},
     });
     setOrgTemplatePreview(org.template_image_url || null);
