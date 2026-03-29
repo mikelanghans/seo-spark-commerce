@@ -108,9 +108,11 @@ function drawDesignWithUnderbase(
   isDarkGarment?: boolean,
   designStyle?: string,
   placement?: DesignPlacement,
+  referenceDesignSize?: { width: number; height: number },
 ) {
-  const designWidth = cleanedDesign.width;
-  const designHeight = cleanedDesign.height;
+  // Use reference dimensions if provided for cross-variant consistency
+  const designWidth = referenceDesignSize?.width ?? cleanedDesign.width;
+  const designHeight = referenceDesignSize?.height ?? cleanedDesign.height;
 
   // Use custom placement if provided, otherwise use defaults
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.35 : 0.55);
