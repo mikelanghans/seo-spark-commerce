@@ -318,6 +318,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
 
+      // Compute unified design dimensions so all color variants use the same design scale
+      let referenceDesignSize: { width: number; height: number } | undefined;
+      try {
+        referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+      } catch { /* continue without reference */ }
+
       // Generate sequentially (respect rate limits)
       let doneCount = 0;
       for (const colorName of selectedColors) {
@@ -356,6 +362,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             targetHeight: targetSize?.height || 1024,
             designDataUrl: designForComposite,
             isDarkGarment: !isLight,
+            referenceDesignSize,
           });
 
           const path = `${userId}/${crypto.randomUUID()}.jpg`;
