@@ -86,12 +86,12 @@ export const OrgFormView = ({
     <div className="grid gap-6 sm:grid-cols-2">
       <div className="space-y-2">
         <Label>Brand Font (optional)</Label>
-        <Input value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Poppins, Montserrat" />
+        <Textarea value={orgForm.brand_font} onChange={(e) => setOrgForm({ ...orgForm, brand_font: e.target.value })} placeholder="e.g. Poppins, Montserrat" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Font name used on your designs</p>
       </div>
       <div className="space-y-2">
         <Label>Brand Color (optional)</Label>
-        <Input value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. #FF5733" />
+        <Textarea value={orgForm.brand_color} onChange={(e) => setOrgForm({ ...orgForm, brand_color: e.target.value })} placeholder="e.g. #FF5733" rows={2} className="resize-none" />
         <p className="text-xs text-muted-foreground">Primary brand color for designs</p>
       </div>
       <div className="space-y-2">
@@ -102,7 +102,7 @@ export const OrgFormView = ({
       </div>
       <div className="space-y-2">
         <Label>Design Style Notes</Label>
-        <Input value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Minimalist, bold typography" />
+        <Textarea value={orgForm.brand_style_notes} onChange={(e) => setOrgForm({ ...orgForm, brand_style_notes: e.target.value })} placeholder="e.g. Minimalist, bold typography" rows={3} className="resize-none" />
         <p className="text-xs text-muted-foreground">Style hints for AI-generated designs</p>
       </div>
     </div>
