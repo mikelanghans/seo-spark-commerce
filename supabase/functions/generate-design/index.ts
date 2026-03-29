@@ -257,6 +257,122 @@ ${outputRule}
 ${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
   }
 
+  // ─── ILLUSTRATION ───
+  if (style === "illustration") {
+    return `Design a FULL ILLUSTRATION style print-ready t-shirt graphic. Think indie artist prints, editorial illustrations, tattoo flash sheets.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: ILLUSTRATION
+- Create a complete illustrated artwork that tells the story of the message
+- Think: indie poster art, editorial illustration, tattoo flash art, or graphic novel panels
+- Rich detail but still clean enough for screen printing — avoid tiny intricate details
+- The illustration should be the HERO — text is secondary and integrated into the composition
+- Style should feel hand-crafted, artistic, and unique — NOT stock illustration or clip art
+
+TYPOGRAPHY:
+- Font style: ${fontDirection} — integrated into or around the illustration
+- Text should complement the artwork, not compete with it
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Even within an illustration, text must be readable
+
+COLOR: ${colorDirection} as primary ink on ${bgColor}.
+${isLightOnDark ? "IMPORTANT: For dark garments. Use white/light ink with optional muted accent colors on illustration elements." : "IMPORTANT: For light garments. Use dark ink with optional muted accent colors."}
+- May use 1-3 muted accent colors on illustration elements (dusty teal, warm amber, sage, muted coral)
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 70-85% of the canvas.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── PHOTO-BASED ───
+  if (style === "photo-based") {
+    return `Design a PHOTO-BASED / PHOTOGRAPHIC style print-ready t-shirt graphic. Think vintage photo prints, halftone portraits, documentary-style imagery.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: PHOTO-BASED
+- Create a design that incorporates photographic or photo-realistic elements
+- Use halftone dots, high-contrast duotone, or posterized photo effects
+- Think: Andy Warhol pop art, vintage photography prints, concert photo tees
+- The photo element should feel stylized — not a raw photograph
+- Combine the photographic element with strong typography
+
+TYPOGRAPHY:
+- Font style: ${fontDirection}
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL
+- Text should contrast clearly against the photographic element
+
+COLOR: ${colorDirection} on ${bgColor}.
+${isLightOnDark ? "IMPORTANT: For dark garments." : "IMPORTANT: For light garments."}
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 65-80% of the canvas.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
+  // ─── TEXT WITH GRAPHICS ───
+  if (style === "text-with-graphics") {
+    return `Design a TEXT + GRAPHICS style print-ready t-shirt graphic. Typography is the star, enhanced with small decorative graphic elements.
+
+TEXT TO FEATURE: "${messageText}"
+
+${brandContext}
+
+STRICT DESIGN RULES:
+
+${bgRule}
+
+STYLE: TEXT + DECORATIVE GRAPHICS
+- Typography is the PRIMARY element — large, bold, and dominant
+- Add small decorative graphics that complement the message: stars, arrows, lines, brackets, small icons, underlines, banners
+- Think: vintage sign painting, varsity lettering, classic merch design
+- Graphics should FRAME or ACCENT the text — never overpower it
+- Keep decorative elements simple and intentional (3-5 small accents max)
+
+TYPOGRAPHY:
+- Font style: ${fontDirection}
+- ${sizeDirection}
+- ⚠️ TEXT LEGIBILITY IS CRITICAL
+- Text must remain monochrome (${isLightOnDark ? "white" : "dark"})
+
+COLOR: ${colorDirection} on ${bgColor}.
+${isLightOnDark ? "IMPORTANT: For dark garments." : "IMPORTANT: For light garments."}
+- Decorative elements may use 1 subtle accent color
+
+LAYOUT: ${randomLayout}
+
+SIZE & FILL: The design should FILL at least 70-80% of the canvas.
+
+${opts.brandStyleNotes ? `ADDITIONAL STYLE INSTRUCTIONS: ${opts.brandStyleNotes}` : ""}
+
+${outputRule}
+${opts.feedbackContext}${opts.inspirationContext}${regenSuffix}`;
+  }
+
   // ─── TEXT-ONLY (default) ───
   return `Design a premium, print-ready t-shirt graphic. Think high-end streetwear brand quality — not generic clip art.
 
