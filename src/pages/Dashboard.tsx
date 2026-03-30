@@ -300,7 +300,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="messages" className="w-full" onValueChange={(v) => { if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }}>
+            <Tabs value={productsTab} onValueChange={(v) => { setProductsTab(v); if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }} className="w-full">
               <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
                 <TabsTrigger value="messages" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Message</span> Ideas</TabsTrigger>
                 <TabsTrigger value="products" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Products {products.length > 0 && `(${products.length})`}</TabsTrigger>
