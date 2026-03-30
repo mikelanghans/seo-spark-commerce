@@ -71,6 +71,7 @@ const Dashboard = () => {
 
   const [_restoredNav, setRestoredNav] = useState(false);
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
+  const [productsTab, setProductsTab] = useState("messages");
   const [isAdmin, setIsAdmin] = useState(false);
   const [lowCreditNotified, setLowCreditNotified] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
