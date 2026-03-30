@@ -37,18 +37,11 @@ export function useNotifications(userId: string | null) {
     fetch();
   }, [fetch]);
 
-  // Realtime subscription
+  // Poll for new notifications every 30s
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel("notifications-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        () => fetch()
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(fetch, 30_000);
+    return () => clearInterval(interval);
   }, [userId, fetch]);
 
   const markAsRead = async (id: string) => {
