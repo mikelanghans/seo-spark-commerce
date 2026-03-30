@@ -502,7 +502,7 @@ const Dashboard = () => {
             toggleMarketplace={toggleMarketplace}
             generating={generating}
             onGenerateListings={generateListingsForProduct}
-            onBack={() => { setView("products"); setSelectedProduct(null); }}
+            onBack={() => { setProductsTab("products"); setView("products"); setSelectedProduct(null); }}
             setView={setView}
             setSelectedProduct={setSelectedProduct}
             loadListings={loadListings}
