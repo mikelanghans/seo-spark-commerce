@@ -310,7 +310,7 @@ const Dashboard = () => {
                 <TabsTrigger value="social" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Social{!canAccess(effectiveTier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Calendar{!canAccess(effectiveTier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
                 <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync</TabsTrigger>
-                <TabsTrigger value="collections" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><FolderOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Collections</TabsTrigger>
+                
                 <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics</TabsTrigger>
                 <TabsTrigger value="brand-settings" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Settings</TabsTrigger>
               </TabsList>
@@ -351,11 +351,8 @@ const Dashboard = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="collections" className="mt-4">
-                <div className="rounded-xl border border-border bg-card p-5">
-                  <ShopifyCollections organization={selectedOrg!} products={products} />
-                </div>
-              </TabsContent>
+
+
 
               <TabsContent value="analytics" className="mt-4 space-y-4">
                 <div className="rounded-xl border border-border bg-card p-5"><ListingRefreshQueue organizationId={selectedOrg!.id} userId={user!.id} /></div>
