@@ -216,6 +216,8 @@ const Dashboard = () => {
   };
 
   // ─── Render ───
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader
