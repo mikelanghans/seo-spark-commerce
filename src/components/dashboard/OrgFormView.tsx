@@ -161,13 +161,6 @@ export const OrgFormView = ({
     </div>
 
 
-    {/* Per-Product-Type Mockup Templates */}
-    {editingOrg && (
-      <div className="rounded-xl border border-border bg-card p-5">
-        <ProductTypeSettings organizationId={editingOrg.id} />
-      </div>
-    )}
-
     {/* Enabled Marketplaces */}
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Enabled Marketplaces</h3><p className="text-xs text-muted-foreground">Select which marketplaces this brand sells on</p></div>
@@ -217,6 +210,13 @@ export const OrgFormView = ({
         })}
       </div>
     </div>
+
+    {/* Per-Product-Type Mockup Templates */}
+    {editingOrg && (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <ProductTypeSettings organizationId={editingOrg.id} />
+      </div>
+    )}
 
     {/* Size Pricing Defaults */}
     {orgForm.enabled_product_types.some((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0) && (
