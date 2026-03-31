@@ -319,9 +319,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
 
-      const printifyMsg = data.updated
-        ? `Updated on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
+      const printifyMsg = `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
 
       // Also push mockups to Shopify if toggled on
       if (alsoUpdateShopify && mockups.length > 0) {
