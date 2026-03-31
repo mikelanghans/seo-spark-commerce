@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { DesignPlacement } from "@/lib/mockupComposition";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
@@ -17,6 +18,7 @@ import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveB
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
+import { DesignPlacementEditor } from "@/components/DesignPlacementEditor";
 
 interface ProductImage {
   id: string;
@@ -52,7 +54,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-type GenerationStep = "choose-colors" | "generating" | "size-check" | "review";
+type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
 
 const FEEDBACK_OPTIONS = [
   "Color is wrong",
@@ -85,6 +87,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState("");
   const [feedbackDetails, setFeedbackDetails] = useState("");
+  const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
+  const placementRef = useRef<DesignPlacement | null>(null);
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
@@ -374,6 +378,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             designDataUrl: designForComposite,
             isDarkGarment: !isLight,
             referenceDesignSize,
+            placement: placementRef.current || placementOverride || undefined,
           });
 
           const path = `${userId}/${crypto.randomUUID()}.jpg`;
@@ -675,8 +680,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         {selectedColors.length > 0 && (
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">{selectedColors.length} color{selectedColors.length !== 1 ? "s" : ""} selected</p>
-            <Button size="sm" onClick={generateMockups} className="gap-2">
-              <Sparkles className="h-3.5 w-3.5" /> Generate Mockups
+            <Button size="sm" onClick={() => setGenStep("placement")} className="gap-2">
+              <Sparkles className="h-3.5 w-3.5" /> Next: Adjust Placement
             </Button>
           </div>
         )}
@@ -894,6 +899,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
           <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
         </p>
+      )}
+
+      {/* Step: Placement Adjustment */}
+      {genStep === "placement" && sourceImageUrl && designImageUrl && (
+        <DesignPlacementEditor
+          templateUrl={sourceImageUrl}
+          designUrl={designImageUrl}
+          initialPlacement={placementOverride || undefined}
+          onConfirm={(p) => {
+            setPlacementOverride(p);
+            placementRef.current = p;
+            generateMockups();
+          }}
+          onCancel={() => setGenStep("choose-colors")}
+        />
       )}
 
       {/* Step: Choose Colors */}
