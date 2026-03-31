@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { RotateCw, Check } from "lucide-react";
+import { RotateCw, Check, Loader2 } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
+import { ensureImageDataUrl } from "@/lib/mockupComposition";
+import { smartRemoveBackground } from "@/lib/removeBackground";
 
 interface Props {
   templateUrl: string;
