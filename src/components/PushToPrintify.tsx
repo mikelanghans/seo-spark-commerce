@@ -305,7 +305,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           sizePricing,
           mockupImages,
           productId: product.id,
-          printifyProductId: product.printify_product_id,
+          productId: product.id,
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
           organizationId,
