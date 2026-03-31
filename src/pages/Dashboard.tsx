@@ -6,6 +6,7 @@ import { PRODUCT_TYPES } from "@/lib/productTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BulkUpload } from "@/components/BulkUpload";
 import { AutopilotPipeline } from "@/components/AutopilotPipeline";
@@ -73,6 +74,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lowCreditNotified, setLowCreditNotified] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
+  const [showImportWarning, setShowImportWarning] = useState(false);
 
   const subscription = useSubscription(user?.id ?? null);
   const effectiveTier = subscription.loading ? "pro" as const : subscription.tier;
@@ -306,7 +308,7 @@ const Dashboard = () => {
                         <Upload className="h-4 w-4" /> AI from Images / CSV
                         {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
+                      <DropdownMenuItem onClick={() => setShowImportWarning(true)} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
                         {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
@@ -315,6 +317,25 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
+
+            {/* Shopify import warning dialog */}
+            <AlertDialog open={showImportWarning} onOpenChange={setShowImportWarning}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Import from Shopify</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>This will sync your Shopify catalog. Products that already exist locally (matched by Shopify ID) will have their <strong>title, description, price, tags, and category overwritten</strong> with the latest Shopify data.</p>
+                    <p>Mockups and locally-generated images will be preserved.</p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => { setShowImportWarning(false); handleImportFromShopify(); }}>
+                    Continue Import
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <Tabs value={productsTab} onValueChange={(v) => { setProductsTab(v); if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }} className="w-full">
               <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
