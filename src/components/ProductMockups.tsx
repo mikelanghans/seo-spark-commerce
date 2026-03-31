@@ -163,18 +163,29 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
     try {
       const existingColors = images.map(img => img.color_name);
 
-      // Get design image for visual analysis
+      // Get design image for visual analysis — compress to small JPEG to avoid huge payloads
       let designBase64: string | undefined;
       if (designImageUrl) {
         try {
           const resp = await fetch(designImageUrl);
           const blob = await resp.blob();
-          designBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = reject;
+            i.src = URL.createObjectURL(blob);
           });
+          const MAX = 512;
+          const scale = Math.min(MAX / img.naturalWidth, MAX / img.naturalHeight, 1);
+          const w = Math.round(img.naturalWidth * scale);
+          const h = Math.round(img.naturalHeight * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(img.src);
+          designBase64 = canvas.toDataURL("image/jpeg", 0.7);
         } catch { /* continue without design */ }
       }
 
