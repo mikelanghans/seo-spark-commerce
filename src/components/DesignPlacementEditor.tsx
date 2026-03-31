@@ -31,11 +31,13 @@ export const DesignPlacementEditor = ({
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0.015);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.25);
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [templateLoaded, setTemplateLoaded] = useState(false);
   const [designLoaded, setDesignLoaded] = useState(false);
   const [designAspect, setDesignAspect] = useState(1);
   const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; startScale: number } | null>(null);
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
 
@@ -92,8 +94,28 @@ export const DesignPlacementEditor = ({
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
+    setResizing(false);
     dragStartRef.current = null;
+    resizeStartRef.current = null;
   }, []);
+
+  // Resize via corner handles
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing(true);
+    resizeStartRef.current = { x: e.clientX, y: e.clientY, startScale: scale };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [scale]);
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!resizing || !resizeStartRef.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = (e.clientX - resizeStartRef.current.x) / rect.width;
+    const dy = (e.clientY - resizeStartRef.current.y) / rect.height;
+    const delta = (dx + dy) / 2;
+    setScale(Math.max(0.10, Math.min(0.60, resizeStartRef.current.startScale + delta)));
+  }, [resizing]);
 
   // Compute design position in the preview
   const designWidthPct = scale * 100;
@@ -155,29 +177,30 @@ export const DesignPlacementEditor = ({
           />
         )}
 
-        {/* Corner handles */}
-        {templateLoaded && designLoaded && !dragging && (
+        {/* Corner handles — grabbable for resizing */}
+        {templateLoaded && designLoaded && (
           <>
-            {/* Top-left */}
-            <div
-              className="absolute w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary-foreground shadow-md pointer-events-none"
-              style={{ left: `${designLeftPct}%`, top: `${designTopPct}%`, transform: "translate(-50%, -50%)" }}
-            />
-            {/* Top-right */}
-            <div
-              className="absolute w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary-foreground shadow-md pointer-events-none"
-              style={{ left: `${designLeftPct + designWidthPct}%`, top: `${designTopPct}%`, transform: "translate(-50%, -50%)" }}
-            />
-            {/* Bottom-left */}
-            <div
-              className="absolute w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary-foreground shadow-md pointer-events-none"
-              style={{ left: `${designLeftPct}%`, top: `${designTopPct + designHeightPct}%`, transform: "translate(-50%, -50%)" }}
-            />
-            {/* Bottom-right */}
-            <div
-              className="absolute w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary-foreground shadow-md pointer-events-none"
-              style={{ left: `${designLeftPct + designWidthPct}%`, top: `${designTopPct + designHeightPct}%`, transform: "translate(-50%, -50%)" }}
-            />
+            {[
+              { left: designLeftPct, top: designTopPct, cursor: "nwse-resize" },
+              { left: designLeftPct + designWidthPct, top: designTopPct, cursor: "nesw-resize" },
+              { left: designLeftPct, top: designTopPct + designHeightPct, cursor: "nesw-resize" },
+              { left: designLeftPct + designWidthPct, top: designTopPct + designHeightPct, cursor: "nwse-resize" },
+            ].map((pos, i) => (
+              <div
+                key={i}
+                onPointerDown={handleResizePointerDown}
+                onPointerMove={handleResizePointerMove}
+                onPointerUp={handlePointerUp}
+                className="absolute w-4 h-4 rounded-full bg-primary border-2 border-primary-foreground shadow-md z-20 hover:scale-125 transition-transform"
+                style={{
+                  left: `${pos.left}%`,
+                  top: `${pos.top}%`,
+                  transform: "translate(-50%, -50%)",
+                  cursor: pos.cursor,
+                  touchAction: "none",
+                }}
+              />
+            ))}
             {/* Dashed border */}
             <div
               className="absolute border border-dashed border-primary/60 rounded pointer-events-none"
