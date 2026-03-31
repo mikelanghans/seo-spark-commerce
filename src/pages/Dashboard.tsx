@@ -12,10 +12,6 @@ import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
-import { MarketplaceToggleSettings } from "@/components/MarketplaceToggleSettings";
-import { SocialPlatformSettings } from "@/components/SocialPlatformSettings";
-import { ProductTypeSettings } from "@/components/ProductTypeSettings";
-import { SizePricingSettings } from "@/components/SizePricingSettings";
 import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
@@ -332,7 +328,7 @@ const Dashboard = () => {
                 <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync</TabsTrigger>
                 
                 <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Analytics</TabsTrigger>
-                <TabsTrigger value="brand-settings" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Settings</TabsTrigger>
+                <TabsTrigger value="brand-settings" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Configuration</TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages" forceMount className="mt-4 data-[state=inactive]:hidden">
@@ -383,10 +379,6 @@ const Dashboard = () => {
               <TabsContent value="brand-settings" className="mt-4 space-y-4">
                 <div className="rounded-xl border border-border bg-card p-5"><ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5"><ProductTypeSettings organizationId={selectedOrg!.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5"><MarketplaceToggleSettings organizationId={selectedOrg!.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5"><SocialPlatformSettings organizationId={selectedOrg!.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5"><SizePricingSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSetupGuide /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
