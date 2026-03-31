@@ -13,7 +13,7 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   moss: "muted earthy olive green (near #6F7A5D)",
   grey: "medium neutral heather gray (near #78797D)",
   "blue jean": "washed dusty denim blue (near #6E8090)",
-  pepper: "MEDIUM CHARCOAL GRAY — NOT black. Think heather dark gray with visible warmth (near #4A4845). Must be clearly lighter than black, like a faded/washed dark gray",
+  pepper: "MEDIUM CHARCOAL GRAY — NOT black. A warm-toned gray that is clearly LIGHTER than black, like a well-worn dark gray tee (near #5A5755). The fabric should look distinctly gray, not dark enough to be confused with black",
   "island green": "rich green-teal (near #2F8E79)",
   ivory: "warm off-white cream (near #F2E9D6)",
   crimson: "deep crimson red (near #8E1D2E)",
