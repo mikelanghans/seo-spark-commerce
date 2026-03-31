@@ -355,7 +355,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setShowDialog(true)}
+        onClick={handleOpenDialog}
         className="gap-2"
       >
         <RefreshCw className="h-3.5 w-3.5" />
