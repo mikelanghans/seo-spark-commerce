@@ -294,8 +294,8 @@ export const ProductGrid = ({
           </button>
         ))}
 
-        {/* Product type filters (when in product-types or designs mode) */}
-        {(viewMode === "product-types" || viewMode === "designs" || !collectionData || !collectionData.collections.length) &&
+        {/* Product type filters (only in product-types mode) */}
+        {viewMode === "product-types" &&
           ["T-Shirt", "Long Sleeve", "Sweatshirt", "Hoodie", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
             (cat) => (
               <button
