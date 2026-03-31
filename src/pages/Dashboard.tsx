@@ -16,6 +16,7 @@ import { MarketplaceToggleSettings } from "@/components/MarketplaceToggleSetting
 import { SocialPlatformSettings } from "@/components/SocialPlatformSettings";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import { SizePricingSettings } from "@/components/SizePricingSettings";
+import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
@@ -386,6 +387,7 @@ const Dashboard = () => {
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceToggleSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><SocialPlatformSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><SizePricingSettings organizationId={selectedOrg!.id} /></div>
+                <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSetupGuide /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
                     <CollaborationHub userId={user!.id} organizations={selectedOrg ? [{ id: selectedOrg.id, name: selectedOrg.name }] : []} />

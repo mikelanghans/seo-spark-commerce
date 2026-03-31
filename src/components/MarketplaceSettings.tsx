@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, Trash2, ExternalLink, ShoppingBag, Package, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
-import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 
 interface Props {
   userId: string;
@@ -413,8 +412,6 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         )}
       </div>
 
-      {/* Setup Guides */}
-      <MarketplaceSetupGuide />
     </div>
   );
 };
