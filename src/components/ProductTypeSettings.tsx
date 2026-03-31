@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Package, Lock, Upload, X, ImageIcon } from "lucide-react";
+import { Package, Upload, X, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
@@ -80,8 +80,6 @@ export const ProductTypeSettings = ({ organizationId }: Props) => {
   if (loading) return null;
 
   const isActive = (key: ProductTypeKey) => enabled.includes(key);
-  const isComingSoon = (key: ProductTypeKey) => key !== "t-shirt";
-
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
@@ -96,14 +94,9 @@ export const ProductTypeSettings = ({ organizationId }: Props) => {
           <Badge
             key={pt.key}
             variant={isActive(pt.key) ? "default" : "outline"}
-            className={`px-3 py-1.5 text-sm cursor-default select-none ${
-              isComingSoon(pt.key) ? "opacity-50 border-dashed" : ""
-            }`}
+            className="px-3 py-1.5 text-sm cursor-default select-none"
           >
             {pt.label}
-            {isComingSoon(pt.key) && (
-              <Lock className="h-3 w-3 ml-1.5 inline-block" />
-            )}
           </Badge>
         ))}
       </div>
@@ -185,10 +178,6 @@ export const ProductTypeSettings = ({ organizationId }: Props) => {
           })}
         </div>
       </div>
-
-      <p className="text-xs text-muted-foreground mt-4">
-        More product types coming soon.
-      </p>
     </div>
   );
 };

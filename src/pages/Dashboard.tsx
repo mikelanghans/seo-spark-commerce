@@ -99,7 +99,24 @@ const Dashboard = () => {
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
   const collectionMemberships = useCollectionMemberships(selectedOrg?.id);
 
-  const productHandlers = useProductHandlers(user?.id, selectedOrg, aiUsage);
+  const productHandlers = useProductHandlers(
+    user?.id,
+    selectedOrg,
+    aiUsage,
+    async (orgId: string) => {
+      const { data } = await supabase
+        .from("organizations")
+        .select("*")
+        .eq("id", orgId)
+        .single();
+
+      if (data) {
+        setSelectedOrg(data as typeof selectedOrg);
+      }
+
+      await loadOrgs();
+    },
+  );
   const {
     products, setProducts, selectedProduct, setSelectedProduct,
     listings, loading: productLoading,
