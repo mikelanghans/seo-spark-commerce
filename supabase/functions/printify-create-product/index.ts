@@ -108,22 +108,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Read latest printify_product_id from DB
-    let dbPrintifyProductId = printifyProductId || null;
-    if (productId) {
-      const { data: dbProduct } = await adminClient
-        .from("products")
-        .select("printify_product_id")
-        .eq("id", productId)
-        .single();
-      if (dbProduct?.printify_product_id) {
-        dbPrintifyProductId = dbProduct.printify_product_id;
-        console.log(`DB printify_product_id: ${dbPrintifyProductId}`);
-      }
-    }
-
-    const updateRequested = !!dbPrintifyProductId;
-    let effectiveShopId = shopId;
+    const effectiveShopId = shopId;
 
     const fetchPrintifyProduct = async (targetShopId: number | string, targetProductId: string) => {
       const response = await fetch(
