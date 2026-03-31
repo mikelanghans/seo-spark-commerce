@@ -130,6 +130,41 @@ export const ProductGrid = ({
     return { allDesigns: [...groups.entries()], noDesign };
   };
 
+  // Build a reverse map: shopify_product_id → collection titles
+  const productCollectionMap = useMemo(() => {
+    if (!collectionData) return new Map<number, string[]>();
+    const map = new Map<number, string[]>();
+    for (const col of collectionData.collections) {
+      const memberIds = collectionData.memberships[String(col.id)] || [];
+      for (const pid of memberIds) {
+        if (!map.has(pid)) map.set(pid, []);
+        map.get(pid)!.push(col.title);
+      }
+    }
+    return map;
+  }, [collectionData]);
+
+  // Group active products by collection when data is available
+  const collectionGroups = useMemo(() => {
+    if (!collectionData || !collectionData.collections.length) return null;
+    const groups: { collection: ShopifyCollection; products: Product[] }[] = [];
+    const assigned = new Set<string>();
+
+    for (const col of collectionData.collections) {
+      const memberIds = new Set(collectionData.memberships[String(col.id)] || []);
+      const colProducts = activeProducts.filter(
+        (p) => p.shopify_product_id && memberIds.has(p.shopify_product_id)
+      );
+      if (colProducts.length > 0) {
+        groups.push({ collection: col, products: colProducts });
+        colProducts.forEach((p) => assigned.add(p.id));
+      }
+    }
+
+    const uncategorized = activeProducts.filter((p) => !assigned.has(p.id));
+    return { groups, uncategorized };
+  }, [collectionData, activeProducts]);
+
   const grouped = useMemo(() => groupByDesign(activeProducts), [activeProducts]);
   const archivedGrouped = useMemo(() => groupByDesign(archivedProducts), [archivedProducts]);
 
@@ -138,6 +173,15 @@ export const ProductGrid = ({
     oldest: "Oldest",
     alpha: "A → Z",
     "alpha-desc": "Z → A",
+  };
+
+  const toggleCollection = (id: string) => {
+    setCollapsedCollections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   if (loading) {
@@ -161,6 +205,7 @@ export const ProductGrid = ({
   }
 
   const sharedDesignCount = grouped.allDesigns.filter(([, v]) => v.length > 1).length;
+  const unsyncedCount = products.filter((p) => !p.shopify_product_id).length;
 
   return (
     <div className="space-y-4">
