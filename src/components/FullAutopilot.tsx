@@ -659,6 +659,21 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Design style:</span>
+            <Select value={styleMode} onValueChange={setStyleMode}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rotate">Auto-rotate all</SelectItem>
+                {((organization.design_styles as string[]) || ["text-only"]).map((s) => (
+                  <SelectItem key={s} value={s}>{getStyleLabel(s)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3">
             <Label htmlFor="shopify-status-toggle" className="text-sm text-muted-foreground">Shopify status:</Label>
             <Switch id="shopify-status-toggle" checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
             <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
