@@ -37,6 +37,7 @@ export const DesignPlacementEditor = ({
   const [designLoaded, setDesignLoaded] = useState(false);
   const [designAspect, setDesignAspect] = useState(1);
   const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; startScale: number } | null>(null);
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
 
