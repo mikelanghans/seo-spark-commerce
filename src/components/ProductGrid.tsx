@@ -65,10 +65,15 @@ export const ProductGrid = ({
   onCreateProductFromDesign,
   onReassignDesign,
   onArchiveDesign,
+  collectionData,
+  collectionLoading,
+  onRefreshCollections,
+  collectionLastFetched,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
   const [showArchived, setShowArchived] = useState(false);
+  const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
