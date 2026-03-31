@@ -277,23 +277,45 @@ export const ProductGrid = ({
             ⚡ Unsynced ({unsyncedCount})
           </button>
         )}
-        {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
-          (cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                activeFilter === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              )}
-            >
-              {cat}
-            </button>
+
+        {/* Collection filters (when in collections mode) */}
+        {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
+          <button
+            key={`col:${col.id}`}
+            type="button"
+            onClick={() => onFilterChange(activeFilter === `collection:${col.id}` ? null : `collection:${col.id}`)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              activeFilter === `collection:${col.id}`
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {col.title}
+          </button>
+        ))}
+
+        {/* Product type filters (when in product-types mode or no collections) */}
+        {(viewMode === "product-types" || !collectionData || !collectionData.collections.length) &&
+          ["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
+            (cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  activeFilter === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                )}
+              >
+                {cat}
+              </button>
+            )
           )
-        )}
+        }
+
         {allTags.map((tag) => (
           <button
             key={`tag:${tag}`}
