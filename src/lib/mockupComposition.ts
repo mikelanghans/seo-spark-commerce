@@ -118,7 +118,7 @@ function drawDesignWithUnderbase(
   const designHeight = referenceDesignSize?.height ?? cleanedDesign.height;
 
   // Use custom placement if provided, otherwise use defaults
-  const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.24 : 0.30);
+  const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.20 : 0.255);
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0.015);
