@@ -83,13 +83,13 @@ const Dashboard = () => {
   const {
     orgs, orgsLoaded, selectedOrg, setSelectedOrg, loading: orgLoading,
     editingOrg, setEditingOrg, orgForm, setOrgForm,
-    orgTemplatePreview, orgLogoPreview,
+    orgLogoPreview,
     printifyShops, loadingPrintifyShops,
     deleteConfirmOrg, setDeleteConfirmOrg, deleteConfirmText, setDeleteConfirmText,
     archivedOrgs, showArchived, setShowArchived,
     loadOrgs, loadArchivedOrgs, resetOrgForm,
     handleCreateOrg, handleEditOrg, handleDeleteOrg, confirmDeleteOrg, handleRestoreOrg,
-    loadPrintifyShops, handleOrgTemplateUpload, handleOrgLogoUpload,
+    loadPrintifyShops, handleOrgLogoUpload,
     uploadImageToStorage,
   } = orgHandlers;
 
