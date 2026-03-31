@@ -384,10 +384,6 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     if (!msg) return;
     setGeneratingDesignId(msg.id);
     try {
-      // 120s client-side timeout to prevent infinite hang
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120_000);
-
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
           messageText: msg.message_text,
@@ -399,17 +395,16 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           brandColor: (organization as any).brand_color || "",
           brandFontSize: (organization as any).brand_font_size || "large",
           brandStyleNotes: (organization as any).brand_style_notes || "",
-           messageId: msg.id,
-           organizationId: organization.id,
-           designVariant: "light-on-dark",
-           designStyle,
-           designVariantMode: (organization as any).design_variant_mode || "both",
-           regenerateFeedback: feedback,
-           referenceImageUrl,
-           baseDesignUrl,
+          messageId: msg.id,
+          organizationId: organization.id,
+          designVariant: "light-on-dark",
+          designStyle,
+          designVariantMode: (organization as any).design_variant_mode || "both",
+          regenerateFeedback: feedback,
+          referenceImageUrl,
+          baseDesignUrl,
         },
       });
-      clearTimeout(timeout);
 
       if (error || data?.error) {
         // Check if the edge function still saved the design before erroring
