@@ -12,8 +12,6 @@ import { AutopilotPipeline } from "@/components/AutopilotPipeline";
 import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
-import { MarketplaceToggleSettings } from "@/components/MarketplaceToggleSettings";
-import { SocialPlatformSettings } from "@/components/SocialPlatformSettings";
 import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
