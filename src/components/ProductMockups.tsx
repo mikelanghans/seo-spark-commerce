@@ -378,7 +378,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             designDataUrl: designForComposite,
             isDarkGarment: !isLight,
             referenceDesignSize,
-            placement: placementOverride || undefined,
+            placement: placementRef.current || placementOverride || undefined,
           });
 
           const path = `${userId}/${crypto.randomUUID()}.jpg`;
