@@ -1014,37 +1014,19 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
           const newDesignUrl = urlData.publicUrl;
 
-          // Generate dark variant client-side
-          let darkUrl: string | null = null;
-          try {
-            const lightBase64 = await removeBackground(newDesignUrl, "black");
-            const darkBase64 = await recolorOpaquePixels(lightBase64);
-            const darkBlob = await fetch(`data:image/png;base64,${darkBase64}`).then(r => r.blob());
-            const darkPath = `${userId}/designs/${Date.now()}-dark.png`;
-            const { error: darkUploadErr } = await supabase.storage
-              .from("product-images")
-              .upload(darkPath, darkBlob, { contentType: "image/png" });
-            if (!darkUploadErr) {
-              const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
-              darkUrl = darkUrlData.publicUrl;
-            }
-          } catch {
-            // Dark variant generation is optional, continue without it
-          }
-
-          // Update the message record
+          // Update the message record (dark variant deferred to on-demand toggle)
           await supabase
             .from("generated_messages")
-            .update({ design_url: newDesignUrl, dark_design_url: darkUrl })
+            .update({ design_url: newDesignUrl, dark_design_url: null })
             .eq("id", msgId);
 
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === msgId ? { ...m, design_url: newDesignUrl, dark_design_url: darkUrl } : m
+              m.id === msgId ? { ...m, design_url: newDesignUrl, dark_design_url: null } : m
             )
           );
           setPreviewUrl(newDesignUrl);
-          setPreviewDarkUrl(darkUrl);
+          setPreviewDarkUrl(null);
           toast.success("Design replaced!");
         }}
       />
