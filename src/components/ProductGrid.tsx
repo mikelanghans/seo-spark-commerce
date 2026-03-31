@@ -349,7 +349,6 @@ export const ProductGrid = ({
       {collectionGroups && viewMode === "collections" && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
-            const colDesigns = groupByDesign(colProds);
             const isCollapsed = collapsedCollections.has(String(collection.id));
             return (
               <Collapsible
@@ -366,21 +365,7 @@ export const ProductGrid = ({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {colDesigns.allDesigns.map(([designUrl, prods]) => (
-                      <DesignGroupCard
-                        key={designUrl}
-                        designUrl={designUrl}
-                        products={prods}
-                        allProducts={colProds}
-                        enabledProductTypes={enabledProductTypes}
-                        onCreateProduct={onCreateProductFromDesign}
-                        onViewProduct={onViewProduct}
-                        onDeleteProduct={onDeleteProduct}
-                        onReassignDesign={onReassignDesign}
-                        onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
-                      />
-                    ))}
-                    {colDesigns.noDesign.map((product) => (
+                    {colProds.map((product) => (
                       <ProductCard
                         key={product.id}
                         product={product}
@@ -410,85 +395,38 @@ export const ProductGrid = ({
                 <span className="text-xs text-muted-foreground">({collectionGroups.uncategorized.length})</span>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-2">
-                {(() => {
-                  const uncatDesigns = groupByDesign(collectionGroups.uncategorized);
-                  return (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {uncatDesigns.allDesigns.map(([designUrl, prods]) => (
-                        <DesignGroupCard
-                          key={designUrl}
-                          designUrl={designUrl}
-                          products={prods}
-                          allProducts={collectionGroups.uncategorized}
-                          enabledProductTypes={enabledProductTypes}
-                          onCreateProduct={onCreateProductFromDesign}
-                          onViewProduct={onViewProduct}
-                          onDeleteProduct={onDeleteProduct}
-                          onReassignDesign={onReassignDesign}
-                          onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
-                        />
-                      ))}
-                      {uncatDesigns.noDesign.map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onView={onViewProduct}
-                          onDelete={onDeleteProduct}
-                          onAddTag={onAddTag}
-                          onRemoveTag={onRemoveTag}
-                          onUploadDesign={onUploadDesign}
-                        />
-                      ))}
-                    </div>
-                  );
-                })()}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {collectionGroups.uncategorized.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onView={onViewProduct}
+                      onDelete={onDeleteProduct}
+                      onAddTag={onAddTag}
+                      onRemoveTag={onRemoveTag}
+                      onUploadDesign={onUploadDesign}
+                    />
+                  ))}
+                </div>
               </CollapsibleContent>
             </Collapsible>
           )}
         </div>
       ) : (
-        <>
-          {/* Flat view (when filtering or no collection data) */}
-          {grouped.allDesigns.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {grouped.allDesigns.map(([designUrl, prods]) => (
-                <DesignGroupCard
-                  key={designUrl}
-                  designUrl={designUrl}
-                  products={prods}
-                  allProducts={activeProducts}
-                  enabledProductTypes={enabledProductTypes}
-                  onCreateProduct={onCreateProductFromDesign}
-                  onViewProduct={onViewProduct}
-                  onDeleteProduct={onDeleteProduct}
-                  onReassignDesign={onReassignDesign}
-                  onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
-                />
-              ))}
-            </div>
-          )}
-
-          {grouped.noDesign.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                No Design ({grouped.noDesign.length})
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {grouped.noDesign.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onView={onViewProduct}
-                    onDelete={onDeleteProduct}
-                    onAddTag={onAddTag}
-                    onRemoveTag={onRemoveTag}
-                    onUploadDesign={onUploadDesign}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        /* Flat grid view */
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {activeProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onView={onViewProduct}
+              onDelete={onDeleteProduct}
+              onAddTag={onAddTag}
+              onRemoveTag={onRemoveTag}
+              onUploadDesign={onUploadDesign}
+            />
+          ))}
+        </div>
       )}
 
       {/* Archive section */}
@@ -499,246 +437,27 @@ export const ProductGrid = ({
             className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             <Archive className="h-4 w-4" />
-            Archived ({archivedProducts.length} products, {archivedGrouped.allDesigns.length} designs)
+            Archived ({archivedProducts.length})
             <span className="text-xs">{showArchived ? "▾" : "▸"}</span>
           </button>
 
           {showArchived && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
-              {archivedGrouped.allDesigns.map(([designUrl, prods]) => (
-                <DesignGroupCard
-                  key={designUrl}
-                  designUrl={designUrl}
-                  products={prods}
-                  allProducts={archivedProducts}
-                  enabledProductTypes={enabledProductTypes}
-                  onViewProduct={onViewProduct}
-                  onDeleteProduct={onDeleteProduct}
-                  onRestore={onArchiveDesign ? () => onArchiveDesign(designUrl, false) : undefined}
-                  isArchived
+              {archivedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onView={onViewProduct}
+                  onDelete={onDeleteProduct}
+                  onAddTag={onAddTag}
+                  onRemoveTag={onRemoveTag}
+                  onUploadDesign={onUploadDesign}
                 />
               ))}
             </div>
           )}
         </div>
       )}
-    </div>
-  );
-};
-
-/* ─── Design Group Card ─── */
-
-interface DesignGroupCardProps {
-  designUrl: string;
-  products: Product[];
-  allProducts: Product[];
-  enabledProductTypes: string[];
-  onCreateProduct?: (designUrl: string, typeKey: ProductTypeKey) => void;
-  onViewProduct: (p: Product) => void;
-  onDeleteProduct: (id: string) => void;
-  onReassignDesign?: (productId: string, newDesignUrl: string) => void;
-  onArchive?: () => void;
-  onRestore?: () => void;
-  isArchived?: boolean;
-}
-
-const DesignGroupCard = ({
-  designUrl,
-  products: prods,
-  allProducts,
-  enabledProductTypes,
-  onCreateProduct,
-  onViewProduct,
-  onDeleteProduct,
-  onReassignDesign,
-  onArchive,
-  onRestore,
-  isArchived,
-}: DesignGroupCardProps) => {
-  const [showPicker, setShowPicker] = useState(false);
-  const existingCategories = new Set(
-    prods.map((p) => (p.category || "").toLowerCase())
-  );
-
-  const enabledTypes = enabledProductTypes
-    .filter((k) => k in PRODUCT_TYPES)
-    .map((k) => PRODUCT_TYPES[k as ProductTypeKey]);
-
-  // Derive a design name from shared product titles
-  const designName = prods[0]?.title
-    ?.replace(/\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\s*/gi, "")
-    .trim() || "Untitled Design";
-
-  const handleDownload = async () => {
-    const slug = designName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-    try {
-      const res = await fetch(designUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${slug}_design.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      toast.error("Failed to download");
-    }
-  };
-
-  return (
-    <div className="group rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40">
-      {/* Design preview — click opens first product */}
-      <div
-        className="h-48 overflow-hidden bg-secondary relative cursor-pointer"
-        onClick={() => onViewProduct(prods[0])}
-      >
-        <img
-          src={designUrl}
-          alt={designName}
-          className="h-full w-full object-contain p-3"
-        />
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-          {onArchive && (
-            <button
-              onClick={onArchive}
-              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
-              title="Archive design"
-            >
-              <Archive className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {onRestore && (
-            <button
-              onClick={onRestore}
-              className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-primary"
-              title="Restore design"
-            >
-              <ArchiveRestore className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button
-            onClick={handleDownload}
-            className="rounded-md p-1.5 bg-background/80 text-muted-foreground hover:text-foreground"
-            title="Download design"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-3">
-        {/* Design name */}
-        <h3 className="font-semibold text-sm leading-tight">{designName}</h3>
-
-        {/* Product type chips */}
-        <div className="flex flex-wrap gap-1">
-          {enabledTypes.map((typeConfig) => {
-            const exists = existingCategories.has(typeConfig.category.toLowerCase());
-            return (
-              <button
-                key={typeConfig.key}
-                type="button"
-                disabled={exists || !onCreateProduct}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!exists && onCreateProduct) {
-                    onCreateProduct(designUrl, typeConfig.key);
-                  }
-                }}
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
-                  exists
-                    ? "bg-primary/15 text-primary border border-primary/30"
-                    : "border border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary cursor-pointer"
-                )}
-                title={exists ? `Already on ${typeConfig.label}` : `Create ${typeConfig.label} with this design`}
-              >
-                {!exists && <Plus className="h-2.5 w-2.5 mr-0.5" />}
-                {typeConfig.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Compact product list */}
-        <div className="space-y-1">
-          {prods.map((product) => (
-            <div
-              key={product.id}
-              className="flex items-center justify-between rounded-lg px-2 py-1.5 text-xs hover:bg-accent/50 cursor-pointer transition-colors group/item"
-              onClick={() => onViewProduct(product)}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground shrink-0">
-                  {product.category || "—"}
-                </span>
-                <span className="truncate text-foreground">{product.title}</span>
-              </div>
-              <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                {product.price && (
-                  <span className="text-[10px] text-muted-foreground mr-1">{product.price}</span>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteProduct(product.id); }}
-                  className="rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {/* Add existing product button */}
-          {onReassignDesign && (
-            <div className="pt-1">
-              {!showPicker ? (
-                <button
-                  onClick={() => setShowPicker(true)}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-primary hover:bg-accent/50 transition-colors w-full"
-                >
-                  <Plus className="h-3 w-3" />
-                  Add existing product
-                </button>
-              ) : (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2">
-                    <span className="text-[10px] font-medium text-muted-foreground">Select a product to move here:</span>
-                    <button onClick={() => setShowPicker(false)} className="text-muted-foreground hover:text-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="max-h-32 overflow-y-auto rounded-lg border border-border bg-background">
-                    {allProducts
-                      .filter((p) => p.image_url !== designUrl && p.image_url)
-                      .map((product) => (
-                        <button
-                          key={product.id}
-                          onClick={() => {
-                            onReassignDesign(product.id, designUrl);
-                            setShowPicker(false);
-                          }}
-                          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-left hover:bg-accent/50 transition-colors"
-                        >
-                          <img
-                            src={product.image_url!}
-                            alt=""
-                            className="h-6 w-6 rounded border border-border object-contain bg-secondary shrink-0"
-                          />
-                          <span className="truncate">{product.title}</span>
-                        </button>
-                      ))}
-                    {allProducts.filter((p) => p.image_url !== designUrl && p.image_url).length === 0 && (
-                      <p className="px-2 py-2 text-[10px] text-muted-foreground">No other products to move</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
@@ -853,9 +572,16 @@ const ProductCard = ({
 
       <div className={cn("p-4", compact && "p-3")}>
         <div className="flex items-start justify-between">
-          <h3 className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>
-            {product.title}
-          </h3>
+          <div className="min-w-0">
+            {product.category && (
+              <span className="inline-block rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-medium mb-1">
+                {product.category}
+              </span>
+            )}
+            <h3 className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>
+              {product.title}
+            </h3>
+          </div>
           <div
             className="flex shrink-0 gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={(e) => e.stopPropagation()}
