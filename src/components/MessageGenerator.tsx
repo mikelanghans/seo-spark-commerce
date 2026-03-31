@@ -505,6 +505,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           organizationId: organization.id,
           designVariant: "light-on-dark",
           designStyle,
+          designVariantMode: (organization as any).design_variant_mode || "both",
         },
       });
 
