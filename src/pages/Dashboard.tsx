@@ -316,27 +316,26 @@ const Dashboard = () => {
                   </DropdownMenu>
                 )}
               </div>
-
-              {/* Shopify import warning dialog */}
-              <AlertDialog open={showImportWarning} onOpenChange={setShowImportWarning}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Import from Shopify</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-2">
-                      <p>This will sync your Shopify catalog. Products that already exist locally (matched by Shopify ID) will have their <strong>title, description, price, tags, and category overwritten</strong> with the latest Shopify data.</p>
-                      <p>Mockups and locally-generated images will be preserved.</p>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { setShowImportWarning(false); handleImportFromShopify(); }}>
-                      Continue Import
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              </div>
             </div>
+
+            {/* Shopify import warning dialog */}
+            <AlertDialog open={showImportWarning} onOpenChange={setShowImportWarning}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Import from Shopify</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>This will sync your Shopify catalog. Products that already exist locally (matched by Shopify ID) will have their <strong>title, description, price, tags, and category overwritten</strong> with the latest Shopify data.</p>
+                    <p>Mockups and locally-generated images will be preserved.</p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => { setShowImportWarning(false); handleImportFromShopify(); }}>
+                    Continue Import
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <Tabs value={productsTab} onValueChange={(v) => { setProductsTab(v); if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }} className="w-full">
               <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
