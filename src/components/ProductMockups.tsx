@@ -678,8 +678,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         {selectedColors.length > 0 && (
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">{selectedColors.length} color{selectedColors.length !== 1 ? "s" : ""} selected</p>
-            <Button size="sm" onClick={generateMockups} className="gap-2">
-              <Sparkles className="h-3.5 w-3.5" /> Generate Mockups
+            <Button size="sm" onClick={() => setGenStep("placement")} className="gap-2">
+              <Sparkles className="h-3.5 w-3.5" /> Next: Adjust Placement
             </Button>
           </div>
         )}
