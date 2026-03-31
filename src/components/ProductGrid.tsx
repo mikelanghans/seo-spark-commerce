@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Product } from "@/types/dashboard";
+import { PRODUCT_TYPES } from "@/lib/productTypes";
 import type { CollectionMembershipData } from "@/hooks/useCollectionMemberships";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
@@ -296,7 +297,7 @@ export const ProductGrid = ({
 
         {/* Product type filters (only in product-types mode) */}
         {viewMode === "product-types" &&
-          ["T-Shirt", "Long Sleeve", "Sweatshirt", "Hoodie", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
+          Object.values(PRODUCT_TYPES).map((pt) => pt.label).map(
             (cat) => (
               <button
                 key={cat}
