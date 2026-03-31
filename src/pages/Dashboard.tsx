@@ -409,38 +409,10 @@ const Dashboard = () => {
                     }
                   }}
                   onAddProduct={() => setView("product-form")}
-                  enabledProductTypes={selectedOrg?.enabled_product_types || []}
                   collectionData={collectionMemberships.data}
                   collectionLoading={collectionMemberships.loading}
                   onRefreshCollections={collectionMemberships.refresh}
                   collectionLastFetched={collectionMemberships.lastFetched}
-                  onCreateProductFromDesign={async (designUrl, typeKey) => {
-                    if (!selectedOrg || !user) return;
-                    const typeConfig = (await import("@/lib/productTypes")).PRODUCT_TYPES[typeKey];
-                    const baseName = products.find(p => p.image_url === designUrl)?.title?.replace(/\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\s*/gi, "").trim() || "New Product";
-                    const title = `${baseName} ${typeConfig.label}`;
-                    const { data: newProduct, error } = await supabase.from("products").insert({
-                      title, category: typeConfig.category, price: typeConfig.defaultPrice,
-                      organization_id: selectedOrg.id, user_id: user.id, image_url: designUrl,
-                    }).select().single();
-                    if (error) { toast.error(error.message); return; }
-                    toast.success(`Created ${title}`);
-                    loadProducts(selectedOrg.id);
-                  }}
-                  onReassignDesign={async (productId, newDesignUrl) => {
-                    const { error } = await supabase.from("products").update({ image_url: newDesignUrl }).eq("id", productId);
-                    if (error) { toast.error(error.message); return; }
-                    toast.success("Product moved to design group");
-                    if (selectedOrg) loadProducts(selectedOrg.id);
-                  }}
-                  onArchiveDesign={async (designUrl, archive) => {
-                    const ids = products.filter((p) => p.image_url === designUrl).map((p) => p.id);
-                    if (ids.length === 0) return;
-                    const { error } = await supabase.from("products").update({ archived_at: archive ? new Date().toISOString() : null }).in("id", ids);
-                    if (error) { toast.error(error.message); return; }
-                    toast.success(archive ? `Archived ${ids.length} product${ids.length > 1 ? "s" : ""}` : `Restored ${ids.length} product${ids.length > 1 ? "s" : ""}`);
-                    if (selectedOrg) loadProducts(selectedOrg.id);
-                  }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {generatingAll || pushingAllShopify ? (
