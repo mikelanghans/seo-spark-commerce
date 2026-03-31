@@ -52,7 +52,7 @@ export const ProductDetailView = ({
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const selectedOrg = organization;
   const productTypeKey = getProductType(product.category || "").key;
-  const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || selectedOrg?.template_image_url || product.image_url || null;
+  const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
 
   const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
 
