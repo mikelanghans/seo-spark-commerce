@@ -111,9 +111,6 @@ export const ProductGrid = ({
   const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
   const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
 
-  // No longer grouping by design — each product is its own card
-
-
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
     if (!collectionData || !collectionData.collections.length) return null;
@@ -134,6 +131,32 @@ export const ProductGrid = ({
     const uncategorized = activeProducts.filter((p) => !assigned.has(p.id));
     return { groups, uncategorized };
   }, [collectionData, activeProducts]);
+
+  // Group products by normalized title (strip product type suffixes)
+  const designGroups = useMemo(() => {
+    const TYPE_SUFFIXES = /\s*[-–|]\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote Bag|Tote|Canvas Print|Canvas|Journal|Notebook|Print)\s*$/i;
+    const CATEGORY_WORDS = /\b(T-Shirt|Tee|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\b/gi;
+
+    const normalize = (title: string) => {
+      let n = title.replace(TYPE_SUFFIXES, "").trim();
+      n = n.replace(CATEGORY_WORDS, "").trim();
+      // collapse separators left behind
+      n = n.replace(/\s*[-–|]\s*$/, "").trim();
+      return n.toLowerCase() || title.toLowerCase();
+    };
+
+    const groups = new Map<string, { label: string; products: Product[] }>();
+    for (const p of activeProducts) {
+      const key = normalize(p.title);
+      if (!groups.has(key)) {
+        // Use the first product's cleaned title as the group label
+        const label = p.title.replace(TYPE_SUFFIXES, "").replace(/\s*[-–|]\s*$/, "").trim() || p.title;
+        groups.set(key, { label, products: [] });
+      }
+      groups.get(key)!.products.push(p);
+    }
+    return [...groups.values()];
+  }, [activeProducts]);
 
 
   const sortLabel: Record<SortOption, string> = {
