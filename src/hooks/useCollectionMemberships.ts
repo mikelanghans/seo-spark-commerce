@@ -24,14 +24,17 @@ export function useCollectionMemberships(organizationId: string | undefined) {
   const [loading, setLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
-  const autoFetchAttemptedRef = useRef(false);
+  const fetchedRef = useRef(false);
+  const loadingRef = useRef(false);
 
-  // Reset one-shot auto-fetch guard when org changes
+  // Reset when org changes
   useEffect(() => {
-    autoFetchAttemptedRef.current = false;
+    fetchedRef.current = false;
+    setData(null);
+    setShopifyConnected(null);
   }, [organizationId]);
 
-  // Check if Shopify is connected before attempting to fetch
+  // Check if Shopify is connected
   useEffect(() => {
     if (!organizationId) return;
     supabase
@@ -53,6 +56,7 @@ export function useCollectionMemberships(organizationId: string | undefined) {
         if (parsed.ts && Date.now() - parsed.ts < CACHE_TTL) {
           setData(parsed.data);
           setLastFetched(parsed.ts);
+          fetchedRef.current = true;
         }
       }
     } catch {
@@ -61,12 +65,13 @@ export function useCollectionMemberships(organizationId: string | undefined) {
   }, [organizationId]);
 
   const fetchMemberships = useCallback(async (manual = false) => {
-    if (!organizationId || loading) return;
+    if (!organizationId || loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     try {
       const { data: result, error } = await supabase.functions.invoke(
         "fetch-shopify-collection-memberships",
-        { body: { organizationId } }
+        { body: { organizationId } },
       );
 
       if (error) throw error;
@@ -81,13 +86,14 @@ export function useCollectionMemberships(organizationId: string | undefined) {
       const now = Date.now();
       setLastFetched(now);
 
-      // Cache
       const cacheKey = CACHE_KEY_PREFIX + organizationId;
-      localStorage.setItem(cacheKey, JSON.stringify({ data: membershipData, ts: now }));
-    } catch (err: any) {
-      const message = String(err?.message || "");
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ data: membershipData, ts: now }),
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
 
-      // Treat missing connection as empty state to avoid repeated noisy toasts
       if (message.includes("No Shopify connection found")) {
         setShopifyConnected(false);
         setData({ collections: [], memberships: {} });
@@ -102,23 +108,23 @@ export function useCollectionMemberships(organizationId: string | undefined) {
         toast.error("Failed to load Shopify collections");
       }
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [organizationId, loading]);
+  }, [organizationId]);
 
-  // Auto-fetch only once per org when connected and no cached data
+  // Auto-fetch once when connected and no cached data
   useEffect(() => {
     if (
       organizationId &&
       shopifyConnected === true &&
-      !data &&
-      !loading &&
-      !autoFetchAttemptedRef.current
+      !fetchedRef.current &&
+      !loadingRef.current
     ) {
-      autoFetchAttemptedRef.current = true;
+      fetchedRef.current = true;
       fetchMemberships(false);
     }
-  }, [organizationId, shopifyConnected, data, loading, fetchMemberships]);
+  }, [organizationId, shopifyConnected, fetchMemberships]);
 
   const refresh = useCallback(() => {
     fetchMemberships(true);
