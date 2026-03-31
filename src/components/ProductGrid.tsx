@@ -354,6 +354,7 @@ export const ProductGrid = ({
                         onAddTag={onAddTag}
                         onRemoveTag={onRemoveTag}
                         onUploadDesign={onUploadDesign}
+                        onArchive={onArchiveProduct}
                       />
                     ))}
                   </div>
