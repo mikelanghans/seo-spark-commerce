@@ -902,6 +902,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         messageId={previewMessageId}
         organizationId={organization.id}
         userId={userId}
+        designVariantMode={(organization as any).design_variant_mode || "both"}
         hasProduct={!!messages.find((m) => m.id === previewMessageId)?.product_id}
         onRegenerate={handleRegenerateDesign}
         onDarkDesignGenerated={(msgId, darkUrl) => {

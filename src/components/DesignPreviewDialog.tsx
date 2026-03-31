@@ -33,6 +33,7 @@ interface Props {
   onCreateProduct?: (messageId: string) => void;
   onReplaceDesign?: (messageId: string, file: File) => Promise<void>;
   onDarkDesignGenerated?: (messageId: string, darkUrl: string) => void;
+  designVariantMode?: string;
   hasProduct?: boolean;
 }
 
@@ -50,6 +51,7 @@ export const DesignPreviewDialog = ({
   onCreateProduct,
   onReplaceDesign,
   onDarkDesignGenerated,
+  designVariantMode = "both",
   hasProduct,
 }: Props) => {
   const [notes, setNotes] = useState("");
@@ -182,8 +184,8 @@ export const DesignPreviewDialog = ({
           <DialogTitle className="text-sm font-medium">{messageText}</DialogTitle>
         </DialogHeader>
 
-        {/* Variant toggle — always visible when design exists */}
-        {designUrl && !viewingUrl && (
+        {/* Variant toggle — only when brand uses both variants */}
+        {designUrl && !viewingUrl && designVariantMode === "both" && (
           <div className="flex rounded-md border border-input bg-background overflow-hidden">
             <button
               type="button"
