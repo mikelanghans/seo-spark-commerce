@@ -460,11 +460,8 @@ serve(async (req) => {
       }
     }
 
-    // Create new only if no existing product and no update was requested
+    // Create new only if no existing product was updated
     if (!createdProduct) {
-      if (updateRequested) {
-        throw new Error("Update mode requested but existing Printify product could not be updated. Aborting create to prevent duplicates.");
-      }
 
       console.log(`Creating new product in shop ${effectiveShopId} (${filteredVariants.length} enabled of ${allVariants.length} total)...`);
       const createRes = await fetch(
