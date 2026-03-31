@@ -546,7 +546,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               ) : (
                 <>
                   <Printer className="h-4 w-4" />
-                  {product.printify_product_id ? "Update on Printify" : "Create on Printify"}
+                  Create on Printify
                 </>
               )}
             </Button>
