@@ -129,9 +129,14 @@ export const DesignPlacementEditor = ({
           onLoad={() => setTemplateLoaded(true)}
           draggable={false}
         />
-        {templateLoaded && (
+        {processingDesign && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        {templateLoaded && processedDesignUrl && (
           <img
-            src={designUrl}
+            src={processedDesignUrl}
             alt="Design"
             draggable={false}
             onLoad={handleDesignLoad}
