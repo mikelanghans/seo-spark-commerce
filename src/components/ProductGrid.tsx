@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown, Archive, ArchiveRestore,
+  ArrowUpDown, Archive, ArchiveRestore, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Product } from "@/types/dashboard";
+import type { CollectionMembershipData, ShopifyCollection } from "@/hooks/useCollectionMemberships";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
 
