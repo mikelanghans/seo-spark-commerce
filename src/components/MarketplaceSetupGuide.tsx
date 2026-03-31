@@ -105,6 +105,7 @@ const StepList = ({ steps }: { steps: Step[] }) => (
 const PlatformGuide = ({ platform }: GuideProps) => {
   const [open, setOpen] = useState(false);
   const isEtsy = platform === "etsy";
+  const guide = isEtsy ? ETSY_GUIDE : EBAY_GUIDE;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -124,7 +125,10 @@ const PlatformGuide = ({ platform }: GuideProps) => {
         />
       </CollapsibleTrigger>
       <CollapsibleContent className="px-4 pb-4 pt-1">
-        <StepList steps={isEtsy ? ETSY_STEPS : EBAY_STEPS} />
+        <StepList steps={guide.steps} />
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Last updated: {guide.lastUpdated}
+        </p>
       </CollapsibleContent>
     </Collapsible>
   );
