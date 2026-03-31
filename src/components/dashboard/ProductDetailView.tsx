@@ -51,9 +51,29 @@ export const ProductDetailView = ({
   uploadImageToStorage,
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
+  const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
   const productTypeKey = getProductType(product.category || "").key;
   const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
+
+  // Check connection status for Printify & Shopify
+  useEffect(() => {
+    if (!selectedOrg?.id) return;
+    // Printify
+    supabase.functions.invoke("save-printify-credentials", {
+      body: { organizationId: selectedOrg.id, action: "check" },
+    }).then(({ data }) => setPrintifyConnected(!!data?.hasToken)).catch(() => setPrintifyConnected(false));
+    // Shopify
+    supabase.functions.invoke("save-shopify-credentials", {
+      body: { organizationId: selectedOrg.id, action: "check" },
+    }).then(({ data }) => setShopifyConnected(!!data?.hasToken))
+      .catch(() => {
+        // Fallback: check shopify_connections table directly
+        supabase.from("shopify_connections").select("id").eq("organization_id", selectedOrg.id).maybeSingle()
+          .then(({ data: conn }) => setShopifyConnected(!!conn));
+      });
+  }, [selectedOrg?.id]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
