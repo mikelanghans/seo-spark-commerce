@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown, Archive, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
+  ArrowUpDown, Archive, ArchiveRestore, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ interface Props {
   onRemoveTag: (productId: string, tag: string) => void;
   onUploadDesign: (productId: string, file: File) => void;
   onAddProduct: () => void;
+  onArchiveProduct?: (productId: string, archive: boolean) => void;
   collectionData?: CollectionMembershipData | null;
   collectionLoading?: boolean;
   onRefreshCollections?: () => void;
@@ -56,6 +57,7 @@ export const ProductGrid = ({
   onRemoveTag,
   onUploadDesign,
   onAddProduct,
+  onArchiveProduct,
   collectionData,
   collectionLoading,
   onRefreshCollections,
@@ -352,6 +354,7 @@ export const ProductGrid = ({
                         onAddTag={onAddTag}
                         onRemoveTag={onRemoveTag}
                         onUploadDesign={onUploadDesign}
+                        onArchive={onArchiveProduct}
                       />
                     ))}
                   </div>
@@ -383,6 +386,7 @@ export const ProductGrid = ({
                       onAddTag={onAddTag}
                       onRemoveTag={onRemoveTag}
                       onUploadDesign={onUploadDesign}
+                      onArchive={onArchiveProduct}
                     />
                   ))}
                 </div>
@@ -402,6 +406,7 @@ export const ProductGrid = ({
               onAddTag={onAddTag}
               onRemoveTag={onRemoveTag}
               onUploadDesign={onUploadDesign}
+              onArchive={onArchiveProduct}
             />
           ))}
         </div>
@@ -430,6 +435,7 @@ export const ProductGrid = ({
                   onAddTag={onAddTag}
                   onRemoveTag={onRemoveTag}
                   onUploadDesign={onUploadDesign}
+                  onArchive={onArchiveProduct}
                 />
               ))}
             </div>
@@ -449,6 +455,7 @@ interface CardProps {
   onAddTag: (id: string, tag: string) => void;
   onRemoveTag: (id: string, tag: string) => void;
   onUploadDesign: (id: string, file: File) => void;
+  onArchive?: (id: string, archive: boolean) => void;
   compact?: boolean;
 }
 
@@ -459,6 +466,7 @@ const ProductCard = ({
   onAddTag,
   onRemoveTag,
   onUploadDesign,
+  onArchive,
   compact,
 }: CardProps) => {
   const handleDownload = async (variant: "light" | "dark" | "both") => {
@@ -583,6 +591,18 @@ const ProductCard = ({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            )}
+            {onArchive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(product.id, !product.archived_at);
+                }}
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                title={product.archived_at ? "Restore product" : "Archive product"}
+              >
+                {product.archived_at ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+              </button>
             )}
             <button
               onClick={(e) => {
