@@ -54,6 +54,7 @@ export const DesignPreviewDialog = ({
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [regenElapsed, setRegenElapsed] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -62,6 +63,13 @@ export const DesignPreviewDialog = ({
   const [activeVariant, setActiveVariant] = useState<"light" | "dark">("light");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+
+  // Progress timer during regeneration
+  useEffect(() => {
+    if (!regenerating) { setRegenElapsed(0); return; }
+    const t = setInterval(() => setRegenElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [regenerating]);
 
   // Fetch history when dialog opens
   useEffect(() => {
@@ -453,8 +461,19 @@ export const DesignPreviewDialog = ({
               }}
             >
               {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {regenerating ? "Regenerating…" : "Regenerate"}
+              {regenerating
+                ? regenElapsed < 10
+                  ? "Generating design…"
+                  : regenElapsed < 40
+                    ? `Creating variants… (${regenElapsed}s)`
+                    : `Still working… (${regenElapsed}s)`
+                : "Regenerate"}
             </Button>
+            {regenerating && regenElapsed >= 15 && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                This generates 2 design variants using AI — it typically takes 30-90 seconds.
+              </p>
+            )}
           </div>
         )}
       </DialogContent>
