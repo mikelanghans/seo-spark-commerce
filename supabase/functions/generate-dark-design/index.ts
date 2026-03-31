@@ -22,7 +22,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const { designUrl } = await req.json();
+    const { designUrl, messageId, organizationId } = await req.json();
     if (!designUrl) throw new Error("designUrl is required");
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
