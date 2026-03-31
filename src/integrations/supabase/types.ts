@@ -839,6 +839,7 @@ export type Database = {
           default_size_pricing: Json
           deleted_at: string | null
           design_styles: Json
+          design_variant_mode: string
           enabled_marketplaces: string[]
           enabled_product_types: string[]
           enabled_social_platforms: string[]
@@ -863,6 +864,7 @@ export type Database = {
           default_size_pricing?: Json
           deleted_at?: string | null
           design_styles?: Json
+          design_variant_mode?: string
           enabled_marketplaces?: string[]
           enabled_product_types?: string[]
           enabled_social_platforms?: string[]
@@ -887,6 +889,7 @@ export type Database = {
           default_size_pricing?: Json
           deleted_at?: string | null
           design_styles?: Json
+          design_variant_mode?: string
           enabled_marketplaces?: string[]
           enabled_product_types?: string[]
           enabled_social_platforms?: string[]
