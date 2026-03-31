@@ -64,10 +64,10 @@ IMAGE 1 is the IMMUTABLE master photo of a garment. Keep it pixel-locked:
 
 Your edit scope is ONLY fabric recoloring.
 Color target (must match): ${swatchHint}.
-- The recolored shirt MUST be visually distinguishable from black. If the target is a dark color (navy, charcoal, espresso), exaggerate its undertone slightly so viewers can clearly identify the color
-- Preserve natural fabric texture and shadows while changing only hue/saturation/lightness of shirt fabric
+- CRITICAL: When the source image is a BLACK shirt and the target is a different dark color (charcoal, navy, espresso, pepper), you MUST make a DRAMATIC visible change. Lighten the fabric significantly — the result should be OBVIOUSLY a different color from the input. If a viewer cannot instantly tell the output is a different color from the input, you have failed.
+- Preserve natural fabric texture and shadows while changing hue/saturation/lightness of shirt fabric
 - Keep white balance neutral; do not add color casts to the background or props
-- Do NOT flatten the color to pure black — maintain the specific hue and saturation of the target
+- Do NOT leave the shirt looking black — match the specific hex value in the color target description
 
 ${sizeHint}
 
