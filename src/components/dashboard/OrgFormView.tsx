@@ -160,7 +160,7 @@ export const OrgFormView = ({
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Enabled Marketplaces</h3><p className="text-xs text-muted-foreground">Select which marketplaces this brand sells on</p></div>
       <div className="flex flex-wrap gap-2">
-        {[{ value: "shopify", label: "Shopify", icon: "🛍️" }, { value: "printify", label: "Printify", icon: "🖨️" }, { value: "etsy", label: "Etsy", icon: "🧶" }, { value: "ebay", label: "eBay", icon: "🏷️" }].map((mp) => {
+        {[{ value: "etsy", label: "Etsy", icon: "🧶" }, { value: "ebay", label: "eBay", icon: "🏷️" }].map((mp) => {
           const isEnabled = orgForm.enabled_marketplaces.includes(mp.value);
           return (
             <label key={mp.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
