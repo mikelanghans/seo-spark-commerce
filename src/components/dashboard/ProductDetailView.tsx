@@ -67,12 +67,8 @@ export const ProductDetailView = ({
     // Shopify
     supabase.functions.invoke("save-shopify-credentials", {
       body: { organizationId: selectedOrg.id, action: "check" },
-    }).then(({ data }) => setShopifyConnected(!!data?.hasToken))
-      .catch(() => {
-        // Fallback: check shopify_connections table directly
-        supabase.from("shopify_connections").select("id").eq("organization_id", selectedOrg.id).maybeSingle()
-          .then(({ data: conn }) => setShopifyConnected(!!conn));
-      });
+    }).then(({ data }) => setShopifyConnected(!!data?.connection))
+      .catch(() => setShopifyConnected(false));
   }, [selectedOrg?.id]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
