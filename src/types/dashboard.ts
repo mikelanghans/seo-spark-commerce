@@ -73,6 +73,7 @@ export const EMPTY_ORG_FORM = {
   enabled_product_types: ["t-shirt"] as string[],
   enabled_social_platforms: [] as string[],
   default_size_pricing: {} as Record<string, Record<string, string>>,
+  design_variant_mode: "both" as "both" | "light-only" | "dark-only",
 };
 
 export type OrgFormState = typeof EMPTY_ORG_FORM;

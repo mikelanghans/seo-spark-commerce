@@ -105,6 +105,29 @@ export const OrgFormView = ({
       </div>
     </div>
 
+    {/* Design Variant Mode */}
+    <div className="space-y-3">
+      <div><h3 className="text-lg font-semibold">Design Ink Variants</h3><p className="text-xs text-muted-foreground">Choose which ink variants AI generates — light ink for dark shirts, dark ink for light shirts, or both</p></div>
+      <div className="flex flex-wrap gap-2">
+        {([
+          { value: "both", label: "Both variants", description: "Light + dark ink" },
+          { value: "light-only", label: "Light ink only", description: "For dark shirts" },
+          { value: "dark-only", label: "Dark ink only", description: "For light shirts" },
+        ] as const).map((option) => {
+          const isSelected = (orgForm.design_variant_mode || "both") === option.value;
+          return (
+            <label key={option.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
+              <input type="radio" name="design_variant_mode" checked={isSelected} onChange={() => setOrgForm({ ...orgForm, design_variant_mode: option.value })} className="rounded" />
+              <div>
+                <span className="text-sm font-medium">{option.label}</span>
+                <span className="text-xs text-muted-foreground ml-1.5">({option.description})</span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+
     {/* Design Styles */}
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Design Styles</h3><p className="text-xs text-muted-foreground">Select which styles AI should use when generating designs</p></div>
