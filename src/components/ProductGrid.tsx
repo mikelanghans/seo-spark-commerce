@@ -453,18 +453,19 @@ export const ProductGrid = ({
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex gap-4 overflow-x-auto pb-2 snap-x">
                     {groupProds.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onView={onViewProduct}
-                        onDelete={onDeleteProduct}
-                        onAddTag={onAddTag}
-                        onRemoveTag={onRemoveTag}
-                        onUploadDesign={onUploadDesign}
-                        onArchive={onArchiveProduct}
-                      />
+                      <div key={product.id} className="w-[280px] min-w-[280px] snap-start">
+                        <ProductCard
+                          product={product}
+                          onView={onViewProduct}
+                          onDelete={onDeleteProduct}
+                          onAddTag={onAddTag}
+                          onRemoveTag={onRemoveTag}
+                          onUploadDesign={onUploadDesign}
+                          onArchive={onArchiveProduct}
+                        />
+                      </div>
                     ))}
                   </div>
                 </CollapsibleContent>
