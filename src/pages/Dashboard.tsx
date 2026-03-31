@@ -190,7 +190,7 @@ const Dashboard = () => {
       setLowCreditNotified(true);
       notifyLowCredits(user.id, remaining);
     }
-  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified]);
+  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified, subscription.loading]);
 
   useEffect(() => {
     if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
