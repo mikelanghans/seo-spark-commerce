@@ -343,6 +343,53 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_source: string
+          error_stack: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          page_url: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string
+          error_source?: string
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          page_url?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_source?: string
+          error_stack?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          page_url?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etsy_connections: {
         Row: {
           access_token: string | null
