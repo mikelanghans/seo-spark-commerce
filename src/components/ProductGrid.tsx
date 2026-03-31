@@ -307,11 +307,6 @@ export const ProductGrid = ({
             🏷️ {tag}
           </button>
         ))}
-        {sharedDesignCount > 0 && (
-          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-            ℹ️ {sharedDesignCount} shared design{sharedDesignCount > 1 ? "s" : ""}
-          </span>
-        )}
       </div>
 
       {/* Collection refresh bar */}
