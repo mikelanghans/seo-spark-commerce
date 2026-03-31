@@ -21,7 +21,7 @@ import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { ProductGrid } from "@/components/ProductGrid";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
+
 import { canAccess } from "@/lib/featureGates";
 import {
   Sparkles, Plus, Package, ArrowLeft, Loader2, Upload, X, Store, Share2, CalendarDays, GitCompare, ChevronDown, Rocket, Lock, BarChart3, Settings, ImageIcon, FolderOpen,
