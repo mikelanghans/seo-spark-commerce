@@ -92,6 +92,13 @@ serve(async (req) => {
 
     console.log("Dark design saved:", urlData.publicUrl);
 
+    // Update the generated message with the dark variant URL
+    if (messageId) {
+      await adminClient
+        .from("generated_messages")
+        .update({ dark_design_url: urlData.publicUrl })
+        .eq("id", messageId);
+    }
     return new Response(JSON.stringify({
       success: true,
       darkDesignUrl: urlData.publicUrl,
