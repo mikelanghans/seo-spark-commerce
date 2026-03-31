@@ -40,6 +40,7 @@ import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
 import { ABTestDashboard } from "@/components/ABTestDashboard";
 import { ShopifyCollections } from "@/components/ShopifyCollections";
+import { useCollectionMemberships } from "@/hooks/useCollectionMemberships";
 
 // Extracted components & hooks
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -96,6 +97,7 @@ const Dashboard = () => {
   } = orgHandlers;
 
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
+  const collectionMemberships = useCollectionMemberships(selectedOrg?.id);
 
   const productHandlers = useProductHandlers(user?.id, selectedOrg, aiUsage);
   const {
@@ -418,6 +420,10 @@ const Dashboard = () => {
                   }}
                   onAddProduct={() => setView("product-form")}
                   enabledProductTypes={selectedOrg?.enabled_product_types || []}
+                  collectionData={collectionMemberships.data}
+                  collectionLoading={collectionMemberships.loading}
+                  onRefreshCollections={collectionMemberships.refresh}
+                  collectionLastFetched={collectionMemberships.lastFetched}
                   onCreateProductFromDesign={async (designUrl, typeKey) => {
                     if (!selectedOrg || !user) return;
                     const typeConfig = (await import("@/lib/productTypes")).PRODUCT_TYPES[typeKey];
