@@ -110,33 +110,6 @@ export const ProductDetailView = ({
         </div>
       )}
 
-      {/* Design Group — sibling products sharing this design */}
-      {product.image_url && (() => {
-        const siblings = products.filter(
-          (p) => p.image_url === product.image_url && p.id !== product.id
-        );
-        if (siblings.length === 0) return null;
-        return (
-          <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
-            <p className="text-sm font-medium mb-2">Also using this design</p>
-            <div className="space-y-1">
-              {siblings.map((sib) => (
-                <button
-                  key={sib.id}
-                  onClick={() => { setSelectedProduct(sib); loadListings(sib.id); }}
-                  className="flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-xs text-left hover:bg-accent/50 transition-colors"
-                >
-                  <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground shrink-0">
-                    {sib.category || "—"}
-                  </span>
-                  <span className="truncate text-foreground">{sib.title}</span>
-                  {sib.price && <span className="ml-auto text-[10px] text-muted-foreground shrink-0">{sib.price}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
       {product.image_url && (
         <Dialog open={designPreviewOpen} onOpenChange={setDesignPreviewOpen}>
