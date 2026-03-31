@@ -588,6 +588,18 @@ const ProductCard = ({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {onArchive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(product.id, !product.archived_at);
+                }}
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                title={product.archived_at ? "Restore product" : "Archive product"}
+              >
+                {product.archived_at ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
