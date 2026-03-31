@@ -128,7 +128,7 @@ export const ProductGrid = ({
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
     if (!collectionData || !collectionData.collections.length) return null;
-    const groups: { collection: ShopifyCollection; products: Product[] }[] = [];
+    const groups: { collection: CollectionMembershipData["collections"][0]; products: Product[] }[] = [];
     const assigned = new Set<string>();
 
     for (const col of collectionData.collections) {
