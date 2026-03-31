@@ -64,9 +64,12 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
       toast.success("Organization updated!");
       setEditingOrg(null);
     } else {
-      const { error } = await supabase.from("organizations").insert({ ...payload, user_id: userId! });
+      const { data: newOrg, error } = await supabase.from("organizations").insert({ ...payload, user_id: userId! }).select().single();
       if (error) { toast.error(error.message); return; }
-      toast.success("Organization created!");
+      toast.success("Brand created! You can now upload mockup templates.");
+      await loadOrgs();
+      handleEditOrg(newOrg as Organization);
+      return;
     }
     resetOrgForm();
     setView("orgs");
