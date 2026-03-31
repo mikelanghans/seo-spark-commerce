@@ -78,10 +78,9 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
         return false;
       }
 
-      // Pre-run-out warning at ~20% remaining
+      // Only warn when credits are genuinely low (≤10)
       const remaining = limit - count;
-      const threshold = Math.max(1, Math.ceil(limit * 0.2));
-      if (remaining <= threshold && remaining > 0) {
+      if (remaining <= 10 && remaining > 0) {
         toast.warning("You're running low on AI credits", {
           description: `Only ${remaining} of ${limit} credits left — don't interrupt your workflow. Top up now!`,
           duration: 6000,
