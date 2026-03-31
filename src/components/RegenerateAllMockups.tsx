@@ -321,7 +321,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         className="gap-2"
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        Regenerate All Mockups
+        {buttonLabel || "Regenerate All Mockups"}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={(open) => !running && setShowDialog(open)}>
