@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { RotateCw, Check } from "lucide-react";
+import { RotateCw, Check, Loader2 } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
+import { ensureImageDataUrl } from "@/lib/mockupComposition";
+import { smartRemoveBackground } from "@/lib/removeBackground";
 
 interface Props {
   templateUrl: string;
@@ -34,6 +36,25 @@ export const DesignPlacementEditor = ({
   const [designLoaded, setDesignLoaded] = useState(false);
   const [designAspect, setDesignAspect] = useState(1);
   const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
+  const [processingDesign, setProcessingDesign] = useState(true);
+
+  // Strip background from design for transparent preview
+  useEffect(() => {
+    let cancelled = false;
+    setProcessingDesign(true);
+    smartRemoveBackground(designUrl)
+      .then((base64) => {
+        if (!cancelled) setProcessedDesignUrl(ensureImageDataUrl(base64));
+      })
+      .catch(() => {
+        if (!cancelled) setProcessedDesignUrl(designUrl);
+      })
+      .finally(() => {
+        if (!cancelled) setProcessingDesign(false);
+      });
+    return () => { cancelled = true; };
+  }, [designUrl]);
 
   const handleDesignLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -108,9 +129,14 @@ export const DesignPlacementEditor = ({
           onLoad={() => setTemplateLoaded(true)}
           draggable={false}
         />
-        {templateLoaded && (
+        {processingDesign && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        {templateLoaded && processedDesignUrl && (
           <img
-            src={designUrl}
+            src={processedDesignUrl}
             alt="Design"
             draggable={false}
             onLoad={handleDesignLoad}
