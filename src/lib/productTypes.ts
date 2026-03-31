@@ -3,7 +3,7 @@
  * Defines color palettes, size charts, mockup config, and design placement per product type.
  */
 
-export type ProductTypeKey = "t-shirt" | "long-sleeve" | "sweatshirt" | "hoodie" | "mug" | "tote" | "canvas" | "journal" | "notebook";
+export type ProductTypeKey = "t-shirt" | "long-sleeve" | "sweatshirt" | "hoodie" | "mug" | "tote" | "canvas" | "journal" | "notebook" | "other";
 
 export interface ProductTypeColor {
   name: string;
