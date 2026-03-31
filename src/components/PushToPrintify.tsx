@@ -355,12 +355,12 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           });
 
           if (shopifyError || shopifyData?.error) {
-            toast.error("Printify updated but Shopify mockup push failed: " + (shopifyData?.error || shopifyError?.message));
+            toast.error("Printify created but Shopify mockup push failed: " + (shopifyData?.error || shopifyError?.message));
           } else {
             toast.success(printifyMsg + " Mockups also updated on Shopify!");
           }
         } catch (shopifyErr: any) {
-          toast.error("Printify updated but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
+          toast.error("Printify created but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
         }
       } else {
         toast.success(printifyMsg);
@@ -546,7 +546,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               ) : (
                 <>
                   <Printer className="h-4 w-4" />
-                  {product.printify_product_id ? "Update on Printify" : "Create on Printify"}
+                  Create on Printify
                 </>
               )}
             </Button>
