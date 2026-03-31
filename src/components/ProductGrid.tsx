@@ -296,7 +296,7 @@ export const ProductGrid = ({
 
         {/* Product type filters (only in product-types mode) */}
         {viewMode === "product-types" &&
-          ["T-Shirt", "Long Sleeve", "Sweatshirt", "Hoodie", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
+          Object.values(PRODUCT_TYPES).map((pt) => pt.label).map(
             (cat) => (
               <button
                 key={cat}
