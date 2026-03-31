@@ -455,7 +455,12 @@ async function generateImage(
         },
         body: JSON.stringify({
           model,
-          messages: [{
+          messages: [
+            {
+              role: "system",
+              content: "You are a graphic designer that outputs ONLY standalone artwork images. NEVER render t-shirts, garments, mockups, or product previews. NEVER create side-by-side comparisons or composite images. Output exactly ONE clean design on a solid background.",
+            },
+            {
             role: "user",
             content: (baseDesignUrl || referenceImageUrl)
               ? [
