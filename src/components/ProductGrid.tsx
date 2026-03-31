@@ -360,7 +360,7 @@ export const ProductGrid = ({
       </p>
 
       {/* Collection-grouped view */}
-      {collectionGroups && viewMode === "collections" && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
+      {viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const isCollapsed = collapsedCollections.has(String(collection.id));
@@ -397,7 +397,6 @@ export const ProductGrid = ({
             );
           })}
 
-          {/* Uncategorized section */}
           {collectionGroups.uncategorized.length > 0 && (
             <Collapsible
               open={!collapsedCollections.has("__uncategorized")}
@@ -428,8 +427,53 @@ export const ProductGrid = ({
             </Collapsible>
           )}
         </div>
+      ) : viewMode === "designs" ? (
+        /* Design-grouped view — products grouped by similar title */
+        <div className="space-y-4">
+          {designGroups.map(({ label, products: groupProds }) => {
+            const groupKey = `design:${label}`;
+            const isCollapsed = collapsedCollections.has(groupKey);
+            return (
+              <Collapsible
+                key={groupKey}
+                open={!isCollapsed}
+                onOpenChange={() => toggleCollection(groupKey)}
+              >
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-1 rounded-lg hover:bg-accent/50 transition-colors">
+                  {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <Layers className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">{label}</span>
+                  <span className="text-xs text-muted-foreground">({groupProds.length})</span>
+                  <div className="flex gap-1 ml-1">
+                    {[...new Set(groupProds.map((p) => p.category).filter(Boolean))].map((cat) => (
+                      <span key={cat} className="rounded-full bg-primary/15 text-primary border border-primary/30 px-1.5 py-0 text-[9px] font-medium">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupProds.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onView={onViewProduct}
+                        onDelete={onDeleteProduct}
+                        onAddTag={onAddTag}
+                        onRemoveTag={onRemoveTag}
+                        onUploadDesign={onUploadDesign}
+                        onArchive={onArchiveProduct}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
       ) : (
-        /* Flat grid view */
+        /* Flat grid view (product-types mode) */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {activeProducts.map((product) => (
             <ProductCard
