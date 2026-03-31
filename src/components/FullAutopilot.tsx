@@ -680,7 +680,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Design styles: <strong>{((organization.design_styles as string[]) || ["text-only"]).map(s => getStyleLabel(s)).join(", ")}</strong> (auto-rotated)</p>
+            <p>• Design style: <strong>{styleMode === "rotate" ? ((organization.design_styles as string[]) || ["text-only"]).map(s => getStyleLabel(s)).join(", ") + " (auto-rotated)" : getStyleLabel(styleMode)}</strong></p>
             <p>• Colors: <strong>AI recommended</strong></p>
             <p>• Listings: <strong>Shopify only</strong></p>
             <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify ({shopifyStatus === "active" ? "published" : "draft"})</strong></p>
