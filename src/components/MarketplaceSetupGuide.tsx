@@ -56,7 +56,8 @@ const EBAY_GUIDE = {
     link: "https://developer.ebay.com/my/keys",
     linkLabel: "App Settings",
   },
-];
+  ],
+};
 
 interface GuideProps {
   platform: "etsy" | "ebay";
