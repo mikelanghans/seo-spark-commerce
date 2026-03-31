@@ -19,6 +19,10 @@ interface Props {
   organizationId: string;
   userId: string;
   templateImageUrl: string;
+  /** Optional: only regenerate mockups for products of this category */
+  productTypeFilter?: string;
+  /** Optional: custom button label */
+  buttonLabel?: string;
 }
 
 const LIGHT_COLORS = new Set([
