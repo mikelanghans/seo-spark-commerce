@@ -2,28 +2,33 @@ import { ExternalLink, ShoppingBag, Package, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 
-const ETSY_STEPS = [
-  {
-    title: "Create an Etsy Developer Account",
-    description: "Sign in with your Etsy seller account and register as a developer.",
-    link: "https://www.etsy.com/developers/register",
-    linkLabel: "Etsy Developer Portal",
-  },
-  {
-    title: 'Create a New App',
-    description: 'Click "Create a New App" in the developer dashboard. Set the app type to "Seller Tools" for "General Public" with Commercial set to "Yes".',
-  },
-  {
-    title: "Enable Permissions",
-    description: 'Make sure "Upload or edit listings" is enabled under your app permissions.',
-  },
-  {
-    title: "Connect in Settings",
-    description: 'Click "Connect Etsy Shop" above — the app handles the OAuth authorization flow automatically. No API key copy-paste needed!',
-  },
-];
+const ETSY_GUIDE = {
+  lastUpdated: "2026-03-30",
+  steps: [
+    {
+      title: "Create an Etsy Developer Account",
+      description: "Sign in with your Etsy seller account and register as a developer.",
+      link: "https://www.etsy.com/developers/register",
+      linkLabel: "Etsy Developer Portal",
+    },
+    {
+      title: 'Create a New App',
+      description: 'Click "Create a New App" in the developer dashboard. Set the app type to "Seller Tools" for "General Public" with Commercial set to "Yes".',
+    },
+    {
+      title: "Enable Permissions",
+      description: 'Make sure "Upload or edit listings" is enabled under your app permissions.',
+    },
+    {
+      title: "Connect in Settings",
+      description: 'Click "Connect Etsy Shop" above — the app handles the OAuth authorization flow automatically. No API key copy-paste needed!',
+    },
+  ],
+};
 
-const EBAY_STEPS = [
+const EBAY_GUIDE = {
+  lastUpdated: "2026-03-30",
+  steps: [
   {
     title: "Sign Up for an eBay Developer Account",
     description: "Create or sign in to the eBay Developer Program.",
