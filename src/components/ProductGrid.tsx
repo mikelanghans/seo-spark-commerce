@@ -340,7 +340,7 @@ export const ProductGrid = ({
       </p>
 
       {/* Collection-grouped view */}
-      {collectionGroups && !activeFilter ? (
+      {collectionGroups && !activeFilter && viewMode === "collections" ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const colDesigns = groupByDesign(colProds);
