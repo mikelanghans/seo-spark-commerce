@@ -26,6 +26,21 @@ serve(async (req) => {
     const { organizationId } = await req.json();
     if (!organizationId) throw new Error("organizationId is required");
 
+    // Helper: map a Shopify product_type string to our ProductTypeKey
+    function inferProductType(category: string): string | null {
+      const lower = (category || "").toLowerCase();
+      if (lower.includes("hoodie")) return "hoodie";
+      if (lower.includes("sweatshirt") || lower.includes("crewneck")) return "sweatshirt";
+      if (lower.includes("long sleeve")) return "long-sleeve";
+      if (lower.includes("mug") || lower.includes("drinkware") || lower.includes("cup")) return "mug";
+      if (lower.includes("tote")) return "tote";
+      if (lower.includes("canvas") || lower.includes("wall art")) return "canvas";
+      if (lower.includes("journal")) return "journal";
+      if (lower.includes("notebook")) return "notebook";
+      if (lower.includes("t-shirt") || lower.includes("tee") || lower.includes("shirt")) return "t-shirt";
+      return null;
+    }
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
@@ -150,6 +165,37 @@ serve(async (req) => {
           action: "failed",
           error: productError instanceof Error ? productError.message : "Failed to save product",
         });
+      }
+    }
+
+    // Auto-enable any new product types discovered during import
+    const discoveredTypes = new Set<string>();
+    for (const sp of allShopifyProducts) {
+      const pt = inferProductType(sp.product_type || "");
+      if (pt) discoveredTypes.add(pt);
+    }
+
+    if (discoveredTypes.size > 0) {
+      const { data: orgData } = await adminClient
+        .from("organizations")
+        .select("enabled_product_types")
+        .eq("id", organizationId)
+        .single();
+
+      const current = new Set<string>(orgData?.enabled_product_types || ["t-shirt"]);
+      const newTypes: string[] = [];
+      for (const t of discoveredTypes) {
+        if (!current.has(t)) {
+          current.add(t);
+          newTypes.push(t);
+        }
+      }
+
+      if (newTypes.length > 0) {
+        await adminClient
+          .from("organizations")
+          .update({ enabled_product_types: [...current] })
+          .eq("id", organizationId);
       }
     }
 
