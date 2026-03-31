@@ -118,18 +118,7 @@ export const ProductGrid = ({
   const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
   const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
 
-  // Group products by design URL
-  const groupByDesign = (list: Product[]) => {
-    const groups = new Map<string, Product[]>();
-    const noDesign: Product[] = [];
-    for (const p of list) {
-      if (!p.image_url) { noDesign.push(p); continue; }
-      const key = p.image_url;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(p);
-    }
-    return { allDesigns: [...groups.entries()], noDesign };
-  };
+  // No longer grouping by design — each product is its own card
 
   // Build a reverse map: shopify_product_id → collection titles
   const productCollectionMap = useMemo(() => {
