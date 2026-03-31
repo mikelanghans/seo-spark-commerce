@@ -116,8 +116,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       setOverallProgress(Math.min(100, Math.round((completedSteps / totalSteps) * 100)));
     };
 
-    // Available design styles for rotation
-    const styles = (organization.design_styles as string[]) || ["text-only"];
+    // Available design styles for rotation or fixed
+    const allStyles = (organization.design_styles as string[]) || ["text-only"];
+    const styles = styleMode === "rotate" ? allStyles : [styleMode];
 
     try {
       // Step 0: Fetch existing products to avoid duplicates
