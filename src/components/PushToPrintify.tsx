@@ -287,8 +287,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         }
       }
 
-      const isUpdate = !!product.printify_product_id;
-      toast.info(isUpdate ? "Updating on Printify..." : "Creating on Printify...");
+      toast.info("Creating on Printify...");
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
@@ -306,7 +305,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           sizePricing,
           mockupImages,
           productId: product.id,
-          printifyProductId: product.printify_product_id,
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
           organizationId,
@@ -320,9 +318,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
 
-      const printifyMsg = data.updated
-        ? `Updated on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`
-        : `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
+      const printifyMsg = `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
 
       // Also push mockups to Shopify if toggled on
       if (alsoUpdateShopify && mockups.length > 0) {
@@ -393,7 +389,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         ) : (
           <Printer className="h-4 w-4" />
         )}
-        {result?.success ? "Pushed!" : product.printify_product_id ? "Update on Printify" : "Push to Printify"}
+        {result?.success ? "Pushed!" : "Push to Printify"}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
