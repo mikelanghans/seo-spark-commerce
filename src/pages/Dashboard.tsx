@@ -183,8 +183,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user || aiUsage.loading || lowCreditNotified) return;
     const remaining = aiUsage.limit - aiUsage.usedCount;
-    const threshold = Math.max(1, Math.floor(aiUsage.limit * 0.2));
-    if (remaining > 0 && remaining <= threshold) {
+    // Only notify when credits are genuinely low (≤10), not a percentage
+    if (remaining > 0 && remaining <= 10) {
       setLowCreditNotified(true);
       notifyLowCredits(user.id, remaining);
     }
