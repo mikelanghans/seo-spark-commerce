@@ -661,8 +661,9 @@ serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const variantMode = designVariantMode || "both";
+    const deferSecondVariant = !generateBothNow; // When true, only generate primary variant now
     const generateLight = variantMode === "both" || variantMode === "light-only";
-    const generateDark = variantMode === "both" || variantMode === "dark-only";
+    const generateDark = variantMode === "dark-only" || (variantMode === "both" && !deferSecondVariant);
 
     let lightDesignUrl: string | null = null;
     let darkDesignUrl: string | null = null;
@@ -695,7 +696,7 @@ CRITICAL RULES:
         darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
         console.log("Dark design:", darkDesignUrl);
       }
-    } else if (generateDark) {
+    } else if (variantMode === "dark-only") {
       // Dark-only mode: generate dark-on-light directly
       console.log("Generating dark-on-light design...");
       const darkPrompt = buildPrompt(messageText, "dark-on-light", promptOpts);
