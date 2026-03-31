@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     // Create or update product
-    const shopifyResponse = await fetch(
+    let shopifyResponse = await fetch(
       isUpdate
         ? `https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`
         : `https://${domain}/admin/api/2024-01/products.json`,
@@ -98,6 +98,19 @@ serve(async (req) => {
         body: JSON.stringify({ product: shopifyProduct }),
       },
     );
+
+    // If update returns 404, the product was deleted on Shopify — fall back to create
+    if (isUpdate && shopifyResponse.status === 404) {
+      console.log("Existing Shopify product not found (404), creating new product instead");
+      shopifyResponse = await fetch(
+        `https://${domain}/admin/api/2024-01/products.json`,
+        {
+          method: "POST",
+          headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({ product: shopifyProduct }),
+        },
+      );
+    }
 
     if (!shopifyResponse.ok) {
       const errorText = await shopifyResponse.text();
