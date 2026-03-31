@@ -21,7 +21,7 @@ import { SyncDashboard } from "@/components/SyncDashboard";
 import { FullAutopilot } from "@/components/FullAutopilot";
 import { ProductGrid } from "@/components/ProductGrid";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
+
 import { canAccess } from "@/lib/featureGates";
 import {
   Sparkles, Plus, Package, ArrowLeft, Loader2, Upload, X, Store, Share2, CalendarDays, GitCompare, ChevronDown, Rocket, Lock, BarChart3, Settings, ImageIcon, FolderOpen,
@@ -83,13 +83,13 @@ const Dashboard = () => {
   const {
     orgs, orgsLoaded, selectedOrg, setSelectedOrg, loading: orgLoading,
     editingOrg, setEditingOrg, orgForm, setOrgForm,
-    orgTemplatePreview, orgLogoPreview,
+    orgLogoPreview,
     printifyShops, loadingPrintifyShops,
     deleteConfirmOrg, setDeleteConfirmOrg, deleteConfirmText, setDeleteConfirmText,
     archivedOrgs, showArchived, setShowArchived,
     loadOrgs, loadArchivedOrgs, resetOrgForm,
     handleCreateOrg, handleEditOrg, handleDeleteOrg, confirmDeleteOrg, handleRestoreOrg,
-    loadPrintifyShops, handleOrgTemplateUpload, handleOrgLogoUpload,
+    loadPrintifyShops, handleOrgLogoUpload,
     uploadImageToStorage,
   } = orgHandlers;
 
@@ -271,7 +271,6 @@ const Dashboard = () => {
             editingOrg={editingOrg}
             orgForm={orgForm}
             setOrgForm={setOrgForm}
-            orgTemplatePreview={orgTemplatePreview}
             orgLogoPreview={orgLogoPreview}
             printifyShops={printifyShops}
             loadingPrintifyShops={loadingPrintifyShops}
@@ -279,7 +278,6 @@ const Dashboard = () => {
             onSubmit={handleCreateOrg}
             onBack={() => { setView("orgs"); setEditingOrg(null); resetOrgForm(); }}
             onLoadPrintifyShops={() => loadPrintifyShops()}
-            onTemplateUpload={(e) => handleOrgTemplateUpload(e, view)}
             onLogoUpload={handleOrgLogoUpload}
           />
         )}

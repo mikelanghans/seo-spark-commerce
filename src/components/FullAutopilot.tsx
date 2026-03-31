@@ -26,7 +26,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
-  template_image_url?: string | null;
+  mockup_templates?: Record<string, string> | null;
   brand_font?: string;
   brand_color?: string;
   brand_font_size?: string;
@@ -105,7 +105,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     setProducts([]);
     setOverallProgress(0);
 
-    const hasTemplate = !!organization.template_image_url;
+    const mockupTemplates = (organization.mockup_templates || {}) as Record<string, string>;
+    const hasTemplate = !!mockupTemplates["t-shirt"];
     const stepsPerProduct = hasTemplate ? 8 : 7; // design, product, colors, [mockups], listing, printify, shopify
     const totalSteps = 1 + count * stepsPerProduct;
     let completedSteps = 0;
@@ -317,7 +318,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           if (hasTemplate) {
             updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
-            const sourceUrl = organization.template_image_url || designUrl;
+            const sourceUrl = mockupTemplates["t-shirt"] || designUrl;
             const referenceBase64 = await fetchImageAsBase64(sourceUrl);
 
             // Pre-composite design onto template so AI only needs to recolor

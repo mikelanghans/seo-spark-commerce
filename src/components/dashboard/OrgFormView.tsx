@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import type { Organization, View } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
@@ -15,7 +14,6 @@ interface Props {
   editingOrg: Organization | null;
   orgForm: OrgFormState;
   setOrgForm: (f: OrgFormState) => void;
-  orgTemplatePreview: string | null;
   orgLogoPreview: string | null;
   printifyShops: { id: number; title: string }[];
   loadingPrintifyShops: boolean;
@@ -23,14 +21,13 @@ interface Props {
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
   onLoadPrintifyShops: () => void;
-  onTemplateUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const OrgFormView = ({
-  editingOrg, orgForm, setOrgForm, orgTemplatePreview, orgLogoPreview,
+  editingOrg, orgForm, setOrgForm, orgLogoPreview,
   printifyShops, loadingPrintifyShops, userId,
-  onSubmit, onBack, onLoadPrintifyShops, onTemplateUpload, onLogoUpload,
+  onSubmit, onBack, onLoadPrintifyShops, onLogoUpload,
 }: Props) => (
   <form onSubmit={onSubmit} className="space-y-8">
     <div className="flex items-center gap-3">
