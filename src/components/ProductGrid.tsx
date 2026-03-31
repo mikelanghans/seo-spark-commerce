@@ -14,10 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Product } from "@/types/dashboard";
-import type { CollectionMembershipData, ShopifyCollection } from "@/hooks/useCollectionMemberships";
+import type { CollectionMembershipData } from "@/hooks/useCollectionMemberships";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
 
