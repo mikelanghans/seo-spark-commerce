@@ -74,6 +74,7 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lowCreditNotified, setLowCreditNotified] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
+  const [showImportWarning, setShowImportWarning] = useState(false);
 
   const subscription = useSubscription(user?.id ?? null);
   const effectiveTier = subscription.loading ? "pro" as const : subscription.tier;
