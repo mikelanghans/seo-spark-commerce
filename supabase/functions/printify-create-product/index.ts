@@ -110,33 +110,6 @@ serve(async (req) => {
 
     const effectiveShopId = shopId;
 
-    const fetchPrintifyProduct = async (targetShopId: number | string, targetProductId: string) => {
-      const response = await fetch(
-        `https://api.printify.com/v1/shops/${targetShopId}/products/${targetProductId}.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
-      );
-
-      const responseBody = await response.text();
-      if (!response.ok) {
-        return {
-          ok: false as const,
-          status: response.status,
-          errorText: responseBody,
-        };
-      }
-
-      try {
-        return {
-          ok: true as const,
-          product: responseBody ? JSON.parse(responseBody) : {},
-        };
-      } catch {
-        return {
-          ok: true as const,
-          product: {},
-        };
-      }
-    };
 
     const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
     let ppId = printProviderId;
