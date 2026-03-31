@@ -909,6 +909,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           initialPlacement={placementOverride || undefined}
           onConfirm={(p) => {
             setPlacementOverride(p);
+            placementRef.current = p;
             generateMockups();
           }}
           onCancel={() => setGenStep("choose-colors")}
