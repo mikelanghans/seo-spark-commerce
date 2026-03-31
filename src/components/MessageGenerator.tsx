@@ -986,28 +986,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           await loadMessages();
           onProductsCreated?.();
 
-          // Generate dark variant in background if mode is "both" and not yet generated
-          if (variantMode === "both" && !msg.dark_design_url && msg.design_url) {
-            toast.info("Generating dark ink variant in the background…");
-            supabase.functions.invoke("generate-dark-design", {
-              body: { designUrl: msg.design_url, messageId: msgId, organizationId: organization.id },
-            }).then(async ({ data, error: darkErr }) => {
-              if (darkErr || data?.error) {
-                console.error("Dark variant generation failed:", darkErr || data?.error);
-                return;
-              }
-              const darkUrl = data?.darkDesignUrl;
-              if (darkUrl) {
-                await supabase.from("generated_messages").update({ dark_design_url: darkUrl }).eq("id", msgId);
-                await insertProductImagesDeduped([{
-                  product_id: product.id, user_id: userId, image_url: darkUrl,
-                  image_type: "design", color_name: "dark-on-light", position: 1,
-                }]);
-                toast.success("Dark ink variant ready!");
-                await loadMessages();
-              }
-            });
-          }
+          // Dark variant is now generated on-demand via the preview toggle
         }}
         onReplaceDesign={async (msgId, file) => {
           const msg = messages.find((m) => m.id === msgId);
