@@ -31,6 +31,7 @@ export const DesignPlacementEditor = ({
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0.015);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.25);
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [templateLoaded, setTemplateLoaded] = useState(false);
   const [designLoaded, setDesignLoaded] = useState(false);
