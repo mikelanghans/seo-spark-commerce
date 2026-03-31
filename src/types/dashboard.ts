@@ -18,6 +18,7 @@ export interface Organization {
   enabled_product_types?: string[];
   enabled_social_platforms?: string[];
   default_size_pricing?: Record<string, Record<string, string>>;
+  mockup_templates?: Record<string, string>;
 }
 
 export interface Product {
