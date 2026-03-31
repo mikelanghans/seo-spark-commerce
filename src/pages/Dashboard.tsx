@@ -308,13 +308,33 @@ const Dashboard = () => {
                         <Upload className="h-4 w-4" /> AI from Images / CSV
                         {!canAccess(effectiveTier, "bulk-upload") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleImportFromShopify} className="gap-2">
+                      <DropdownMenuItem onClick={() => setShowImportWarning(true)} className="gap-2">
                         <Store className="h-4 w-4" /> Import from Shopify
                         {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+              </div>
+
+              {/* Shopify import warning dialog */}
+              <AlertDialog open={showImportWarning} onOpenChange={setShowImportWarning}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Import from Shopify</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-2">
+                      <p>This will sync your Shopify catalog. Products that already exist locally (matched by Shopify ID) will have their <strong>title, description, price, tags, and category overwritten</strong> with the latest Shopify data.</p>
+                      <p>Mockups and locally-generated images will be preserved.</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { setShowImportWarning(false); handleImportFromShopify(); }}>
+                      Continue Import
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               </div>
             </div>
 
