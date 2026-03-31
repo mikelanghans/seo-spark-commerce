@@ -451,6 +451,7 @@ interface CardProps {
   onAddTag: (id: string, tag: string) => void;
   onRemoveTag: (id: string, tag: string) => void;
   onUploadDesign: (id: string, file: File) => void;
+  onArchive?: (id: string, archive: boolean) => void;
   compact?: boolean;
 }
 
