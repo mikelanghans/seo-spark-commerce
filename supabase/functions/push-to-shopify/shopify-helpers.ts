@@ -31,6 +31,7 @@ export function buildShopifyProduct(
   shopifyStatus: string | undefined,
   colorVariants: { colorName: string; imageUrl: string }[],
   price: string,
+  existingVariants?: { id: number; option1: string }[],
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
@@ -55,12 +56,26 @@ export function buildShopifyProduct(
 
   if (hasVariants) {
     shopifyProduct.options = [{ name: "Color" }];
-    shopifyProduct.variants = actualColorVariants.map((v) => ({
-      option1: v.colorName,
-      price,
-      inventory_management: null,
-      inventory_policy: "continue",
-    }));
+
+    // When updating, match existing variant IDs by color name to preserve them
+    const existingByColor = new Map<string, number>();
+    if (existingVariants) {
+      for (const v of existingVariants) {
+        if (v.option1) existingByColor.set(v.option1.toLowerCase(), v.id);
+      }
+    }
+
+    shopifyProduct.variants = actualColorVariants.map((v) => {
+      const existingId = existingByColor.get(v.colorName.toLowerCase());
+      const variant: Record<string, unknown> = {
+        option1: v.colorName,
+        price,
+        inventory_management: null,
+        inventory_policy: "continue",
+      };
+      if (existingId) variant.id = existingId;
+      return variant;
+    });
   } else {
     shopifyProduct.variants = [{
       price,
@@ -109,13 +124,74 @@ export function categorizeImages(
   return { variantImages, imageEntries };
 }
 
+/** Delete all existing images from a Shopify product */
+export async function deleteExistingImages(
+  domain: string,
+  accessToken: string,
+  productId: number,
+) {
+  try {
+    const res = await fetch(
+      `https://${domain}/admin/api/2024-01/products/${productId}/images.json`,
+      { headers: { "X-Shopify-Access-Token": accessToken } },
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    const images = data.images || [];
+    console.log(`Deleting ${images.length} existing images from Shopify product ${productId}`);
+    for (const img of images) {
+      await fetch(
+        `https://${domain}/admin/api/2024-01/products/${productId}/images/${img.id}.json`,
+        { method: "DELETE", headers: { "X-Shopify-Access-Token": accessToken } },
+      );
+    }
+  } catch (e) {
+    console.error("Failed to delete existing images:", e);
+  }
+}
+
+/** Delete stale variants that are not in the new color list */
+export async function deleteStaleVariants(
+  domain: string,
+  accessToken: string,
+  productId: number,
+  existingVariants: { id: number; option1: string }[],
+  newColorNames: string[],
+) {
+  const newColors = new Set(newColorNames.map((c) => c.toLowerCase()));
+  const staleVariants = existingVariants.filter(
+    (v) => v.option1 && !newColors.has(v.option1.toLowerCase()),
+  );
+
+  if (staleVariants.length === 0) return;
+
+  // Shopify requires at least 1 variant — only delete if we'll have others remaining
+  const remaining = existingVariants.length - staleVariants.length;
+  if (remaining < 1) {
+    console.log(`Skipping variant deletion — would leave 0 variants`);
+    return;
+  }
+
+  console.log(`Deleting ${staleVariants.length} stale Shopify variants`);
+  for (const v of staleVariants) {
+    try {
+      await fetch(
+        `https://${domain}/admin/api/2024-01/products/${productId}/variants/${v.id}.json`,
+        { method: "DELETE", headers: { "X-Shopify-Access-Token": accessToken } },
+      );
+    } catch (e) {
+      console.error(`Failed to delete variant ${v.id}:`, e);
+    }
+  }
+}
+
 /** Upload images to Shopify and associate them with variants */
 export async function uploadAndAssociateImages(
   domain: string,
   accessToken: string,
   productId: number,
   imageEntries: { url: string; alt: string; colorName?: string }[],
-  variants: { id: number }[],
+  variants: { id: number; option1?: string }[],
   actualColorVariants: { colorName: string; imageUrl: string }[],
 ) {
   const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
@@ -157,21 +233,27 @@ export async function uploadAndAssociateImages(
   const uploadedCount = uploadedImages.filter(Boolean).length;
   console.log(`Successfully uploaded ${uploadedCount}/${imageEntries.length} images`);
 
-  // Associate images with variants
-  const hasVariants = actualColorVariants.length > 0;
-  if (hasVariants && variants?.length && uploadedImages.some(Boolean)) {
-    for (let i = 0; i < actualColorVariants.length; i++) {
-      const variant = variants[i];
+  // Associate images with variants by matching color name
+  if (actualColorVariants.length > 0 && variants?.length && uploadedImages.some(Boolean)) {
+    for (let i = 0; i < uploadedImages.length; i++) {
       const image = uploadedImages[i];
-      if (variant && image) {
+      if (!image || !image.colorName) continue;
+
+      // Find matching variant by color name (option1)
+      const matchingVariant = variants.find(
+        (v: any) => v.option1 && v.option1.toLowerCase() === image.colorName!.toLowerCase(),
+      );
+
+      if (matchingVariant) {
         try {
-          await fetch(`https://${domain}/admin/api/2024-01/variants/${variant.id}.json`, {
+          await fetch(`https://${domain}/admin/api/2024-01/variants/${matchingVariant.id}.json`, {
             method: "PUT",
             headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
-            body: JSON.stringify({ variant: { id: variant.id, image_id: image.id } }),
+            body: JSON.stringify({ variant: { id: matchingVariant.id, image_id: image.id } }),
           });
+          console.log(`Associated image with variant ${matchingVariant.id} (${image.colorName})`);
         } catch (e) {
-          console.error(`Failed to associate image with variant ${variant.id}:`, e);
+          console.error(`Failed to associate image with variant ${matchingVariant.id}:`, e);
         }
       }
     }
