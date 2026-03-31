@@ -15,10 +15,11 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
-  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw,
+  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle,
 } from "lucide-react";
 
 interface Props {
