@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown, Archive, ArchiveRestore, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
+  ArrowUpDown, Archive, ArchiveRestore, RefreshCw, ChevronDown, ChevronRight, FolderOpen, Layers, Grid3X3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ export const ProductGrid = ({
   const [sort, setSort] = useState<SortOption>("newest");
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"collections" | "product-types">("collections");
+  const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">("collections");
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
@@ -111,9 +111,6 @@ export const ProductGrid = ({
   const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
   const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
 
-  // No longer grouping by design — each product is its own card
-
-
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
     if (!collectionData || !collectionData.collections.length) return null;
@@ -134,6 +131,32 @@ export const ProductGrid = ({
     const uncategorized = activeProducts.filter((p) => !assigned.has(p.id));
     return { groups, uncategorized };
   }, [collectionData, activeProducts]);
+
+  // Group products by normalized title (strip product type suffixes)
+  const designGroups = useMemo(() => {
+    const TYPE_SUFFIXES = /\s*[-–|]\s*(T-Shirt|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote Bag|Tote|Canvas Print|Canvas|Journal|Notebook|Print)\s*$/i;
+    const CATEGORY_WORDS = /\b(T-Shirt|Tee|Long Sleeve|Sweatshirt|Hoodie|Mug|Tote|Canvas|Journal|Notebook)\b/gi;
+
+    const normalize = (title: string) => {
+      let n = title.replace(TYPE_SUFFIXES, "").trim();
+      n = n.replace(CATEGORY_WORDS, "").trim();
+      // collapse separators left behind
+      n = n.replace(/\s*[-–|]\s*$/, "").trim();
+      return n.toLowerCase() || title.toLowerCase();
+    };
+
+    const groups = new Map<string, { label: string; products: Product[] }>();
+    for (const p of activeProducts) {
+      const key = normalize(p.title);
+      if (!groups.has(key)) {
+        // Use the first product's cleaned title as the group label
+        const label = p.title.replace(TYPE_SUFFIXES, "").replace(/\s*[-–|]\s*$/, "").trim() || p.title;
+        groups.set(key, { label, products: [] });
+      }
+      groups.get(key)!.products.push(p);
+    }
+    return [...groups.values()];
+  }, [activeProducts]);
 
 
   const sortLabel: Record<SortOption, string> = {
@@ -205,22 +228,33 @@ export const ProductGrid = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* View mode toggle */}
-          {collectionData && collectionData.collections.length > 0 && (
-            <Button
-              variant={viewMode === "collections" ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5 text-xs"
-              onClick={() => {
-                const next = viewMode === "collections" ? "product-types" : "collections";
-                setViewMode(next);
-                onFilterChange(null);
-              }}
-            >
-              <FolderOpen className="h-3.5 w-3.5" />
-              {viewMode === "collections" ? "Collections" : "Product Types"}
-            </Button>
-          )}
+          {/* View mode selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                {viewMode === "collections" && <FolderOpen className="h-3.5 w-3.5" />}
+                {viewMode === "product-types" && <Grid3X3 className="h-3.5 w-3.5" />}
+                {viewMode === "designs" && <Layers className="h-3.5 w-3.5" />}
+                {viewMode === "collections" ? "Collections" : viewMode === "product-types" ? "Product Types" : "Designs"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {collectionData && collectionData.collections.length > 0 && (
+                <DropdownMenuItem onClick={() => { setViewMode("collections"); onFilterChange(null); }}>
+                  <FolderOpen className="h-3.5 w-3.5 mr-2" />
+                  Group by Collection
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => { setViewMode("product-types"); onFilterChange(null); }}>
+                <Grid3X3 className="h-3.5 w-3.5 mr-2" />
+                Filter by Product Type
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setViewMode("designs"); onFilterChange(null); }}>
+                <Layers className="h-3.5 w-3.5 mr-2" />
+                Group by Design
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Bulk actions from parent */}
           {children}
@@ -260,8 +294,8 @@ export const ProductGrid = ({
           </button>
         ))}
 
-        {/* Product type filters (when in product-types mode or no collections) */}
-        {(viewMode === "product-types" || !collectionData || !collectionData.collections.length) &&
+        {/* Product type filters (when in product-types or designs mode) */}
+        {(viewMode === "product-types" || viewMode === "designs" || !collectionData || !collectionData.collections.length) &&
           ["T-Shirt", "Long Sleeve", "Sweatshirt", "Hoodie", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
             (cat) => (
               <button
@@ -326,7 +360,7 @@ export const ProductGrid = ({
       </p>
 
       {/* Collection-grouped view */}
-      {collectionGroups && viewMode === "collections" && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
+      {viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const isCollapsed = collapsedCollections.has(String(collection.id));
@@ -363,7 +397,6 @@ export const ProductGrid = ({
             );
           })}
 
-          {/* Uncategorized section */}
           {collectionGroups.uncategorized.length > 0 && (
             <Collapsible
               open={!collapsedCollections.has("__uncategorized")}
@@ -394,8 +427,53 @@ export const ProductGrid = ({
             </Collapsible>
           )}
         </div>
+      ) : viewMode === "designs" ? (
+        /* Design-grouped view — products grouped by similar title */
+        <div className="space-y-4">
+          {designGroups.map(({ label, products: groupProds }) => {
+            const groupKey = `design:${label}`;
+            const isCollapsed = collapsedCollections.has(groupKey);
+            return (
+              <Collapsible
+                key={groupKey}
+                open={!isCollapsed}
+                onOpenChange={() => toggleCollection(groupKey)}
+              >
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-1 rounded-lg hover:bg-accent/50 transition-colors">
+                  {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <Layers className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">{label}</span>
+                  <span className="text-xs text-muted-foreground">({groupProds.length})</span>
+                  <div className="flex gap-1 ml-1">
+                    {[...new Set(groupProds.map((p) => p.category).filter(Boolean))].map((cat) => (
+                      <span key={cat} className="rounded-full bg-primary/15 text-primary border border-primary/30 px-1.5 py-0 text-[9px] font-medium">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupProds.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onView={onViewProduct}
+                        onDelete={onDeleteProduct}
+                        onAddTag={onAddTag}
+                        onRemoveTag={onRemoveTag}
+                        onUploadDesign={onUploadDesign}
+                        onArchive={onArchiveProduct}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
       ) : (
-        /* Flat grid view */
+        /* Flat grid view (product-types mode) */
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {activeProducts.map((product) => (
             <ProductCard
