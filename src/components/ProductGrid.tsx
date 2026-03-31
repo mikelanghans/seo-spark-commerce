@@ -245,18 +245,20 @@ export const ProductGrid = ({
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => onFilterChange(activeFilter === "__not_on_shopify" ? null : "__not_on_shopify")}
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-            activeFilter === "__not_on_shopify"
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-          )}
-        >
-          🔴 Not on Shopify
-        </button>
+        {unsyncedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => onFilterChange(activeFilter === "__unsynced" ? null : "__unsynced")}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              activeFilter === "__unsynced"
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+            )}
+          >
+            ⚡ Unsynced ({unsyncedCount})
+          </button>
+        )}
         {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
           (cat) => (
             <button
@@ -292,11 +294,30 @@ export const ProductGrid = ({
           </button>
         ))}
         {sharedDesignCount > 0 && (
-          <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-            ⚠️ {sharedDesignCount} shared design{sharedDesignCount > 1 ? "s" : ""}
+          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            ℹ️ {sharedDesignCount} shared design{sharedDesignCount > 1 ? "s" : ""}
           </span>
         )}
       </div>
+
+      {/* Collection refresh bar */}
+      {collectionData && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <FolderOpen className="h-3.5 w-3.5" />
+          <span>{collectionData.collections.length} collections</span>
+          {collectionLastFetched && (
+            <span>· synced {Math.round((Date.now() - collectionLastFetched) / 60000)}m ago</span>
+          )}
+          <button
+            onClick={onRefreshCollections}
+            disabled={collectionLoading}
+            className="inline-flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
+          >
+            <RefreshCw className={cn("h-3 w-3", collectionLoading && "animate-spin")} />
+            Refresh
+          </button>
+        </div>
+      )}
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
@@ -304,45 +325,150 @@ export const ProductGrid = ({
         {searchQuery && ` — matching "${searchQuery}"`}
       </p>
 
-      {/* Active design cards */}
-      {grouped.allDesigns.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {grouped.allDesigns.map(([designUrl, prods]) => (
-            <DesignGroupCard
-              key={designUrl}
-              designUrl={designUrl}
-              products={prods}
-              allProducts={activeProducts}
-              enabledProductTypes={enabledProductTypes}
-              onCreateProduct={onCreateProductFromDesign}
-              onViewProduct={onViewProduct}
-              onDeleteProduct={onDeleteProduct}
-              onReassignDesign={onReassignDesign}
-              onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
-            />
-          ))}
-        </div>
-      )}
+      {/* Collection-grouped view */}
+      {collectionGroups && !activeFilter ? (
+        <div className="space-y-4">
+          {collectionGroups.groups.map(({ collection, products: colProds }) => {
+            const colDesigns = groupByDesign(colProds);
+            const isCollapsed = collapsedCollections.has(String(collection.id));
+            return (
+              <Collapsible
+                key={collection.id}
+                open={!isCollapsed}
+                onOpenChange={() => toggleCollection(String(collection.id))}
+              >
+                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-1 rounded-lg hover:bg-accent/50 transition-colors">
+                  {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <FolderOpen className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold">{collection.title}</span>
+                  <span className="text-xs text-muted-foreground">({colProds.length})</span>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{collection.collection_type}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {colDesigns.allDesigns.map(([designUrl, prods]) => (
+                      <DesignGroupCard
+                        key={designUrl}
+                        designUrl={designUrl}
+                        products={prods}
+                        allProducts={colProds}
+                        enabledProductTypes={enabledProductTypes}
+                        onCreateProduct={onCreateProductFromDesign}
+                        onViewProduct={onViewProduct}
+                        onDeleteProduct={onDeleteProduct}
+                        onReassignDesign={onReassignDesign}
+                        onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
+                      />
+                    ))}
+                    {colDesigns.noDesign.map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onView={onViewProduct}
+                        onDelete={onDeleteProduct}
+                        onAddTag={onAddTag}
+                        onRemoveTag={onRemoveTag}
+                        onUploadDesign={onUploadDesign}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
 
-      {grouped.noDesign.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            No Design ({grouped.noDesign.length})
-          </h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {grouped.noDesign.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onView={onViewProduct}
-                onDelete={onDeleteProduct}
-                onAddTag={onAddTag}
-                onRemoveTag={onRemoveTag}
-                onUploadDesign={onUploadDesign}
-              />
-            ))}
-          </div>
+          {/* Uncategorized section */}
+          {collectionGroups.uncategorized.length > 0 && (
+            <Collapsible
+              open={!collapsedCollections.has("__uncategorized")}
+              onOpenChange={() => toggleCollection("__uncategorized")}
+            >
+              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 px-1 rounded-lg hover:bg-accent/50 transition-colors">
+                {collapsedCollections.has("__uncategorized") ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold text-muted-foreground">Uncategorized</span>
+                <span className="text-xs text-muted-foreground">({collectionGroups.uncategorized.length})</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                {(() => {
+                  const uncatDesigns = groupByDesign(collectionGroups.uncategorized);
+                  return (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {uncatDesigns.allDesigns.map(([designUrl, prods]) => (
+                        <DesignGroupCard
+                          key={designUrl}
+                          designUrl={designUrl}
+                          products={prods}
+                          allProducts={collectionGroups.uncategorized}
+                          enabledProductTypes={enabledProductTypes}
+                          onCreateProduct={onCreateProductFromDesign}
+                          onViewProduct={onViewProduct}
+                          onDeleteProduct={onDeleteProduct}
+                          onReassignDesign={onReassignDesign}
+                          onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
+                        />
+                      ))}
+                      {uncatDesigns.noDesign.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onView={onViewProduct}
+                          onDelete={onDeleteProduct}
+                          onAddTag={onAddTag}
+                          onRemoveTag={onRemoveTag}
+                          onUploadDesign={onUploadDesign}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
+      ) : (
+        <>
+          {/* Flat view (when filtering or no collection data) */}
+          {grouped.allDesigns.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {grouped.allDesigns.map(([designUrl, prods]) => (
+                <DesignGroupCard
+                  key={designUrl}
+                  designUrl={designUrl}
+                  products={prods}
+                  allProducts={activeProducts}
+                  enabledProductTypes={enabledProductTypes}
+                  onCreateProduct={onCreateProductFromDesign}
+                  onViewProduct={onViewProduct}
+                  onDeleteProduct={onDeleteProduct}
+                  onReassignDesign={onReassignDesign}
+                  onArchive={onArchiveDesign ? () => onArchiveDesign(designUrl, true) : undefined}
+                />
+              ))}
+            </div>
+          )}
+
+          {grouped.noDesign.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                No Design ({grouped.noDesign.length})
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {grouped.noDesign.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onView={onViewProduct}
+                    onDelete={onDeleteProduct}
+                    onAddTag={onAddTag}
+                    onRemoveTag={onRemoveTag}
+                    onUploadDesign={onUploadDesign}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Archive section */}
