@@ -64,6 +64,13 @@ export const DesignPreviewDialog = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
 
+  // Progress timer during regeneration
+  useEffect(() => {
+    if (!regenerating) { setRegenElapsed(0); return; }
+    const t = setInterval(() => setRegenElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [regenerating]);
+
   // Fetch history when dialog opens
   useEffect(() => {
     if (open && messageId) {
