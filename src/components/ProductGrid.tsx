@@ -618,10 +618,10 @@ const ProductCard = ({
       )}
       onClick={() => onView(product)}
     >
-      {product.image_url ? (
+      {thumbnailUrl ? (
         <div className={cn("overflow-hidden bg-secondary", compact ? "h-32" : "h-48")}>
           <img
-            src={product.image_url}
+            src={thumbnailUrl}
             alt={product.title}
             className="h-full w-full object-contain p-2"
           />
