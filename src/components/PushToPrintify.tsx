@@ -287,8 +287,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         }
       }
 
-      const isUpdate = !!product.printify_product_id;
-      toast.info(isUpdate ? "Updating on Printify..." : "Creating on Printify...");
+      toast.info("Creating on Printify...");
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
