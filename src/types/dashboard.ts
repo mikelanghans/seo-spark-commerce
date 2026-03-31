@@ -19,6 +19,7 @@ export interface Organization {
   enabled_social_platforms?: string[];
   default_size_pricing?: Record<string, Record<string, string>>;
   mockup_templates?: Record<string, string>;
+  design_variant_mode?: "both" | "light-only" | "dark-only";
 }
 
 export interface Product {
