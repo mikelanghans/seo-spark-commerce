@@ -39,7 +39,11 @@ serve(async (req) => {
       if (secrets?.printify_api_token) printifyToken = secrets.printify_api_token;
     }
 
-    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
+    if (!printifyToken) {
+      return new Response(JSON.stringify({ error: "Printify API token not configured. Add your token in Settings → Marketplace." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const res = await fetch("https://api.printify.com/v1/shops.json", {
       headers: { Authorization: `Bearer ${printifyToken}` },
@@ -47,6 +51,11 @@ serve(async (req) => {
 
     if (!res.ok) {
       const text = await res.text();
+      if (res.status === 401) {
+        return new Response(JSON.stringify({ error: "Printify API token is invalid or expired. Please update it in Settings → Marketplace." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error(`Printify API error (${res.status}): ${text}`);
     }
 
