@@ -353,6 +353,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             organizationId: organization.id,
             designVariant: v,
             designStyle: styleToUse,
+            designVariantMode: (organization as any).design_variant_mode || "both",
           },
         });
 
