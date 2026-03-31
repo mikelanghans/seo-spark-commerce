@@ -360,7 +360,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
             toast.success(printifyMsg + " Mockups also updated on Shopify!");
           }
         } catch (shopifyErr: any) {
-          toast.error("Printify updated but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
+          toast.error("Printify created but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
         }
       } else {
         toast.success(printifyMsg);
