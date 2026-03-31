@@ -900,6 +900,20 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         </p>
       )}
 
+      {/* Step: Placement Adjustment */}
+      {genStep === "placement" && sourceImageUrl && designImageUrl && (
+        <DesignPlacementEditor
+          templateUrl={sourceImageUrl}
+          designUrl={designImageUrl}
+          initialPlacement={placementOverride || undefined}
+          onConfirm={(p) => {
+            setPlacementOverride(p);
+            generateMockups();
+          }}
+          onCancel={() => setGenStep("choose-colors")}
+        />
+      )}
+
       {/* Step: Choose Colors */}
       {genStep === "choose-colors" && renderColorPicker()}
 
