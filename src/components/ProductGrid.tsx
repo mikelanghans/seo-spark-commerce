@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Product } from "@/types/dashboard";
+import { PRODUCT_TYPES } from "@/lib/productTypes";
 import type { CollectionMembershipData } from "@/hooks/useCollectionMemberships";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
