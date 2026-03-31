@@ -82,6 +82,8 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
   const handleRegenerate = async (replaceExisting: boolean) => {
     setMode(replaceExisting ? "replace" : "keep");
     setRunning(true);
+    setCompletedImages([]);
+    cancelRef.current = false;
 
     try {
       // 1. Get all products in this org (optionally filtered by product type)
