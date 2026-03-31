@@ -40,7 +40,43 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
   const [estimate, setEstimate] = useState<{ products: number; mockups: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
 
-  const handleRegenerate = async (replaceExisting: boolean) => {
+  const loadEstimate = async () => {
+    setEstimating(true);
+    setEstimate(null);
+    try {
+      let query = supabase
+        .from("products")
+        .select("id, category")
+        .eq("organization_id", organizationId);
+      if (productTypeFilter) {
+        query = query.ilike("category", `%${productTypeFilter}%`);
+      }
+      const { data: products } = await query;
+      if (!products || products.length === 0) {
+        setEstimate({ products: 0, mockups: 0 });
+        return;
+      }
+      const productIds = products.map((p) => p.id);
+      const { data: mockups } = await supabase
+        .from("product_images")
+        .select("product_id, color_name")
+        .in("product_id", productIds)
+        .eq("image_type", "mockup");
+      const productsWithMockups = new Set((mockups || []).map((m) => m.product_id));
+      setEstimate({ products: productsWithMockups.size, mockups: (mockups || []).length });
+    } catch {
+      setEstimate({ products: 0, mockups: 0 });
+    } finally {
+      setEstimating(false);
+    }
+  };
+
+  const handleOpenDialog = () => {
+    setShowDialog(true);
+    loadEstimate();
+  };
+
+
     setMode(replaceExisting ? "replace" : "keep");
     setRunning(true);
 
