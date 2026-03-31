@@ -98,7 +98,12 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         body: { organizationId },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        // Show the message as a warning rather than a hard error so the dialog still opens
+        toast.error(data.error);
+        setShops([]);
+        return;
+      }
       setShops(data.shops || []);
       // Prefer brand-level shop mapping, fallback to first
       if (printifyShopId && data.shops?.some((s: any) => s.id === printifyShopId)) {
@@ -107,7 +112,13 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         setSelectedShop(data.shops[0].id);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to load Printify shops");
+      const msg = err.message || "Failed to load Printify shops";
+      if (msg.includes("not configured") || msg.includes("invalid") || msg.includes("expired")) {
+        toast.error(msg);
+      } else {
+        toast.error("Failed to connect to Printify. Check your API token in Settings → Marketplace.");
+      }
+      setShops([]);
     } finally {
       setLoadingShops(false);
     }
