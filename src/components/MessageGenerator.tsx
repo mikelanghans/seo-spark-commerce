@@ -605,6 +605,24 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           await insertProductImagesDeduped(designEntries);
         }
 
+        // Generate dark variant in background if mode is "both" and not yet generated
+        const variantMode = (organization as any).design_variant_mode || "both";
+        if (variantMode === "both" && !msg.dark_design_url && msg.design_url) {
+          supabase.functions.invoke("generate-dark-design", {
+            body: { designUrl: msg.design_url, messageId: msg.id, organizationId: organization.id },
+          }).then(async ({ data, error: darkErr }) => {
+            if (darkErr || data?.error) return;
+            const darkUrl = data?.darkDesignUrl;
+            if (darkUrl) {
+              await supabase.from("generated_messages").update({ dark_design_url: darkUrl }).eq("id", msg.id);
+              await insertProductImagesDeduped([{
+                product_id: product.id, user_id: userId, image_url: darkUrl,
+                image_type: "design", color_name: "dark-on-light", position: 1,
+              }]);
+            }
+          });
+        }
+
         created++;
       }
 
@@ -918,6 +936,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           const msg = messages.find((m) => m.id === msgId);
           if (!msg || !msg.design_url) return;
 
+          const variantMode = (organization as any).design_variant_mode || "both";
+
           const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
           const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
           const autoKeywords = msg.message_text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
@@ -959,6 +979,29 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           toast.success("Product created!");
           await loadMessages();
           onProductsCreated?.();
+
+          // Generate dark variant in background if mode is "both" and not yet generated
+          if (variantMode === "both" && !msg.dark_design_url && msg.design_url) {
+            toast.info("Generating dark ink variant in the background…");
+            supabase.functions.invoke("generate-dark-design", {
+              body: { designUrl: msg.design_url, messageId: msgId, organizationId: organization.id },
+            }).then(async ({ data, error: darkErr }) => {
+              if (darkErr || data?.error) {
+                console.error("Dark variant generation failed:", darkErr || data?.error);
+                return;
+              }
+              const darkUrl = data?.darkDesignUrl;
+              if (darkUrl) {
+                await supabase.from("generated_messages").update({ dark_design_url: darkUrl }).eq("id", msgId);
+                await insertProductImagesDeduped([{
+                  product_id: product.id, user_id: userId, image_url: darkUrl,
+                  image_type: "design", color_name: "dark-on-light", position: 1,
+                }]);
+                toast.success("Dark ink variant ready!");
+                await loadMessages();
+              }
+            });
+          }
         }}
         onReplaceDesign={async (msgId, file) => {
           const msg = messages.find((m) => m.id === msgId);

@@ -212,6 +212,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 designVariant: "light-on-dark",
                 designStyle: styles[i % styles.length] || "text-only",
                 designVariantMode: (organization as any).design_variant_mode || "both",
+                generateBothNow: true,
               },
             }),
             { label: `design-${i}` }
