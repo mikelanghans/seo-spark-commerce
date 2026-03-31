@@ -6,6 +6,7 @@ import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import type { Organization, View } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
+import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import {
   ArrowLeft, Plus, Check, RefreshCw, Loader2, ImageIcon, Package, DollarSign,
 } from "lucide-react";
@@ -155,6 +156,13 @@ export const OrgFormView = ({
       )}
       {editingOrg?.template_image_url && <RegenerateAllMockups organizationId={editingOrg.id} userId={userId} templateImageUrl={editingOrg.template_image_url} />}
     </div>
+
+    {/* Per-Product-Type Mockup Templates */}
+    {editingOrg && (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <ProductTypeSettings organizationId={editingOrg.id} />
+      </div>
+    )}
 
     {/* Enabled Marketplaces */}
     <div className="space-y-3">
