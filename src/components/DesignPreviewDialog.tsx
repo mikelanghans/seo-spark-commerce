@@ -182,8 +182,8 @@ export const DesignPreviewDialog = ({
           <DialogTitle className="text-sm font-medium">{messageText}</DialogTitle>
         </DialogHeader>
 
-        {/* Variant toggle */}
-        {designUrl && darkDesignUrl && !viewingUrl && (
+        {/* Variant toggle — always visible when design exists */}
+        {designUrl && !viewingUrl && (
           <div className="flex rounded-md border border-input bg-background overflow-hidden">
             <button
               type="button"
@@ -199,7 +199,31 @@ export const DesignPreviewDialog = ({
             </button>
             <button
               type="button"
-              onClick={() => setActiveVariant("dark")}
+              disabled={generatingDark}
+              onClick={async () => {
+                setActiveVariant("dark");
+                // Generate dark variant on-demand if not yet available
+                if (!darkDesignUrl && !generatingDark && designUrl && messageId) {
+                  setGeneratingDark(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("generate-dark-design", {
+                      body: { designUrl, messageId, organizationId },
+                    });
+                    if (error || data?.error) {
+                      toast.error("Failed to generate dark variant");
+                      setActiveVariant("light");
+                    } else if (data?.darkDesignUrl) {
+                      toast.success("Dark variant generated!");
+                      onDarkDesignGenerated?.(messageId, data.darkDesignUrl);
+                    }
+                  } catch {
+                    toast.error("Failed to generate dark variant");
+                    setActiveVariant("light");
+                  } finally {
+                    setGeneratingDark(false);
+                  }
+                }
+              }}
               className={cn(
                 "flex-1 px-3 py-1.5 text-xs font-medium transition-colors",
                 activeVariant === "dark"
@@ -207,18 +231,31 @@ export const DesignPreviewDialog = ({
                   : "text-muted-foreground hover:bg-accent"
               )}
             >
-              🌙 Dark ink (light shirts)
+              {generatingDark ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Generating…
+                </span>
+              ) : (
+                <>🌙 Dark ink (light shirts){!darkDesignUrl && " ✦"}</>
+              )}
             </button>
           </div>
         )}
 
-        {activeUrl && (
+        {/* Design image */}
+        {activeVariant === "dark" && generatingDark && !darkDesignUrl ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-lg border border-border bg-card/50">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Generating dark ink variant…</p>
+          </div>
+        ) : activeUrl ? (
           <img
             src={activeUrl}
             alt={messageText || "Design preview"}
             className="w-full rounded-lg border border-border"
           />
-        )}
+        ) : null}
 
         {/* Action buttons row: Download + Upload replacement */}
         <div className="flex gap-2 flex-wrap">
