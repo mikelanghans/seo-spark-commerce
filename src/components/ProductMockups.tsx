@@ -54,7 +54,7 @@ interface ColorRecommendation {
   reason: string;
 }
 
-type GenerationStep = "choose-colors" | "generating" | "size-check" | "review";
+type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
 
 const FEEDBACK_OPTIONS = [
   "Color is wrong",
