@@ -62,6 +62,8 @@ const Dashboard = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
+  if (!user) return null;
+
   const [view, _setView] = useState<View>(() => {
     return (sessionStorage.getItem("dash_view") as View) || "orgs";
   });
