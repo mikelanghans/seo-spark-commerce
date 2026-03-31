@@ -83,7 +83,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [selectedShop, setSelectedShop] = useState<number | null>(null);
   const [loadingShops, setLoadingShops] = useState(false);
   const [selectedProductType, setSelectedProductType] = useState(PRODUCT_TYPES[0]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(PRODUCT_TYPES[0].sizes.slice(0, 4));
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([...PRODUCT_TYPES[0].sizes]);
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [loadingMockups, setLoadingMockups] = useState(false);
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
@@ -417,7 +417,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                     size="sm"
                     onClick={() => {
                       setSelectedProductType(pt);
-                      setSelectedSizes(pt.sizes.slice(0, 4));
+                      setSelectedSizes([...pt.sizes]);
                     }}
                   >
                     {pt.label}
