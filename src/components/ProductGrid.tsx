@@ -35,6 +35,7 @@ interface Props {
   onRemoveTag: (productId: string, tag: string) => void;
   onUploadDesign: (productId: string, file: File) => void;
   onAddProduct: () => void;
+  onArchiveProduct?: (productId: string, archive: boolean) => void;
   collectionData?: CollectionMembershipData | null;
   collectionLoading?: boolean;
   onRefreshCollections?: () => void;
