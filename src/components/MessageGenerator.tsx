@@ -383,6 +383,10 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     if (!msg) return;
     setGeneratingDesignId(msg.id);
     try {
+      // 120s client-side timeout to prevent infinite hang
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
+
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
           messageText: msg.message_text,
@@ -403,7 +407,22 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           baseDesignUrl,
         },
       });
+      clearTimeout(timeout);
+
       if (error || data?.error) {
+        // Check if the edge function still saved the design before erroring
+        const { data: savedMsg } = await supabase
+          .from("generated_messages")
+          .select("design_url, dark_design_url")
+          .eq("id", msgId)
+          .single();
+        if (savedMsg?.design_url && savedMsg.design_url !== msg.design_url) {
+          toast.success("Design regenerated!");
+          setPreviewUrl(savedMsg.design_url);
+          setPreviewDarkUrl((savedMsg as any).dark_design_url || null);
+          await loadMessages();
+          return;
+        }
         handleAiError(error, data, "Failed to regenerate design");
         return;
       }
@@ -420,6 +439,23 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         setPreviewDarkUrl((freshMsg as any).dark_design_url || null);
       }
     } catch (err: any) {
+      // On timeout/abort, check if the design was saved anyway
+      if (err?.name === "AbortError" || err?.message?.includes("aborted")) {
+        const { data: savedMsg } = await supabase
+          .from("generated_messages")
+          .select("design_url, dark_design_url")
+          .eq("id", msgId)
+          .single();
+        if (savedMsg?.design_url && savedMsg.design_url !== msg.design_url) {
+          toast.success("Design regenerated!");
+          setPreviewUrl(savedMsg.design_url);
+          setPreviewDarkUrl((savedMsg as any).dark_design_url || null);
+          await loadMessages();
+          return;
+        }
+        toast.error("Design generation timed out. The AI may be busy — please try again in a moment.");
+        return;
+      }
       handleAiError(err, null, "Failed to regenerate design");
     } finally {
       setGeneratingDesignId(null);
