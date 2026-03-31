@@ -40,6 +40,10 @@ interface Props {
   onCreateProductFromDesign?: (designUrl: string, productTypeKey: ProductTypeKey) => void;
   onReassignDesign?: (productId: string, newDesignUrl: string) => void;
   onArchiveDesign?: (designUrl: string, archive: boolean) => void;
+  collectionData?: CollectionMembershipData | null;
+  collectionLoading?: boolean;
+  onRefreshCollections?: () => void;
+  collectionLastFetched?: number | null;
   children?: React.ReactNode;
 }
 
