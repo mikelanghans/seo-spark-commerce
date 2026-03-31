@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { logCaughtError } from "./errorLogger";
 
 /**
  * Handles AI-related errors from edge functions.
@@ -7,6 +8,12 @@ import { toast } from "sonner";
 export function handleAiError(error: any, data: any, fallbackMessage = "AI request failed"): boolean {
   // Check data.error first (edge function returned JSON error)
   const errorMsg = data?.error || error?.message || "";
+
+  // Log every AI error for admin debugging
+  logCaughtError(error || new Error(errorMsg), "edge-function", {
+    functionResponse: data?.error,
+    status: error?.status,
+  });
 
   if (
     errorMsg.includes("credits exhausted") ||
