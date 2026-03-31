@@ -32,7 +32,7 @@ const LIGHT_COLORS = new Set([
   "light green", "bay", "sage",
 ]);
 
-export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl }: Props) => {
+export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl, productTypeFilter, buttonLabel }: Props) => {
   const [showDialog, setShowDialog] = useState(false);
   const [mode, setMode] = useState<"replace" | "keep" | null>(null);
   const [running, setRunning] = useState(false);
