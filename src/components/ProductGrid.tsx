@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Package, Search, Plus, Trash2, Upload, Download, X,
-  ArrowUpDown, Archive, ArchiveRestore, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
+  ArrowUpDown, Archive, RefreshCw, ChevronDown, ChevronRight, FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
