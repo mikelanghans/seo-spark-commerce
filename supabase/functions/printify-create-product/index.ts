@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 1.3;
+const DEFAULT_IMAGE_SCALE = 0.85;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
