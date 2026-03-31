@@ -9,6 +9,7 @@ export function useProductHandlers(
   userId: string | undefined,
   selectedOrg: Organization | null,
   aiUsage: any,
+  onOrganizationRefresh?: (orgId: string) => Promise<void>,
 ) {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -146,6 +147,7 @@ export function useProductHandlers(
       const { imported, updated, failed = 0, total } = data;
       toast.success(`Imported ${imported} new, updated ${updated} existing${failed ? `, failed ${failed}` : ""} — ${total} total from Shopify`);
       await loadProducts(selectedOrg.id);
+      await onOrganizationRefresh?.(selectedOrg.id);
     } catch (err: any) {
       if (controller.signal.aborted) { toast.info("Import cancelled"); return; }
       toast.error(err.message || "Failed to import from Shopify");

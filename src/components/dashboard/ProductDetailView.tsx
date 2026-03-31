@@ -13,6 +13,7 @@ import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { SmartPricing } from "@/components/SmartPricing";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
+import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
@@ -50,6 +51,8 @@ export const ProductDetailView = ({
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const selectedOrg = organization;
+  const productTypeKey = getProductType(product.category || "").key;
+  const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || selectedOrg?.template_image_url || product.image_url || null;
 
   const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
 
@@ -155,7 +158,7 @@ export const ProductDetailView = ({
 
         <TabsContent value="mockups">
           <div className="rounded-xl border border-border bg-card p-5">
-            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={selectedOrg?.template_image_url || product.image_url || null} designImageUrl={product.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={product.category} aiUsage={aiUsage} />
+            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={sourceTemplateUrl} designImageUrl={product.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={product.category} aiUsage={aiUsage} />
           </div>
         </TabsContent>
 
