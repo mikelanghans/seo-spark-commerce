@@ -844,6 +844,7 @@ export type Database = {
           enabled_social_platforms: string[]
           id: string
           logo_url: string | null
+          mockup_templates: Json
           name: string
           niche: string
           printify_shop_id: number | null
@@ -867,6 +868,7 @@ export type Database = {
           enabled_social_platforms?: string[]
           id?: string
           logo_url?: string | null
+          mockup_templates?: Json
           name: string
           niche?: string
           printify_shop_id?: number | null
@@ -890,6 +892,7 @@ export type Database = {
           enabled_social_platforms?: string[]
           id?: string
           logo_url?: string | null
+          mockup_templates?: Json
           name?: string
           niche?: string
           printify_shop_id?: number | null
