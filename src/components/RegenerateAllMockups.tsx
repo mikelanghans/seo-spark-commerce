@@ -267,6 +267,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
         // Generate each color
         for (const colorName of entry.colors) {
+          if (cancelRef.current) break;
           setProgress({ done: doneCount, total: totalColors, current: `${product.title} — ${colorName}` });
 
           try {
@@ -283,6 +284,8 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
                 sourceHeight: targetSize?.height || null,
               },
             });
+
+            if (cancelRef.current) break;
 
             if (error || data?.error) {
               const errorMsg = data?.error || error?.message || "";
@@ -335,6 +338,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               color_name: colorName,
               position: 0,
             });
+
+            // Track completed image for live preview
+            setCompletedImages((prev) => [...prev, { url: urlData.publicUrl, label: `${product.title} — ${colorName}` }]);
           } catch (err) {
             console.error(`Error regenerating ${product.title} - ${colorName}:`, err);
           }
@@ -342,15 +348,19 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           doneCount++;
           setProgress({ done: doneCount, total: totalColors, current: "" });
         }
+        if (cancelRef.current) break;
       }
 
-      toast.success(`Regenerated mockups for ${productsWithMockups.length} product${productsWithMockups.length !== 1 ? "s" : ""}!`);
+      if (cancelRef.current) {
+        toast.info(`Cancelled after ${doneCount} mockup${doneCount !== 1 ? "s" : ""}`);
+      } else {
+        toast.success(`Regenerated mockups for ${productsWithMockups.length} product${productsWithMockups.length !== 1 ? "s" : ""}!`);
+      }
     } catch (err: any) {
       console.error("Regenerate all error:", err);
       toast.error(err.message || "Failed to regenerate mockups");
     } finally {
       setRunning(false);
-      setShowDialog(false);
       setMode(null);
     }
   };
