@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -549,6 +549,25 @@ const ProductCard = ({
   onArchive,
   compact,
 }: CardProps) => {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(product.image_url);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchMockup = async () => {
+      const { data } = await supabase
+        .from("product_images")
+        .select("image_url")
+        .eq("product_id", product.id)
+        .eq("image_type", "mockup")
+        .order("position", { ascending: true })
+        .limit(1);
+      if (!cancelled && data && data.length > 0) {
+        setThumbnailUrl(data[0].image_url);
+      }
+    };
+    fetchMockup();
+    return () => { cancelled = true; };
+  }, [product.id, product.image_url]);
   const handleDownload = async (variant: "light" | "dark" | "both") => {
     const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 
@@ -599,10 +618,10 @@ const ProductCard = ({
       )}
       onClick={() => onView(product)}
     >
-      {product.image_url ? (
+      {thumbnailUrl ? (
         <div className={cn("overflow-hidden bg-secondary", compact ? "h-32" : "h-48")}>
           <img
-            src={product.image_url}
+            src={thumbnailUrl}
             alt={product.title}
             className="h-full w-full object-contain p-2"
           />
