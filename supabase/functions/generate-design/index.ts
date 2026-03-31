@@ -60,7 +60,12 @@ function buildPrompt(
   const bgRule = `BACKGROUND: ${bgColor} — COMPLETELY SOLID, UNIFORM, FLAT COLOR. 
 ⛔ CRITICAL: Do NOT render a checkerboard pattern, transparency grid, or any gray-and-white checkered squares. The background must be ONE SINGLE SOLID COLOR with ZERO variation — pure ${isLightOnDark ? "black (#000000)" : "white (#FFFFFF)"} pixels everywhere. If you are tempted to show "transparency" — DON'T. Just use the solid color.`;
 
-  const outputRule = `OUTPUT: Standalone graphic centered on ${bgColor} background. No mockups, no t-shirt outlines. The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
+  const outputRule = `OUTPUT FORMAT — CRITICAL:
+🚫 DO NOT render a t-shirt, garment, clothing item, or product mockup. DO NOT show the design "on" anything.
+🚫 DO NOT create a split/composite image showing multiple versions side-by-side.
+✅ Output ONLY the standalone graphic artwork centered on a ${bgColor} background.
+✅ The output must be a SINGLE design — one cohesive artwork, not a collage or comparison.
+✅ The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
 
   const style = opts.designStyle || "text-only";
 
@@ -450,7 +455,12 @@ async function generateImage(
         },
         body: JSON.stringify({
           model,
-          messages: [{
+          messages: [
+            {
+              role: "system",
+              content: "You are a graphic designer that outputs ONLY standalone artwork images. NEVER render t-shirts, garments, mockups, or product previews. NEVER create side-by-side comparisons or composite images. Output exactly ONE clean design on a solid background.",
+            },
+            {
             role: "user",
             content: (baseDesignUrl || referenceImageUrl)
               ? [
