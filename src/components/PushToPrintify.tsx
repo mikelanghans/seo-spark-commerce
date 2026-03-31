@@ -501,7 +501,16 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </div>
             </div>
 
-            {/* Also update Shopify toggle */}
+            {/* Existing Printify product warning */}
+            {product.printify_product_id && (
+              <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                  This product already exists on Printify. A <strong>new</strong> Printify product will be created — the existing one won't be modified or removed.
+                </p>
+              </div>
+            )}
+
             {hasMockups && (
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center gap-2">
