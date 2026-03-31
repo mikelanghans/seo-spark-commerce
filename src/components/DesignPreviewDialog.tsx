@@ -54,6 +54,7 @@ export const DesignPreviewDialog = ({
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [regenElapsed, setRegenElapsed] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
