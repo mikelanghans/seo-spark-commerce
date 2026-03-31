@@ -57,6 +57,7 @@ export const ProductGrid = ({
   onRemoveTag,
   onUploadDesign,
   onAddProduct,
+  onArchiveProduct,
   collectionData,
   collectionLoading,
   onRefreshCollections,
