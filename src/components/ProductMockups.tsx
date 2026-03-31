@@ -18,6 +18,7 @@ import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveB
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
+import { DesignPlacementEditor } from "@/components/DesignPlacementEditor";
 
 interface ProductImage {
   id: string;
