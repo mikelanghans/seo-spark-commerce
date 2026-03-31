@@ -111,19 +111,6 @@ export const ProductGrid = ({
 
   // No longer grouping by design — each product is its own card
 
-  // Build a reverse map: shopify_product_id → collection titles
-  const productCollectionMap = useMemo(() => {
-    if (!collectionData) return new Map<number, string[]>();
-    const map = new Map<number, string[]>();
-    for (const col of collectionData.collections) {
-      const memberIds = collectionData.memberships[String(col.id)] || [];
-      for (const pid of memberIds) {
-        if (!map.has(pid)) map.set(pid, []);
-        map.get(pid)!.push(col.title);
-      }
-    }
-    return map;
-  }, [collectionData]);
 
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
