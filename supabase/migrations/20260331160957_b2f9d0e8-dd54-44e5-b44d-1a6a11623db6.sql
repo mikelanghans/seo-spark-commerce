@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN IF NOT EXISTS design_variant_mode text NOT NULL DEFAULT 'both';
