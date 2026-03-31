@@ -262,8 +262,7 @@ export const ProductGrid = ({
           >
             ⚡ Not on Shopify ({unsyncedCount})
           </button>
-        ))}
-
+        )}
         {/* Product type filters (when in product-types mode or no collections) */}
         {(viewMode === "product-types" || !collectionData || !collectionData.collections.length) &&
           ["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
