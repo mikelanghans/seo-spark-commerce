@@ -97,6 +97,7 @@ const Dashboard = () => {
   } = orgHandlers;
 
   const aiUsage = useAiUsage(user?.id ?? null, selectedOrg?.id ?? null, subscription.creditsLimit);
+  const collectionMemberships = useCollectionMemberships(selectedOrg?.id);
 
   const productHandlers = useProductHandlers(user?.id, selectedOrg, aiUsage);
   const {
