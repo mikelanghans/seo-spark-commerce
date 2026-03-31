@@ -920,6 +920,12 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         userId={userId}
         hasProduct={!!messages.find((m) => m.id === previewMessageId)?.product_id}
         onRegenerate={handleRegenerateDesign}
+        onDarkDesignGenerated={(msgId, darkUrl) => {
+          setMessages((prev) =>
+            prev.map((m) => m.id === msgId ? { ...m, dark_design_url: darkUrl } : m)
+          );
+          setPreviewDarkUrl(darkUrl);
+        }}
         onDiscardDesign={async (msgId) => {
           await supabase
             .from("generated_messages")
