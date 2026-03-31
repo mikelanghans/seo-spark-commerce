@@ -54,7 +54,7 @@ export const ProductDetailView = ({
   const productTypeKey = getProductType(product.category || "").key;
   const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
 
-  const orgMarketplaces = (selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[];
+  const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
   return (
     <div className="space-y-6">
