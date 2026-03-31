@@ -192,7 +192,6 @@ export const ProductGrid = ({
     );
   }
 
-  const sharedDesignCount = grouped.allDesigns.filter(([, v]) => v.length > 1).length;
   const unsyncedCount = products.filter((p) => !p.shopify_product_id).length;
 
   return (
