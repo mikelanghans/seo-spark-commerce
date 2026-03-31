@@ -384,10 +384,6 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     if (!msg) return;
     setGeneratingDesignId(msg.id);
     try {
-      // 120s client-side timeout to prevent infinite hang
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120_000);
-
       const { data, error } = await supabase.functions.invoke("generate-design", {
         body: {
           messageText: msg.message_text,
@@ -399,17 +395,16 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           brandColor: (organization as any).brand_color || "",
           brandFontSize: (organization as any).brand_font_size || "large",
           brandStyleNotes: (organization as any).brand_style_notes || "",
-           messageId: msg.id,
-           organizationId: organization.id,
-           designVariant: "light-on-dark",
-           designStyle,
-           designVariantMode: (organization as any).design_variant_mode || "both",
-           regenerateFeedback: feedback,
-           referenceImageUrl,
-           baseDesignUrl,
+          messageId: msg.id,
+          organizationId: organization.id,
+          designVariant: "light-on-dark",
+          designStyle,
+          designVariantMode: (organization as any).design_variant_mode || "both",
+          regenerateFeedback: feedback,
+          referenceImageUrl,
+          baseDesignUrl,
         },
       });
-      clearTimeout(timeout);
 
       if (error || data?.error) {
         // Check if the edge function still saved the design before erroring
@@ -441,24 +436,34 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         setPreviewDarkUrl((freshMsg as any).dark_design_url || null);
       }
     } catch (err: any) {
-      // On timeout/abort, check if the design was saved anyway
-      if (err?.name === "AbortError" || err?.message?.includes("aborted")) {
-        const { data: savedMsg } = await supabase
-          .from("generated_messages")
-          .select("design_url, dark_design_url")
-          .eq("id", msgId)
-          .single();
-        if (savedMsg?.design_url && savedMsg.design_url !== msg.design_url) {
-          toast.success("Design regenerated!");
-          setPreviewUrl(savedMsg.design_url);
-          setPreviewDarkUrl((savedMsg as any).dark_design_url || null);
-          await loadMessages();
-          return;
+      // On any error (timeout, network, etc.), poll DB to check if the edge function completed anyway
+      const pollForResult = async (): Promise<boolean> => {
+        for (let i = 0; i < 6; i++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const { data: savedMsg } = await supabase
+            .from("generated_messages")
+            .select("design_url, dark_design_url")
+            .eq("id", msgId)
+            .single();
+          if (savedMsg?.design_url && savedMsg.design_url !== msg.design_url) {
+            toast.success("Design regenerated!");
+            setPreviewUrl(savedMsg.design_url);
+            setPreviewDarkUrl((savedMsg as any).dark_design_url || null);
+            await loadMessages();
+            return true;
+          }
         }
-        toast.error("Design generation timed out. The AI may be busy — please try again in a moment.");
-        return;
+        return false;
+      };
+
+      const recovered = await pollForResult();
+      if (!recovered) {
+        if (err?.name === "AbortError" || err?.message?.includes("aborted") || err?.message?.includes("timed out")) {
+          toast.error("Design generation timed out. The AI may be busy — please try again in a moment.");
+        } else {
+          handleAiError(err, null, "Failed to regenerate design");
+        }
       }
-      handleAiError(err, null, "Failed to regenerate design");
     } finally {
       setGeneratingDesignId(null);
     }
