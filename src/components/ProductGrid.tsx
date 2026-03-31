@@ -260,24 +260,7 @@ export const ProductGrid = ({
                 : "bg-destructive/10 text-destructive hover:bg-destructive/20"
             )}
           >
-            ⚡ Unsynced ({unsyncedCount})
-          </button>
-        )}
-
-        {/* Collection filters (when in collections mode) */}
-        {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
-          <button
-            key={`col:${col.id}`}
-            type="button"
-            onClick={() => onFilterChange(activeFilter === `collection:${col.id}` ? null : `collection:${col.id}`)}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === `collection:${col.id}`
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            )}
-          >
-            {col.title}
+            ⚡ Not on Shopify ({unsyncedCount})
           </button>
         ))}
 
