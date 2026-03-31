@@ -79,8 +79,13 @@ export const ProductGrid = ({
     let list = products.filter((p) => {
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeFilter === "__not_on_shopify")
+      if (activeFilter === "__unsynced")
         return matchesSearch && !p.shopify_product_id;
+      if (activeFilter?.startsWith("collection:")) {
+        const colId = activeFilter.slice(11);
+        const memberIds = collectionData?.memberships?.[colId] || [];
+        return matchesSearch && !!p.shopify_product_id && memberIds.includes(p.shopify_product_id);
+      }
       if (activeFilter?.startsWith("tag:"))
         return matchesSearch && (p.tags || []).includes(activeFilter.slice(4));
       const matchesFilter =
@@ -94,7 +99,7 @@ export const ProductGrid = ({
     list = [...list].sort((a, b) => {
       switch (sort) {
         case "oldest":
-          return 0; // already ascending from DB, but we reversed so reverse again
+          return 0;
         case "alpha":
           return a.title.localeCompare(b.title);
         case "alpha-desc":
@@ -106,7 +111,7 @@ export const ProductGrid = ({
     if (sort === "oldest") list.reverse();
 
     return list;
-  }, [products, searchQuery, activeFilter, sort]);
+  }, [products, searchQuery, activeFilter, sort, collectionData]);
 
   // Split active vs archived
   const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
