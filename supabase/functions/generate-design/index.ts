@@ -660,17 +660,24 @@ serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Generate BOTH variants in parallel
-    // Step 1: Generate the light-on-dark design (white ink on black bg)
-    console.log("Generating light-on-dark design...");
-    const lightPrompt = buildPrompt(messageText, "light-on-dark", promptOpts);
-    const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
-    const lightDesignUrl = await uploadImage(lightBase64, userId, serviceClient);
-    console.log("Light design:", lightDesignUrl);
+    const variantMode = designVariantMode || "both";
+    const generateLight = variantMode === "both" || variantMode === "light-only";
+    const generateDark = variantMode === "both" || variantMode === "dark-only";
 
-    // Step 2: Derive dark-on-light by color-inverting the generated design
-    console.log("Deriving dark-on-light variant from light design...");
-    const invertPrompt = `You are given a t-shirt design image with WHITE/LIGHT colored text and graphics on a BLACK background.
+    let lightDesignUrl: string | null = null;
+    let darkDesignUrl: string | null = null;
+
+    if (generateLight) {
+      console.log("Generating light-on-dark design...");
+      const lightPrompt = buildPrompt(messageText, "light-on-dark", promptOpts);
+      const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      lightDesignUrl = await uploadImage(lightBase64, userId, serviceClient);
+      console.log("Light design:", lightDesignUrl);
+
+      if (generateDark) {
+        // Derive dark-on-light by color-inverting the generated design
+        console.log("Deriving dark-on-light variant from light design...");
+        const invertPrompt = `You are given a t-shirt design image with WHITE/LIGHT colored text and graphics on a BLACK background.
 
 Create an IDENTICAL version of this EXACT same design, but:
 1. Change the background from black to pure white (#FFFFFF)
@@ -684,16 +691,18 @@ CRITICAL RULES:
 - Think of this as a simple color inversion / negative of the original
 - Output ONLY the modified design image`;
 
-    const darkBase64 = await generateImage(
-      invertPrompt,
-      LOVABLE_API_KEY,
-      lightBase64, // Pass the generated light design as the base image to invert
-    );
-    const darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
-    console.log("Dark design:", darkDesignUrl);
-
-    console.log("Light design:", lightDesignUrl);
-    console.log("Dark design:", darkDesignUrl);
+        const darkBase64 = await generateImage(invertPrompt, LOVABLE_API_KEY, lightBase64);
+        darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
+        console.log("Dark design:", darkDesignUrl);
+      }
+    } else if (generateDark) {
+      // Dark-only mode: generate dark-on-light directly
+      console.log("Generating dark-on-light design...");
+      const darkPrompt = buildPrompt(messageText, "dark-on-light", promptOpts);
+      const darkBase64 = await generateImage(darkPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
+      console.log("Dark design:", darkDesignUrl);
+    }
 
     // Save old design to history before overwriting
     if (messageId) {
