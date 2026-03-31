@@ -91,7 +91,12 @@ export const PushToShopify = ({ product, listings, userId, organizationId }: Pro
       setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to push to Shopify");
+      const msg = err.message || "Failed to push to Shopify";
+      if (msg.includes("No Shopify connection") || msg.includes("credentials")) {
+        toast.error("No Shopify connection found. Connect your store in Settings → Marketplace.");
+      } else {
+        toast.error(msg);
+      }
       setResult(null);
     } finally {
       setPushing(false);
