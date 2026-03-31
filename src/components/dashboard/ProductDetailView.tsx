@@ -57,18 +57,23 @@ export const ProductDetailView = ({
   const productTypeKey = getProductType(product.category || "").key;
   const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
 
-  // Check connection status for Printify & Shopify
+  // Check connection status for Printify & Shopify via direct DB queries (silent)
   useEffect(() => {
     if (!selectedOrg?.id) return;
-    // Printify
-    supabase.functions.invoke("save-printify-credentials", {
-      body: { organizationId: selectedOrg.id, action: "check" },
-    }).then(({ data }) => setPrintifyConnected(!!data?.hasToken)).catch(() => setPrintifyConnected(false));
-    // Shopify
-    supabase.functions.invoke("save-shopify-credentials", {
-      body: { organizationId: selectedOrg.id, action: "check" },
-    }).then(({ data }) => setShopifyConnected(!!data?.connection))
-      .catch(() => setShopifyConnected(false));
+    // Shopify – check if a connection row with an access_token exists
+    supabase
+      .from("shopify_connections")
+      .select("id, access_token")
+      .eq("organization_id", selectedOrg.id)
+      .maybeSingle()
+      .then(({ data }) => setShopifyConnected(!!data?.access_token));
+    // Printify – check if an org secret row with a printify_api_token exists
+    supabase
+      .from("organization_secrets")
+      .select("id, printify_api_token")
+      .eq("organization_id", selectedOrg.id)
+      .maybeSingle()
+      .then(({ data }) => setPrintifyConnected(!!data?.printify_api_token));
   }, [selectedOrg?.id]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
