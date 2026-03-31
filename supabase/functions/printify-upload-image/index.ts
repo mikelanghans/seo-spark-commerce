@@ -40,7 +40,11 @@ serve(async (req) => {
       if (secrets?.printify_api_token) printifyToken = secrets.printify_api_token;
     }
 
-    if (!printifyToken) throw new Error("Printify API token not configured. Add your token in Settings → Marketplace.");
+    if (!printifyToken) {
+      return new Response(JSON.stringify({ error: "Printify API token not configured. Add your token in Settings → Marketplace." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let uploadBody: any;
     if (base64Contents) {
