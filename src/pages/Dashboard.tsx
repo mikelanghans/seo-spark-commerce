@@ -183,14 +183,14 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user || aiUsage.loading || lowCreditNotified) return;
+    if (!user || aiUsage.loading || subscription.loading || lowCreditNotified) return;
     const remaining = aiUsage.limit - aiUsage.usedCount;
     // Only notify when credits are genuinely low (≤10), not a percentage
     if (remaining > 0 && remaining <= 10) {
       setLowCreditNotified(true);
       notifyLowCredits(user.id, remaining);
     }
-  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified]);
+  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified, subscription.loading]);
 
   useEffect(() => {
     if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
