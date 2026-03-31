@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { Badge } from "@/components/ui/badge";
+import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { toast } from "sonner";
 import { Package, Upload, X, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
