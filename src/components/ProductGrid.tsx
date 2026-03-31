@@ -245,7 +245,11 @@ export const ProductGrid = ({
               variant={viewMode === "collections" ? "default" : "outline"}
               size="sm"
               className="gap-1.5 text-xs"
-              onClick={() => setViewMode(viewMode === "collections" ? "product-types" : "collections")}
+              onClick={() => {
+                const next = viewMode === "collections" ? "product-types" : "collections";
+                setViewMode(next);
+                onFilterChange(null);
+              }}
             >
               <FolderOpen className="h-3.5 w-3.5" />
               {viewMode === "collections" ? "Collections" : "Product Types"}
@@ -273,23 +277,45 @@ export const ProductGrid = ({
             ⚡ Unsynced ({unsyncedCount})
           </button>
         )}
-        {["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
-          (cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                activeFilter === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              )}
-            >
-              {cat}
-            </button>
+
+        {/* Collection filters (when in collections mode) */}
+        {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
+          <button
+            key={`col:${col.id}`}
+            type="button"
+            onClick={() => onFilterChange(activeFilter === `collection:${col.id}` ? null : `collection:${col.id}`)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              activeFilter === `collection:${col.id}`
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {col.title}
+          </button>
+        ))}
+
+        {/* Product type filters (when in product-types mode or no collections) */}
+        {(viewMode === "product-types" || !collectionData || !collectionData.collections.length) &&
+          ["T-Shirt", "Long Sleeve", "Sweatshirt", "Mug", "Tote", "Canvas", "Journal", "Notebook"].map(
+            (cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  activeFilter === cat
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                )}
+              >
+                {cat}
+              </button>
+            )
           )
-        )}
+        }
+
         {allTags.map((tag) => (
           <button
             key={`tag:${tag}`}
@@ -335,7 +361,7 @@ export const ProductGrid = ({
       </p>
 
       {/* Collection-grouped view */}
-      {collectionGroups && !activeFilter && viewMode === "collections" ? (
+      {collectionGroups && viewMode === "collections" && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const colDesigns = groupByDesign(colProds);
