@@ -26,7 +26,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
-  template_image_url?: string | null;
+  mockup_templates?: Record<string, string> | null;
   brand_font?: string;
   brand_color?: string;
   brand_font_size?: string;
