@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { Badge } from "@/components/ui/badge";
+import { RegenerateAllMockups } from "@/components/RegenerateAllMockups";
 import { toast } from "sonner";
 import { Package, Upload, X, ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -131,12 +132,23 @@ export const ProductTypeSettings = ({ organizationId }: Props) => {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{pt.label}</p>
-                      <label
-                        htmlFor={`template-${key}`}
-                        className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground"
-                      >
-                        Replace
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor={`template-${key}`}
+                          className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground"
+                        >
+                          Replace
+                        </label>
+                        {user?.id && (
+                          <RegenerateAllMockups
+                            organizationId={organizationId}
+                            userId={user.id}
+                            templateImageUrl={templateUrl}
+                            productTypeFilter={pt.label}
+                            buttonLabel={`Regen ${pt.label} Mockups`}
+                          />
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleRemove(key)}

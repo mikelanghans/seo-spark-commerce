@@ -19,6 +19,10 @@ interface Props {
   organizationId: string;
   userId: string;
   templateImageUrl: string;
+  /** Optional: only regenerate mockups for products of this category */
+  productTypeFilter?: string;
+  /** Optional: custom button label */
+  buttonLabel?: string;
 }
 
 const LIGHT_COLORS = new Set([
@@ -28,7 +32,7 @@ const LIGHT_COLORS = new Set([
   "light green", "bay", "sage",
 ]);
 
-export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl }: Props) => {
+export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl, productTypeFilter, buttonLabel }: Props) => {
   const [showDialog, setShowDialog] = useState(false);
   const [mode, setMode] = useState<"replace" | "keep" | null>(null);
   const [running, setRunning] = useState(false);
@@ -39,14 +43,18 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl 
     setRunning(true);
 
     try {
-      // 1. Get all products in this org
-      const { data: products } = await supabase
+      // 1. Get all products in this org (optionally filtered by product type)
+      let query = supabase
         .from("products")
         .select("id, title, image_url, category")
         .eq("organization_id", organizationId);
+      if (productTypeFilter) {
+        query = query.ilike("category", `%${productTypeFilter}%`);
+      }
+      const { data: products } = await query;
 
       if (!products || products.length === 0) {
-        toast.info("No products found in this brand.");
+        toast.info(productTypeFilter ? `No ${productTypeFilter} products found.` : "No products found in this brand.");
         setRunning(false);
         setShowDialog(false);
         return;
@@ -313,7 +321,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl 
         className="gap-2"
       >
         <RefreshCw className="h-3.5 w-3.5" />
-        Regenerate All Mockups
+        {buttonLabel || "Regenerate All Mockups"}
       </Button>
 
       <Dialog open={showDialog} onOpenChange={(open) => !running && setShowDialog(open)}>
