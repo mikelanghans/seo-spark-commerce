@@ -162,9 +162,19 @@ export const OrgFormView = ({
 
 
     {/* Per-Product-Type Mockup Templates */}
-    {editingOrg && (
+    {editingOrg ? (
       <div className="rounded-xl border border-border bg-card p-5">
         <ProductTypeSettings organizationId={editingOrg.id} />
+      </div>
+    ) : (
+      <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold text-muted-foreground">Mockup Templates</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Save the brand first, then edit it to upload mockup templates for each product type.
+        </p>
       </div>
     )}
 
