@@ -140,22 +140,6 @@ export const OrgFormView = ({
       )}
     </div>
 
-    <div className="space-y-2">
-      <Label>Default Mockup Template (optional)</Label>
-      <p className="text-xs text-muted-foreground">Fallback image used for AI color variants when a product has no image</p>
-      <input type="file" accept="image/*" onChange={onTemplateUpload} className="hidden" id="org-template-image" />
-      {orgTemplatePreview ? (
-        <div className="relative overflow-hidden rounded-xl border border-border bg-card">
-          <img src={orgTemplatePreview} alt="Template" className="mx-auto max-h-48 object-contain p-4" />
-          <label htmlFor="org-template-image" className="mt-2 block cursor-pointer text-center text-xs text-muted-foreground underline hover:text-foreground pb-2">Change template</label>
-        </div>
-      ) : (
-        <label htmlFor="org-template-image" className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-8 transition-colors hover:border-primary/50">
-          <ImageIcon className="h-6 w-6 text-muted-foreground" /><p className="text-sm font-medium">Upload template image</p><p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
-        </label>
-      )}
-      {editingOrg?.template_image_url && <RegenerateAllMockups organizationId={editingOrg.id} userId={userId} templateImageUrl={editingOrg.template_image_url} />}
-    </div>
 
     {/* Per-Product-Type Mockup Templates */}
     {editingOrg && (
