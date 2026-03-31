@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,10 +15,11 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
-  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw,
+  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle,
 } from "lucide-react";
 
 interface Props {
@@ -50,9 +51,25 @@ export const ProductDetailView = ({
   uploadImageToStorage,
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
+  const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
   const productTypeKey = getProductType(product.category || "").key;
   const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
+
+  // Check connection status for Printify & Shopify
+  useEffect(() => {
+    if (!selectedOrg?.id) return;
+    // Printify
+    supabase.functions.invoke("save-printify-credentials", {
+      body: { organizationId: selectedOrg.id, action: "check" },
+    }).then(({ data }) => setPrintifyConnected(!!data?.hasToken)).catch(() => setPrintifyConnected(false));
+    // Shopify
+    supabase.functions.invoke("save-shopify-credentials", {
+      body: { organizationId: selectedOrg.id, action: "check" },
+    }).then(({ data }) => setShopifyConnected(!!data?.connection))
+      .catch(() => setShopifyConnected(false));
+  }, [selectedOrg?.id]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
@@ -220,11 +237,56 @@ export const ProductDetailView = ({
           ) : (() => {
             const channels = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_PUSH_CHANNELS];
             const listingsMapped = listings.map((l) => ({ marketplace: l.marketplace, title: l.title, description: l.description, bullet_points: l.bullet_points as string[], tags: l.tags as string[], seo_title: l.seo_title, seo_description: l.seo_description, url_handle: l.url_handle, alt_text: l.alt_text }));
+
+            const showShopify = channels.includes("shopify");
+            const showPrintify = channels.includes("printify");
+            const showOther = channels.includes("etsy") || channels.includes("ebay");
+
+            const noConnections = (showShopify && shopifyConnected === false) && (showPrintify && printifyConnected === false);
+
             return (
-              <div className="flex flex-wrap items-center gap-2">
-                {channels.includes("shopify") && <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} />}
-                {channels.includes("printify") && <PushToPrintify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />}
-                {(channels.includes("etsy") || channels.includes("ebay")) && <PushToMarketplace product={product} listings={listingsMapped} images={product.image_url ? [{ id: "main", image_url: product.image_url, color_name: "", position: 0 }] : []} userId={userId} enabledChannels={channels} />}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {showShopify && (shopifyConnected === false ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Push to Shopify
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Connect your Shopify store in Settings → Marketplace first</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} />
+                  ))}
+
+                  {showPrintify && (printifyConnected === false ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Push to Printify
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Add your Printify API token in Settings → Marketplace first</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <PushToPrintify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />
+                  ))}
+
+                  {showOther && <PushToMarketplace product={product} listings={listingsMapped} images={product.image_url ? [{ id: "main", image_url: product.image_url, color_name: "", position: 0 }] : []} userId={userId} enabledChannels={channels} />}
+                </div>
+
+                {(showShopify && shopifyConnected === false || showPrintify && printifyConnected === false) && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    Some integrations need setup.{" "}
+                    <button type="button" onClick={() => setView("settings")} className="text-primary hover:underline">Go to Settings</button>
+                  </p>
+                )}
               </div>
             );
           })()}
