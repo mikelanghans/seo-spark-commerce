@@ -11,6 +11,7 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(false);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
+  const [orgForm, setOrgForm] = useState<OrgFormState>({ ...EMPTY_ORG_FORM });
   const [orgLogoFile, setOrgLogoFile] = useState<File | null>(null);
   const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
   const [printifyShops, setPrintifyShops] = useState<{ id: number; title: string }[]>([]);
@@ -35,8 +36,6 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
 
   const resetOrgForm = () => {
     setOrgForm({ ...EMPTY_ORG_FORM });
-    setOrgTemplateFile(null);
-    setOrgTemplatePreview(null);
     setOrgLogoFile(null);
     setOrgLogoPreview(null);
   };
@@ -53,13 +52,10 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
-    let templateUrl: string | null | undefined = undefined;
-    if (orgTemplateFile) templateUrl = await uploadImageToStorage(orgTemplateFile);
     let logoUrl: string | null | undefined = undefined;
     if (orgLogoFile) logoUrl = await uploadImageToStorage(orgLogoFile);
 
     const payload: any = { ...orgForm };
-    if (templateUrl !== undefined) payload.template_image_url = templateUrl;
     if (logoUrl !== undefined) payload.logo_url = logoUrl;
 
     if (editingOrg) {
@@ -102,37 +98,10 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
       enabled_social_platforms: (org.enabled_social_platforms as string[]) || [],
       default_size_pricing: (org.default_size_pricing as Record<string, Record<string, string>>) || {},
     });
-    setOrgTemplatePreview(org.template_image_url || null);
-    setOrgTemplateFile(null);
     setOrgLogoPreview(org.logo_url || null);
     setOrgLogoFile(null);
     setView("org-form");
     loadPrintifyShops(org.id);
-  };
-
-  const handleOrgTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>, view: View) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    setOrgTemplateFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setOrgTemplatePreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-
-    if (selectedOrg && view !== "org-form") {
-      try {
-        const filePath = `${userId}/templates/${selectedOrg.id}-${Date.now()}.${file.name.split(".").pop()}`;
-        const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, file, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(filePath);
-        const templateUrl = urlData.publicUrl;
-        const { error: updateError } = await supabase.from("organizations").update({ template_image_url: templateUrl } as any).eq("id", selectedOrg.id);
-        if (updateError) throw updateError;
-        setSelectedOrg({ ...selectedOrg, template_image_url: templateUrl });
-        toast.success("Template image updated");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to upload template");
-      }
-    }
   };
 
   const handleOrgLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,13 +134,13 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
   return {
     orgs, orgsLoaded, selectedOrg, setSelectedOrg, loading,
     editingOrg, setEditingOrg, orgForm, setOrgForm,
-    orgTemplateFile, orgTemplatePreview, orgLogoFile, orgLogoPreview,
+    orgLogoPreview,
     printifyShops, loadingPrintifyShops,
     deleteConfirmOrg, setDeleteConfirmOrg, deleteConfirmText, setDeleteConfirmText,
     archivedOrgs, showArchived, setShowArchived,
     loadOrgs, loadArchivedOrgs, resetOrgForm,
     handleCreateOrg, handleEditOrg, handleDeleteOrg, confirmDeleteOrg, handleRestoreOrg,
-    loadPrintifyShops, handleOrgTemplateUpload, handleOrgLogoUpload,
+    loadPrintifyShops, handleOrgLogoUpload,
     uploadImageToStorage,
   };
 }
