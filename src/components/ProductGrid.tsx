@@ -462,6 +462,7 @@ const ProductCard = ({
   onAddTag,
   onRemoveTag,
   onUploadDesign,
+  onArchive,
   compact,
 }: CardProps) => {
   const handleDownload = async (variant: "light" | "dark" | "both") => {
