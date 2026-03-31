@@ -722,14 +722,15 @@ CRITICAL RULES:
         });
       }
 
+      const primaryDesignUrl = lightDesignUrl || darkDesignUrl;
       await serviceClient
         .from("generated_messages")
-        .update({ design_url: lightDesignUrl, dark_design_url: darkDesignUrl })
+        .update({ design_url: primaryDesignUrl, dark_design_url: darkDesignUrl })
         .eq("id", messageId)
         .eq("user_id", userId);
     }
 
-    return new Response(JSON.stringify({ designUrl: lightDesignUrl, darkDesignUrl }), {
+    return new Response(JSON.stringify({ designUrl: lightDesignUrl || darkDesignUrl, darkDesignUrl: generateDark ? darkDesignUrl : null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
