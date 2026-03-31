@@ -67,7 +67,7 @@ export const DesignPlacementEditor = ({
   const handleReset = () => {
     setScale(defaultScale);
     setOffsetX(0.015);
-    setOffsetY(0.25);
+    setOffsetY(0.20);
   };
 
   // Drag handling
