@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { DesignPlacement } from "@/lib/mockupComposition";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
