@@ -228,22 +228,33 @@ export const ProductGrid = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* View mode toggle */}
-          {collectionData && collectionData.collections.length > 0 && (
-            <Button
-              variant={viewMode === "collections" ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5 text-xs"
-              onClick={() => {
-                const next = viewMode === "collections" ? "product-types" : "collections";
-                setViewMode(next);
-                onFilterChange(null);
-              }}
-            >
-              <FolderOpen className="h-3.5 w-3.5" />
-              {viewMode === "collections" ? "Collections" : "Product Types"}
-            </Button>
-          )}
+          {/* View mode selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                {viewMode === "collections" && <FolderOpen className="h-3.5 w-3.5" />}
+                {viewMode === "product-types" && <Grid3X3 className="h-3.5 w-3.5" />}
+                {viewMode === "designs" && <Layers className="h-3.5 w-3.5" />}
+                {viewMode === "collections" ? "Collections" : viewMode === "product-types" ? "Product Types" : "Designs"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {collectionData && collectionData.collections.length > 0 && (
+                <DropdownMenuItem onClick={() => { setViewMode("collections"); onFilterChange(null); }}>
+                  <FolderOpen className="h-3.5 w-3.5 mr-2" />
+                  Group by Collection
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => { setViewMode("product-types"); onFilterChange(null); }}>
+                <Grid3X3 className="h-3.5 w-3.5 mr-2" />
+                Filter by Product Type
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setViewMode("designs"); onFilterChange(null); }}>
+                <Layers className="h-3.5 w-3.5 mr-2" />
+                Group by Design
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Bulk actions from parent */}
           {children}
