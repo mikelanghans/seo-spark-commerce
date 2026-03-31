@@ -401,11 +401,12 @@ serve(async (req) => {
         }
 
         if (!existingProduct) {
-          console.log(`Product ${dbPrintifyProductId} not found in any accessible shop. Clearing stale ID in DB.`);
+          console.log(`Product ${dbPrintifyProductId} not found in any accessible shop. Clearing stale ID in DB and creating fresh.`);
           if (productId) {
             await adminClient.from("products").update({ printify_product_id: null }).eq("id", productId);
           }
-          throw new Error("Existing Printify product was not found. We stopped before creating a new one to avoid duplicates. Please push again to create a fresh product.");
+          // Fall through to create path
+          dbPrintifyProductId = null;
         }
       } else if (!getResult.ok) {
         console.error(`Failed to fetch existing product (${getResult.status}): ${getResult.errorText}`);
