@@ -461,8 +461,19 @@ export const DesignPreviewDialog = ({
               }}
             >
               {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {regenerating ? "Regenerating…" : "Regenerate"}
+              {regenerating
+                ? regenElapsed < 10
+                  ? "Generating design…"
+                  : regenElapsed < 40
+                    ? `Creating variants… (${regenElapsed}s)`
+                    : `Still working… (${regenElapsed}s)`
+                : "Regenerate"}
             </Button>
+            {regenerating && regenElapsed >= 15 && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                This generates 2 design variants using AI — it typically takes 30-90 seconds.
+              </p>
+            )}
           </div>
         )}
       </DialogContent>
