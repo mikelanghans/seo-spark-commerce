@@ -61,6 +61,7 @@ export const DesignPreviewDialog = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+  const [generatingDark, setGeneratingDark] = useState(false);
   
   const [activeVariant, setActiveVariant] = useState<"light" | "dark">("light");
   const fileInputRef = useRef<HTMLInputElement>(null);
