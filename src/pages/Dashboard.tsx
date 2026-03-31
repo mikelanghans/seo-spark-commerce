@@ -363,27 +363,9 @@ const Dashboard = () => {
               <TabsContent value="brand-settings" className="mt-4 space-y-4">
                 <div className="rounded-xl border border-border bg-card p-5"><ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-                  <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Default Mockup Template</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Fallback image used for AI color variants when a product has no image</p>
-                  </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleOrgTemplateUpload(e, view)} className="hidden" id="org-template-image-settings" />
-                  {(orgTemplatePreview || selectedOrg?.template_image_url) ? (
-                    <div className="relative overflow-hidden rounded-xl border border-border bg-background">
-                      <img src={orgTemplatePreview || selectedOrg?.template_image_url || ""} alt="Template" className="mx-auto max-h-48 object-contain p-4" />
-                      <div className="flex items-center justify-center gap-3 pb-3"><label htmlFor="org-template-image-settings" className="cursor-pointer text-xs text-muted-foreground underline hover:text-foreground">Change template</label></div>
-                    </div>
-                  ) : (
-                    <label htmlFor="org-template-image-settings" className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-8 transition-colors hover:border-primary/50">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground" /><p className="text-sm font-medium">Upload template image</p><p className="text-xs text-muted-foreground">Used as fallback for products without images</p>
-                    </label>
-                  )}
-                  {selectedOrg?.template_image_url && <RegenerateAllMockups organizationId={selectedOrg.id} userId={user!.id} templateImageUrl={selectedOrg.template_image_url} />}
-                </div>
+                <div className="rounded-xl border border-border bg-card p-5"><ProductTypeSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceToggleSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><SocialPlatformSettings organizationId={selectedOrg!.id} /></div>
-                <div className="rounded-xl border border-border bg-card p-5"><ProductTypeSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><SizePricingSettings organizationId={selectedOrg!.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
