@@ -67,12 +67,12 @@ const StepList = ({ steps }: { steps: typeof ETSY_STEPS }) => (
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">{step.title}</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
-          {"code" in step && step.code && (
+          {step.code && (
             <code className="block mt-1 rounded-md bg-muted px-3 py-2 text-xs font-mono text-foreground break-all select-all">
               {step.code}
             </code>
           )}
-          {"link" in step && step.link && (
+          {step.link && (
             <a
               href={step.link}
               target="_blank"
