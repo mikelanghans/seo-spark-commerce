@@ -3,7 +3,7 @@
  * Defines color palettes, size charts, mockup config, and design placement per product type.
  */
 
-export type ProductTypeKey = "t-shirt" | "long-sleeve" | "sweatshirt" | "hoodie" | "mug" | "tote" | "canvas" | "journal" | "notebook";
+export type ProductTypeKey = "t-shirt" | "long-sleeve" | "sweatshirt" | "hoodie" | "mug" | "tote" | "canvas" | "journal" | "notebook" | "other";
 
 export interface ProductTypeColor {
   name: string;
@@ -311,6 +311,24 @@ export const PRODUCT_TYPES: Record<ProductTypeKey, ProductTypeConfig> = {
     defaultPrice: "$19.99",
     concurrency: 2,
   },
+  other: {
+    key: "other",
+    label: "Other",
+    category: "Other",
+    sizes: [],
+    defaultSizePricing: {},
+    colors: [
+      { name: "White", hex: "#ffffff" },
+      { name: "Black", hex: "#1a1a1a" },
+    ],
+    lightColors: new Set(["white"]),
+    swatchHints: { white: "white (#FFFFFF)", black: "black (#1A1A1A)" },
+    designPlacement: "center print area, 60% width",
+    sizeChartUrl: null,
+    shopifyTags: [],
+    defaultPrice: "$24.99",
+    concurrency: 2,
+  },
 };
 
 /** Get product type config from a category string (fuzzy match) */
@@ -324,7 +342,8 @@ export function getProductType(category: string): ProductTypeConfig {
   if (lower.includes("canvas") || lower.includes("wall art")) return PRODUCT_TYPES.canvas;
   if (lower.includes("journal")) return PRODUCT_TYPES.journal;
   if (lower.includes("notebook")) return PRODUCT_TYPES.notebook;
-  return PRODUCT_TYPES["t-shirt"];
+  if (lower.includes("t-shirt") || lower.includes("tee") || lower.includes("shirt")) return PRODUCT_TYPES["t-shirt"];
+  return PRODUCT_TYPES.other;
 }
 
 /** Get color hex map for a product type */
