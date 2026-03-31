@@ -385,12 +385,23 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
           {running ? (
             <div className="space-y-3 py-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>
-                  {progress.done}/{progress.total} mockups
-                  {progress.current && ` — ${progress.current}`}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>
+                    {progress.done}/{progress.total} mockups
+                    {progress.current && ` — ${progress.current}`}
+                  </span>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => { cancelRef.current = true; }}
+                  className="gap-1.5"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Cancel
+                </Button>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-secondary">
                 <div
@@ -398,8 +409,29 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
                   style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
                 />
               </div>
+
+              {/* Live preview of completed mockups */}
+              {completedImages.length > 0 && (
+                <ScrollArea className="h-48">
+                  <div className="grid grid-cols-4 gap-2">
+                    {completedImages.map((img, i) => (
+                      <div key={i} className="group relative">
+                        <img
+                          src={img.url}
+                          alt={img.label}
+                          className="w-full aspect-square object-cover rounded-md border border-border"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 bg-background/80 px-1 py-0.5 rounded-b-md">
+                          <p className="text-[9px] text-foreground truncate">{img.label.split(" — ")[1] || img.label}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+
               <p className="text-xs text-muted-foreground">
-                This may take a while. Please don't close the page.
+                {completedImages.length > 0 ? `${completedImages.length} completed so far` : "This may take a while. Please don't close the page."}
               </p>
             </div>
           ) : estimating ? (
