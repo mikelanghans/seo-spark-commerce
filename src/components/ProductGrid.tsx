@@ -155,8 +155,6 @@ export const ProductGrid = ({
     return { groups, uncategorized };
   }, [collectionData, activeProducts]);
 
-  const grouped = useMemo(() => groupByDesign(activeProducts), [activeProducts]);
-  const archivedGrouped = useMemo(() => groupByDesign(archivedProducts), [archivedProducts]);
 
   const sortLabel: Record<SortOption, string> = {
     newest: "Newest",
