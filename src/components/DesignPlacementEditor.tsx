@@ -94,8 +94,28 @@ export const DesignPlacementEditor = ({
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
+    setResizing(false);
     dragStartRef.current = null;
+    resizeStartRef.current = null;
   }, []);
+
+  // Resize via corner handles
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizing(true);
+    resizeStartRef.current = { x: e.clientX, y: e.clientY, startScale: scale };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [scale]);
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!resizing || !resizeStartRef.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = (e.clientX - resizeStartRef.current.x) / rect.width;
+    const dy = (e.clientY - resizeStartRef.current.y) / rect.height;
+    const delta = (dx + dy) / 2;
+    setScale(Math.max(0.10, Math.min(0.60, resizeStartRef.current.startScale + delta)));
+  }, [resizing]);
 
   // Compute design position in the preview
   const designWidthPct = scale * 100;
