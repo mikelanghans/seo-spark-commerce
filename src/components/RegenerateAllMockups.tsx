@@ -76,7 +76,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
     loadEstimate();
   };
 
-
+  const handleRegenerate = async (replaceExisting: boolean) => {
     setMode(replaceExisting ? "replace" : "keep");
     setRunning(true);
 
