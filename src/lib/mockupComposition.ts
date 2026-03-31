@@ -122,7 +122,7 @@ function drawDesignWithUnderbase(
   const drawWidth = targetWidth * designScale;
   const drawHeight = drawWidth * (designHeight / designWidth);
   const dx = (targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0.015);
-  const dy = targetHeight * (placement?.offsetY ?? 0.25);
+  const dy = targetHeight * (placement?.offsetY ?? 0.20);
 
   // For dark garments, add a subtle white underbase behind the design
   // so dark outlines / shadows in the artwork remain visible on dark fabric.
