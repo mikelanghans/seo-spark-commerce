@@ -57,7 +57,15 @@ interface GuideProps {
   platform: "etsy" | "ebay";
 }
 
-const StepList = ({ steps }: { steps: typeof ETSY_STEPS }) => (
+interface Step {
+  title: string;
+  description: string;
+  link?: string;
+  linkLabel?: string;
+  code?: string;
+}
+
+const StepList = ({ steps }: { steps: Step[] }) => (
   <ol className="space-y-4 mt-3">
     {steps.map((step, i) => (
       <li key={i} className="flex gap-3">
