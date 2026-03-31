@@ -409,6 +409,12 @@ const Dashboard = () => {
                     }
                   }}
                   onAddProduct={() => setView("product-form")}
+                  onArchiveProduct={async (productId, archive) => {
+                    const { error } = await supabase.from("products").update({ archived_at: archive ? new Date().toISOString() : null }).eq("id", productId);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success(archive ? "Product archived" : "Product restored");
+                    if (selectedOrg) loadProducts(selectedOrg.id);
+                  }}
                   collectionData={collectionMemberships.data}
                   collectionLoading={collectionMemberships.loading}
                   onRefreshCollections={collectionMemberships.refresh}
