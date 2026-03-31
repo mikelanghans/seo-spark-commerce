@@ -241,11 +241,56 @@ export const ProductDetailView = ({
           ) : (() => {
             const channels = selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_PUSH_CHANNELS];
             const listingsMapped = listings.map((l) => ({ marketplace: l.marketplace, title: l.title, description: l.description, bullet_points: l.bullet_points as string[], tags: l.tags as string[], seo_title: l.seo_title, seo_description: l.seo_description, url_handle: l.url_handle, alt_text: l.alt_text }));
+
+            const showShopify = channels.includes("shopify");
+            const showPrintify = channels.includes("printify");
+            const showOther = channels.includes("etsy") || channels.includes("ebay");
+
+            const noConnections = (showShopify && shopifyConnected === false) && (showPrintify && printifyConnected === false);
+
             return (
-              <div className="flex flex-wrap items-center gap-2">
-                {channels.includes("shopify") && <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} />}
-                {channels.includes("printify") && <PushToPrintify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />}
-                {(channels.includes("etsy") || channels.includes("ebay")) && <PushToMarketplace product={product} listings={listingsMapped} images={product.image_url ? [{ id: "main", image_url: product.image_url, color_name: "", position: 0 }] : []} userId={userId} enabledChannels={channels} />}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {showShopify && (shopifyConnected === false ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Push to Shopify
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Connect your Shopify store in Settings → Marketplace first</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} />
+                  ))}
+
+                  {showPrintify && (printifyConnected === false ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="gap-2 opacity-50 cursor-not-allowed" disabled>
+                            <AlertTriangle className="h-4 w-4 text-amber-500" /> Push to Printify
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Add your Printify API token in Settings → Marketplace first</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <PushToPrintify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />
+                  ))}
+
+                  {showOther && <PushToMarketplace product={product} listings={listingsMapped} images={product.image_url ? [{ id: "main", image_url: product.image_url, color_name: "", position: 0 }] : []} userId={userId} enabledChannels={channels} />}
+                </div>
+
+                {(showShopify && shopifyConnected === false || showPrintify && printifyConnected === false) && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    Some integrations need setup.{" "}
+                    <button type="button" onClick={() => setView("settings")} className="text-primary hover:underline">Go to Settings</button>
+                  </p>
+                )}
               </div>
             );
           })()}
