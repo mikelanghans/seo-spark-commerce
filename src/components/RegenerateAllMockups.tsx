@@ -37,6 +37,44 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
   const [mode, setMode] = useState<"replace" | "keep" | null>(null);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+  const [estimate, setEstimate] = useState<{ products: number; mockups: number } | null>(null);
+  const [estimating, setEstimating] = useState(false);
+
+  const loadEstimate = async () => {
+    setEstimating(true);
+    setEstimate(null);
+    try {
+      let query = supabase
+        .from("products")
+        .select("id, category")
+        .eq("organization_id", organizationId);
+      if (productTypeFilter) {
+        query = query.ilike("category", `%${productTypeFilter}%`);
+      }
+      const { data: products } = await query;
+      if (!products || products.length === 0) {
+        setEstimate({ products: 0, mockups: 0 });
+        return;
+      }
+      const productIds = products.map((p) => p.id);
+      const { data: mockups } = await supabase
+        .from("product_images")
+        .select("product_id, color_name")
+        .in("product_id", productIds)
+        .eq("image_type", "mockup");
+      const productsWithMockups = new Set((mockups || []).map((m) => m.product_id));
+      setEstimate({ products: productsWithMockups.size, mockups: (mockups || []).length });
+    } catch {
+      setEstimate({ products: 0, mockups: 0 });
+    } finally {
+      setEstimating(false);
+    }
+  };
+
+  const handleOpenDialog = () => {
+    setShowDialog(true);
+    loadEstimate();
+  };
 
   const handleRegenerate = async (replaceExisting: boolean) => {
     setMode(replaceExisting ? "replace" : "keep");
@@ -317,7 +355,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setShowDialog(true)}
+        onClick={handleOpenDialog}
         className="gap-2"
       >
         <RefreshCw className="h-3.5 w-3.5" />
@@ -349,13 +387,33 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
                 This may take a while. Please don't close the page.
               </p>
             </div>
+          ) : estimating ? (
+            <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Counting mockups…
+            </div>
+          ) : estimate && estimate.mockups === 0 ? (
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">No products with existing mockups found{productTypeFilter ? ` for ${productTypeFilter}` : ""}. Nothing to regenerate.</p>
+            </div>
           ) : (
             <div className="space-y-4 py-2">
+              {/* Credit estimate */}
+              {estimate && (
+                <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-1">
+                  <p className="text-sm font-medium">Estimated usage</p>
+                  <p className="text-xs text-muted-foreground">
+                    <strong>{estimate.products}</strong> product{estimate.products !== 1 ? "s" : ""} × <strong>{estimate.mockups}</strong> mockup{estimate.mockups !== 1 ? "s" : ""} = <strong className="text-primary">{estimate.mockups} AI credit{estimate.mockups !== 1 ? "s" : ""}</strong>
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                <p className="text-xs text-destructive">
-                  This will regenerate mockups for <strong>every product</strong> that currently has color variants, using the new template image. This uses AI credits for each mockup.
-                </p>
+                <div className="text-xs text-destructive space-y-1">
+                  <p>This will regenerate mockups for <strong>{estimate?.products ?? "all"} product{(estimate?.products ?? 0) !== 1 ? "s" : ""}</strong> using the new template image.</p>
+                  <p>AI-generated mockups may not be perfectly accurate — colors, placement, and details can vary. Review results after regeneration.</p>
+                </div>
               </div>
 
               <p className="text-sm text-muted-foreground">
