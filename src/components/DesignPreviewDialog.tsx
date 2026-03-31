@@ -51,6 +51,7 @@ export const DesignPreviewDialog = ({
   onCreateProduct,
   onReplaceDesign,
   onDarkDesignGenerated,
+  designVariantMode = "both",
   hasProduct,
 }: Props) => {
   const [notes, setNotes] = useState("");
