@@ -59,7 +59,12 @@ export const ProductDetailView = ({
         <Button variant="ghost" size="icon" className="mt-1" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">{product.category} {product.price && `• ${product.price}`}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25">
+              {product.category || "Uncategorized"}
+            </span>
+            {product.price && <span className="text-xs text-muted-foreground">{product.price}</span>}
+          </div>
         </div>
       </div>
 
