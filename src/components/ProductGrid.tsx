@@ -239,6 +239,19 @@ export const ProductGrid = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* View mode toggle */}
+          {collectionData && collectionData.collections.length > 0 && (
+            <Button
+              variant={viewMode === "collections" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => setViewMode(viewMode === "collections" ? "product-types" : "collections")}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              {viewMode === "collections" ? "Collections" : "Product Types"}
+            </Button>
+          )}
+
           {/* Bulk actions from parent */}
           {children}
         </div>
