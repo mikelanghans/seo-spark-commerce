@@ -26,6 +26,21 @@ serve(async (req) => {
     const { organizationId } = await req.json();
     if (!organizationId) throw new Error("organizationId is required");
 
+    // Helper: map a Shopify product_type string to our ProductTypeKey
+    function inferProductType(category: string): string | null {
+      const lower = (category || "").toLowerCase();
+      if (lower.includes("hoodie")) return "hoodie";
+      if (lower.includes("sweatshirt") || lower.includes("crewneck")) return "sweatshirt";
+      if (lower.includes("long sleeve")) return "long-sleeve";
+      if (lower.includes("mug") || lower.includes("drinkware") || lower.includes("cup")) return "mug";
+      if (lower.includes("tote")) return "tote";
+      if (lower.includes("canvas") || lower.includes("wall art")) return "canvas";
+      if (lower.includes("journal")) return "journal";
+      if (lower.includes("notebook")) return "notebook";
+      if (lower.includes("t-shirt") || lower.includes("tee") || lower.includes("shirt")) return "t-shirt";
+      return null;
+    }
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
