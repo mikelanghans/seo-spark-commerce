@@ -37,6 +37,8 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
   const [mode, setMode] = useState<"replace" | "keep" | null>(null);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+  const [estimate, setEstimate] = useState<{ products: number; mockups: number } | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
   const handleRegenerate = async (replaceExisting: boolean) => {
     setMode(replaceExisting ? "replace" : "keep");
