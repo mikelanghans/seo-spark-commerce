@@ -269,7 +269,7 @@ serve(async (req) => {
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
 
-          imageScale = Math.max(0.2, Math.min(1.3, targetChestScale));
+          imageScale = Math.max(0.2, Math.min(0.95, targetChestScale));
           console.log(
             `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)})`
           );
