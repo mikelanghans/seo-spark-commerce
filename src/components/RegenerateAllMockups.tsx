@@ -40,6 +40,8 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [estimate, setEstimate] = useState<{ products: number; mockups: number } | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [completedImages, setCompletedImages] = useState<{ url: string; label: string }[]>([]);
+  const cancelRef = useRef(false);
 
   const loadEstimate = async () => {
     setEstimating(true);
