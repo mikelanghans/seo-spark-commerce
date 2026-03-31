@@ -168,6 +168,37 @@ serve(async (req) => {
       }
     }
 
+    // Auto-enable any new product types discovered during import
+    const discoveredTypes = new Set<string>();
+    for (const sp of allShopifyProducts) {
+      const pt = inferProductType(sp.product_type || "");
+      if (pt) discoveredTypes.add(pt);
+    }
+
+    if (discoveredTypes.size > 0) {
+      const { data: orgData } = await adminClient
+        .from("organizations")
+        .select("enabled_product_types")
+        .eq("id", organizationId)
+        .single();
+
+      const current = new Set<string>(orgData?.enabled_product_types || ["t-shirt"]);
+      const newTypes: string[] = [];
+      for (const t of discoveredTypes) {
+        if (!current.has(t)) {
+          current.add(t);
+          newTypes.push(t);
+        }
+      }
+
+      if (newTypes.length > 0) {
+        await adminClient
+          .from("organizations")
+          .update({ enabled_product_types: [...current] })
+          .eq("id", organizationId);
+      }
+    }
+
     return new Response(JSON.stringify({ imported, updated, failed, total: allShopifyProducts.length, products: resultProducts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
