@@ -318,7 +318,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           if (hasTemplate) {
             updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
-            const sourceUrl = organization.template_image_url || designUrl;
+            const sourceUrl = mockupTemplates["t-shirt"] || designUrl;
             const referenceBase64 = await fetchImageAsBase64(sourceUrl);
 
             // Pre-composite design onto template so AI only needs to recolor
