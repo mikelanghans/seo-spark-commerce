@@ -36,6 +36,25 @@ export const DesignPlacementEditor = ({
   const [designLoaded, setDesignLoaded] = useState(false);
   const [designAspect, setDesignAspect] = useState(1);
   const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
+  const [processingDesign, setProcessingDesign] = useState(true);
+
+  // Strip background from design for transparent preview
+  useEffect(() => {
+    let cancelled = false;
+    setProcessingDesign(true);
+    smartRemoveBackground(designUrl)
+      .then((base64) => {
+        if (!cancelled) setProcessedDesignUrl(ensureImageDataUrl(base64));
+      })
+      .catch(() => {
+        if (!cancelled) setProcessedDesignUrl(designUrl);
+      })
+      .finally(() => {
+        if (!cancelled) setProcessingDesign(false);
+      });
+    return () => { cancelled = true; };
+  }, [designUrl]);
 
   const handleDesignLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
