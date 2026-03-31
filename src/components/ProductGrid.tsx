@@ -74,6 +74,7 @@ export const ProductGrid = ({
   const [sort, setSort] = useState<SortOption>("newest");
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"collections" | "product-types">("collections");
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
