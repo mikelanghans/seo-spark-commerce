@@ -43,14 +43,18 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
     setRunning(true);
 
     try {
-      // 1. Get all products in this org
-      const { data: products } = await supabase
+      // 1. Get all products in this org (optionally filtered by product type)
+      let query = supabase
         .from("products")
         .select("id, title, image_url, category")
         .eq("organization_id", organizationId);
+      if (productTypeFilter) {
+        query = query.ilike("category", `%${productTypeFilter}%`);
+      }
+      const { data: products } = await query;
 
       if (!products || products.length === 0) {
-        toast.info("No products found in this brand.");
+        toast.info(productTypeFilter ? `No ${productTypeFilter} products found.` : "No products found in this brand.");
         setRunning(false);
         setShowDialog(false);
         return;
