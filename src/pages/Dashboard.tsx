@@ -40,6 +40,7 @@ import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { ListingRefreshQueue } from "@/components/ListingRefreshQueue";
 import { ABTestDashboard } from "@/components/ABTestDashboard";
 import { ShopifyCollections } from "@/components/ShopifyCollections";
+import { useCollectionMemberships } from "@/hooks/useCollectionMemberships";
 
 // Extracted components & hooks
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
