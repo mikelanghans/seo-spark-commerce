@@ -862,7 +862,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 size="sm"
                 onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }}
                 className="gap-2"
-                disabled={!sourceImageUrl && !designImageUrl}
+                disabled={!sourceImageUrl}
               >
                 <Sparkles className="h-3.5 w-3.5" /> Generate
               </Button>
@@ -871,9 +871,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         </div>
       </div>
 
-      <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-        <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
-      </p>
+      {!sourceImageUrl ? (
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 py-8 px-4 text-center">
+          <ImageIcon className="h-7 w-7 text-amber-500/70" />
+          <p className="text-sm font-medium text-foreground">No mockup template configured</p>
+          <p className="text-xs text-muted-foreground max-w-md">
+            Upload a mockup template for <strong>{typeConfig.label}</strong> in your Brand Settings to enable AI mockup generation. The template should be a plain garment photo without any design.
+          </p>
+        </div>
+      ) : (
+        <p className="rounded-md bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+          <strong>Note:</strong> AI-generated mockups are approximations and may not perfectly reflect the final printed product. Colors, placement, and proportions can vary — always review before publishing.
+        </p>
+      )}
 
       {/* Step: Choose Colors */}
       {genStep === "choose-colors" && renderColorPicker()}
