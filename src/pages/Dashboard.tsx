@@ -450,15 +450,53 @@ const Dashboard = () => {
                   }}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    {generatingAll ? (
-                      <Button onClick={() => { cancelGenAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm"><X className="h-3.5 w-3.5" /> Cancel ({genAllProgress.done}/{genAllProgress.total})</Button>
+                    {generatingAll || pushingAllShopify ? (
+                      <Button
+                        onClick={() => {
+                          if (generatingAll) cancelGenAllRef.current = true;
+                          if (pushingAllShopify) cancelPushAllRef.current = true;
+                        }}
+                        size="sm"
+                        variant="destructive"
+                        className="gap-1.5 text-xs sm:text-sm"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
+                      </Button>
                     ) : (
-                      <Button onClick={handleGenerateAllListings} disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Generate SEO</span><span className="sm:hidden">SEO</span></Button>
-                    )}
-                    {pushingAllShopify ? (
-                      <Button onClick={() => { cancelPushAllRef.current = true; }} size="sm" variant="destructive" className="gap-1.5 text-xs sm:text-sm"><X className="h-3.5 w-3.5" /> Cancel ({pushAllProgress.done}/{pushAllProgress.total})</Button>
-                    ) : (
-                      <Button onClick={handlePushAllToShopify} disabled={products.length === 0 || generatingAll} size="sm" variant="outline" className="gap-1.5 text-xs sm:text-sm"><Store className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Push All</span><span className="sm:hidden">Push</span></Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm">
+                            <Rocket className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Publish</span>
+                            <span className="sm:hidden">Publish</span>
+                            <ChevronDown className="h-3 w-3 ml-0.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem onClick={handleGenerateAllListings} className="gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            <div>
+                              <p className="font-medium">Generate SEO</p>
+                              <p className="text-[10px] text-muted-foreground">Create optimized listings for all products</p>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handlePushAllToShopify} className="gap-2">
+                            <Store className="h-4 w-4" />
+                            <div>
+                              <p className="font-medium">Push All to Shopify</p>
+                              <p className="text-[10px] text-muted-foreground">Sync all products &amp; listings to your store</p>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={async () => { await handleGenerateAllListings(); if (!cancelGenAllRef.current) handlePushAllToShopify(); }} className="gap-2 border-t border-border">
+                            <Rocket className="h-4 w-4 text-primary" />
+                            <div>
+                              <p className="font-medium text-primary">Generate &amp; Push</p>
+                              <p className="text-[10px] text-muted-foreground">Run both steps sequentially</p>
+                            </div>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </ProductGrid>
