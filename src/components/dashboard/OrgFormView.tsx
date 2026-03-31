@@ -211,6 +211,13 @@ export const OrgFormView = ({
       </div>
     </div>
 
+    {/* Per-Product-Type Mockup Templates */}
+    {editingOrg && (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <ProductTypeSettings organizationId={editingOrg.id} />
+      </div>
+    )}
+
     {/* Size Pricing Defaults */}
     {orgForm.enabled_product_types.some((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0) && (
       <div className="space-y-4">
