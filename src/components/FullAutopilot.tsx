@@ -105,7 +105,8 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
     setProducts([]);
     setOverallProgress(0);
 
-    const hasTemplate = !!organization.template_image_url;
+    const mockupTemplates = (organization.mockup_templates || {}) as Record<string, string>;
+    const hasTemplate = !!mockupTemplates["t-shirt"];
     const stepsPerProduct = hasTemplate ? 8 : 7; // design, product, colors, [mockups], listing, printify, shopify
     const totalSteps = 1 + count * stepsPerProduct;
     let completedSteps = 0;
