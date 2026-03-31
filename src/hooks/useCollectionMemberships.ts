@@ -23,6 +23,18 @@ export function useCollectionMemberships(organizationId: string | undefined) {
   const [data, setData] = useState<CollectionMembershipData | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+
+  // Check if Shopify is connected before attempting to fetch
+  useEffect(() => {
+    if (!organizationId) return;
+    supabase
+      .from("shopify_connections")
+      .select("id, access_token")
+      .eq("organization_id", organizationId)
+      .maybeSingle()
+      .then(({ data: conn }) => setShopifyConnected(!!conn?.access_token));
+  }, [organizationId]);
 
   // Load from cache on mount
   useEffect(() => {
@@ -64,18 +76,21 @@ export function useCollectionMemberships(organizationId: string | undefined) {
       localStorage.setItem(cacheKey, JSON.stringify({ data: membershipData, ts: now }));
     } catch (err: any) {
       console.error("Failed to fetch collection memberships:", err);
-      toast.error("Failed to load Shopify collections");
+      // Only show toast if this was a manual refresh, not auto-fetch
+      if (data) {
+        toast.error("Failed to load Shopify collections");
+      }
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, data]);
 
-  // Auto-fetch if no cached data
+  // Auto-fetch only if Shopify is connected and no cached data
   useEffect(() => {
-    if (organizationId && !data && !loading) {
+    if (organizationId && shopifyConnected === true && !data && !loading) {
       fetchMemberships();
     }
-  }, [organizationId, data, loading, fetchMemberships]);
+  }, [organizationId, shopifyConnected, data, loading, fetchMemberships]);
 
-  return { data, loading, lastFetched, refresh: fetchMemberships };
+  return { data, loading, lastFetched, refresh: fetchMemberships, shopifyConnected };
 }
