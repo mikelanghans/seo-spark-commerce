@@ -531,9 +531,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                   ))}
                 </div>
               </div>
-              {product.printify_product_id && (
-                <p className="text-primary text-xs">Will update existing Printify product</p>
-              )}
             </div>
 
             <Button
