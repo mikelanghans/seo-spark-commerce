@@ -33,6 +33,7 @@ interface Props {
   onCreateProduct?: (messageId: string) => void;
   onReplaceDesign?: (messageId: string, file: File) => Promise<void>;
   onDarkDesignGenerated?: (messageId: string, darkUrl: string) => void;
+  designVariantMode?: string;
   hasProduct?: boolean;
 }
 
