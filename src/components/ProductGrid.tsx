@@ -549,6 +549,25 @@ const ProductCard = ({
   onArchive,
   compact,
 }: CardProps) => {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(product.image_url);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchMockup = async () => {
+      const { data } = await supabase
+        .from("product_images")
+        .select("image_url")
+        .eq("product_id", product.id)
+        .eq("image_type", "mockup")
+        .order("position", { ascending: true })
+        .limit(1);
+      if (!cancelled && data && data.length > 0) {
+        setThumbnailUrl(data[0].image_url);
+      }
+    };
+    fetchMockup();
+    return () => { cancelled = true; };
+  }, [product.id, product.image_url]);
   const handleDownload = async (variant: "light" | "dark" | "both") => {
     const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 
