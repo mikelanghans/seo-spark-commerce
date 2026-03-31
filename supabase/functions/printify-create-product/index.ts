@@ -415,48 +415,49 @@ serve(async (req) => {
         existingProduct = getResult.product;
       }
 
-      const existingVariantIds = (existingProduct.variants || []).map((v: any) => v.id);
-      console.log(`Existing product has ${existingVariantIds.length} variants`);
+      // Only proceed with update if we still have a valid existing product
+      if (existingProduct && dbPrintifyProductId) {
+        const existingVariantIds = (existingProduct.variants || []).map((v: any) => v.id);
+        console.log(`Existing product has ${existingVariantIds.length} variants`);
 
-      // Build UPDATE payload — omit blueprint_id and print_provider_id (immutable)
-      // Use ALL existing variant IDs in print_areas (Printify validation requirement)
-      const updatePrintAreas = buildPrintAreas(existingVariantIds);
+        const updatePrintAreas = buildPrintAreas(existingVariantIds);
 
-      const updatePayload: any = {
-        title,
-        description: description || "",
-        tags: productPayload.tags,
-        variants: existingVariantIds.map((vid: number) => {
-          const variant = (existingProduct.variants || []).find((v: any) => v.id === vid);
-          return {
-            id: vid,
-            price: variant ? getVariantPrice(variant) : fallbackPriceCents,
-            is_enabled: enabledVariantIds.has(vid),
-          };
-        }),
-        print_areas: updatePrintAreas,
-      };
+        const updatePayload: any = {
+          title,
+          description: description || "",
+          tags: productPayload.tags,
+          variants: existingVariantIds.map((vid: number) => {
+            const variant = (existingProduct.variants || []).find((v: any) => v.id === vid);
+            return {
+              id: vid,
+              price: variant ? getVariantPrice(variant) : fallbackPriceCents,
+              is_enabled: enabledVariantIds.has(vid),
+            };
+          }),
+          print_areas: updatePrintAreas,
+        };
 
-      console.log(`Sending PUT update to shop ${effectiveShopId} (${existingVariantIds.length} variant_ids in print_areas)...`);
-      const updateRes = await fetch(
-        `https://api.printify.com/v1/shops/${effectiveShopId}/products/${dbPrintifyProductId}.json`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updatePayload),
+        console.log(`Sending PUT update to shop ${effectiveShopId} (${existingVariantIds.length} variant_ids in print_areas)...`);
+        const updateRes = await fetch(
+          `https://api.printify.com/v1/shops/${effectiveShopId}/products/${dbPrintifyProductId}.json`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${printifyToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatePayload),
+          }
+        );
+
+        if (updateRes.ok) {
+          createdProduct = await updateRes.json();
+          console.log(`Updated product: ${dbPrintifyProductId}, images in response: ${createdProduct.images?.length || 0}`);
+        } else {
+          const errText = await updateRes.text();
+          console.error(`PUT failed (${updateRes.status}): ${errText}`);
+          throw new Error(`Failed to update Printify product: ${errText}`);
         }
-      );
-
-      if (updateRes.ok) {
-        createdProduct = await updateRes.json();
-        console.log(`Updated product: ${dbPrintifyProductId}, images in response: ${createdProduct.images?.length || 0}`);
-      } else {
-        const errText = await updateRes.text();
-        console.error(`PUT failed (${updateRes.status}): ${errText}`);
-        throw new Error(`Failed to update Printify product: ${errText}`);
       }
     }
 
