@@ -420,6 +420,10 @@ const Dashboard = () => {
                   }}
                   onAddProduct={() => setView("product-form")}
                   enabledProductTypes={selectedOrg?.enabled_product_types || []}
+                  collectionData={collectionMemberships.data}
+                  collectionLoading={collectionMemberships.loading}
+                  onRefreshCollections={collectionMemberships.refresh}
+                  collectionLastFetched={collectionMemberships.lastFetched}
                   onCreateProductFromDesign={async (designUrl, typeKey) => {
                     if (!selectedOrg || !user) return;
                     const typeConfig = (await import("@/lib/productTypes")).PRODUCT_TYPES[typeKey];
