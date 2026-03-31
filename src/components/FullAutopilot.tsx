@@ -58,6 +58,7 @@ interface ProductProgress {
 export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props) => {
   const [running, setRunning] = useState(false);
   const [batchSize, setBatchSize] = useState("3");
+  const [styleMode, setStyleMode] = useState<"rotate" | string>("rotate");
   const [shopifyStatus, setShopifyStatus] = useState<"active" | "draft">("active");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [products, setProducts] = useState<ProductProgress[]>([]);
@@ -115,8 +116,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
       setOverallProgress(Math.min(100, Math.round((completedSteps / totalSteps) * 100)));
     };
 
-    // Available design styles for rotation
-    const styles = (organization.design_styles as string[]) || ["text-only"];
+    // Available design styles for rotation or fixed
+    const allStyles = (organization.design_styles as string[]) || ["text-only"];
+    const styles = styleMode === "rotate" ? allStyles : [styleMode];
 
     try {
       // Step 0: Fetch existing products to avoid duplicates
@@ -657,13 +659,28 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
           </div>
 
           <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Design style:</span>
+            <Select value={styleMode} onValueChange={setStyleMode}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rotate">Auto-rotate all</SelectItem>
+                {((organization.design_styles as string[]) || ["text-only"]).map((s) => (
+                  <SelectItem key={s} value={s}>{getStyleLabel(s)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3">
             <Label htmlFor="shopify-status-toggle" className="text-sm text-muted-foreground">Shopify status:</Label>
             <Switch id="shopify-status-toggle" checked={shopifyStatus === "active"} onCheckedChange={(c) => setShopifyStatus(c ? "active" : "draft")} />
             <span className="text-sm font-medium">{shopifyStatus === "active" ? "Active (published)" : "Draft"}</span>
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Design styles: <strong>{((organization.design_styles as string[]) || ["text-only"]).map(s => getStyleLabel(s)).join(", ")}</strong> (auto-rotated)</p>
+            <p>• Design style: <strong>{styleMode === "rotate" ? ((organization.design_styles as string[]) || ["text-only"]).map(s => getStyleLabel(s)).join(", ") + " (auto-rotated)" : getStyleLabel(styleMode)}</strong></p>
             <p>• Colors: <strong>AI recommended</strong></p>
             <p>• Listings: <strong>Shopify only</strong></p>
             <p>• Push: <strong>Printify (Comfort Colors 1717) → Shopify ({shopifyStatus === "active" ? "published" : "draft"})</strong></p>
