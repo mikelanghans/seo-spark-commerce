@@ -324,137 +324,35 @@ serve(async (req) => {
 
     // Mockup images will be set AFTER product creation using uploaded image IDs
 
-    // --- CREATE or UPDATE ---
-    let createdProduct: any;
-    let didCreate = false;
-
-    if (dbPrintifyProductId) {
-      console.log(`Fetching existing product ${dbPrintifyProductId} from shop ${effectiveShopId}...`);
-
-      let existingProduct: any = null;
-      let getResult = await fetchPrintifyProduct(effectiveShopId, dbPrintifyProductId);
-
-      if (!getResult.ok && getResult.status === 404) {
-        console.log(`Product ${dbPrintifyProductId} not found in shop ${effectiveShopId}. Searching other shops...`);
-
-        const shopsRes = await fetch("https://api.printify.com/v1/shops.json", {
-          headers: { Authorization: `Bearer ${printifyToken}` },
-        });
-
-        if (shopsRes.ok) {
-          const shops = await shopsRes.json();
-          const shopList = Array.isArray(shops) ? shops : [];
-
-          for (const shop of shopList) {
-            if (String(shop?.id) === String(effectiveShopId)) continue;
-
-            const candidateResult = await fetchPrintifyProduct(shop.id, dbPrintifyProductId);
-            if (candidateResult.ok) {
-              existingProduct = candidateResult.product;
-              effectiveShopId = shop.id;
-              console.log(`Found existing product ${dbPrintifyProductId} in shop ${effectiveShopId}`);
-              break;
-            }
-          }
-        }
-
-        if (!existingProduct) {
-          console.log(`Product ${dbPrintifyProductId} not found in any accessible shop. Clearing stale ID in DB and creating fresh.`);
-          if (productId) {
-            await adminClient.from("products").update({ printify_product_id: null }).eq("id", productId);
-          }
-          // Fall through to create path
-          dbPrintifyProductId = null;
-        }
-      } else if (!getResult.ok) {
-        console.error(`Failed to fetch existing product (${getResult.status}): ${getResult.errorText}`);
-        throw new Error(`Failed to fetch existing Printify product (${getResult.status})`);
-      } else {
-        existingProduct = getResult.product;
+    // --- CREATE ---
+    console.log(`Creating new product in shop ${effectiveShopId} (${filteredVariants.length} enabled of ${allVariants.length} total)...`);
+    const createRes = await fetch(
+      `https://api.printify.com/v1/shops/${effectiveShopId}/products.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${printifyToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productPayload),
       }
+    );
 
-      // Only proceed with update if we still have a valid existing product
-      if (existingProduct && dbPrintifyProductId) {
-        const existingVariantIds = (existingProduct.variants || []).map((v: any) => v.id);
-        console.log(`Existing product has ${existingVariantIds.length} variants`);
-
-        const updatePrintAreas = buildPrintAreas(existingVariantIds);
-
-        const updatePayload: any = {
-          title,
-          description: description || "",
-          tags: productPayload.tags,
-          variants: existingVariantIds.map((vid: number) => {
-            const variant = (existingProduct.variants || []).find((v: any) => v.id === vid);
-            return {
-              id: vid,
-              price: variant ? getVariantPrice(variant) : fallbackPriceCents,
-              is_enabled: enabledVariantIds.has(vid),
-            };
-          }),
-          print_areas: updatePrintAreas,
-        };
-
-        console.log(`Sending PUT update to shop ${effectiveShopId} (${existingVariantIds.length} variant_ids in print_areas)...`);
-        const updateRes = await fetch(
-          `https://api.printify.com/v1/shops/${effectiveShopId}/products/${dbPrintifyProductId}.json`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${printifyToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatePayload),
-          }
-        );
-
-        if (updateRes.ok) {
-          createdProduct = await updateRes.json();
-          console.log(`Updated product: ${dbPrintifyProductId}, images in response: ${createdProduct.images?.length || 0}`);
-        } else {
-          const errText = await updateRes.text();
-          console.error(`PUT failed (${updateRes.status}): ${errText}`);
-          throw new Error(`Failed to update Printify product: ${errText}`);
-        }
-      }
+    if (!createRes.ok) {
+      const text = await createRes.text();
+      throw new Error(`Failed to create product (${createRes.status}): ${text}`);
     }
 
-    // Create new only if no existing product was updated
-    if (!createdProduct) {
+    const createdProduct = await createRes.json();
+    console.log(`Created product: ${createdProduct.id}, images: ${createdProduct.images?.length || 0}`);
 
-      console.log(`Creating new product in shop ${effectiveShopId} (${filteredVariants.length} enabled of ${allVariants.length} total)...`);
-      const createRes = await fetch(
-        `https://api.printify.com/v1/shops/${effectiveShopId}/products.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${printifyToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productPayload),
-        }
-      );
-
-      if (!createRes.ok) {
-        const text = await createRes.text();
-        throw new Error(`Failed to create product (${createRes.status}): ${text}`);
-      }
-
-      createdProduct = await createRes.json();
-      didCreate = true;
-      console.log(`Created product: ${createdProduct.id}, images: ${createdProduct.images?.length || 0}`);
-
-      if (createdProduct.id && productId) {
-        await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
-      }
+    if (createdProduct.id && productId) {
+      await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
     }
-    // Printify auto-generates mockups from print_areas — cannot be replaced via API.
-    // AI mockups are used on the Shopify storefront instead.
 
     return new Response(JSON.stringify({
       success: true,
       variantCount: filteredVariants.length,
-      updated: !didCreate,
       printifyProductId: createdProduct.id,
       mockupsUploaded: 0,
       matchedColors,
