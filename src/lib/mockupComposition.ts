@@ -450,30 +450,31 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // Only skip stripping when the OUTER border is already mostly transparent.
-  // Some designs (like watercolor art) contain internal transparency while still
-  // having an opaque rectangular background — global alpha checks miss that case.
+  // Skip stripping when the OUTER border is already mostly transparent —
+  // this means the design is already a proper transparent PNG. Stripping
+  // would risk removing design elements that happen to match the "background" color.
   if (hasTransparentBorder(data, canvas.width, canvas.height)) {
+    console.log("[stripSolidEdgeBackground] Border already transparent — skipping (design is a clean PNG)");
     return canvas;
   }
 
-  // Strategy 1: Try full-edge sampling (works for solid bg designs)
+  // Strategy 1: Try full-edge sampling (works for solid bg designs).
+  // Use a conservative tolerance to avoid eating into design content.
   const edge = sampleEdgeColor(data, canvas.width, canvas.height);
   if (edge) {
-    return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+    return floodFillBackground(canvas, ctx, imgData, data, edge, 30);
   }
 
-  // Strategy 2: Corner sampling (works for designs with text/art touching edges)
+  // Strategy 2: Corner sampling
   const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
   if (cornerEdge) {
-    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 42);
+    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 36);
   }
 
-  // Strategy 3: Try just the very outermost 2-pixel border
-  // This handles complex designs where corners also have artwork
+  // Strategy 3: outermost 2-pixel border
   const borderEdge = sampleThinBorderColor(data, canvas.width, canvas.height);
   if (borderEdge) {
-    return floodFillBackground(canvas, ctx, imgData, data, borderEdge, 48);
+    return floodFillBackground(canvas, ctx, imgData, data, borderEdge, 40);
   }
 
   return canvas;
