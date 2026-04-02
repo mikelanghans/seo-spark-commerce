@@ -24,8 +24,8 @@ interface Props {
 
 export const OrgFormView = ({
   editingOrg, orgForm, setOrgForm, orgLogoPreview,
-  printifyShops, loadingPrintifyShops, userId,
-  onSubmit, onBack, onLoadPrintifyShops, onLogoUpload,
+  userId,
+  onSubmit, onBack, onLogoUpload,
 }: Props) => (
   <form onSubmit={onSubmit} className="space-y-8">
     <div className="flex items-center gap-3">
