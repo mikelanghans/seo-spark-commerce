@@ -501,7 +501,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                     </div>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
                       <span className="text-xs text-muted-foreground">{p.quantity} sold</span>
-                      <span className="font-medium">${p.revenue.toLocaleString()}</span>
+                      <span className="font-medium">${(p.revenue ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 ))}
