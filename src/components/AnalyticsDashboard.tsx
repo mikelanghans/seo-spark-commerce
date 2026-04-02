@@ -51,14 +51,19 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
 
   const loadAnalytics = async () => {
     setLoading(true);
-    await Promise.all([
-      loadMarketplaceStatus(),
-      loadAiUsageTrend(),
-      loadTopByListings(),
-      loadColorPopularity(),
-      loadShopifyAnalytics(),
-    ]);
-    setLoading(false);
+    try {
+      await Promise.all([
+        loadMarketplaceStatus().catch(e => console.error("Analytics: marketplace status", e)),
+        loadAiUsageTrend().catch(e => console.error("Analytics: ai usage", e)),
+        loadTopByListings().catch(e => console.error("Analytics: top listings", e)),
+        loadColorPopularity().catch(e => console.error("Analytics: colors", e)),
+        loadShopifyAnalytics().catch(e => console.error("Analytics: shopify", e)),
+      ]);
+    } catch (e) {
+      console.error("Analytics load failed:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadMarketplaceStatus = async () => {
