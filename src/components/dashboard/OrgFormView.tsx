@@ -15,8 +15,6 @@ interface Props {
   orgForm: OrgFormState;
   setOrgForm: (f: OrgFormState) => void;
   orgLogoPreview: string | null;
-  printifyShops: { id: number; title: string }[];
-  loadingPrintifyShops: boolean;
   userId: string;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
