@@ -3,8 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Trash2, ExternalLink, Printer, Pencil } from "lucide-react";
+import { Loader2, Check, Trash2, ExternalLink, Printer, Pencil, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -30,6 +29,12 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
   const [savingPrintify, setSavingPrintify] = useState(false);
   const [editing, setEditing] = useState(false);
 
+  // Shop picker state
+  const [shops, setShops] = useState<{ id: number; title: string }[]>([]);
+  const [loadingShops, setLoadingShops] = useState(false);
+  const [currentShopId, setCurrentShopId] = useState<number | null>(null);
+  const [savingShop, setSavingShop] = useState(false);
+
   useEffect(() => {
     if (organizationId) loadStatus();
     else setLoading(false);
@@ -41,11 +46,46 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       const { data: checkData } = await supabase.functions.invoke("save-printify-credentials", {
         body: { organizationId, action: "check" },
       });
-      if (checkData?.hasToken) setPrintifyHasToken(true);
+      if (checkData?.hasToken) {
+        setPrintifyHasToken(true);
+        loadShops();
+      }
+      // Load current shop id from org
+      if (organizationId) {
+        const { data: org } = await supabase.from("organizations").select("printify_shop_id").eq("id", organizationId).single();
+        if (org) setCurrentShopId(org.printify_shop_id);
+      }
     } catch (e) {
       // ignore
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadShops = async () => {
+    if (!organizationId) return;
+    setLoadingShops(true);
+    try {
+      const { data } = await supabase.functions.invoke("printify-get-shops", {
+        body: { organizationId },
+      });
+      setShops(data?.shops || []);
+    } catch { /* silent */ }
+    setLoadingShops(false);
+  };
+
+  const saveShopSelection = async (shopId: number | null) => {
+    if (!organizationId) return;
+    setSavingShop(true);
+    try {
+      const { error } = await supabase.from("organizations").update({ printify_shop_id: shopId }).eq("id", organizationId);
+      if (error) throw error;
+      setCurrentShopId(shopId);
+      toast.success("Printify shop updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update shop");
+    } finally {
+      setSavingShop(false);
     }
   };
 
@@ -69,6 +109,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       setPrintifyToken("");
       setEditing(false);
       toast.success("Printify token saved!");
+      loadShops();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
     } finally {
@@ -87,6 +128,8 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       setPrintifyHasToken(false);
       setEditing(false);
       setPrintifyToken("");
+      setShops([]);
+      setCurrentShopId(null);
       toast.success("Printify disconnected");
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
@@ -114,6 +157,30 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
             <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
             <span className="text-sm font-medium text-green-700 dark:text-green-300">Connected to Printify</span>
           </div>
+
+          {/* Shop Picker */}
+          <div className="space-y-2">
+            <Label>Printify Shop</Label>
+            <p className="text-xs text-muted-foreground">Link to a specific Printify shop for print-on-demand products</p>
+            {loadingShops ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading shops…</div>
+            ) : shops.length > 0 ? (
+              <select
+                value={currentShopId || ""}
+                onChange={(e) => saveShopSelection(e.target.value ? Number(e.target.value) : null)}
+                disabled={savingShop}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">Auto (first shop)</option>
+                {shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.title}</option>)}
+              </select>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={loadShops} className="gap-2">
+                <RefreshCw className="h-3.5 w-3.5" /> Load Shops
+              </Button>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => { setEditing(true); setPrintifyToken(""); }}>
               <Pencil className="h-4 w-4" /> Edit App Credentials
