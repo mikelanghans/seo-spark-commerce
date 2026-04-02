@@ -301,7 +301,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Shopify Revenue Chart */}
-        {shopifyData && shopifyData.revenueByDay.length > 0 && (
+        {shopifyData && (shopifyData.revenueByDay?.length ?? 0) > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
@@ -483,7 +483,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
         </Card>
 
         {/* Shopify Top Selling Products */}
-        {shopifyData && shopifyData.topProducts.length > 0 && (
+        {shopifyData && (shopifyData.topProducts?.length ?? 0) > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
