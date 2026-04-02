@@ -359,7 +359,25 @@ export const ProductGrid = ({
       </p>
 
       {/* Collection-grouped view */}
-      {viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
+      {viewMode === "collections" && !collectionGroups && !collectionLoading ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <FolderOpen className="h-10 w-10 text-muted-foreground" />
+          <div className="text-center space-y-1">
+            <h3 className="font-semibold text-lg">No Collections Loaded</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Sync your Shopify collections to group products by collection.
+            </p>
+          </div>
+          <Button onClick={onRefreshCollections} disabled={collectionLoading} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Sync Collections
+          </Button>
+        </div>
+      ) : viewMode === "collections" && !collectionGroups && collectionLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const isCollapsed = collapsedCollections.has(String(collection.id));
