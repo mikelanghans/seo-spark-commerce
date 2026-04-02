@@ -519,6 +519,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
+      // Ensure design variants are proper transparent PNGs
+      if (lightDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(lightDesignBase64);
+          lightDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+      if (darkDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(darkDesignBase64);
+          darkDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+
+      // Re-resolve design after cleaning since URLs may have changed
+      const cleanedDesignForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+
       let targetSize: { width: number; height: number } | null = null;
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -558,7 +575,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         generatedDataUrl,
         targetWidth: targetSize?.width || 1024,
         targetHeight: targetSize?.height || 1024,
-        designDataUrl: designForComposite,
+        designDataUrl: cleanedDesignForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
         placement: activePlacement,
