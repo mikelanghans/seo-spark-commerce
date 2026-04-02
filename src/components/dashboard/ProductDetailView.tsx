@@ -103,7 +103,7 @@ export const ProductDetailView = ({
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)}><Eye className="h-4 w-4" /> Preview</Button>
-            <input type="file" accept="image/*" className="hidden" id="replace-design-input" onChange={async (e) => {
+            <input type="file" accept="image/*" className="hidden" id="replace-light-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file || !file.type.startsWith("image/")) return;
               const newUrl = await uploadImageToStorage(file);
@@ -112,10 +112,26 @@ export const ProductDetailView = ({
               if (error) { toast.error("Failed to update design file"); return; }
               await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "light-on-dark");
               setSelectedProduct({ ...product, image_url: newUrl });
-              toast.success("Design file replaced!");
+              toast.success("Light design replaced!");
               e.target.value = "";
             }} />
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => document.getElementById("replace-design-input")?.click()}><Upload className="h-4 w-4" /> Replace</Button>
+            <input type="file" accept="image/*" className="hidden" id="replace-dark-design-input" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !file.type.startsWith("image/")) return;
+              const newUrl = await uploadImageToStorage(file);
+              if (!newUrl) return;
+              const { error } = await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light");
+              if (error) { toast.error("Failed to update dark design"); return; }
+              toast.success("Dark design replaced!");
+              e.target.value = "";
+            }} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" /> Replace</Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" /> Download</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
