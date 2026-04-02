@@ -34,6 +34,7 @@ export const DesignPlacementEditor = ({
   const [resizing, setResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [templateLoaded, setTemplateLoaded] = useState(false);
+  const [templateAspect, setTemplateAspect] = useState(1);
   const [designLoaded, setDesignLoaded] = useState(false);
   const [designAspect, setDesignAspect] = useState(1);
   const dragStartRef = useRef<{ x: number; y: number; startOffsetX: number; startOffsetY: number } | null>(null);
@@ -119,7 +120,7 @@ export const DesignPlacementEditor = ({
 
   // Compute design position in the preview
   const designWidthPct = scale * 100;
-  const designHeightPct = designWidthPct * designAspect;
+  const designHeightPct = designWidthPct * designAspect * templateAspect;
   const designLeftPct = (50 - designWidthPct / 2) + offsetX * 100;
   const designTopPct = offsetY * 100;
 
@@ -142,13 +143,19 @@ export const DesignPlacementEditor = ({
       <div
         ref={containerRef}
         className="relative mx-auto overflow-hidden rounded-lg bg-secondary select-none"
-        style={{ maxWidth: 420, aspectRatio: "1/1" }}
+          style={{ maxWidth: 420, aspectRatio: `${templateAspect}` }}
       >
         <img
           src={templateUrl}
           alt="Template"
-          className="h-full w-full object-cover"
-          onLoad={() => setTemplateLoaded(true)}
+          className="h-full w-full object-contain"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            const width = img.naturalWidth || img.width;
+            const height = img.naturalHeight || img.height;
+            setTemplateAspect(width > 0 && height > 0 ? width / height : 1);
+            setTemplateLoaded(true);
+          }}
           draggable={false}
         />
         {processingDesign && (
