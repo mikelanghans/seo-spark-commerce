@@ -497,6 +497,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+      const activePlacement = placementRef.current || placementOverride || undefined;
 
       let plainTemplate = templateBase64;
       try {
@@ -545,6 +546,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         designDataUrl: designForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
+        placement: activePlacement,
       });
 
       const path = `${userId}/${crypto.randomUUID()}.jpg`;
