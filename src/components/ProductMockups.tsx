@@ -861,10 +861,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 <Button
                   size="sm"
                   className="h-7 text-xs gap-1.5"
-                  disabled={!feedbackReason || regeneratingId === img.color_name}
+                  disabled={(!feedbackReason && !feedbackDetails.trim()) || regeneratingId === img.color_name}
                   onClick={() => {
                     const fullFeedback = feedbackDetails
-                      ? `${feedbackReason}: ${feedbackDetails}`
+                      ? feedbackReason ? `${feedbackReason}: ${feedbackDetails}` : feedbackDetails
                       : feedbackReason;
                     handleRegenerateSingle(img.color_name, fullFeedback);
                   }}
