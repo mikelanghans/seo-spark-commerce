@@ -363,6 +363,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const isLight = isLightColor(typeConfig, colorName);
           const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
+          console.log(`[mockup] ${colorName}: isLight=${isLight}, using=${isLight ? 'dark-ink' : 'light-ink'} variant, hasDesign=${!!designForComposite}, placement=${JSON.stringify(placementRef.current || placementOverride || 'default')}`);
+
+          if (!designForComposite) {
+            console.warn(`[mockup] ${colorName}: No design variant available — mockup will use AI output only`);
+          }
+
           const { data, error } = await supabase.functions.invoke("generate-color-variants", {
             body: {
               imageBase64: plainTemplate,
