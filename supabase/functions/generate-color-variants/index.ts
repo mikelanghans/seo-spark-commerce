@@ -68,6 +68,7 @@ Color target (must match): ${swatchHint}.
 - Preserve natural fabric texture and shadows while changing hue/saturation/lightness of shirt fabric
 - Keep white balance neutral; do not add color casts to the background or props
 - Do NOT leave the shirt looking black — match the specific hex value in the color target description
+- IMPORTANT: Preserve any holes, eyelets, cutouts, or distressed areas on the garment. These openings should show the background through them — do NOT fill them with dark/black pixels or fabric color. They must remain transparent/open as in the original photo
 
 ${sizeHint}
 
