@@ -305,6 +305,89 @@ function cleanCheckerboardArtifacts(
   height: number,
   totalPixels: number,
 ) {
+  // Phase 1: Detect large checkerboard regions (alternating white + gray squares).
+  // The AI sometimes renders a transparency grid instead of a solid background.
+  // We detect this by looking for a regular alternating pattern of white-ish and
+  // gray-ish pixels along rows. If a significant contiguous region matches,
+  // we mark the entire region transparent.
+  const isWhitish = (idx: number) => {
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    return pixels[idx + 3] > 200 && r > 240 && g > 240 && b > 240;
+  };
+  const isCheckerGray = (idx: number) => {
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    return pixels[idx + 3] > 200 && Math.abs(r - g) < 8 && Math.abs(g - b) < 8 && r > 170 && r < 225;
+  };
+
+  // Detect checkerboard square size by scanning top rows for alternating runs
+  let detectedSquareSize = 0;
+  for (let testSize = 4; testSize <= 32; testSize *= 2) {
+    let matchCount = 0;
+    const sampleRows = Math.min(height, testSize * 4);
+    for (let y = 0; y < sampleRows; y++) {
+      for (let x = 0; x < width - testSize * 2; x += testSize) {
+        const idx1 = (y * width + x) * 4;
+        const idx2 = (y * width + x + testSize) * 4;
+        const cell1White = isWhitish(idx1);
+        const cell1Gray = isCheckerGray(idx1);
+        const cell2White = isWhitish(idx2);
+        const cell2Gray = isCheckerGray(idx2);
+        if ((cell1White && cell2Gray) || (cell1Gray && cell2White)) {
+          matchCount++;
+        }
+      }
+    }
+    const possiblePairs = (sampleRows * Math.floor(width / testSize / 2));
+    if (possiblePairs > 0 && matchCount / possiblePairs > 0.4) {
+      detectedSquareSize = testSize;
+      break;
+    }
+  }
+
+  if (detectedSquareSize > 0) {
+    console.log(`[cleanCheckerboard] Detected checkerboard grid with ~${detectedSquareSize}px squares`);
+    // Mark all pixels that are part of the checkerboard pattern as transparent.
+    // A pixel is "checkerboard" if it's white-ish or checker-gray, and the pixel
+    // one square-size away horizontally is the opposite color.
+    const marked = new Uint8Array(totalPixels);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        const idx = i * 4;
+        if (pixels[idx + 3] === 0) continue;
+        const w = isWhitish(idx);
+        const g = isCheckerGray(idx);
+        if (!w && !g) continue;
+        // Check neighbor one square-size away
+        const nx = x + detectedSquareSize;
+        if (nx < width) {
+          const nIdx = (y * width + nx) * 4;
+          if ((w && isCheckerGray(nIdx)) || (g && isWhitish(nIdx))) {
+            marked[i] = 1;
+          }
+        }
+        const px = x - detectedSquareSize;
+        if (px >= 0) {
+          const pIdx = (y * width + px) * 4;
+          if ((w && isCheckerGray(pIdx)) || (g && isWhitish(pIdx))) {
+            marked[i] = 1;
+          }
+        }
+      }
+    }
+    let checkerRemoved = 0;
+    for (let i = 0; i < totalPixels; i++) {
+      if (marked[i]) {
+        pixels[i * 4 + 3] = 0;
+        checkerRemoved++;
+      }
+    }
+    if (checkerRemoved > 0) {
+      console.log(`[cleanCheckerboard] Removed ${checkerRemoved} checkerboard pixels (${((checkerRemoved / totalPixels) * 100).toFixed(1)}%)`);
+    }
+  }
+
+  // Phase 2: Clean up remaining isolated gray pixels near transparent areas
   for (let i = 0; i < totalPixels; i++) {
     const idx = i * 4;
     if (pixels[idx + 3] === 0) continue;
