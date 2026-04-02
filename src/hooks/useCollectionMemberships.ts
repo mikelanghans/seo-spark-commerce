@@ -17,7 +17,7 @@ export interface CollectionMembershipData {
 }
 
 const CACHE_KEY_PREFIX = "collection_memberships_";
-const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
 export function useCollectionMemberships(organizationId: string | undefined) {
   const [data, setData] = useState<CollectionMembershipData | null>(null);
