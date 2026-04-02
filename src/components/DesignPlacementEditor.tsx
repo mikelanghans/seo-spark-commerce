@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { RotateCw, Check, Loader2 } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
-import { ensureImageDataUrl } from "@/lib/mockupComposition";
+import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { smartRemoveBackground } from "@/lib/removeBackground";
 
 interface Props {
@@ -47,11 +47,18 @@ export const DesignPlacementEditor = ({
     let cancelled = false;
     setProcessingDesign(true);
     smartRemoveBackground(designUrl)
-      .then((base64) => {
-        if (!cancelled) setProcessedDesignUrl(ensureImageDataUrl(base64));
+      .then((base64) => getPreparedDesignDataUrl(ensureImageDataUrl(base64)))
+      .then((preparedUrl) => {
+        if (!cancelled) setProcessedDesignUrl(preparedUrl);
       })
       .catch(() => {
-        if (!cancelled) setProcessedDesignUrl(designUrl);
+        getPreparedDesignDataUrl(designUrl)
+          .then((preparedUrl) => {
+            if (!cancelled) setProcessedDesignUrl(preparedUrl);
+          })
+          .catch(() => {
+            if (!cancelled) setProcessedDesignUrl(designUrl);
+          });
       })
       .finally(() => {
         if (!cancelled) setProcessingDesign(false);
