@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { removeBackground, upscaleBase64Png, recolorOpaquePixels } from "@/lib/removeBackground";
+import { removeBackground, upscaleBase64Png, recolorOpaquePixels, smartRemoveBackground } from "@/lib/removeBackground";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
-  compositeDesignOntoTemplate,
+  getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
