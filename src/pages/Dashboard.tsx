@@ -274,12 +274,9 @@ const Dashboard = () => {
             orgForm={orgForm}
             setOrgForm={setOrgForm}
             orgLogoPreview={orgLogoPreview}
-            printifyShops={printifyShops}
-            loadingPrintifyShops={loadingPrintifyShops}
             userId={user!.id}
             onSubmit={handleCreateOrg}
             onBack={() => { setView("orgs"); setEditingOrg(null); resetOrgForm(); }}
-            onLoadPrintifyShops={() => loadPrintifyShops()}
             onLogoUpload={handleOrgLogoUpload}
           />
         )}
