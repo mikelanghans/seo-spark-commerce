@@ -483,7 +483,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
         </Card>
 
         {/* Shopify Top Selling Products */}
-        {shopifyData && shopifyData.topProducts.length > 0 && (
+        {shopifyData && (shopifyData.topProducts?.length ?? 0) > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
