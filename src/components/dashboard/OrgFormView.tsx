@@ -7,7 +7,7 @@ import type { Organization, View } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
 import {
-  ArrowLeft, Plus, Check, RefreshCw, Loader2, ImageIcon, Package, DollarSign,
+  ArrowLeft, Plus, Check, ImageIcon, Package, DollarSign,
 } from "lucide-react";
 
 interface Props {
