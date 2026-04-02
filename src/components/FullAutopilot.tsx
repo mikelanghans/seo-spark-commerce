@@ -108,7 +108,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
     const mockupTemplates = (organization.mockup_templates || {}) as Record<string, string>;
     const hasTemplate = !!mockupTemplates["t-shirt"];
-    const stepsPerProduct = hasTemplate ? 8 : 7; // design, product, colors, [mockups], listing, printify, shopify
+    const stepsPerProduct = hasTemplate ? 7 : 6; // design, product, colors, [mockups], listing, printify, shopify
     const totalSteps = 1 + count * stepsPerProduct;
     let completedSteps = 0;
     const tick = () => {
