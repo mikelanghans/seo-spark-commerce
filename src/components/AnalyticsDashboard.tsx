@@ -51,14 +51,19 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
 
   const loadAnalytics = async () => {
     setLoading(true);
-    await Promise.all([
-      loadMarketplaceStatus(),
-      loadAiUsageTrend(),
-      loadTopByListings(),
-      loadColorPopularity(),
-      loadShopifyAnalytics(),
-    ]);
-    setLoading(false);
+    try {
+      await Promise.all([
+        loadMarketplaceStatus().catch(e => console.error("Analytics: marketplace status", e)),
+        loadAiUsageTrend().catch(e => console.error("Analytics: ai usage", e)),
+        loadTopByListings().catch(e => console.error("Analytics: top listings", e)),
+        loadColorPopularity().catch(e => console.error("Analytics: colors", e)),
+        loadShopifyAnalytics().catch(e => console.error("Analytics: shopify", e)),
+      ]);
+    } catch (e) {
+      console.error("Analytics load failed:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadMarketplaceStatus = async () => {
@@ -271,7 +276,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                     <DollarSign className="h-4 w-4 text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">${shopifyData.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">${(shopifyData.totalRevenue ?? 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">Revenue (90d)</p>
                   </div>
                 </div>
@@ -321,7 +326,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
                     labelFormatter={(v) => new Date(v).toLocaleDateString()}
-                    formatter={(v: number) => [`$${v.toFixed(2)}`, "Revenue"]}
+                    formatter={(v: any) => [`$${Number(v || 0).toFixed(2)}`, "Revenue"]}
                   />
                   <Area
                     type="monotone"
@@ -496,7 +501,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                     </div>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
                       <span className="text-xs text-muted-foreground">{p.quantity} sold</span>
-                      <span className="font-medium">${p.revenue.toLocaleString()}</span>
+                      <span className="font-medium">${(p.revenue ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 ))}
