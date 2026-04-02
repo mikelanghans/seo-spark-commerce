@@ -132,7 +132,18 @@ export function SocialPostGenerator({
       if (handleAiError(error, data, "Failed to generate posts")) { setLoading(false); return; }
       if (data?.error) throw new Error(data.error);
 
-      setPosts(data);
+      // Normalize posts to ensure hashtags is always an array and caption is always a string
+      const normalized: Record<string, SocialPost> = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          const v = value as any;
+          normalized[key] = {
+            caption: v.caption || "",
+            hashtags: Array.isArray(v.hashtags) ? v.hashtags : [],
+          };
+        }
+      }
+      setPosts(normalized);
       if (aiUsage) await aiUsage.logUsage("generate-social-posts", userId);
       toast.success("Social posts generated!");
     } catch (e: any) {
