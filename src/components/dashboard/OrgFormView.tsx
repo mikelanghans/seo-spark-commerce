@@ -18,7 +18,7 @@ interface Props {
   userId: string;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
-  onLoadPrintifyShops: () => void;
+  
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
