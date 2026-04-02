@@ -517,6 +517,9 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
   const srcData = srcImage.data;
   const ALPHA_KEEP_THRESHOLD = 10;
 
+  // 0) Clean checkerboard transparency patterns (AI-rendered grids).
+  cleanCheckerboardInCompositing(srcData, source.width, source.height);
+
   // 1) Drop ultra-faint alpha haze that creates square/box artifacts.
   for (let i = 0; i < srcData.length; i += 4) {
     if (srcData[i + 3] < ALPHA_KEEP_THRESHOLD) srcData[i + 3] = 0;
@@ -569,6 +572,90 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
 
   cctx.drawImage(temp, minX, minY, cw, ch, 0, 0, cw, ch);
   return cropped;
+}
+
+/**
+ * Detect and remove checkerboard transparency patterns from design pixels.
+ * Mirrors the logic in removeBackground.ts but runs inline on pixel data.
+ */
+function cleanCheckerboardInCompositing(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+) {
+  const totalPixels = width * height;
+
+  const isWhitish = (idx: number) => {
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    return pixels[idx + 3] > 200 && r > 240 && g > 240 && b > 240;
+  };
+  const isCheckerGray = (idx: number) => {
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    return pixels[idx + 3] > 200 && Math.abs(r - g) < 8 && Math.abs(g - b) < 8 && r > 170 && r < 225;
+  };
+
+  let detectedSquareSize = 0;
+  for (let testSize = 4; testSize <= 32; testSize *= 2) {
+    let matchCount = 0;
+    const sampleRows = Math.min(height, testSize * 4);
+    for (let y = 0; y < sampleRows; y++) {
+      for (let x = 0; x < width - testSize * 2; x += testSize) {
+        const idx1 = (y * width + x) * 4;
+        const idx2 = (y * width + x + testSize) * 4;
+        const c1W = isWhitish(idx1), c1G = isCheckerGray(idx1);
+        const c2W = isWhitish(idx2), c2G = isCheckerGray(idx2);
+        if ((c1W && c2G) || (c1G && c2W)) matchCount++;
+      }
+    }
+    const possiblePairs = sampleRows * Math.floor(width / testSize / 2);
+    if (possiblePairs > 0 && matchCount / possiblePairs > 0.4) {
+      detectedSquareSize = testSize;
+      break;
+    }
+  }
+
+  if (detectedSquareSize > 0) {
+    console.log(`[compositing] Detected checkerboard ~${detectedSquareSize}px squares, cleaning`);
+    const marked = new Uint8Array(totalPixels);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = y * width + x;
+        const idx = i * 4;
+        if (pixels[idx + 3] === 0) continue;
+        const w = isWhitish(idx), g = isCheckerGray(idx);
+        if (!w && !g) continue;
+        const nx = x + detectedSquareSize;
+        if (nx < width) {
+          const nIdx = (y * width + nx) * 4;
+          if ((w && isCheckerGray(nIdx)) || (g && isWhitish(nIdx))) marked[i] = 1;
+        }
+        const px = x - detectedSquareSize;
+        if (px >= 0) {
+          const pIdx = (y * width + px) * 4;
+          if ((w && isCheckerGray(pIdx)) || (g && isWhitish(pIdx))) marked[i] = 1;
+        }
+      }
+    }
+    for (let i = 0; i < totalPixels; i++) {
+      if (marked[i]) pixels[i * 4 + 3] = 0;
+    }
+  }
+
+  // Clean isolated gray pixels near transparent areas
+  for (let i = 0; i < totalPixels; i++) {
+    const idx = i * 4;
+    if (pixels[idx + 3] === 0) continue;
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    const isGray = Math.abs(r - g) < 5 && Math.abs(g - b) < 5 && r > 180 && r < 220;
+    if (!isGray) continue;
+    const x = i % width, y = Math.floor(i / width);
+    let tn = 0;
+    if (y > 0 && pixels[(i - width) * 4 + 3] === 0) tn++;
+    if (y < height - 1 && pixels[(i + width) * 4 + 3] === 0) tn++;
+    if (x > 0 && pixels[(i - 1) * 4 + 3] === 0) tn++;
+    if (x < width - 1 && pixels[(i + 1) * 4 + 3] === 0) tn++;
+    if (tn >= 2) pixels[idx + 3] = 0;
+  }
 }
 
 function floodFillBackground(
