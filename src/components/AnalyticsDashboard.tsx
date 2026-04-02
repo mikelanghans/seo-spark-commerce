@@ -326,7 +326,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
                     labelFormatter={(v) => new Date(v).toLocaleDateString()}
-                    formatter={(v: number) => [`$${v.toFixed(2)}`, "Revenue"]}
+                    formatter={(v: any) => [`$${Number(v || 0).toFixed(2)}`, "Revenue"]}
                   />
                   <Area
                     type="monotone"
