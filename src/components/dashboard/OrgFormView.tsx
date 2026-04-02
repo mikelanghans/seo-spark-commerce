@@ -195,11 +195,38 @@ export const OrgFormView = ({
     </div>
 
     {/* Per-Product-Type Mockup Templates */}
-    {editingOrg && (
-      <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-xl border border-border bg-card p-5">
+      {editingOrg ? (
         <ProductTypeSettings organizationId={editingOrg.id} />
-      </div>
-    )}
+      ) : (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Mockup Templates</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Upload a base garment photo for each product type. These are used as AI mockup generation templates.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {orgForm.enabled_product_types.map((key) => {
+              const pt = PRODUCT_TYPES[key as ProductTypeKey];
+              if (!pt) return null;
+              return (
+                <div key={key} className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3 opacity-60">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
+                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{pt.label}</p>
+                    <p className="text-xs text-muted-foreground">Save brand first to upload</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
 
     {/* Size Pricing Defaults */}
     {orgForm.enabled_product_types.some((t) => PRODUCT_TYPES[t as ProductTypeKey]?.sizes?.length > 0) && (
