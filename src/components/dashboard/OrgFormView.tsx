@@ -142,21 +142,6 @@ export const OrgFormView = ({
       </div>
     </div>
 
-    {/* Printify Shop */}
-    <div className="space-y-2">
-      <Label>Printify Shop (optional)</Label>
-      <p className="text-xs text-muted-foreground">Link to a specific Printify shop for print-on-demand products</p>
-      {!loadingPrintifyShops && printifyShops.length === 0 && (
-        <Button type="button" variant="outline" size="sm" onClick={onLoadPrintifyShops} className="gap-2"><RefreshCw className="h-3.5 w-3.5" /> Load Printify Shops</Button>
-      )}
-      {loadingPrintifyShops && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading shops…</div>}
-      {printifyShops.length > 0 && (
-        <select value={orgForm.printify_shop_id || ""} onChange={(e) => setOrgForm({ ...orgForm, printify_shop_id: e.target.value ? Number(e.target.value) : null })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-          <option value="">Auto (first shop)</option>
-          {printifyShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.title}</option>)}
-        </select>
-      )}
-    </div>
 
 
     {/* Enabled Marketplaces */}
