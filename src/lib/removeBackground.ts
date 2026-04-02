@@ -84,31 +84,7 @@ export async function removeBackground(
   }
 
   // Also handle checkerboard pattern pixels
-  for (let i = 0; i < totalPixels; i++) {
-    const idx = i * 4;
-    if (pixels[idx + 3] === 0) continue; // already transparent
-
-    const r = pixels[idx];
-    const g = pixels[idx + 1];
-    const b = pixels[idx + 2];
-
-    // Detect checkerboard gray (~191 or ~204)
-    const isGray = Math.abs(r - g) < 5 && Math.abs(g - b) < 5 && r > 180 && r < 220;
-    if (!isGray) continue;
-
-    // Check if neighbors are transparent
-    const x = i % width;
-    const y = Math.floor(i / width);
-    let transparentNeighbors = 0;
-    if (y > 0 && pixels[(i - width) * 4 + 3] === 0) transparentNeighbors++;
-    if (y < height - 1 && pixels[(i + width) * 4 + 3] === 0) transparentNeighbors++;
-    if (x > 0 && pixels[(i - 1) * 4 + 3] === 0) transparentNeighbors++;
-    if (x < width - 1 && pixels[(i + 1) * 4 + 3] === 0) transparentNeighbors++;
-
-    if (transparentNeighbors >= 2) {
-      pixels[idx + 3] = 0;
-    }
-  }
+  cleanCheckerboardArtifacts(pixels, width, height, totalPixels);
 
   ctx.putImageData(imageData, 0, 0);
   return canvasToPngBase64(canvas);
