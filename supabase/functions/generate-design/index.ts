@@ -734,9 +734,19 @@ CRITICAL RULES:
       }
 
       const primaryDesignUrl = lightDesignUrl || darkDesignUrl;
+      // Only update the fields we actually generated — don't wipe an existing
+      // dark variant when regeneration is deferred (dark variant generated on-demand).
+      const updatePayload: Record<string, unknown> = { design_url: primaryDesignUrl };
+      if (darkDesignUrl !== null) {
+        updatePayload.dark_design_url = darkDesignUrl;
+      } else if (deferSecondVariant && generateLight) {
+        // Light variant was regenerated but dark was deferred — clear stale dark
+        // variant since it no longer matches the new light design.
+        updatePayload.dark_design_url = null;
+      }
       await serviceClient
         .from("generated_messages")
-        .update({ design_url: primaryDesignUrl, dark_design_url: darkDesignUrl })
+        .update(updatePayload)
         .eq("id", messageId)
         .eq("user_id", userId);
     }

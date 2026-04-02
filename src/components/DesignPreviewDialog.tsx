@@ -507,7 +507,7 @@ export const DesignPreviewDialog = ({
                 ? regenElapsed < 10
                   ? "Generating design…"
                   : regenElapsed < 40
-                    ? `Creating variants… (${regenElapsed}s)`
+                    ? `Regenerating design… (${regenElapsed}s)`
                     : `Still working… (${regenElapsed}s)`
                 : "Regenerate"}
             </Button>
