@@ -57,23 +57,23 @@ export const ProductDetailView = ({
   const productTypeKey = getProductType(product.category || "").key;
   const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
 
-  // Check connection status for Printify & Shopify via direct DB queries (silent)
+  // Check connection status for Printify & Shopify via row existence (sensitive columns are not readable)
   useEffect(() => {
     if (!selectedOrg?.id) return;
-    // Shopify – check if a connection row with an access_token exists
+    // Shopify – a row existing for this org means connected
     supabase
       .from("shopify_connections")
-      .select("id, access_token")
+      .select("id")
       .eq("organization_id", selectedOrg.id)
       .maybeSingle()
-      .then(({ data }) => setShopifyConnected(!!data?.access_token));
-    // Printify – check if an org secret row with a printify_api_token exists
+      .then(({ data }) => setShopifyConnected(!!data));
+    // Printify – a row existing for this org means connected
     supabase
       .from("organization_secrets")
-      .select("id, printify_api_token")
+      .select("id")
       .eq("organization_id", selectedOrg.id)
       .maybeSingle()
-      .then(({ data }) => setPrintifyConnected(!!data?.printify_api_token));
+      .then(({ data }) => setPrintifyConnected(!!data));
   }, [selectedOrg?.id]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
