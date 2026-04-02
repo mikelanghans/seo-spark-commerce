@@ -328,6 +328,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
+      // Ensure design variants are proper transparent PNGs before compositing.
+      // smartRemoveBackground is a no-op if the border is already transparent.
+      if (lightDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(lightDesignBase64);
+          lightDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+      if (darkDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(darkDesignBase64);
+          darkDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+
       let targetSize: { width: number; height: number } | null = null;
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -347,6 +362,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         try {
           const isLight = isLightColor(typeConfig, colorName);
           const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+
+          console.log(`[mockup] ${colorName}: isLight=${isLight}, using=${isLight ? 'dark-ink' : 'light-ink'} variant, hasDesign=${!!designForComposite}, placement=${JSON.stringify(placementRef.current || placementOverride || 'default')}`);
+
+          if (!designForComposite) {
+            console.warn(`[mockup] ${colorName}: No design variant available — mockup will use AI output only`);
+          }
 
           const { data, error } = await supabase.functions.invoke("generate-color-variants", {
             body: {
@@ -504,6 +525,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
+      // Ensure design variants are proper transparent PNGs
+      if (lightDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(lightDesignBase64);
+          lightDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+      if (darkDesignBase64) {
+        try {
+          const cleaned = await smartRemoveBackground(darkDesignBase64);
+          darkDesignBase64 = ensureImageDataUrl(cleaned);
+        } catch { /* keep as-is */ }
+      }
+
+      // Re-resolve design after cleaning since URLs may have changed
+      const cleanedDesignForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+
       let targetSize: { width: number; height: number } | null = null;
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -543,7 +581,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         generatedDataUrl,
         targetWidth: targetSize?.width || 1024,
         targetHeight: targetSize?.height || 1024,
-        designDataUrl: designForComposite,
+        designDataUrl: cleanedDesignForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
         placement: activePlacement,

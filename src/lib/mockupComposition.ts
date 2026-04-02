@@ -450,30 +450,31 @@ function stripSolidEdgeBackground(image: HTMLImageElement): HTMLCanvasElement {
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imgData.data;
 
-  // Only skip stripping when the OUTER border is already mostly transparent.
-  // Some designs (like watercolor art) contain internal transparency while still
-  // having an opaque rectangular background — global alpha checks miss that case.
+  // Skip stripping when the OUTER border is already mostly transparent —
+  // this means the design is already a proper transparent PNG. Stripping
+  // would risk removing design elements that happen to match the "background" color.
   if (hasTransparentBorder(data, canvas.width, canvas.height)) {
+    console.log("[stripSolidEdgeBackground] Border already transparent — skipping (design is a clean PNG)");
     return canvas;
   }
 
-  // Strategy 1: Try full-edge sampling (works for solid bg designs)
+  // Strategy 1: Try full-edge sampling (works for solid bg designs).
+  // Use a conservative tolerance to avoid eating into design content.
   const edge = sampleEdgeColor(data, canvas.width, canvas.height);
   if (edge) {
-    return floodFillBackground(canvas, ctx, imgData, data, edge, 36);
+    return floodFillBackground(canvas, ctx, imgData, data, edge, 30);
   }
 
-  // Strategy 2: Corner sampling (works for designs with text/art touching edges)
+  // Strategy 2: Corner sampling
   const cornerEdge = sampleCornerColor(data, canvas.width, canvas.height);
   if (cornerEdge) {
-    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 42);
+    return floodFillBackground(canvas, ctx, imgData, data, cornerEdge, 36);
   }
 
-  // Strategy 3: Try just the very outermost 2-pixel border
-  // This handles complex designs where corners also have artwork
+  // Strategy 3: outermost 2-pixel border
   const borderEdge = sampleThinBorderColor(data, canvas.width, canvas.height);
   if (borderEdge) {
-    return floodFillBackground(canvas, ctx, imgData, data, borderEdge, 48);
+    return floodFillBackground(canvas, ctx, imgData, data, borderEdge, 40);
   }
 
   return canvas;
@@ -593,6 +594,17 @@ function cleanCheckerboardInCompositing(
     const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
     return pixels[idx + 3] > 200 && Math.abs(r - g) < 8 && Math.abs(g - b) < 8 && r > 170 && r < 225;
   };
+  /**
+   * Check whether a pixel has meaningful color contrast — protect design
+   * elements (colored text, tinted graphics) from being cleaned.
+   */
+  const hasDesignContrast = (idx: number) => {
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    // If there's meaningful chrominance, this is design content, not checkerboard
+    return (max - min) > 20;
+  };
 
   let detectedSquareSize = 0;
   for (let testSize = 4; testSize <= 32; testSize *= 2) {
@@ -614,31 +626,34 @@ function cleanCheckerboardInCompositing(
     }
   }
 
-  if (detectedSquareSize > 0) {
-    console.log(`[compositing] Detected checkerboard ~${detectedSquareSize}px squares, cleaning`);
-    const marked = new Uint8Array(totalPixels);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = y * width + x;
-        const idx = i * 4;
-        if (pixels[idx + 3] === 0) continue;
-        const w = isWhitish(idx), g = isCheckerGray(idx);
-        if (!w && !g) continue;
-        const nx = x + detectedSquareSize;
-        if (nx < width) {
-          const nIdx = (y * width + nx) * 4;
-          if ((w && isCheckerGray(nIdx)) || (g && isWhitish(nIdx))) marked[i] = 1;
-        }
-        const px = x - detectedSquareSize;
-        if (px >= 0) {
-          const pIdx = (y * width + px) * 4;
-          if ((w && isCheckerGray(pIdx)) || (g && isWhitish(pIdx))) marked[i] = 1;
-        }
+  // Require a fairly strong signal — avoid false positives on designs with gray tones
+  if (detectedSquareSize === 0) return;
+
+  console.log(`[compositing] Detected checkerboard ~${detectedSquareSize}px squares, cleaning`);
+  const marked = new Uint8Array(totalPixels);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const idx = i * 4;
+      if (pixels[idx + 3] === 0) continue;
+      // Protect pixels with meaningful color — they're design content
+      if (hasDesignContrast(idx)) continue;
+      const w = isWhitish(idx), g = isCheckerGray(idx);
+      if (!w && !g) continue;
+      const nx = x + detectedSquareSize;
+      if (nx < width) {
+        const nIdx = (y * width + nx) * 4;
+        if ((w && isCheckerGray(nIdx)) || (g && isWhitish(nIdx))) marked[i] = 1;
+      }
+      const px = x - detectedSquareSize;
+      if (px >= 0) {
+        const pIdx = (y * width + px) * 4;
+        if ((w && isCheckerGray(pIdx)) || (g && isWhitish(pIdx))) marked[i] = 1;
       }
     }
-    for (let i = 0; i < totalPixels; i++) {
-      if (marked[i]) pixels[i * 4 + 3] = 0;
-    }
+  }
+  for (let i = 0; i < totalPixels; i++) {
+    if (marked[i]) pixels[i * 4 + 3] = 0;
   }
 
   // Clean isolated gray pixels near transparent areas
