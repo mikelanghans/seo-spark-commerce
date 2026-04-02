@@ -363,6 +363,15 @@ export async function getPreparedDesignSize(
   return { width: prepared.width, height: prepared.height };
 }
 
+export async function getPreparedDesignDataUrl(
+  designDataUrl: string,
+): Promise<string> {
+  const img = await loadImage(designDataUrl);
+  const cleaned = stripSolidEdgeBackground(img);
+  const prepared = prepareDesignForCompositing(cleaned);
+  return prepared.toDataURL("image/png");
+}
+
 /**
  * Compute a unified reference size from multiple design variants.
  * Uses the maximum bounding box so all variants render at the same visual scale.
