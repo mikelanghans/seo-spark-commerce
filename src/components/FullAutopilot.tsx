@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { removeBackground, upscaleBase64Png, recolorOpaquePixels } from "@/lib/removeBackground";
+import { removeBackground, upscaleBase64Png, recolorOpaquePixels, smartRemoveBackground } from "@/lib/removeBackground";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
-  compositeDesignOntoTemplate,
+  getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
@@ -323,24 +323,54 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             updateProduct(i, { step: `Generating ${recommendedColors.length} mockups...` });
 
             const sourceUrl = mockupTemplates["t-shirt"] || designUrl;
-            const referenceBase64 = await fetchImageAsBase64(sourceUrl);
+            let templateBase64 = await fetchImageAsBase64(sourceUrl);
+            const typeConfig = { lightColors: new Set(["ivory", "butter", "banana", "blossom", "orchid", "chalky mint", "island reef", "chambray", "white", "flo blue", "watermelon", "neon pink", "neon green", "lagoon blue", "yam", "terracotta", "light green", "bay", "sage"]) };
 
-            // Pre-composite design onto template so AI only needs to recolor
-            let preCompositedBase64 = referenceBase64;
-            if (designUrl && designUrl !== sourceUrl) {
-              try {
-                const designBase64 = await fetchImageAsBase64(designUrl);
-                preCompositedBase64 = await compositeDesignOntoTemplate(referenceBase64, designBase64);
-              } catch {
-                // Fall back to template without design
+            try {
+              templateBase64 = await fetchImageAsBase64(sourceUrl);
+            } catch {
+              templateBase64 = sourceUrl;
+            }
+
+            let plainTemplate = templateBase64;
+            try {
+              plainTemplate = await fetchImageAsBase64(sourceUrl);
+            } catch {
+              plainTemplate = templateBase64;
+            }
+
+            let lightDesignBase64: string | undefined;
+            let darkDesignBase64: string | undefined;
+
+            try {
+              const cleaned = await smartRemoveBackground(designUrl);
+              lightDesignBase64 = ensureImageDataUrl(cleaned);
+            } catch {
+              lightDesignBase64 = await fetchImageAsBase64(designUrl);
+            }
+
+            try {
+              const darkVariantUrl = designData.darkDesignUrl || designData.darkVariantUrl || designData.darkInkDesignUrl;
+              if (darkVariantUrl) {
+                const cleanedDark = await smartRemoveBackground(darkVariantUrl);
+                darkDesignBase64 = ensureImageDataUrl(cleanedDark);
               }
+            } catch {
+              darkDesignBase64 = undefined;
             }
 
             let targetSize: { width: number; height: number } | null = null;
             try {
-              targetSize = await getImageDimensionsFromDataUrl(referenceBase64);
+              targetSize = await getImageDimensionsFromDataUrl(templateBase64);
             } catch {
               targetSize = null;
+            }
+
+            let referenceDesignSize: { width: number; height: number } | undefined;
+            try {
+              referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+            } catch {
+              referenceDesignSize = undefined;
             }
 
             let mockupCount = 0;
@@ -353,7 +383,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 const { data: mockupData, error: mockupError } = await withRetry(() =>
                   supabase.functions.invoke("generate-color-variants", {
                     body: {
-                      imageBase64: preCompositedBase64,
+                      imageBase64: plainTemplate,
                       colorName,
                       productTitle,
                       sourceWidth: targetSize?.width ?? null,
@@ -373,15 +403,18 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 const genBase64 = mockupData.imageBase64;
                 if (!genBase64) continue;
 
+                const isLight = typeConfig.lightColors.has(colorName.toLowerCase().trim());
+                const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
                 const generatedDataUrl = ensureImageDataUrl(genBase64);
-                const blob = targetSize
-                  ? await normalizeAndLockToTemplateBlob({
-                      templateDataUrl: referenceBase64,
-                      generatedDataUrl,
-                      targetWidth: targetSize.width,
-                      targetHeight: targetSize.height,
-                    })
-                  : await dataUrlToBlob(generatedDataUrl);
+                const blob = await normalizeAndLockToTemplateBlob({
+                  templateDataUrl: plainTemplate,
+                  generatedDataUrl,
+                  targetWidth: targetSize?.width ?? 1024,
+                  targetHeight: targetSize?.height ?? 1024,
+                  designDataUrl: designForComposite,
+                  isDarkGarment: !isLight,
+                  referenceDesignSize,
+                });
 
                 const { data: sess } = await supabase.auth.getSession();
                 if (!sess.session) await supabase.auth.refreshSession();
