@@ -276,7 +276,7 @@ export function AnalyticsDashboard({ organization, userId }: Props) {
                     <DollarSign className="h-4 w-4 text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">${shopifyData.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">${(shopifyData.totalRevenue ?? 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">Revenue (90d)</p>
                   </div>
                 </div>
