@@ -92,6 +92,11 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
       setResult({ success: true });
       setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
+
+      // Update local state with the new Shopify product ID
+      if (data?.shopifyProduct?.id) {
+        onProductUpdate?.({ shopify_product_id: data.shopifyProduct.id });
+      }
     } catch (err: any) {
       const msg = err.message || "Failed to push to Shopify";
       if (msg.includes("No Shopify connection") || msg.includes("credentials")) {
