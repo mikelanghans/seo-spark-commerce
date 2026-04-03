@@ -66,7 +66,7 @@ serve(async (req) => {
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${updateFields || "all"}`);
 
     // For updates, delete existing images first so we get clean mockups
-    if (isUpdate && imageEntries.length > 0) {
+    if (isUpdate && shouldUpdateImages && imageEntries.length > 0) {
       await deleteExistingImages(domain, connection.access_token, existingShopifyId);
     }
 
