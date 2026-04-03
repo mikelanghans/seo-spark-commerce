@@ -1068,7 +1068,20 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               </p>
             </button>
           ) : (
-            renderMockupGrid(true)
+            <div className="space-y-3">
+              <div className="flex items-center justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }}
+                  className="gap-2"
+                  disabled={!sourceImageUrl}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add More Colors
+                </Button>
+              </div>
+              {renderMockupGrid(true)}
+            </div>
           )}
         </>
       )}
