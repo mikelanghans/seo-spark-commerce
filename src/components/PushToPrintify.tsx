@@ -595,8 +595,8 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                     <span className="bg-background px-2 text-muted-foreground">or create new</span>
                   </div>
                 </div>
-                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm space-y-1">
-                  <p className="font-medium text-yellow-600 dark:text-yellow-400">⚠ When is a new product needed?</p>
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm space-y-1">
+                  <p className="font-medium text-destructive">⚠ When is a new product needed?</p>
                   <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                     <li><strong>Design changes</strong> — Printify locks the print file to the product; updating the design requires a new listing.</li>
                     <li><strong>Color variant changes</strong> — adding or removing colors changes the variant matrix, which can't be patched.</li>
