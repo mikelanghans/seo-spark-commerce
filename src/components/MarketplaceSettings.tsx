@@ -178,13 +178,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       if (ebayConn) {
         const { error } = await supabase
           .from("ebay_connections")
-          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
+          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
           .eq("id", ebayConn.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("ebay_connections")
-          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv } as any);
+          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv } as any);
         if (error) throw error;
       }
       setEbayCredsSaved(true);
