@@ -31,7 +31,7 @@ serve(async (req) => {
       darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price, sizePricing,
       blueprintId, printProviderId, productId, printifyProductId,
-      organizationId, action,
+      organizationId, action, publish,
     } = body;
 
     // Try org-level token first, then fall back to env var
@@ -389,6 +389,22 @@ serve(async (req) => {
 
     if (createdProduct.id && productId) {
       await adminClient.from("products").update({ printify_product_id: createdProduct.id }).eq("id", productId);
+    }
+
+    // Publish if requested
+    if (publish && createdProduct.id) {
+      console.log(`Publishing product ${createdProduct.id} on Printify...`);
+      const publishRes = await fetch(
+        `https://api.printify.com/v1/shops/${effectiveShopId}/products/${createdProduct.id}/publish.json`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ title: true, description: true, images: true, variants: true, tags: true }),
+        }
+      );
+      if (!publishRes.ok) {
+        console.error(`Publish failed: ${publishRes.status} ${await publishRes.text()}`);
+      }
     }
 
     return new Response(JSON.stringify({
