@@ -56,7 +56,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     try {
       const [etsyRes, ebayRes, orgRes] = await Promise.all([
         supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("ebay_connections").select("id, user_id, client_id, ru_name, environment, token_expires_at, created_at, updated_at").eq("user_id", userId).maybeSingle(),
         organizationId
           ? supabase.from("organizations").select("id").eq("id", organizationId).single()
           : Promise.resolve({ data: null }),
@@ -79,7 +79,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           id: d.id,
           client_id: d.client_id,
           environment: d.environment,
-          has_token: !!d.access_token,
+          has_token: !!d.token_expires_at,
         });
         setEbayClientId(d.client_id || "");
         setEbayClientSecret(d.client_secret || "");
