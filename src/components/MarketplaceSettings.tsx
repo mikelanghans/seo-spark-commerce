@@ -182,20 +182,23 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     setSavingEbay(true);
     try {
       // Upsert credentials into ebay_connections (no token yet)
-      if (ebayConn) {
-        const { error } = await supabase
-          .from("ebay_connections")
-          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
-          .eq("id", ebayConn.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("ebay_connections")
-          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv } as any);
-        if (error) throw error;
-      }
+      const payload = {
+        user_id: userId,
+        client_id: ebayClientId,
+        client_secret: ebayClientSecret,
+        ru_name: ebayRuName,
+        environment: ebayEnv,
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      const { error } = ebayConn
+        ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id)
+        : await supabase.from("ebay_connections").upsert(payload, { onConflict: "user_id" });
+      if (error) throw error;
+
       setEbayCredsSaved(true);
       toast.success("eBay credentials saved! Now authorize your account.");
+      await loadConnections();
     } catch (e: any) {
       toast.error(e.message || "Failed to save eBay credentials");
     } finally {
