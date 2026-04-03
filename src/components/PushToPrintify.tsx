@@ -572,57 +572,16 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
 
             {/* Existing product: update fields selector */}
             {isExisting && (
-              <div className="space-y-3 rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between">
-                  <Label className="font-medium">Update existing product</Label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedUpdateFields(
-                        allFieldsSelected ? [] : ALL_UPDATE_FIELDS.map(f => f.key)
-                      )
-                    }
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {allFieldsSelected ? "Deselect all" : "Select all"}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Choose which data to sync to your existing Printify listing.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_UPDATE_FIELDS.map((field) => (
-                    <label
-                      key={field.key}
-                      className="flex items-center gap-2 rounded-md border border-border px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedUpdateFields.includes(field.key)}
-                        onCheckedChange={() => toggleUpdateField(field.key)}
-                      />
-                      <span className="text-sm">{field.label}</span>
-                    </label>
-                  ))}
-                </div>
-                <Button
-                  onClick={handleUpdate}
-                  disabled={updating || selectedUpdateFields.length === 0}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  {updating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Updating on Printify...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4" />
-                      Update Existing Product
-                    </>
-                  )}
-                </Button>
-              </div>
+              <UpdateFieldSelector
+                fields={PRINTIFY_UPDATE_FIELDS}
+                selectedFields={selectedUpdateFields}
+                onToggleField={toggleUpdateField}
+                onSelectAll={() => setSelectedUpdateFields(PRINTIFY_UPDATE_FIELDS.map(f => f.key))}
+                onDeselectAll={() => setSelectedUpdateFields([])}
+                onUpdate={handleUpdate}
+                updating={updating}
+                platformName="Printify"
+              />
             )}
 
             {/* Divider for existing products */}
