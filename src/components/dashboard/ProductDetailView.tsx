@@ -201,23 +201,25 @@ export const ProductDetailView = ({
           </div>
         </TabsContent>
 
-        <div className="rounded-xl border border-border bg-card p-5">
-          <SmartPricing
-            product={{ title: product.title, description: product.description, category: product.category, keywords: product.keywords, price: product.price, features: product.features || "" }}
-            business={{ name: selectedOrg?.name || "", niche: selectedOrg?.niche || "", audience: selectedOrg?.audience || "", tone: selectedOrg?.tone || "" }}
-            onApplyPrice={async (price) => {
-              await supabase.from("products").update({ price }).eq("id", product.id);
-              setSelectedProduct({ ...product, price });
-              if (selectedOrg) loadProducts(selectedOrg.id);
-              if (product.shopify_product_id) {
-                try { await supabase.functions.invoke("update-shopify-product", { body: { shopifyProductId: product.shopify_product_id, organizationId: selectedOrg?.id, updates: { price, size_pricing: product.size_pricing || undefined } } }); toast.success("Price synced to Shopify"); } catch (err) { console.error("Shopify price sync failed:", err); toast.error("Price saved locally but Shopify sync failed"); }
-              }
-              if (product.printify_product_id && selectedOrg) {
-                try { await supabase.functions.invoke("printify-create-product", { body: { action: "update-price", printifyProductId: product.printify_product_id, organizationId: selectedOrg.id, price, sizePricing: product.size_pricing || undefined } }); toast.success("Price synced to Printify"); } catch (err) { console.error("Printify price sync failed:", err); toast.error("Price saved locally but Printify sync failed"); }
-              }
-            }}
-          />
-        </div>
+        <TabsContent value="pricing">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <SmartPricing
+              product={{ title: product.title, description: product.description, category: product.category, keywords: product.keywords, price: product.price, features: product.features || "" }}
+              business={{ name: selectedOrg?.name || "", niche: selectedOrg?.niche || "", audience: selectedOrg?.audience || "", tone: selectedOrg?.tone || "" }}
+              onApplyPrice={async (price) => {
+                await supabase.from("products").update({ price }).eq("id", product.id);
+                setSelectedProduct({ ...product, price });
+                if (selectedOrg) loadProducts(selectedOrg.id);
+                if (product.shopify_product_id) {
+                  try { await supabase.functions.invoke("update-shopify-product", { body: { shopifyProductId: product.shopify_product_id, organizationId: selectedOrg?.id, updates: { price, size_pricing: product.size_pricing || undefined } } }); toast.success("Price synced to Shopify"); } catch (err) { console.error("Shopify price sync failed:", err); toast.error("Price saved locally but Shopify sync failed"); }
+                }
+                if (product.printify_product_id && selectedOrg) {
+                  try { await supabase.functions.invoke("printify-create-product", { body: { action: "update-price", printifyProductId: product.printify_product_id, organizationId: selectedOrg.id, price, sizePricing: product.size_pricing || undefined } }); toast.success("Price synced to Printify"); } catch (err) { console.error("Printify price sync failed:", err); toast.error("Price saved locally but Printify sync failed"); }
+                }
+              }}
+            />
+          </div>
+        </TabsContent>
 
         <TabsContent value="listings" className="space-y-4">
           {!canAccess(effectiveTier, "ai-listings") ? (
