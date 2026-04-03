@@ -179,6 +179,7 @@ export async function uploadAndAssociateImages(
   imageEntries: { url: string; alt: string; colorName?: string }[],
   variants: { id: number; option1?: string }[],
   actualColorVariants: { colorName: string; imageUrl: string }[],
+  productTitle?: string,
 ) {
   const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
 
