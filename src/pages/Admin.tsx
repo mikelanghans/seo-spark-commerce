@@ -102,7 +102,49 @@ export default function Admin() {
     }
   };
 
-  if (loading) {
+  const fetchSpendData = async () => {
+    setSpendLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("check-ai-spend", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw error;
+      setSpendData(data);
+      setThresholdLimit(String(data?.limit ?? "0.75"));
+      setThresholdPct(String(Math.round((data?.threshold / data?.limit) * 100) || 80));
+    } catch (err: any) {
+      console.error("Failed to fetch spend data:", err);
+    } finally {
+      setSpendLoading(false);
+    }
+  };
+
+  const saveThreshold = async () => {
+    setSavingThreshold(true);
+    try {
+      const { error } = await supabase
+        .from("admin_settings" as any)
+        .update({
+          value: {
+            monthly_limit: parseFloat(thresholdLimit) || 0.75,
+            notify_at_pct: parseInt(thresholdPct) || 80,
+          },
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("key", "ai_spend_threshold");
+      if (error) throw error;
+      toast.success("Spend threshold updated");
+      fetchSpendData();
+    } catch (err: any) {
+      toast.error("Failed to save threshold");
+      console.error(err);
+    } finally {
+      setSavingThreshold(false);
+    }
+  };
+
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
