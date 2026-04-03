@@ -12,10 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, CheckCircle2, Printer, Store } from "lucide-react";
+import { Loader2, CheckCircle2, Printer } from "lucide-react";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
-import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
-import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
 
 interface Product {
@@ -90,7 +88,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
-  const [alsoUpdateShopify, setAlsoUpdateShopify] = useState(!!product.shopify_product_id);
+  const [alsoUpdateShopify] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [publishOnPrintify, setPublishOnPrintify] = useState(false);
 
@@ -351,53 +349,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
 
-      const printifyMsg = `Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`;
-
-      // Also push mockups to Shopify if toggled on
-      if (alsoUpdateShopify && mockups.length > 0) {
-        try {
-          toast.info("Pushing mockup images to Shopify...");
-          const rawVariants = mockups.map((m) => ({
-            colorName: m.color_name,
-            imageUrl: m.image_url,
-          }));
-          const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
-
-          const typeConfig = getProductType(product.category || "");
-          if (typeConfig.sizeChartUrl) {
-            optimizedVariants.push({ colorName: "Size Chart", imageUrl: typeConfig.sizeChartUrl });
-          }
-
-          const shopifyListing = listings.find((l) => l.marketplace === "shopify");
-          const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
-            body: {
-              organizationId,
-              product: {
-                id: product.id,
-                title: product.title,
-                description: product.description,
-                category: product.category,
-                price: product.price,
-                keywords: product.keywords,
-                shopify_product_id: product.shopify_product_id,
-              },
-              listings: shopifyListing ? [shopifyListing] : listings,
-              imageUrl: product.image_url,
-              variants: optimizedVariants,
-            },
-          });
-
-          if (shopifyError || shopifyData?.error) {
-            toast.error("Printify created but Shopify mockup push failed: " + (shopifyData?.error || shopifyError?.message));
-          } else {
-            toast.success(printifyMsg + " Mockups also updated on Shopify!");
-          }
-        } catch (shopifyErr: any) {
-          toast.error("Printify created but Shopify push failed: " + (shopifyErr.message || "Unknown error"));
-        }
-      } else {
-        toast.success(printifyMsg);
-      }
+      toast.success(`Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`);
 
       setResult({ success: true });
       setOpen(false);
@@ -608,18 +560,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </>
             )}
 
-            {hasMockups && (
-              <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2">
-                  <Store className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Also update Shopify mockups</p>
-                    <p className="text-xs text-muted-foreground">Push AI mockup images to your Shopify listing</p>
-                  </div>
-                </div>
-                <Switch checked={alsoUpdateShopify} onCheckedChange={setAlsoUpdateShopify} />
-              </div>
-            )}
 
             {/* Publish toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
