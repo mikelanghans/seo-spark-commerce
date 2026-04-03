@@ -82,10 +82,10 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           has_token: !!d.token_expires_at,
         });
         setEbayClientId(d.client_id || "");
-        setEbayClientSecret(d.client_secret || "");
+        // client_secret is hidden from SELECT for security; leave blank but mark as saved
         setEbayRuName(d.ru_name || "");
         setEbayEnv(d.environment || "sandbox");
-        if (d.client_id && d.client_secret && d.ru_name) {
+        if (d.client_id && d.ru_name) {
           setEbayCredsSaved(true);
         }
       }
@@ -406,7 +406,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
               </div>
               <div>
                 <Label>Cert ID (Client Secret)</Label>
-                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Cert ID" />
+                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder={ebayConn ? "••••••••  (saved — enter new value to change)" : "Your eBay Cert ID"} />
               </div>
               <div>
                 <Label>RuName (Redirect URL Name)</Label>
