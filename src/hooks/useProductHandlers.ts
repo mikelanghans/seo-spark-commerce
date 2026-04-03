@@ -236,6 +236,7 @@ export function useProductHandlers(
     selectedMarketplaces, setSelectedMarketplaces,
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
+    showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     getFilteredProducts, allTags, handleAddTag, handleRemoveTag,
