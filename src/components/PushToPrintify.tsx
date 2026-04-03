@@ -90,7 +90,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [printProviderId, setPrintProviderId] = useState<number | null>(null);
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
-  const [alsoUpdateShopify, setAlsoUpdateShopify] = useState(!!product.shopify_product_id);
+  const [alsoUpdateShopify] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [publishOnPrintify, setPublishOnPrintify] = useState(false);
 
