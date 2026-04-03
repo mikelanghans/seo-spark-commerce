@@ -340,6 +340,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
           organizationId,
+          publish: publishOnPrintify,
         },
       });
 
