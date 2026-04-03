@@ -11,6 +11,8 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { SmartPricing } from "@/components/SmartPricing";
+import { SizePricingEditor } from "@/components/SizePricingEditor";
+import type { ProductTypeKey } from "@/lib/productTypes";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
