@@ -74,7 +74,7 @@ export const DesignPlacementEditor = ({
 
   const handleReset = () => {
     setScale(defaultScale);
-    setOffsetX(0.015);
+    setOffsetX(0);
     setOffsetY(0.20);
   };
 
