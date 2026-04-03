@@ -200,6 +200,9 @@ export default function Admin() {
         <Tabs defaultValue="overview">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="spend" onClick={() => { if (!spendData) fetchSpendData(); }}>
+              AI Spend
+            </TabsTrigger>
             <TabsTrigger value="errors" onClick={() => { if (errorLogs.length === 0) fetchErrorLogs(); }}>
               Error Logs
             </TabsTrigger>
