@@ -56,11 +56,8 @@ export function buildShopifyProduct(
   };
 
   if (hasVariants) {
-    // On updates, do NOT send options — Shopify errors if you try to change option values
-    // that are already in use by existing variants. Only send on create.
-    if (!isUpdate) {
-      shopifyProduct.options = [{ name: "Color" }];
-    }
+    // Always include options declaration — Shopify requires it when variants have option1
+    shopifyProduct.options = [{ name: "Color" }];
 
     // When updating, match existing variant IDs by color name to preserve them.
     // Only include variants that already exist on Shopify to avoid option conflicts.
