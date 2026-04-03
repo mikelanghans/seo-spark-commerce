@@ -946,7 +946,37 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               <ChevronLeft className="h-3.5 w-3.5" /> Done
             </Button>
           )}
-          {!genStep && (
+          {!genStep && images.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadAllMockups}
+                className="gap-2"
+              >
+                <Download className="h-3.5 w-3.5" /> Download All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Upload
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }}
+                className="gap-2"
+                disabled={!sourceImageUrl}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Generate
+              </Button>
+            </>
+          )}
+          {!genStep && images.length === 0 && (
             <>
               <Button
                 variant="outline"
