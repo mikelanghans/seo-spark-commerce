@@ -61,6 +61,25 @@ export const ShopifyPushPreview = ({
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadingMockups, setLoadingMockups] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const isExisting = !!product.shopify_product_id;
+
+  const SHOPIFY_UPDATE_FIELDS = [
+    { key: "title", label: "Title" },
+    { key: "description", label: "Description" },
+    { key: "tags", label: "Tags" },
+    { key: "seo", label: "SEO" },
+    { key: "images", label: "Images" },
+  ];
+  const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
+    SHOPIFY_UPDATE_FIELDS.map(f => f.key)
+  );
+  const toggleUpdateField = (field: string) => {
+    setSelectedUpdateFields(prev =>
+      prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
+    );
+  };
 
   const shopifyListing = listings?.find((l) => l.marketplace === "shopify");
   const listing = shopifyListing || listings?.[0];
