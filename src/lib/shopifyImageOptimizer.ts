@@ -35,8 +35,9 @@ export const optimizeImageForShopify = (
           );
         });
 
-        const safeName = colorName.replace(/\s+/g, "-").toLowerCase();
-        const path = `${userId}/shopify-optimized/${productId}/${safeName}-${Date.now()}.jpg`;
+        const safeName = colorName.replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+        const safeProduct = productId.substring(0, 8);
+        const path = `${userId}/shopify-optimized/${safeProduct}/${safeName}-${Date.now()}.jpg`;
 
         const { error: upErr } = await supabase.storage
           .from("product-images")
