@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw } from "lucide-react";
+import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { DesignPlacement } from "@/lib/mockupComposition";
@@ -93,6 +93,37 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
   const availablePalette = availableColors.map(c => c.name).join(", ");
+
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Failed to download image");
+    }
+  };
+
+  const downloadAllMockups = async () => {
+    if (images.length === 0) return;
+    toast.info(`Downloading ${images.length} mockups…`);
+    const slug = productTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const colorSlug = (img.color_name || "mockup").replace(/\s+/g, "-").toLowerCase();
+      await downloadImage(img.image_url, `${slug}_${colorSlug}.jpg`);
+      // Small delay between downloads to avoid browser blocking
+      if (i < images.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+    toast.success("All mockups downloaded!");
+  };
 
   useEffect(() => {
     loadImages();
@@ -799,6 +830,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 >
                   <Edit2 className="h-3 w-3" />
                 </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
+                  onClick={() => {
+                    const colorSlug = (img.color_name || "mockup").replace(/\s+/g, "-").toLowerCase();
+                    const slug = productTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+                    downloadImage(img.image_url, `${slug}_${colorSlug}.jpg`);
+                  }}
+                  title="Download mockup"
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
                 {showFeedback && (
                   <Button
                     size="icon"
@@ -902,7 +946,37 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               <ChevronLeft className="h-3.5 w-3.5" /> Done
             </Button>
           )}
-          {!genStep && (
+          {!genStep && images.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadAllMockups}
+                className="gap-2"
+              >
+                <Download className="h-3.5 w-3.5" /> Download All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="gap-2"
+              >
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Upload
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { setGenStep("choose-colors"); setAiRecommendations([]); setSelectedColors([]); }}
+                className="gap-2"
+                disabled={!sourceImageUrl}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Generate
+              </Button>
+            </>
+          )}
+          {!genStep && images.length === 0 && (
             <>
               <Button
                 variant="outline"
