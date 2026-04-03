@@ -338,7 +338,7 @@ export const ProductDetailView = ({
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} />
+                    <PushToShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} />
                   ))}
 
                   {showPrintify && (printifyConnected === false ? (

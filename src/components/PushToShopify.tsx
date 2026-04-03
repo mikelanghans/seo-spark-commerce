@@ -42,9 +42,10 @@ interface Props {
   listings: Listing[];
   userId: string;
   organizationId?: string;
+  onProductUpdate?: (updates: Partial<Product>) => void;
 }
 
-export const PushToShopify = ({ product, listings, userId, organizationId }: Props) => {
+export const PushToShopify = ({ product, listings, userId, organizationId, onProductUpdate }: Props) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
@@ -91,6 +92,11 @@ export const PushToShopify = ({ product, listings, userId, organizationId }: Pro
       setResult({ success: true });
       setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
+
+      // Update local state with the new Shopify product ID
+      if (data?.shopifyProduct?.id) {
+        onProductUpdate?.({ shopify_product_id: data.shopifyProduct.id });
+      }
     } catch (err: any) {
       const msg = err.message || "Failed to push to Shopify";
       if (msg.includes("No Shopify connection") || msg.includes("credentials")) {
