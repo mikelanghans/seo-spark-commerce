@@ -175,8 +175,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   };
 
   const saveEbayCreds = async () => {
-    if (!ebayClientId.trim() || !ebayClientSecret.trim() || !ebayRuName.trim()) {
-      toast.error("Client ID, Client Secret, and RuName are all required");
+    if (!ebayClientId.trim() || !ebayRuName.trim()) {
+      toast.error("Client ID and RuName are required");
+      return;
+    }
+    // Require secret on first save only
+    if (!ebayConn && !ebayClientSecret.trim()) {
+      toast.error("Client Secret is required");
       return;
     }
     setSavingEbay(true);
@@ -185,11 +190,15 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const payload = {
         user_id: userId,
         client_id: ebayClientId,
-        client_secret: ebayClientSecret,
         ru_name: ebayRuName,
         environment: ebayEnv,
         updated_at: new Date().toISOString(),
       } as any;
+
+      // Only include client_secret if user entered a new value
+      if (ebayClientSecret.trim()) {
+        payload.client_secret = ebayClientSecret;
+      }
 
       const { error } = ebayConn
         ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id)
