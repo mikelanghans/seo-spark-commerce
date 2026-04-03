@@ -286,7 +286,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
       if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
-      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
+      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); setEbayRuName(""); }
       toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
