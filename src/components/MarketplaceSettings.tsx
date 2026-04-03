@@ -398,6 +398,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
                 <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Cert ID" />
               </div>
               <div>
+                <Label>RuName (Redirect URL Name)</Label>
+                <Input value={ebayRuName} onChange={(e) => setEbayRuName(e.target.value)} placeholder="e.g. Your_Brand-YourApp-SBX-xxxxxxxx" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Found in eBay Developer Portal → User Tokens → Get a Token from eBay via Your Application
+                </p>
+              </div>
+              <div>
                 <Label>Environment</Label>
                 <select
                   value={ebayEnv}
