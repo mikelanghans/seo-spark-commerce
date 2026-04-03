@@ -1,6 +1,6 @@
 import { CREDIT_COSTS } from "@/lib/creditCosts";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle } from "lucide-react";
+import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle, CreditCard } from "lucide-react";
 
 const COST_GROUPS = [
   {
