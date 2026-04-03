@@ -33,6 +33,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
   const [purchasedCredits, setPurchasedCredits] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const subscriptionLoaded = subscriptionCreditsLimit !== undefined;
   const tierLimit = subscriptionCreditsLimit ?? FREE_TIER_LIMIT;
 
   const fetchUsage = useCallback(async () => {
