@@ -32,27 +32,41 @@ export function buildShopifyProduct(
   colorVariants: { colorName: string; imageUrl: string }[],
   price: string,
   isUpdate = false,
+  updateFields?: string[],
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
 
-  const shopifyProduct: Record<string, unknown> = {
-    title: shopifyListing?.title || product.title,
-    body_html: bodyHtml || `<p>${product.description || ""}</p>`,
-    product_type: product.category,
-    status: shopifyStatus === "draft" ? "draft" : "active",
-    tags: (() => {
+  // If updateFields is provided, only include those fields
+  const include = (field: string) => !updateFields || updateFields.includes(field);
+
+  const shopifyProduct: Record<string, unknown> = {};
+
+  if (include("title")) {
+    shopifyProduct.title = shopifyListing?.title || product.title;
+  }
+  if (include("description")) {
+    shopifyProduct.body_html = bodyHtml || `<p>${product.description || ""}</p>`;
+  }
+  if (include("title") || !updateFields) {
+    shopifyProduct.product_type = product.category;
+    shopifyProduct.status = shopifyStatus === "draft" ? "draft" : "active";
+  }
+  if (include("tags")) {
+    shopifyProduct.tags = (() => {
       let tagList: string[] = [];
       if (Array.isArray(shopifyListing?.tags)) tagList = shopifyListing.tags;
       else if (typeof shopifyListing?.tags === "string") tagList = shopifyListing.tags.split(",").map((t: string) => t.trim());
       if (!tagList.length && product.keywords) tagList = product.keywords.split(",").map((t: string) => t.trim());
       if (!tagList.includes("T-shirts")) tagList.push("T-shirts");
       return tagList.join(", ");
-    })(),
-    handle: shopifyListing?.url_handle || undefined,
-    metafields_global_title_tag: shopifyListing?.seo_title || undefined,
-    metafields_global_description_tag: shopifyListing?.seo_description || undefined,
-  };
+    })();
+  }
+  if (include("seo")) {
+    shopifyProduct.handle = shopifyListing?.url_handle || undefined;
+    shopifyProduct.metafields_global_title_tag = shopifyListing?.seo_title || undefined;
+    shopifyProduct.metafields_global_description_tag = shopifyListing?.seo_description || undefined;
+  }
 
   if (!isUpdate && hasVariants) {
     shopifyProduct.options = [{ name: "Color" }];
