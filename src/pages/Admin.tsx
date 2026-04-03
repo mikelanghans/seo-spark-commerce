@@ -52,6 +52,13 @@ export default function Admin() {
   const [errorSource, setErrorSource] = useState("all");
   const [expandedError, setExpandedError] = useState<string | null>(null);
 
+  // AI spend monitoring state
+  const [spendData, setSpendData] = useState<any>(null);
+  const [spendLoading, setSpendLoading] = useState(false);
+  const [thresholdLimit, setThresholdLimit] = useState("0.75");
+  const [thresholdPct, setThresholdPct] = useState("80");
+  const [savingThreshold, setSavingThreshold] = useState(false);
+
   useEffect(() => {
     const fetchMetrics = async () => {
       if (!user) return;
