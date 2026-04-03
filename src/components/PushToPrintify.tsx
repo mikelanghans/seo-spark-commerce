@@ -394,6 +394,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setResult({ success: true });
       setOpen(false);
     } catch (err: any) {
+      console.error("PushToPrintify handleUpdate error:", err);
       toast.error(err.message || "Failed to update on Printify");
     } finally {
       setUpdating(false);
