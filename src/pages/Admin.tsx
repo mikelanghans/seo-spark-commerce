@@ -285,6 +285,147 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="spend" className="space-y-6 mt-6">
+            {spendLoading && !spendData ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* Current spend status */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">
+                            ${spendData?.estimated_spend?.toFixed(4) ?? "0.00"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Estimated spend this month</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <Activity className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-2xl font-bold text-foreground">
+                            {spendData?.total_calls?.toLocaleString() ?? 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">AI calls this month</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className={`h-5 w-5 ${
+                          spendData?.status === "exceeded" ? "text-destructive" 
+                          : spendData?.status === "warning" ? "text-yellow-500" 
+                          : "text-green-500"
+                        }`} />
+                        <div>
+                          <p className="text-2xl font-bold text-foreground capitalize">
+                            {spendData?.status ?? "OK"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Spend status</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Progress bar */}
+                {spendData && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Spend vs. limit</span>
+                          <span className="font-mono font-medium text-foreground">
+                            ${spendData.estimated_spend?.toFixed(2)} / ${spendData.limit?.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="h-3 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              spendData.status === "exceeded" ? "bg-destructive"
+                              : spendData.status === "warning" ? "bg-yellow-500"
+                              : "bg-primary"
+                            }`}
+                            style={{ width: `${Math.min(100, (spendData.estimated_spend / spendData.limit) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Notification triggers at {thresholdPct}% (${(spendData.limit * parseInt(thresholdPct) / 100).toFixed(2)})
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Configure threshold */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      Spend Alert Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="limit">Monthly budget limit (USD)</Label>
+                        <Input
+                          id="limit"
+                          type="number"
+                          step="0.25"
+                          min="0.25"
+                          value={thresholdLimit}
+                          onChange={(e) => setThresholdLimit(e.target.value)}
+                          placeholder="0.75"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Your estimated monthly Cloud AI budget
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pct">Alert at % of budget</Label>
+                        <Input
+                          id="pct"
+                          type="number"
+                          step="5"
+                          min="50"
+                          max="100"
+                          value={thresholdPct}
+                          onChange={(e) => setThresholdPct(e.target.value)}
+                          placeholder="80"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          You'll get a notification when spend reaches this percentage
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button onClick={saveThreshold} disabled={savingThreshold} size="sm">
+                        {savingThreshold ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : null}
+                        Save Threshold
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={fetchSpendData} disabled={spendLoading}>
+                        <RefreshCw className={`h-3.5 w-3.5 mr-2 ${spendLoading ? "animate-spin" : ""}`} />
+                        Refresh Spend
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+
           <TabsContent value="errors" className="space-y-6 mt-6">
             {/* Filters */}
             <div className="flex items-center gap-3 flex-wrap">
