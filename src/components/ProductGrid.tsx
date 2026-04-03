@@ -255,6 +255,20 @@ export const ProductGrid = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Persistent sync button */}
+          {onRefreshCollections && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefreshCollections}
+              disabled={collectionLoading}
+              className="gap-1.5"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", collectionLoading && "animate-spin")} />
+              <span className="hidden sm:inline">Sync</span>
+            </Button>
+          )}
+
           {/* Bulk actions from parent */}
           {children}
         </div>
