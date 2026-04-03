@@ -145,6 +145,7 @@ Generate listings for all products at once from the products list view.
 - Automatic color name matching using the `MOCKUP_TO_PRINTIFY` dictionary
 - Dynamic variant and print area fetching from Printify's catalog API
 - Prioritizes Printify Choice (provider 99) when available
+- **Auto-match on Shopify import** — after importing products from Shopify, the app automatically fetches your Printify catalog and suggests matches by title. Confirm the matches in a dialog to link `printify_product_id` without manual entry.
 
 ### Etsy
 - OAuth-based connection with PKCE flow
