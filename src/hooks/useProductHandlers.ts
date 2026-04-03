@@ -23,6 +23,7 @@ export function useProductHandlers(
   // Import state
   const [importingShopify, setImportingShopify] = useState(false);
   const importAbortRef = useRef<AbortController | null>(null);
+  const [showPrintifyMatch, setShowPrintifyMatch] = useState(false);
 
   // Generate/push all state
   const [generatingAll, setGeneratingAll] = useState(false);
