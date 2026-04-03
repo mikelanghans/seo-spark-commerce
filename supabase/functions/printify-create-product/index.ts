@@ -55,10 +55,10 @@ serve(async (req) => {
       });
     }
 
-    // Handle price-only update action
-    if (action === "update-price") {
+    // Handle selective update action
+    if (action === "update-price" || action === "update") {
       const pPrintifyProductId = body.printifyProductId;
-      if (!pPrintifyProductId) throw new Error("printifyProductId is required for price update");
+      if (!pPrintifyProductId) throw new Error("printifyProductId is required for update");
 
       // Look up the shop ID from the organization
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -70,35 +70,72 @@ serve(async (req) => {
       const fetchRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
         headers: { Authorization: `Bearer ${printifyToken}` },
       });
-      if (!fetchRes.ok) throw new Error(`Failed to fetch Printify product: ${fetchRes.status}`);
+      if (!fetchRes.ok) {
+        if (fetchRes.status === 404) {
+          // Product was deleted on Printify — clear the stored ID
+          if (body.productId) {
+            await adminClient.from("products").update({ printify_product_id: null }).eq("id", body.productId);
+          }
+          throw new Error("Product not found on Printify (404). ID has been cleared — you can push as a new product.");
+        }
+        throw new Error(`Failed to fetch Printify product: ${fetchRes.status}`);
+      }
       const printifyProduct = await fetchRes.json();
 
-      const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
-      const sizePriceCents: Record<string, number> = {};
-      if (body.sizePricing && typeof body.sizePricing === "object") {
-        for (const [size, p] of Object.entries(body.sizePricing)) {
-          const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
-          if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
-        }
+      // Build selective update payload
+      const updatePayload: Record<string, unknown> = {};
+
+      // Which fields to update — default to all for backward compat with "update-price"
+      const fields: string[] = body.updateFields || ["pricing"];
+
+      if (fields.includes("title") && body.title) {
+        updatePayload.title = body.title;
       }
 
-      const updatedVariants = printifyProduct.variants.map((v: any) => {
-        const vSize = (v.options?.size || v.title || "").trim();
-        const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
-        return { id: v.id, price: priceVal, is_enabled: v.is_enabled };
-      });
+      if (fields.includes("description") && body.description !== undefined) {
+        updatePayload.description = body.description || "";
+      }
+
+      if (fields.includes("tags") && body.tags) {
+        updatePayload.tags = body.tags;
+      }
+
+      if (fields.includes("pricing")) {
+        const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
+        const sizePriceCents: Record<string, number> = {};
+        if (body.sizePricing && typeof body.sizePricing === "object") {
+          for (const [size, p] of Object.entries(body.sizePricing)) {
+            const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
+            if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
+          }
+        }
+
+        updatePayload.variants = printifyProduct.variants.map((v: any) => {
+          const vSize = (v.options?.size || v.title || "").trim();
+          const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
+          return { id: v.id, price: priceVal, is_enabled: v.is_enabled };
+        });
+      }
+
+      if (Object.keys(updatePayload).length === 0) {
+        return new Response(JSON.stringify({ success: true, message: "Nothing to update" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log(`Updating Printify product ${pPrintifyProductId}: fields=${fields.join(",")}`);
 
       const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ variants: updatedVariants }),
+        body: JSON.stringify(updatePayload),
       });
       if (!updateRes.ok) {
         const errText = await updateRes.text();
-        throw new Error(`Printify price update failed: ${updateRes.status} ${errText}`);
+        throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, updatedFields: fields }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
