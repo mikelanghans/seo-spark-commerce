@@ -95,24 +95,21 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
 
   const isExisting = !!product.printify_product_id;
 
-  // Fields that can be selectively updated on an existing Printify product
-  const ALL_UPDATE_FIELDS = [
+  const PRINTIFY_UPDATE_FIELDS = [
     { key: "title", label: "Title" },
     { key: "description", label: "Description" },
     { key: "tags", label: "Tags" },
     { key: "pricing", label: "Pricing" },
-  ] as const;
-  type UpdateFieldKey = typeof ALL_UPDATE_FIELDS[number]["key"];
-  const [selectedUpdateFields, setSelectedUpdateFields] = useState<UpdateFieldKey[]>(
-    ALL_UPDATE_FIELDS.map(f => f.key)
+  ];
+  const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
+    PRINTIFY_UPDATE_FIELDS.map(f => f.key)
   );
 
-  const toggleUpdateField = (field: UpdateFieldKey) => {
+  const toggleUpdateField = (field: string) => {
     setSelectedUpdateFields(prev =>
       prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
     );
   };
-  const allFieldsSelected = selectedUpdateFields.length === ALL_UPDATE_FIELDS.length;
 
   const loadShops = async () => {
     setLoadingShops(true);
