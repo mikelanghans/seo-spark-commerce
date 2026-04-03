@@ -81,6 +81,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           environment: d.environment,
           has_token: !!d.access_token,
         });
+        setEbayClientId(d.client_id || "");
+        setEbayClientSecret(d.client_secret || "");
+        setEbayRuName(d.ru_name || "");
+        setEbayEnv(d.environment || "sandbox");
+        if (d.client_id && d.client_secret && d.ru_name) {
+          setEbayCredsSaved(true);
+        }
       }
 
 
