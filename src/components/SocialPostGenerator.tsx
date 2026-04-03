@@ -370,9 +370,31 @@ export function SocialPostGenerator({
                     <span className="text-lg">{platform.icon}</span>
                     <span className="font-semibold">{platform.label}</span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(platform.id, post)} className="gap-1.5">
-                    {copiedId === platform.id ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(platform.id, post)} className="gap-1.5">
+                      {copiedId === platform.id ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        setPosts((prev) => {
+                          const next = { ...prev };
+                          delete next[platform.id];
+                          return next;
+                        });
+                        setPostImages((prev) => {
+                          const next = { ...prev };
+                          delete next[platform.id];
+                          return next;
+                        });
+                        toast.success(`${platform.label} post removed`);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <SocialImageCard
