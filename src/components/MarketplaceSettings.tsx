@@ -56,7 +56,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     try {
       const [etsyRes, ebayRes, orgRes] = await Promise.all([
         supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("ebay_connections").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("ebay_connections").select("id, user_id, client_id, ru_name, environment, created_at, updated_at").eq("user_id", userId).maybeSingle(),
         organizationId
           ? supabase.from("organizations").select("id").eq("id", organizationId).single()
           : Promise.resolve({ data: null }),
