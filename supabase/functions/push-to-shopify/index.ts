@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, deleteStaleVariants, uploadAndAssociateImages } from "./shopify-helpers.ts";
+import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, uploadAndAssociateImages } from "./shopify-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,30 +55,12 @@ serve(async (req) => {
     const existingShopifyId = product.shopify_product_id;
     const isUpdate = !!existingShopifyId;
 
-    // For updates, fetch existing product to get current variants
-    let existingVariants: { id: number; option1: string }[] = [];
     if (isUpdate) {
-      try {
-        const existingRes = await fetch(
-          `https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`,
-          { headers: { "X-Shopify-Access-Token": connection.access_token } },
-        );
-        if (existingRes.ok) {
-          const existingData = await existingRes.json();
-          existingVariants = (existingData.product?.variants || []).map((v: any) => ({
-            id: v.id,
-            option1: v.option1 || "",
-          }));
-          console.log(`Existing Shopify variants: ${existingVariants.length} (${existingVariants.map(v => v.option1).join(", ")})`);
-        }
-      } catch (e) {
-        console.error("Failed to fetch existing Shopify product:", e);
-      }
+      console.log("Updating existing Shopify product while preserving current variant/options matrix");
     }
 
-    // Build product payload with existing variant ID matching
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate ? existingVariants : undefined);
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate);
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}`);
 
@@ -121,17 +103,6 @@ serve(async (req) => {
     const shopifyData = await shopifyResponse.json();
     const createdProduct = shopifyData.product;
     console.log(`Shopify product id: ${createdProduct?.id}, variants: ${createdProduct?.variants?.length || 0}`);
-
-    // For updates, delete stale variants that are no longer in the color list
-    if (isUpdate && actualColorVariants.length > 0 && existingVariants.length > 0) {
-      await deleteStaleVariants(
-        domain,
-        connection.access_token,
-        createdProduct.id,
-        existingVariants,
-        actualColorVariants.map((v) => v.colorName),
-      );
-    }
 
     // Save Shopify product ID back
     if (createdProduct?.id && product.id) {
