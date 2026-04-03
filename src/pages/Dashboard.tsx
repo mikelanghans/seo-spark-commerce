@@ -14,6 +14,7 @@ import { ShopifyEnrich } from "@/components/ShopifyEnrich";
 import { ShopifySettings } from "@/components/ShopifySettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
 import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
+import { MarketplaceSettings } from "@/components/MarketplaceSettings";
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
@@ -395,6 +396,7 @@ const Dashboard = () => {
               <TabsContent value="brand-settings" className="mt-4 space-y-4">
                 <div className="rounded-xl border border-border bg-card p-5"><ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
+                <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSetupGuide /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
