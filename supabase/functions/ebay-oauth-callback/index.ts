@@ -17,16 +17,17 @@ serve(async (req) => {
     origin = state ? decodeURIComponent(state) : "*";
   }
 
-  const html = `<!DOCTYPE html><html><body><script>
-    window.opener.postMessage({
-      type: "ebay-oauth",
-      ${error ? `error: "${error}"` : `code: "${code}"`},
-      environment: "${environment}"
-    }, "${origin}");
-    window.close();
-  </script><p>Connecting to eBay... you can close this window.</p></body></html>`;
+  try {
+    const redirectUrl = new URL("/oauth/ebay/callback", origin);
+    if (error) redirectUrl.searchParams.set("error", error);
+    if (code) redirectUrl.searchParams.set("code", code);
+    redirectUrl.searchParams.set("environment", environment);
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" },
-  });
+    return Response.redirect(redirectUrl.toString(), 302);
+  } catch {
+    return new Response("Invalid OAuth state", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 });

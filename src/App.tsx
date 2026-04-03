@@ -11,6 +11,7 @@ import Features from "./pages/Features";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
+import EbayOAuthCallback from "./pages/EbayOAuthCallback";
 import { Loader2 } from "lucide-react";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 
@@ -61,6 +62,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+          <Route path="/oauth/ebay/callback" element={<EbayOAuthCallback />} />
           <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route path="/features" element={<Features />} />
           <Route path="/terms" element={<Terms />} />
