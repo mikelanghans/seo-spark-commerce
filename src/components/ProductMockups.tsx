@@ -240,16 +240,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       });
 
       if (error || data?.error) {
-        // supabase.functions.invoke swallows the response body on non-2xx;
-        // synthesize context from data when available
-        const syntheticError = error || new Error(data?.error || "Unknown error");
-        if (data?.error?.includes?.("credits exhausted") || data?.error?.includes?.("402")) {
-          (syntheticError as any).status = 402;
-        }
-        if (data?.error?.includes?.("Rate limit") || data?.error?.includes?.("429")) {
-          (syntheticError as any).status = 429;
-        }
-        handleAiError(syntheticError, data, "Failed to get color recommendations");
+        handleAiError(error, data, "Failed to get color recommendations");
         return;
       }
 
