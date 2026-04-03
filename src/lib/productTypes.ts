@@ -100,7 +100,7 @@ const CC1566_COLORS: ProductTypeColor[] = [
   { name: "Chili", hex: "#8b2332" },
   { name: "Brick", hex: "#a05a50" },
   { name: "Espresso", hex: "#4a3228" },
-  { name: "Midnight", hex: "#253147" },
+  { name: "Midnight", hex: "#4a5568" },
   { name: "Sage", hex: "#a3b09e" },
 ];
 
