@@ -158,14 +158,17 @@ serve(async (req) => {
     const tags = (listing.tags || []).slice(0, 30);
 
     if (existingItemId) {
+      // Build selective update payload
+      const include = (field: string) => !updateFields || updateFields.includes(field);
+      const productPayload: Record<string, unknown> = {};
+      if (include("title")) productPayload.title = listing.title.slice(0, 80);
+      if (include("description")) productPayload.description = `<p>${description}</p>`;
+      if (include("images")) productPayload.imageUrls = images?.map((img: any) => img.image_url).filter(Boolean) || [];
+      productPayload.aspects = {};
+
       // Revise existing listing
       const reviseRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, "PUT", {
-        product: {
-          title: listing.title.slice(0, 80),
-          description: `<p>${description}</p>`,
-          aspects: {},
-          imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
-        },
+        product: productPayload,
         condition: "NEW",
         availability: {
           shipToLocationAvailability: {
