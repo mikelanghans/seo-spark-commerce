@@ -49,7 +49,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId }: Pro
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
 
-  const handleConfirm = async (selectedMockups: MockupImage[]) => {
+  const handleConfirm = async (selectedMockups: MockupImage[], updateFields?: string[]) => {
     setPushing(true);
     setResult(null);
     try {
@@ -81,6 +81,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId }: Pro
           listings,
           imageUrl: product.image_url,
           variants: optimizedVariants,
+          ...(updateFields ? { updateFields } : {}),
         },
       });
 

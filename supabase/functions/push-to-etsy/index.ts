@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, productId, listing, images } = await req.json();
+    const { userId, productId, listing, images, updateFields } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -48,6 +48,20 @@ serve(async (req) => {
     const baseUrl = "https://openapi.etsy.com/v3";
 
     if (existingListingId) {
+      // Build selective update payload
+      const include = (field: string) => !updateFields || updateFields.includes(field);
+      const updatePayload: Record<string, unknown> = {};
+      if (include("title")) updatePayload.title = listing.title.slice(0, 140);
+      if (include("description")) updatePayload.description = description;
+      if (include("tags")) updatePayload.tags = tags;
+      if (include("pricing")) updatePayload.price = parseFloat(listing.price || "0") || 9.99;
+
+      if (Object.keys(updatePayload).length === 0) {
+        return new Response(JSON.stringify({ success: true, listing_id: existingListingId, action: "nothing to update" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Update existing listing
       const updateRes = await fetch(`${baseUrl}/application/shops/${shopId}/listings/${existingListingId}`, {
         method: "PATCH",
@@ -56,12 +70,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
           ...(conn.access_token ? { Authorization: `Bearer ${conn.access_token}` } : {}),
         },
-        body: JSON.stringify({
-          title: listing.title.slice(0, 140),
-          description,
-          tags,
-          price: parseFloat(listing.price || "0") || 9.99,
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!updateRes.ok) {

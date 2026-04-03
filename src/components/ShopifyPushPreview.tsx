@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Store, Loader2, ImageIcon, Search, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 
 interface Product {
   id: string;
@@ -15,6 +16,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  shopify_product_id?: number | null;
 }
 
 interface Listing {
@@ -43,7 +45,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
-  onConfirm: (selectedMockups: MockupImage[]) => void;
+  onConfirm: (selectedMockups: MockupImage[], updateFields?: string[]) => void;
   pushing: boolean;
 }
 
@@ -59,6 +61,25 @@ export const ShopifyPushPreview = ({
   const [mockups, setMockups] = useState<MockupImage[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadingMockups, setLoadingMockups] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const isExisting = !!product.shopify_product_id;
+
+  const SHOPIFY_UPDATE_FIELDS = [
+    { key: "title", label: "Title" },
+    { key: "description", label: "Description" },
+    { key: "tags", label: "Tags" },
+    { key: "seo", label: "SEO" },
+    { key: "images", label: "Images" },
+  ];
+  const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
+    SHOPIFY_UPDATE_FIELDS.map(f => f.key)
+  );
+  const toggleUpdateField = (field: string) => {
+    setSelectedUpdateFields(prev =>
+      prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
+    );
+  };
 
   const shopifyListing = listings?.find((l) => l.marketplace === "shopify");
   const listing = shopifyListing || listings?.[0];
@@ -267,6 +288,30 @@ export const ShopifyPushPreview = ({
               </div>
             )}
           </div>
+          {/* Update field selector for existing products */}
+          {isExisting && (
+            <>
+              <Separator />
+              <UpdateFieldSelector
+                fields={SHOPIFY_UPDATE_FIELDS}
+                selectedFields={selectedUpdateFields}
+                onToggleField={toggleUpdateField}
+                onSelectAll={() => setSelectedUpdateFields(SHOPIFY_UPDATE_FIELDS.map(f => f.key))}
+                onDeselectAll={() => setSelectedUpdateFields([])}
+                onUpdate={() => onConfirm(selectedMockups, selectedUpdateFields)}
+                updating={pushing}
+                platformName="Shopify"
+              />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or full push</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="mt-4 gap-2 sm:gap-0">
@@ -289,7 +334,7 @@ export const ShopifyPushPreview = ({
             )}
             {pushing
               ? "Pushing…"
-              : `Push to Shopify${selectedMockups.length > 0 ? ` (${selectedMockups.length} variant${selectedMockups.length !== 1 ? "s" : ""})` : ""}`}
+              : `${isExisting ? "Full Push" : "Push"} to Shopify${selectedMockups.length > 0 ? ` (${selectedMockups.length} variant${selectedMockups.length !== 1 ? "s" : ""})` : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
