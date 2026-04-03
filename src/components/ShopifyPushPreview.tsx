@@ -288,6 +288,30 @@ export const ShopifyPushPreview = ({
               </div>
             )}
           </div>
+          {/* Update field selector for existing products */}
+          {isExisting && (
+            <>
+              <Separator />
+              <UpdateFieldSelector
+                fields={SHOPIFY_UPDATE_FIELDS}
+                selectedFields={selectedUpdateFields}
+                onToggleField={toggleUpdateField}
+                onSelectAll={() => setSelectedUpdateFields(SHOPIFY_UPDATE_FIELDS.map(f => f.key))}
+                onDeselectAll={() => setSelectedUpdateFields([])}
+                onUpdate={() => onConfirm(selectedMockups, selectedUpdateFields)}
+                updating={pushing}
+                platformName="Shopify"
+              />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or full push</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="mt-4 gap-2 sm:gap-0">
@@ -310,7 +334,7 @@ export const ShopifyPushPreview = ({
             )}
             {pushing
               ? "Pushing…"
-              : `Push to Shopify${selectedMockups.length > 0 ? ` (${selectedMockups.length} variant${selectedMockups.length !== 1 ? "s" : ""})` : ""}`}
+              : `${isExisting ? "Full Push" : "Push"} to Shopify${selectedMockups.length > 0 ? ` (${selectedMockups.length} variant${selectedMockups.length !== 1 ? "s" : ""})` : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
