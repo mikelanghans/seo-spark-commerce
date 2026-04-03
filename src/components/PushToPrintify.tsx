@@ -621,6 +621,15 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </div>
             )}
 
+            {/* Publish toggle */}
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Publish on Printify</p>
+                <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
+              </div>
+              <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
+            </div>
+
             {/* Summary */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <p><strong>Product:</strong> {product.title}</p>
