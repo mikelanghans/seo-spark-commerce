@@ -82,10 +82,10 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           has_token: !!d.token_expires_at,
         });
         setEbayClientId(d.client_id || "");
-        setEbayClientSecret(d.client_secret || "");
+        // client_secret is hidden from SELECT for security; leave blank but mark as saved
         setEbayRuName(d.ru_name || "");
         setEbayEnv(d.environment || "sandbox");
-        if (d.client_id && d.client_secret && d.ru_name) {
+        if (d.client_id && d.ru_name) {
           setEbayCredsSaved(true);
         }
       }
@@ -175,8 +175,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   };
 
   const saveEbayCreds = async () => {
-    if (!ebayClientId.trim() || !ebayClientSecret.trim() || !ebayRuName.trim()) {
-      toast.error("Client ID, Client Secret, and RuName are all required");
+    if (!ebayClientId.trim() || !ebayRuName.trim()) {
+      toast.error("Client ID and RuName are required");
+      return;
+    }
+    // Require secret on first save only
+    if (!ebayConn && !ebayClientSecret.trim()) {
+      toast.error("Client Secret is required");
       return;
     }
     setSavingEbay(true);
@@ -185,11 +190,15 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const payload = {
         user_id: userId,
         client_id: ebayClientId,
-        client_secret: ebayClientSecret,
         ru_name: ebayRuName,
         environment: ebayEnv,
         updated_at: new Date().toISOString(),
       } as any;
+
+      // Only include client_secret if user entered a new value
+      if (ebayClientSecret.trim()) {
+        payload.client_secret = ebayClientSecret;
+      }
 
       const { error } = ebayConn
         ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id)
@@ -406,7 +415,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
               </div>
               <div>
                 <Label>Cert ID (Client Secret)</Label>
-                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Cert ID" />
+                <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder={ebayConn ? "••••••••  (saved — enter new value to change)" : "Your eBay Cert ID"} />
               </div>
               <div>
                 <Label>RuName (Redirect URL Name)</Label>
