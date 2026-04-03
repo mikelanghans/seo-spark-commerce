@@ -147,8 +147,13 @@ export function useProductHandlers(
       if (data?.error) throw new Error(data.error);
       const { imported, updated, failed = 0, total } = data;
       toast.success(`Imported ${imported} new, updated ${updated} existing${failed ? `, failed ${failed}` : ""} — ${total} total from Shopify`);
-      await loadProducts(selectedOrg.id);
+      const newProducts = await loadProducts(selectedOrg.id);
       await onOrganizationRefresh?.(selectedOrg.id);
+      // Check if any unlinked products could match Printify
+      const hasUnlinked = newProducts.some((p) => !p.printify_product_id);
+      if (hasUnlinked) {
+        setShowPrintifyMatch(true);
+      }
     } catch (err: any) {
       if (controller.signal.aborted) { toast.info("Import cancelled"); return; }
       toast.error(err.message || "Failed to import from Shopify");
