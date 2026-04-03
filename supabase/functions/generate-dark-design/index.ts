@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { deductCredits, insufficientCreditsResponse } from "../_shared/credits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,10 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
+
+    // Credit pre-check
+    const creditOk = await deductCredits(user.id, "generate-dark-design");
+    if (!creditOk) return insufficientCreditsResponse("generate-dark-design");
 
     const { designUrl, messageId, organizationId } = await req.json();
     if (!designUrl) throw new Error("designUrl is required");

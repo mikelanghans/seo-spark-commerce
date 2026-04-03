@@ -15,16 +15,18 @@ export function handleAiError(error: any, data: any, fallbackMessage = "AI reque
   // Log every AI error for admin debugging
   logCaughtError(error || new Error(errorMsg), "edge-function", {
     functionResponse: data?.error,
+    code: data?.code,
     status: httpStatus,
   });
 
   if (
-    errorMsg.includes("credits exhausted") ||
-    errorMsg.includes("402") ||
+    errorMsg.includes("credits") ||
+    errorMsg.includes("Insufficient credits") ||
+    data?.code === "CREDITS_EXHAUSTED" ||
     httpStatus === 402
   ) {
-    toast.error("AI credits exhausted", {
-      description: "Your AI usage credits have run out. Please add more credits in Settings → Workspace → Usage to continue generating.",
+    toast.error("Not enough credits", {
+      description: "This action requires credits. Go to Settings → Credits to purchase more.",
       duration: 10000,
     });
     return true;
