@@ -116,7 +116,7 @@ const CC1566_SWATCH_HINTS: Record<string, string> = {
   chili: "deep dark red with brown warmth — like dried chili pepper (near #8B2332)",
   brick: "muted warm terracotta-red, dusty and earthy (near #A05A50)",
   espresso: "dark warm brown — clearly brown, not black (near #4A3228)",
-  midnight: "dark navy blue — not black. Visible blue undertone (near #253147)",
+  midnight: "medium-dark slate blue-gray — NOT dark navy and NOT black. A muted cool steel tone with subtle blue undertone (near #4A5568)",
   sage: "muted light sage green (near #9BAC95)",
 };
 
