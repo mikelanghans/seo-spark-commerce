@@ -77,7 +77,7 @@ export const TeamManager = ({ organizationId, organizationName, userId, allOrgan
     setLoading(false);
   };
 
-  const canManage = currentUserRole === "owner" || currentUserRole === "editor";
+  const canManage = isOwner;
   const isOwner = currentUserRole === "owner";
 
   const copyTextWithFallback = async (text: string) => {
