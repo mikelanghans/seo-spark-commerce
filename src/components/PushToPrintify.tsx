@@ -12,10 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, CheckCircle2, Printer, Store } from "lucide-react";
+import { Loader2, CheckCircle2, Printer } from "lucide-react";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
-import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
-import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
 
 interface Product {
