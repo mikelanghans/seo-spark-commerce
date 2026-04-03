@@ -584,16 +584,26 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               />
             )}
 
-            {/* Divider for existing products */}
+            {/* Divider + warning for existing products */}
             {isExisting && (
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">or create new</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">or create new</span>
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm space-y-1">
+                  <p className="font-medium text-destructive">⚠ When is a new product needed?</p>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
+                    <li><strong>Design changes</strong> — Printify locks the print file to the product; updating the design requires a new listing.</li>
+                    <li><strong>Color variant changes</strong> — adding or removing colors changes the variant matrix, which can't be patched.</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground mt-1">Title, description, tags, and pricing can be updated above without creating a new product.</p>
                 </div>
-              </div>
+              </>
             )}
 
             {hasMockups && (
