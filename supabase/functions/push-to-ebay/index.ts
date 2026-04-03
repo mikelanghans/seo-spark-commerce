@@ -303,13 +303,18 @@ serve(async (req) => {
       }
 
       // Step 3: Publish the offer
-      const publishRes = await ebayRequest(
-        `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
-        token,
-        "POST",
-        {},
-      );
-      console.log("Publish response:", publishRes.status, publishRes.body);
+      let publishRes = { status: 0, body: "" };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+        publishRes = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
+          token,
+          "POST",
+          {},
+        );
+        console.log(`Publish attempt ${attempt + 1}:`, publishRes.status, publishRes.body);
+        if (publishRes.status >= 200 && publishRes.status < 300) break;
+      }
 
       if (publishRes.status < 200 || publishRes.status >= 300) {
         console.error("eBay publish error:", publishRes.status, publishRes.body);
