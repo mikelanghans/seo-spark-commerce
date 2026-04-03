@@ -94,6 +94,37 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const availableColors = typeConfig.colors;
   const availablePalette = availableColors.map(c => c.name).join(", ");
 
+  const downloadImage = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Failed to download image");
+    }
+  };
+
+  const downloadAllMockups = async () => {
+    if (images.length === 0) return;
+    toast.info(`Downloading ${images.length} mockups…`);
+    const slug = productTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const colorSlug = (img.color_name || "mockup").replace(/\s+/g, "-").toLowerCase();
+      await downloadImage(img.image_url, `${slug}_${colorSlug}.jpg`);
+      // Small delay between downloads to avoid browser blocking
+      if (i < images.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+    toast.success("All mockups downloaded!");
+  };
+
   useEffect(() => {
     loadImages();
   }, [productId]);
