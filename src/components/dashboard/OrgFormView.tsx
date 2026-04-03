@@ -130,13 +130,18 @@ export const OrgFormView = ({
     {/* Design Styles */}
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Design Styles</h3><p className="text-xs text-muted-foreground">Select which styles AI should use when generating designs</p></div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {[{ value: "text-only", label: "Text Only" }, { value: "text-with-graphics", label: "Text + Graphics" }, { value: "minimalist", label: "Art" }, { value: "retro", label: "Retro" }, { value: "hand-drawn", label: "Sketch" }, { value: "bold-graphic", label: "Bold" }, { value: "distressed", label: "Grunge" }, { value: "illustration", label: "Illustration" }, { value: "photo-based", label: "Photo-Based" }].map((style) => {
           const isEnabled = orgForm.design_styles.includes(style.value);
           return (
-            <label key={style.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
-              <input type="checkbox" checked={isEnabled} onChange={() => { const newStyles = isEnabled ? orgForm.design_styles.filter((s) => s !== style.value) : [...orgForm.design_styles, style.value]; if (newStyles.length === 0) return; setOrgForm({ ...orgForm, design_styles: newStyles }); }} className="rounded" />
-              <span className="text-sm font-medium">{style.label}</span>
+            <label key={style.value} className={`flex items-start gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${isEnabled ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
+              <input type="checkbox" checked={isEnabled} onChange={() => { const newStyles = isEnabled ? orgForm.design_styles.filter((s) => s !== style.value) : [...orgForm.design_styles, style.value]; if (newStyles.length === 0) return; setOrgForm({ ...orgForm, design_styles: newStyles }); }} className="rounded mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium">{style.label}</span>
+                {DESIGN_STYLE_DESCRIPTIONS[style.value] && (
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{DESIGN_STYLE_DESCRIPTIONS[style.value]}</p>
+                )}
+              </div>
             </label>
           );
         })}
