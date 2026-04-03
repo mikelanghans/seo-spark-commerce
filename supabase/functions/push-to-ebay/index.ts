@@ -218,6 +218,36 @@ serve(async (req) => {
       const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
       const price = listing.price || "29.99";
 
+      // Ensure a default inventory location exists
+      const locationKey = "default-location";
+      const locCheck = await ebayRequest(
+        `${apiBase}/sell/inventory/v1/location/${locationKey}`,
+        token,
+        "GET",
+      );
+      if (locCheck.status === 404 || locCheck.status >= 400) {
+        console.log("Creating default inventory location...");
+        const locCreate = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/location/${locationKey}`,
+          token,
+          "PUT",
+          {
+            location: {
+              address: {
+                city: "New York",
+                stateOrProvince: "NY",
+                postalCode: "10001",
+                country: "US",
+              },
+            },
+            locationTypes: ["WAREHOUSE"],
+            name: "Default Location",
+            merchantLocationStatus: "ENABLED",
+          },
+        );
+        console.log("Location create:", locCreate.status, locCreate.body);
+      }
+
       // Fetch seller's business policies
       const policies = await fetchPolicies(apiBase, token, marketplaceId);
       console.log("Fetched policies:", JSON.stringify(policies));
@@ -237,6 +267,7 @@ serve(async (req) => {
         },
         listingPolicies: {} as Record<string, string>,
       };
+      offerPayload.merchantLocationKey = locationKey;
 
       // Add policies if available
       const listingPolicies: Record<string, string> = {};
