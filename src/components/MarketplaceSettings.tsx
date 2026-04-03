@@ -227,7 +227,8 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
       const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
 
-      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(ruName)}&scope=${scopes}&state=${state}`;
+      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${ruName}&scope=${scopes}&state=${state}`;
+      console.log("eBay OAuth URL:", authUrl);
 
       const popup = window.open(authUrl, "ebay-oauth", "width=600,height=700");
 
