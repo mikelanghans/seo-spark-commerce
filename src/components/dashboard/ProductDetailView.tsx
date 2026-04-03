@@ -214,8 +214,8 @@ export const ProductDetailView = ({
               <SizePricingEditor
                 enabledTypes={(selectedOrg?.enabled_product_types || ["t-shirt", "hoodie", "mug"]) as ProductTypeKey[]}
                 value={(() => {
-                  const productPricing = (product.size_pricing as Record<string, Record<string, string>>) || {};
-                  const brandDefaults = (selectedOrg?.default_size_pricing as Record<string, Record<string, string>>) || {};
+                  const productPricing = (product.size_pricing as unknown as Record<string, Record<string, string>>) || {};
+                  const brandDefaults = (selectedOrg?.default_size_pricing as unknown as Record<string, Record<string, string>>) || {};
                   // Merge: brand defaults as base, product overrides on top
                   const merged: Record<string, Record<string, string>> = {};
                   for (const key of Object.keys({ ...brandDefaults, ...productPricing })) {
