@@ -375,6 +375,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
         body: {
           action: "update",
+          shopId: selectedShop,
           printifyProductId: product.printify_product_id,
           productId: product.id,
           organizationId,

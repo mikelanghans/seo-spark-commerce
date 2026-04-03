@@ -60,10 +60,13 @@ serve(async (req) => {
       const pPrintifyProductId = body.printifyProductId;
       if (!pPrintifyProductId) throw new Error("printifyProductId is required for update");
 
-      // Look up the shop ID from the organization
+      // Use shopId from request, fall back to org-level setting
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { data: org } = await adminClient.from("organizations").select("printify_shop_id").eq("id", organizationId).single();
-      const pShopId = org?.printify_shop_id;
+      let pShopId = body.shopId;
+      if (!pShopId && organizationId) {
+        const { data: org } = await adminClient.from("organizations").select("printify_shop_id").eq("id", organizationId).single();
+        pShopId = org?.printify_shop_id;
+      }
       if (!pShopId) throw new Error("No Printify shop configured");
 
       // Fetch current product to get variants
