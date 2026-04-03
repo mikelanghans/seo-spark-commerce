@@ -90,7 +90,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
 
       return true;
     },
-    [userId, tierLimit]
+    [userId, tierLimit, subscriptionLoaded]
   );
 
   const logUsage = useCallback(
