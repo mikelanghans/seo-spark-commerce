@@ -31,7 +31,7 @@ serve(async (req) => {
       darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price, sizePricing,
       blueprintId, printProviderId, productId, printifyProductId,
-      organizationId, action,
+      organizationId, action, publish,
     } = body;
 
     // Try org-level token first, then fall back to env var
