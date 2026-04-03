@@ -409,8 +409,46 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setPushing(false);
     }
   };
+  const handleUpdate = async () => {
+    if (!product.printify_product_id) return;
+    if (selectedUpdateFields.length === 0) {
+      toast.error("Select at least one field to update");
+      return;
+    }
 
-  return (
+    setUpdating(true);
+    try {
+      const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+
+      const { data, error } = await supabase.functions.invoke("printify-create-product", {
+        body: {
+          action: "update",
+          printifyProductId: product.printify_product_id,
+          productId: product.id,
+          organizationId,
+          updateFields: selectedUpdateFields,
+          title: shopifyListing?.title || product.title,
+          description: shopifyListing?.description || product.description,
+          tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
+          price: product.price,
+          sizePricing,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Updated ${selectedUpdateFields.join(", ")} on Printify!`);
+      setResult({ success: true });
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update on Printify");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+
     <>
       <Button
         variant="outline"
