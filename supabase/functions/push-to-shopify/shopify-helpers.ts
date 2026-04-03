@@ -179,6 +179,7 @@ export async function uploadAndAssociateImages(
   imageEntries: { url: string; alt: string; colorName?: string }[],
   variants: { id: number; option1?: string }[],
   actualColorVariants: { colorName: string; imageUrl: string }[],
+  productTitle?: string,
 ) {
   const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
 
@@ -195,7 +196,7 @@ export async function uploadAndAssociateImages(
               src: entry.url,
               alt: entry.alt,
               position: i + 1,
-              filename: `${(entry.colorName || "product").replace(/\s+/g, "-").toLowerCase()}.jpg`,
+              filename: `${(productTitle || "product").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-${(entry.colorName || "mockup").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}.jpg`,
             },
           }),
         },

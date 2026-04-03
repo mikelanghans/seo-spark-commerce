@@ -118,6 +118,7 @@ serve(async (req) => {
         imageEntries,
         createdProduct.variants || [],
         actualColorVariants,
+        product.title,
       );
     }
 
