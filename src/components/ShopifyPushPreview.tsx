@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Store, Loader2, ImageIcon, Search, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 
 interface Product {
   id: string;
@@ -15,6 +16,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  shopify_product_id?: number | null;
 }
 
 interface Listing {
@@ -43,7 +45,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
-  onConfirm: (selectedMockups: MockupImage[]) => void;
+  onConfirm: (selectedMockups: MockupImage[], updateFields?: string[]) => void;
   pushing: boolean;
 }
 
