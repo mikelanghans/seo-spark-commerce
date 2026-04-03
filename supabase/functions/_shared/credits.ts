@@ -19,6 +19,12 @@ export const CREDIT_COSTS: Record<string, number> = {
   "generate-social-image": 3,
 };
 
+const TIER_LIMITS: Record<string, number> = {
+  free: 25,
+  starter: 175,
+  pro: 700,
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -46,7 +52,12 @@ export async function getUserIdFromAuth(req: Request): Promise<string | null> {
 
 /**
  * Deducts credits for the given function. Returns true if successful.
- * Uses the atomic `deduct_user_credits` DB function.
+ *
+ * Logic:
+ * 1. Check user's subscription tier → get monthly allowance
+ * 2. Count this month's AI usage from ai_usage_log
+ * 3. If within subscription allowance → allow (no purchased credit deduction)
+ * 4. If subscription exhausted → deduct from purchased credits via atomic RPC
  */
 export async function deductCredits(
   userId: string,
@@ -60,9 +71,35 @@ export async function deductCredits(
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
+  // 1. Get user tier
+  const { data: tier } = await supabase.rpc("get_user_tier", { _user_id: userId });
+  const subscriptionLimit = TIER_LIMITS[tier || "free"] || 25;
+
+  // 2. Count this month's usage
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { count: usageCount } = await supabase
+    .from("ai_usage_log")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", startOfMonth.toISOString());
+
+  const used = usageCount ?? 0;
+  const subscriptionRemaining = Math.max(0, subscriptionLimit - used);
+
+  // 3. If within subscription allowance, allow without deducting purchased credits
+  if (subscriptionRemaining >= cost) {
+    return true;
+  }
+
+  // 4. Need purchased credits for the overflow (or full cost if subscription exhausted)
+  const neededFromPurchased = cost - subscriptionRemaining;
+
   const { data, error } = await supabase.rpc("deduct_user_credits", {
     _user_id: userId,
-    _amount: cost,
+    _amount: neededFromPurchased,
   });
 
   if (error) {
