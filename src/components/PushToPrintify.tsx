@@ -448,7 +448,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     }
   };
 
-
+  return (
     <>
       <Button
         variant="outline"
