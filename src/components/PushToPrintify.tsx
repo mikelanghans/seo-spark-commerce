@@ -12,7 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, CheckCircle2, Printer, AlertTriangle, Store } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, CheckCircle2, Printer, AlertTriangle, Store, RefreshCw } from "lucide-react";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
@@ -90,6 +91,28 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [loadingColors, setLoadingColors] = useState(false);
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
   const [alsoUpdateShopify, setAlsoUpdateShopify] = useState(!!product.shopify_product_id);
+  const [updating, setUpdating] = useState(false);
+
+  const isExisting = !!product.printify_product_id;
+
+  // Fields that can be selectively updated on an existing Printify product
+  const ALL_UPDATE_FIELDS = [
+    { key: "title", label: "Title" },
+    { key: "description", label: "Description" },
+    { key: "tags", label: "Tags" },
+    { key: "pricing", label: "Pricing" },
+  ] as const;
+  type UpdateFieldKey = typeof ALL_UPDATE_FIELDS[number]["key"];
+  const [selectedUpdateFields, setSelectedUpdateFields] = useState<UpdateFieldKey[]>(
+    ALL_UPDATE_FIELDS.map(f => f.key)
+  );
+
+  const toggleUpdateField = (field: UpdateFieldKey) => {
+    setSelectedUpdateFields(prev =>
+      prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
+    );
+  };
+  const allFieldsSelected = selectedUpdateFields.length === ALL_UPDATE_FIELDS.length;
 
   const loadShops = async () => {
     setLoadingShops(true);
@@ -386,6 +409,44 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setPushing(false);
     }
   };
+  const handleUpdate = async () => {
+    if (!product.printify_product_id) return;
+    if (selectedUpdateFields.length === 0) {
+      toast.error("Select at least one field to update");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+
+      const { data, error } = await supabase.functions.invoke("printify-create-product", {
+        body: {
+          action: "update",
+          printifyProductId: product.printify_product_id,
+          productId: product.id,
+          organizationId,
+          updateFields: selectedUpdateFields,
+          title: shopifyListing?.title || product.title,
+          description: shopifyListing?.description || product.description,
+          tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
+          price: product.price,
+          sizePricing,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Updated ${selectedUpdateFields.join(", ")} on Printify!`);
+      setResult({ success: true });
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update on Printify");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   return (
     <>
@@ -512,13 +573,70 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </div>
             </div>
 
-            {/* Existing Printify product warning */}
-            {product.printify_product_id && (
-              <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                  This product already exists on Printify. A <strong>new</strong> Printify product will be created — the existing one won't be modified or removed.
+            {/* Existing product: update fields selector */}
+            {isExisting && (
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">Update existing product</Label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedUpdateFields(
+                        allFieldsSelected ? [] : ALL_UPDATE_FIELDS.map(f => f.key)
+                      )
+                    }
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {allFieldsSelected ? "Deselect all" : "Select all"}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Choose which data to sync to your existing Printify listing.
                 </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {ALL_UPDATE_FIELDS.map((field) => (
+                    <label
+                      key={field.key}
+                      className="flex items-center gap-2 rounded-md border border-border px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedUpdateFields.includes(field.key)}
+                        onCheckedChange={() => toggleUpdateField(field.key)}
+                      />
+                      <span className="text-sm">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <Button
+                  onClick={handleUpdate}
+                  disabled={updating || selectedUpdateFields.length === 0}
+                  variant="outline"
+                  className="w-full gap-2"
+                >
+                  {updating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating on Printify...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Update Existing Product
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Divider for existing products */}
+            {isExisting && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">or create new</span>
+                </div>
               </div>
             )}
 
@@ -561,12 +679,12 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               {pushing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Pushing to Printify...
+                  {isExisting ? "Creating new on Printify..." : "Pushing to Printify..."}
                 </>
               ) : (
                 <>
                   <Printer className="h-4 w-4" />
-                  Create on Printify
+                  {isExisting ? "Create New on Printify" : "Create on Printify"}
                 </>
               )}
             </Button>
