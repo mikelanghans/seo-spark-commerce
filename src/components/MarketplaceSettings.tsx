@@ -43,6 +43,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const [ebayConn, setEbayConn] = useState<EbayConn | null>(null);
   const [ebayClientId, setEbayClientId] = useState("");
   const [ebayClientSecret, setEbayClientSecret] = useState("");
+  const [ebayRuName, setEbayRuName] = useState("");
   const [ebayEnv, setEbayEnv] = useState("sandbox");
   const [savingEbay, setSavingEbay] = useState(false);
   const [ebayCredsSaved, setEbayCredsSaved] = useState(false);
@@ -167,8 +168,8 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   };
 
   const saveEbayCreds = async () => {
-    if (!ebayClientId.trim() || !ebayClientSecret.trim()) {
-      toast.error("Both Client ID and Client Secret are required");
+    if (!ebayClientId.trim() || !ebayClientSecret.trim() || !ebayRuName.trim()) {
+      toast.error("Client ID, Client Secret, and RuName are all required");
       return;
     }
     setSavingEbay(true);
@@ -177,13 +178,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       if (ebayConn) {
         const { error } = await supabase
           .from("ebay_connections")
-          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
+          .update({ client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv, updated_at: new Date().toISOString() } as any)
           .eq("id", ebayConn.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("ebay_connections")
-          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, environment: ebayEnv } as any);
+          .insert({ user_id: userId, client_id: ebayClientId, client_secret: ebayClientSecret, ru_name: ebayRuName, environment: ebayEnv } as any);
         if (error) throw error;
       }
       setEbayCredsSaved(true);
@@ -206,7 +207,18 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ebay-oauth-callback`;
+      // Fetch the saved RuName from the connection
+      let ruName = ebayRuName;
+      if (!ruName && ebayConn) {
+        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", ebayConn.id).maybeSingle();
+        ruName = (connData as any)?.ru_name || "";
+      }
+      if (!ruName) {
+        toast.error("RuName is required. Please save your credentials with a RuName first.");
+        setSavingEbay(false);
+        return;
+      }
+
       const isSandbox = ebayEnv === "sandbox";
       const authBase = isSandbox
         ? "https://auth.sandbox.ebay.com/oauth2/authorize"
@@ -215,7 +227,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
       const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
 
-      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(ruName)}&scope=${scopes}&state=${state}`;
 
       const popup = window.open(authUrl, "ebay-oauth", "width=600,height=700");
 
@@ -233,7 +245,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           const { data: result, error } = await supabase.functions.invoke("ebay-exchange-token", {
             body: {
               code: e.data.code,
-              redirectUri,
+              redirectUri: ruName,
               environment: e.data.environment || ebayEnv,
             },
           });
@@ -274,7 +286,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
       if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
-      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); }
+      else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); setEbayRuName(""); }
       toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
     } catch (e: any) {
       toast.error(e.message || "Failed to disconnect");
@@ -384,6 +396,13 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
               <div>
                 <Label>Cert ID (Client Secret)</Label>
                 <Input type="password" value={ebayClientSecret} onChange={(e) => setEbayClientSecret(e.target.value)} placeholder="Your eBay Cert ID" />
+              </div>
+              <div>
+                <Label>RuName (Redirect URL Name)</Label>
+                <Input value={ebayRuName} onChange={(e) => setEbayRuName(e.target.value)} placeholder="e.g. Your_Brand-YourApp-SBX-xxxxxxxx" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Found in eBay Developer Portal → User Tokens → Get a Token from eBay via Your Application
+                </p>
               </div>
               <div>
                 <Label>Environment</Label>

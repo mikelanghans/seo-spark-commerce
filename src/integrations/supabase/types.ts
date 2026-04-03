@@ -313,6 +313,7 @@ export type Database = {
           environment: string
           id: string
           refresh_token: string | null
+          ru_name: string | null
           token_expires_at: string | null
           updated_at: string
           user_id: string
@@ -325,6 +326,7 @@ export type Database = {
           environment?: string
           id?: string
           refresh_token?: string | null
+          ru_name?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id: string
@@ -337,6 +339,7 @@ export type Database = {
           environment?: string
           id?: string
           refresh_token?: string | null
+          ru_name?: string | null
           token_expires_at?: string | null
           updated_at?: string
           user_id?: string
