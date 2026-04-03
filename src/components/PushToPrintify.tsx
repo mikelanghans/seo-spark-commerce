@@ -524,23 +524,21 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </div>
             </div>
 
-            {/* Existing product: update fields selector */}
-            {isExisting && (
-              <UpdateFieldSelector
-                fields={PRINTIFY_UPDATE_FIELDS}
-                selectedFields={selectedUpdateFields}
-                onToggleField={toggleUpdateField}
-                onSelectAll={() => setSelectedUpdateFields(PRINTIFY_UPDATE_FIELDS.map(f => f.key))}
-                onDeselectAll={() => setSelectedUpdateFields([])}
-                onUpdate={handleUpdate}
-                updating={updating}
-                platformName="Printify"
-              />
-            )}
-
-            {/* Divider + warning for existing products */}
+            {/* Existing product: update fields selector as PRIMARY action */}
             {isExisting && (
               <>
+                <UpdateFieldSelector
+                  fields={PRINTIFY_UPDATE_FIELDS}
+                  selectedFields={selectedUpdateFields}
+                  onToggleField={toggleUpdateField}
+                  onSelectAll={() => setSelectedUpdateFields(PRINTIFY_UPDATE_FIELDS.map(f => f.key))}
+                  onDeselectAll={() => setSelectedUpdateFields([])}
+                  onUpdate={handleUpdate}
+                  updating={updating}
+                  platformName="Printify"
+                />
+
+                {/* Divider + warning for creating new */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border" />
@@ -557,54 +555,86 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                   </ul>
                   <p className="text-xs text-muted-foreground mt-1">Title, description, tags, and pricing can be updated above without creating a new product.</p>
                 </div>
+
+                {/* Publish toggle for new creation */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Publish on Printify</p>
+                    <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
+                  </div>
+                  <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
+                </div>
+
+                <Button
+                  onClick={handlePush}
+                  disabled={pushing || !selectedShop || !selectedSizes.length}
+                  variant="outline"
+                  className="w-full gap-2"
+                >
+                  {pushing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating new on Printify...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-4 w-4" />
+                      Create New on Printify
+                    </>
+                  )}
+                </Button>
               </>
             )}
 
-
-            {/* Publish toggle */}
-            <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div>
-                <p className="text-sm font-medium">Publish on Printify</p>
-                <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
-              </div>
-              <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
-            </div>
-
-            {/* Summary */}
-            <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
-              <p><strong>Product:</strong> {product.title}</p>
-              <p><strong>Colors:</strong> {colorsForPush.join(", ")}</p>
-              <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
-              <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
-              <div>
-                <strong>Pricing:</strong>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                  {selectedSizes.map((s) => (
-                    <span key={s} className="text-xs">
-                      {s}: ${sizePricing[s] || product.price?.replace(/[^0-9.]/g, "") || "29.99"}
-                    </span>
-                  ))}
+            {/* New product: single create button */}
+            {!isExisting && (
+              <>
+                {/* Publish toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Publish on Printify</p>
+                    <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
+                  </div>
+                  <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
                 </div>
-              </div>
-            </div>
 
-            <Button
-              onClick={handlePush}
-              disabled={pushing || !selectedShop || !selectedSizes.length}
-              className="w-full gap-2"
-            >
-              {pushing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {isExisting ? "Creating new on Printify..." : "Pushing to Printify..."}
-                </>
-              ) : (
-                <>
-                  <Printer className="h-4 w-4" />
-                  {isExisting ? "Create New on Printify" : "Create on Printify"}
-                </>
-              )}
-            </Button>
+                {/* Summary */}
+                <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
+                  <p><strong>Product:</strong> {product.title}</p>
+                  <p><strong>Colors:</strong> {colorsForPush.join(", ")}</p>
+                  <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
+                  <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
+                  <div>
+                    <strong>Pricing:</strong>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                      {selectedSizes.map((s) => (
+                        <span key={s} className="text-xs">
+                          {s}: ${sizePricing[s] || product.price?.replace(/[^0-9.]/g, "") || "29.99"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handlePush}
+                  disabled={pushing || !selectedShop || !selectedSizes.length}
+                  className="w-full gap-2"
+                >
+                  {pushing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Pushing to Printify...
+                    </>
+                  ) : (
+                    <>
+                      <Printer className="h-4 w-4" />
+                      Create on Printify
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
