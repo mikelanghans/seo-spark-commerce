@@ -28,7 +28,7 @@ export const DesignPlacementEditor = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? TEXT_ONLY_SCALE : DEFAULT_SCALE;
   const [scale, setScale] = useState(initialPlacement?.scale ?? defaultScale);
-  const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0.015);
+  const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.20);
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
