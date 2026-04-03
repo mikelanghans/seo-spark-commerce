@@ -52,6 +52,7 @@ import { ProductDetailView } from "@/components/dashboard/ProductDetailView";
 import { useOrgHandlers } from "@/hooks/useOrgHandlers";
 import { useProductHandlers } from "@/hooks/useProductHandlers";
 import { useDesignProcessing } from "@/hooks/useDesignProcessing";
+import { PrintifyMatchDialog } from "@/components/PrintifyMatchDialog";
 
 import type { Product, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
