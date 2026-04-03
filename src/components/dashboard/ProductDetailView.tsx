@@ -241,7 +241,21 @@ export const ProductDetailView = ({
               ) : listings.length > 0 ? (
                 <Tabs defaultValue={orgMarketplaces[0] || "shopify"}>
                   <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">{orgMarketplaces.map((m) => <TabsTrigger key={m} value={m} className="capitalize data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">{m}</TabsTrigger>)}</TabsList>
-                  {orgMarketplaces.map((m) => { const listing = listings.find((l) => l.marketplace === m); if (!listing) return null; return <TabsContent key={m} value={m}><ListingOutput marketplace={m} listing={{ title: listing.title, description: listing.description, bulletPoints: listing.bullet_points as string[], tags: listing.tags as string[], seoTitle: listing.seo_title, seoDescription: listing.seo_description, urlHandle: listing.url_handle, altText: listing.alt_text }} /></TabsContent>; })}
+                  {orgMarketplaces.map((m) => { const listing = listings.find((l) => l.marketplace === m); if (!listing) return null; return <TabsContent key={m} value={m}><ListingOutput marketplace={m} listing={{ title: listing.title, description: listing.description, bulletPoints: listing.bullet_points as string[], tags: listing.tags as string[], seoTitle: listing.seo_title, seoDescription: listing.seo_description, urlHandle: listing.url_handle, altText: listing.alt_text }} onSave={async (updated) => {
+                    const { error } = await supabase.from("listings").update({
+                      title: updated.title,
+                      description: updated.description,
+                      bullet_points: updated.bulletPoints as any,
+                      tags: updated.tags as any,
+                      seo_title: updated.seoTitle || "",
+                      seo_description: updated.seoDescription || "",
+                      url_handle: updated.urlHandle || "",
+                      alt_text: updated.altText || "",
+                    }).eq("id", listing.id);
+                    if (error) { toast.error("Failed to save listing"); return; }
+                    toast.success(`${m} listing updated`);
+                    loadListings(product.id);
+                  }} /></TabsContent>; })}
                 </Tabs>
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20"><p className="text-sm text-muted-foreground">No listings generated yet</p><Button variant="link" onClick={() => onGenerateListings(product)} className="mt-2">Generate now</Button></div>
