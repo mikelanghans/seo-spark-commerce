@@ -1,9 +1,48 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import https from "node:https";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const ebayInventoryPut = async (url: string, token: string, payload: unknown) => {
+  const urlObj = new URL(url);
+  const body = JSON.stringify(payload);
+
+  return await new Promise<{ status: number; body: string }>((resolve, reject) => {
+    const req = https.request({
+      protocol: urlObj.protocol,
+      hostname: urlObj.hostname,
+      path: `${urlObj.pathname}${urlObj.search}`,
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+        "Content-Language": "en-US",
+      },
+    }, (res) => {
+      let responseBody = "";
+
+      res.on("data", (chunk) => {
+        responseBody += typeof chunk === "string" ? chunk : chunk.toString();
+      });
+
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode ?? 0,
+          body: responseBody,
+        });
+      });
+    });
+
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
 };
 
 serve(async (req) => {
@@ -86,37 +125,26 @@ serve(async (req) => {
 
     if (existingItemId) {
       // Revise existing listing
-      const reviseRes = await fetch(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Accept-Language": "en-US",
-          "Content-Language": "en-US",
+      const reviseRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, {
+        product: {
+          title: listing.title.slice(0, 80),
+          description: `<p>${description}</p>`,
+          aspects: {},
+          imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
         },
-        body: JSON.stringify({
-          product: {
-            title: listing.title.slice(0, 80),
-            description: `<p>${description}</p>`,
-            aspects: {},
-            imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
+        condition: "NEW",
+        availability: {
+          shipToLocationAvailability: {
+            quantity: 999,
           },
-          condition: "NEW",
-          availability: {
-            shipToLocationAvailability: {
-              quantity: 999,
-            },
-          },
-        }),
+        },
       });
 
-      if (!reviseRes.ok) {
-        const errText = await reviseRes.text();
-        console.error("eBay revise error:", reviseRes.status, errText);
+      if (reviseRes.status < 200 || reviseRes.status >= 300) {
+        console.error("eBay revise error:", reviseRes.status, reviseRes.body);
         throw new Error(`eBay update failed: ${reviseRes.status}`);
       }
 
-      await reviseRes.text(); // consume body
       return new Response(JSON.stringify({ success: true, item_id: existingItemId, action: "updated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -124,32 +152,23 @@ serve(async (req) => {
       // Create new inventory item
       const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
 
-      const createRes = await fetch(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Accept-Language": "en-US",
-          "Content-Language": "en-US",
+      const createRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, {
+        product: {
+          title: listing.title.slice(0, 80),
+          description: `<p>${description}</p>`,
+          aspects: {},
+          imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
         },
-        body: JSON.stringify({
-          product: {
-            title: listing.title.slice(0, 80),
-            description: `<p>${description}</p>`,
-            aspects: {},
-            imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
+        condition: "NEW",
+        availability: {
+          shipToLocationAvailability: {
+            quantity: 999,
           },
-          condition: "NEW",
-          availability: {
-            shipToLocationAvailability: {
-              quantity: 999,
-            },
-          },
-        }),
+        },
       });
 
-      if (!createRes.ok) {
-        const errText = await createRes.text();
+      if (createRes.status < 200 || createRes.status >= 300) {
+        const errText = createRes.body;
         console.error("eBay create error:", createRes.status, errText);
 
         if (createRes.status === 401 || createRes.status === 403) {
@@ -157,8 +176,6 @@ serve(async (req) => {
         }
         throw new Error(`eBay create failed: ${createRes.status} — ${errText.slice(0, 200)}`);
       }
-
-      await createRes.text(); // consume body
 
       // Save eBay item ID (SKU) back to product
       await sb.from("products").update({ ebay_listing_id: sku } as any).eq("id", productId);
