@@ -87,11 +87,11 @@ export function buildShopifyProduct(
           inventory_policy: "continue",
         }));
 
-      // Also include unmatched existing variants (other colors/sizes) to keep them intact
+      // Also include unmatched existing variants to keep them intact — must include option1
       const matchedIds = new Set(matchedVariants.map((v) => v.id));
       const unmatchedExisting = existingVariants!
         .filter((v) => !matchedIds.has(v.id))
-        .map((v) => ({ id: v.id, price }));
+        .map((v) => ({ id: v.id, option1: v.option1, price }));
 
       if (matchedVariants.length > 0 || unmatchedExisting.length > 0) {
         shopifyProduct.variants = [...matchedVariants, ...unmatchedExisting];
