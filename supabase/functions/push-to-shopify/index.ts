@@ -111,7 +111,7 @@ serve(async (req) => {
     }
 
     // Upload images and associate with variants (use fresh variant list from response)
-    if (createdProduct?.id && imageEntries.length > 0) {
+    if (createdProduct?.id && shouldUpdateImages && imageEntries.length > 0) {
       await uploadAndAssociateImages(
         domain,
         connection.access_token,
