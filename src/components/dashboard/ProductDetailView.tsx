@@ -11,6 +11,8 @@ import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
 import { SmartPricing } from "@/components/SmartPricing";
+import { SizePricingEditor } from "@/components/SizePricingEditor";
+import type { ProductTypeKey } from "@/lib/productTypes";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
@@ -202,22 +204,61 @@ export const ProductDetailView = ({
         </TabsContent>
 
         <TabsContent value="pricing">
-          <div className="rounded-xl border border-border bg-card p-5">
-            <SmartPricing
-              product={{ title: product.title, description: product.description, category: product.category, keywords: product.keywords, price: product.price, features: product.features || "" }}
-              business={{ name: selectedOrg?.name || "", niche: selectedOrg?.niche || "", audience: selectedOrg?.audience || "", tone: selectedOrg?.tone || "" }}
-              onApplyPrice={async (price) => {
-                await supabase.from("products").update({ price }).eq("id", product.id);
-                setSelectedProduct({ ...product, price });
-                if (selectedOrg) loadProducts(selectedOrg.id);
-                if (product.shopify_product_id) {
-                  try { await supabase.functions.invoke("update-shopify-product", { body: { shopifyProductId: product.shopify_product_id, organizationId: selectedOrg?.id, updates: { price, size_pricing: product.size_pricing || undefined } } }); toast.success("Price synced to Shopify"); } catch (err) { console.error("Shopify price sync failed:", err); toast.error("Price saved locally but Shopify sync failed"); }
-                }
-                if (product.printify_product_id && selectedOrg) {
-                  try { await supabase.functions.invoke("printify-create-product", { body: { action: "update-price", printifyProductId: product.printify_product_id, organizationId: selectedOrg.id, price, sizePricing: product.size_pricing || undefined } }); toast.success("Price synced to Printify"); } catch (err) { console.error("Printify price sync failed:", err); toast.error("Price saved locally but Printify sync failed"); }
-                }
-              }}
-            />
+          <div className="space-y-6">
+            {/* Size Pricing Editor */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h4 className="text-sm font-semibold mb-1">Size Pricing</h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Adjust prices per size. Leave blank to use brand defaults.
+              </p>
+              <SizePricingEditor
+                enabledTypes={(selectedOrg?.enabled_product_types || ["t-shirt", "hoodie", "mug"]) as ProductTypeKey[]}
+                value={(() => {
+                  const productPricing = (product.size_pricing as unknown as Record<string, Record<string, string>>) || {};
+                  const brandDefaults = (selectedOrg?.default_size_pricing as unknown as Record<string, Record<string, string>>) || {};
+                  // Merge: brand defaults as base, product overrides on top
+                  const merged: Record<string, Record<string, string>> = {};
+                  for (const key of Object.keys({ ...brandDefaults, ...productPricing })) {
+                    merged[key] = { ...(brandDefaults[key] || {}), ...(productPricing[key] || {}) };
+                  }
+                  return merged;
+                })()}
+                onChange={async (updated) => {
+                  const { error } = await supabase.from("products").update({ size_pricing: updated as any }).eq("id", product.id);
+                  if (error) { toast.error(error.message); return; }
+                  setSelectedProduct({ ...product, size_pricing: updated as any });
+                  toast.success("Size pricing saved");
+                  if (selectedOrg) loadProducts(selectedOrg.id);
+                  // Sync to marketplaces
+                  if (product.shopify_product_id) {
+                    try { await supabase.functions.invoke("update-shopify-product", { body: { shopifyProductId: product.shopify_product_id, organizationId: selectedOrg?.id, updates: { price: product.price, size_pricing: updated } } }); } catch (err) { console.error("Shopify size pricing sync failed:", err); }
+                  }
+                  if (product.printify_product_id && selectedOrg) {
+                    try { await supabase.functions.invoke("printify-create-product", { body: { action: "update-price", printifyProductId: product.printify_product_id, organizationId: selectedOrg.id, price: product.price, sizePricing: updated } }); } catch (err) { console.error("Printify size pricing sync failed:", err); }
+                  }
+                }}
+                isProductLevel
+              />
+            </div>
+
+            {/* Smart Pricing (AI) */}
+            <div className="rounded-xl border border-border bg-card p-5">
+              <SmartPricing
+                product={{ title: product.title, description: product.description, category: product.category, keywords: product.keywords, price: product.price, features: product.features || "" }}
+                business={{ name: selectedOrg?.name || "", niche: selectedOrg?.niche || "", audience: selectedOrg?.audience || "", tone: selectedOrg?.tone || "" }}
+                onApplyPrice={async (price) => {
+                  await supabase.from("products").update({ price }).eq("id", product.id);
+                  setSelectedProduct({ ...product, price });
+                  if (selectedOrg) loadProducts(selectedOrg.id);
+                  if (product.shopify_product_id) {
+                    try { await supabase.functions.invoke("update-shopify-product", { body: { shopifyProductId: product.shopify_product_id, organizationId: selectedOrg?.id, updates: { price, size_pricing: product.size_pricing || undefined } } }); toast.success("Price synced to Shopify"); } catch (err) { console.error("Shopify price sync failed:", err); toast.error("Price saved locally but Shopify sync failed"); }
+                  }
+                  if (product.printify_product_id && selectedOrg) {
+                    try { await supabase.functions.invoke("printify-create-product", { body: { action: "update-price", printifyProductId: product.printify_product_id, organizationId: selectedOrg.id, price, sizePricing: product.size_pricing || undefined } }); toast.success("Price synced to Printify"); } catch (err) { console.error("Printify price sync failed:", err); toast.error("Price saved locally but Printify sync failed"); }
+                  }
+                }}
+              />
+            </div>
           </div>
         </TabsContent>
 
