@@ -245,7 +245,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           const { data: result, error } = await supabase.functions.invoke("ebay-exchange-token", {
             body: {
               code: e.data.code,
-              redirectUri,
+              redirectUri: ruName,
               environment: e.data.environment || ebayEnv,
             },
           });
