@@ -7,23 +7,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ebayInventoryPut = async (url: string, token: string, payload: unknown) => {
+const ebayRequest = async (url: string, token: string, method: string, payload?: unknown) => {
   const urlObj = new URL(url);
-  const body = JSON.stringify(payload);
+  const body = payload != null ? JSON.stringify(payload) : undefined;
+  const headers: Record<string, string | number> = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "Content-Language": "en-US",
+  };
+  if (body) {
+    headers["Content-Length"] = new TextEncoder().encode(body).length;
+  }
 
   return await new Promise<{ status: number; body: string }>((resolve, reject) => {
     const req = https.request({
       protocol: urlObj.protocol,
       hostname: urlObj.hostname,
       path: `${urlObj.pathname}${urlObj.search}`,
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "Content-Length": new TextEncoder().encode(body).length,
-        "Content-Language": "en-US",
-      },
+      method,
+      headers,
     }, (res) => {
       let responseBody = "";
 
@@ -40,9 +43,40 @@ const ebayInventoryPut = async (url: string, token: string, payload: unknown) =>
     });
 
     req.on("error", reject);
-    req.write(body);
+    if (body) req.write(body);
     req.end();
   });
+};
+
+const fetchPolicies = async (apiBase: string, token: string, marketplaceId: string) => {
+  const types = ["fulfillment_policy", "payment_policy", "return_policy"] as const;
+  const results: Record<string, string | null> = {
+    fulfillmentPolicyId: null,
+    paymentPolicyId: null,
+    returnPolicyId: null,
+  };
+  const keys = ["fulfillmentPolicyId", "paymentPolicyId", "returnPolicyId"];
+  const responseKeys = ["fulfillmentPolicies", "paymentPolicies", "returnPolicies"];
+
+  for (let i = 0; i < types.length; i++) {
+    try {
+      const res = await ebayRequest(
+        `${apiBase}/sell/account/v1/${types[i]}?marketplace_id=${marketplaceId}`,
+        token,
+        "GET",
+      );
+      if (res.status >= 200 && res.status < 300) {
+        const data = JSON.parse(res.body);
+        const policies = data[responseKeys[i]] || data.policies || [];
+        if (policies.length > 0) {
+          results[keys[i]] = policies[0][keys[i]] || policies[0].id || null;
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch ${types[i]}:`, e);
+    }
+  }
+  return results;
 };
 
 serve(async (req) => {
@@ -125,7 +159,7 @@ serve(async (req) => {
 
     if (existingItemId) {
       // Revise existing listing
-      const reviseRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, {
+      const reviseRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, "PUT", {
         product: {
           title: listing.title.slice(0, 80),
           description: `<p>${description}</p>`,
@@ -152,7 +186,7 @@ serve(async (req) => {
       // Create new inventory item
       const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
 
-      const createRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, {
+      const createRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", {
         product: {
           title: listing.title.slice(0, 80),
           description: `<p>${description}</p>`,
@@ -180,7 +214,129 @@ serve(async (req) => {
       // Save eBay item ID (SKU) back to product
       await sb.from("products").update({ ebay_listing_id: sku } as any).eq("id", productId);
 
-      return new Response(JSON.stringify({ success: true, item_id: sku, action: "created" }), {
+      // Step 2: Create an offer
+      const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
+      const price = listing.price || "29.99";
+
+      // Ensure a default inventory location exists
+      const locationKey = "default-location";
+      const locCheck = await ebayRequest(`${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "GET");
+      if (locCheck.status >= 300) {
+        console.log("Creating default inventory location...");
+        const locCreate = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "POST", {
+            location: {
+              address: {
+                addressLine1: "123 Main St",
+                city: "New York",
+                stateOrProvince: "NY",
+                postalCode: "10001",
+                country: "US",
+              },
+            },
+            merchantLocationStatus: "ENABLED",
+            name: "Default Location",
+            locationTypes: ["WAREHOUSE"],
+          }
+        );
+        console.log("Location create:", locCreate.status, locCreate.body);
+      }
+
+      // Fetch seller's business policies
+      const policies = await fetchPolicies(apiBase, token, marketplaceId);
+      console.log("Fetched policies:", JSON.stringify(policies));
+
+      const offerPayload: Record<string, unknown> = {
+        sku,
+        marketplaceId,
+        format: "FIXED_PRICE",
+        availableQuantity: 999,
+        categoryId: "11450", // default: Clothing > T-Shirts
+        listingDescription: `<p>${description}</p>`,
+        pricingSummary: {
+          price: {
+            value: price,
+            currency: "USD",
+          },
+        },
+        listingPolicies: {} as Record<string, string>,
+      };
+      offerPayload.merchantLocationKey = locationKey;
+
+      // Add policies if available
+      const listingPolicies: Record<string, string> = {};
+      if (policies.fulfillmentPolicyId) listingPolicies.fulfillmentPolicyId = policies.fulfillmentPolicyId;
+      if (policies.paymentPolicyId) listingPolicies.paymentPolicyId = policies.paymentPolicyId;
+      if (policies.returnPolicyId) listingPolicies.returnPolicyId = policies.returnPolicyId;
+      if (Object.keys(listingPolicies).length > 0) {
+        offerPayload.listingPolicies = listingPolicies;
+      }
+
+      const offerRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+      console.log("Offer response:", offerRes.status, offerRes.body);
+
+      if (offerRes.status < 200 || offerRes.status >= 300) {
+        // Inventory item was created, but offer failed — still return partial success
+        console.error("eBay offer error:", offerRes.status, offerRes.body);
+        return new Response(JSON.stringify({
+          success: true,
+          item_id: sku,
+          action: "created",
+          warning: `Inventory item created but offer failed: ${offerRes.body.slice(0, 200)}`,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const offerData = JSON.parse(offerRes.body);
+      const offerId = offerData.offerId;
+
+      if (!offerId) {
+        return new Response(JSON.stringify({
+          success: true,
+          item_id: sku,
+          action: "created",
+          warning: "Offer created but no offerId returned.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Step 3: Publish the offer
+      let publishRes = { status: 0, body: "" };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+        publishRes = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
+          token,
+          "POST",
+          {},
+        );
+        console.log(`Publish attempt ${attempt + 1}:`, publishRes.status, publishRes.body);
+        if (publishRes.status >= 200 && publishRes.status < 300) break;
+      }
+
+      if (publishRes.status < 200 || publishRes.status >= 300) {
+        console.error("eBay publish error:", publishRes.status, publishRes.body);
+        return new Response(JSON.stringify({
+          success: true,
+          item_id: sku,
+          action: "created",
+          warning: `Offer created but publish failed: ${publishRes.body.slice(0, 200)}`,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const publishData = JSON.parse(publishRes.body);
+      const listingId = publishData.listingId;
+
+      return new Response(JSON.stringify({
+        success: true,
+        item_id: sku,
+        listing_id: listingId,
+        action: "published",
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
