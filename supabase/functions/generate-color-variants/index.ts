@@ -13,7 +13,7 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   moss: "muted earthy olive green (near #6F7A5D)",
   grey: "medium neutral heather gray (near #78797D)",
   "blue jean": "washed dusty denim blue (near #6E8090)",
-  pepper: "Comfort Colors 1717 PEPPER — a distinctly GRAY garment, NOT black. Target hex #6B6866. Think of a well-faded, sun-bleached dark gray with warm brown undertones. It should be as obviously gray as a concrete sidewalk — anyone looking at it should immediately say 'that's a gray shirt'. If the result could be mistaken for black, it is WRONG",
+  pepper: "Comfort Colors 1717 PEPPER — a MEDIUM WARM GRAY, NOT dark, NOT olive, NOT charcoal. Target hex #6B6866. Think of warm concrete or dried clay — a clearly GRAY tone with subtle warm brown undertones. NO green, NO olive, NO charcoal. It must be OBVIOUSLY lighter than black or charcoal. Brightness level similar to a sidewalk in daylight. If it looks dark, greenish, or could be mistaken for black/charcoal/olive, it is WRONG",
   "island green": "rich green-teal (near #2F8E79)",
   ivory: "warm off-white cream (near #F2E9D6)",
   crimson: "deep crimson red (near #8E1D2E)",
