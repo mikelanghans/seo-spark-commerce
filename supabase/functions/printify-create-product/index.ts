@@ -70,6 +70,7 @@ serve(async (req) => {
       if (!pShopId) throw new Error("No Printify shop configured");
 
       // Fetch current product to get variants
+      console.log(`Update: fetching product ${pPrintifyProductId} from shop ${pShopId}`);
       const fetchRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
         headers: { Authorization: `Bearer ${printifyToken}` },
       });
