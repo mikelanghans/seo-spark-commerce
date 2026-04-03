@@ -55,7 +55,7 @@ const CC1717_COLORS: ProductTypeColor[] = [
   { name: "Chili", hex: "#8b2332" },
   { name: "Brick", hex: "#a05a50" },
   { name: "Espresso", hex: "#4a3228" },
-  { name: "Midnight", hex: "#253147" },
+  { name: "Midnight", hex: "#4a5568" },
   { name: "Sage", hex: "#a3b09e" },
   { name: "Chambray", hex: "#8ba3c4" },
 ];
@@ -81,7 +81,7 @@ const CC1717_SWATCH_HINTS: Record<string, string> = {
   chili: "deep dark red with brown warmth — like dried chili pepper (near #8B2332)",
   brick: "muted warm terracotta-red, dusty and earthy (near #A05A50)",
   espresso: "dark warm brown — clearly brown, not black (near #4A3228)",
-  midnight: "dark navy blue — not black. Must show visible blue undertone (near #253147)",
+  midnight: "medium-dark slate blue-gray — NOT dark navy and NOT black. A muted cool steel tone with subtle blue undertone (near #4A5568)",
   sage: "muted light sage green (near #9BAC95)",
   chambray: "light muted blue-gray (near #8EA3B6)",
 };
@@ -100,7 +100,7 @@ const CC1566_COLORS: ProductTypeColor[] = [
   { name: "Chili", hex: "#8b2332" },
   { name: "Brick", hex: "#a05a50" },
   { name: "Espresso", hex: "#4a3228" },
-  { name: "Midnight", hex: "#253147" },
+  { name: "Midnight", hex: "#4a5568" },
   { name: "Sage", hex: "#a3b09e" },
 ];
 
@@ -116,7 +116,7 @@ const CC1566_SWATCH_HINTS: Record<string, string> = {
   chili: "deep dark red with brown warmth — like dried chili pepper (near #8B2332)",
   brick: "muted warm terracotta-red, dusty and earthy (near #A05A50)",
   espresso: "dark warm brown — clearly brown, not black (near #4A3228)",
-  midnight: "dark navy blue — not black. Visible blue undertone (near #253147)",
+  midnight: "medium-dark slate blue-gray — NOT dark navy and NOT black. A muted cool steel tone with subtle blue undertone (near #4A5568)",
   sage: "muted light sage green (near #9BAC95)",
 };
 
