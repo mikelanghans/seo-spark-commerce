@@ -21,7 +21,7 @@ const ebayInventoryPut = async (url: string, token: string, payload: unknown) =>
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
         "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
+        "Content-Length": new TextEncoder().encode(body).length,
         "Content-Language": "en-US",
       },
     }, (res) => {
