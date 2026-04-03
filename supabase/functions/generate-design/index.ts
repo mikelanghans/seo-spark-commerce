@@ -592,6 +592,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Credit pre-check
+    const creditOk = await deductCredits(userId, "generate-design");
+    if (!creditOk) return insufficientCreditsResponse("generate-design");
+
     const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, designVariantMode, generateBothNow, regenerateFeedback, referenceImageUrl, baseDesignUrl } = await req.json();
     if (!messageText) throw new Error("messageText is required");
 
