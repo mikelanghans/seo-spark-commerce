@@ -31,11 +31,10 @@ export function buildShopifyProduct(
   shopifyStatus: string | undefined,
   colorVariants: { colorName: string; imageUrl: string }[],
   price: string,
-  existingVariants?: { id: number; option1: string }[],
+  isUpdate = false,
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
-  const isUpdate = !!existingVariants;
 
   const shopifyProduct: Record<string, unknown> = {
     title: shopifyListing?.title || product.title,
@@ -55,57 +54,15 @@ export function buildShopifyProduct(
     metafields_global_description_tag: shopifyListing?.seo_description || undefined,
   };
 
-  if (hasVariants) {
-    // Always include options declaration — Shopify requires it when variants have option1
+  if (!isUpdate && hasVariants) {
     shopifyProduct.options = [{ name: "Color" }];
-
-    // When updating, match existing variant IDs by color name to preserve them.
-    // Only include variants that already exist on Shopify to avoid option conflicts.
-    const existingByColor = new Map<string, number>();
-    if (existingVariants) {
-      for (const v of existingVariants) {
-        if (v.option1) {
-          const key = v.option1.toLowerCase();
-          // Only store the first variant per color (avoid dupes from size matrix)
-          if (!existingByColor.has(key)) {
-            existingByColor.set(key, v.id);
-          }
-        }
-      }
-    }
-
-    if (isUpdate) {
-      // For updates, only update price on existing matched variants — don't send new ones
-      // that would require option value changes
-      const matchedVariants = actualColorVariants
-        .filter((v) => existingByColor.has(v.colorName.toLowerCase()))
-        .map((v) => ({
-          id: existingByColor.get(v.colorName.toLowerCase()),
-          option1: v.colorName,
-          price,
-          inventory_management: null,
-          inventory_policy: "continue",
-        }));
-
-      // Also include unmatched existing variants to keep them intact — must include option1
-      const matchedIds = new Set(matchedVariants.map((v) => v.id));
-      const unmatchedExisting = existingVariants!
-        .filter((v) => !matchedIds.has(v.id))
-        .map((v) => ({ id: v.id, option1: v.option1, price }));
-
-      if (matchedVariants.length > 0 || unmatchedExisting.length > 0) {
-        shopifyProduct.variants = [...matchedVariants, ...unmatchedExisting];
-      }
-    } else {
-      shopifyProduct.variants = actualColorVariants.map((v) => ({
-        option1: v.colorName,
-        price,
-        inventory_management: null,
-        inventory_policy: "continue",
-      }));
-    }
+    shopifyProduct.variants = actualColorVariants.map((v) => ({
+      option1: v.colorName,
+      price,
+      inventory_management: null,
+      inventory_policy: "continue",
+    }));
   } else if (!isUpdate) {
-    // Only set a default variant on creation — skip on updates to preserve existing options
     shopifyProduct.variants = [{
       price,
       inventory_management: null,

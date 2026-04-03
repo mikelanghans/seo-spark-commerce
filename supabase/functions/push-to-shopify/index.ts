@@ -104,17 +104,6 @@ serve(async (req) => {
     const createdProduct = shopifyData.product;
     console.log(`Shopify product id: ${createdProduct?.id}, variants: ${createdProduct?.variants?.length || 0}`);
 
-    // For updates, delete stale variants that are no longer in the color list
-    if (isUpdate && actualColorVariants.length > 0 && existingVariants.length > 0) {
-      await deleteStaleVariants(
-        domain,
-        connection.access_token,
-        createdProduct.id,
-        existingVariants,
-        actualColorVariants.map((v) => v.colorName),
-      );
-    }
-
     // Save Shopify product ID back
     if (createdProduct?.id && product.id) {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id }).eq("id", product.id);
