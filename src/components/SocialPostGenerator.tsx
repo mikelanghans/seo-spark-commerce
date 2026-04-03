@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Copy, Check, Hash, Save, ChevronsUpDown, X } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, Hash, Save, ChevronsUpDown, X, Trash2 } from "lucide-react";
 import { SocialImageCard } from "@/components/social/SocialImageCard";
 import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
