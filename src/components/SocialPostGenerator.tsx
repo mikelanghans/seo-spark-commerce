@@ -370,31 +370,20 @@ export function SocialPostGenerator({
                     <span className="text-lg">{platform.icon}</span>
                     <span className="font-semibold">{platform.label}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => generateImage(platform.id)}
-                      disabled={!!generatingImage}
-                      className="gap-1.5"
-                    >
-                      {isGeneratingThis ? (
-                        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</>
-                      ) : (
-                        <><ImagePlus className="h-3.5 w-3.5" /> {image ? "Regenerate" : "Add Image"}</>
-                      )}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(platform.id, post)} className="gap-1.5">
-                      {copiedId === platform.id ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
-                    </Button>
-                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(platform.id, post)} className="gap-1.5">
+                    {copiedId === platform.id ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
+                  </Button>
                 </div>
 
-                {image && (
-                  <div className="rounded-lg overflow-hidden border border-border">
-                    <img src={image} alt={`${platform.label} promo`} className="w-full max-h-[300px] object-contain bg-muted/30" />
-                  </div>
-                )}
+                <SocialImageCard
+                  platformId={platform.id}
+                  platformLabel={platform.label}
+                  imageUrl={image || null}
+                  generatingImage={isGeneratingThis}
+                  onGenerateImage={() => generateImage(platform.id)}
+                  onImageChange={(url) => setPostImages((prev) => ({ ...prev, [platform.id]: url }))}
+                  userId={userId}
+                />
 
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{post.caption}</p>
 
