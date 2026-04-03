@@ -9,10 +9,19 @@ export function handleAiError(error: any, data: any, fallbackMessage = "AI reque
   // Check data.error first (edge function returned JSON error)
   const errorMsg = data?.error || error?.message || "";
 
+  // Try to extract context from error.context when supabase SDK swallows response body
+  let responseBody: string | undefined;
+  try {
+    if (error?.context?.body) {
+      const reader = error.context.body.getReader?.();
+      // Can't await in sync — use errorMsg instead
+    }
+  } catch {}
+
   // Log every AI error for admin debugging
   logCaughtError(error || new Error(errorMsg), "edge-function", {
     functionResponse: data?.error,
-    status: error?.status,
+    status: error?.status || error?.context?.status,
   });
 
   if (
