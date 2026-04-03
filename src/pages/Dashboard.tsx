@@ -124,6 +124,7 @@ const Dashboard = () => {
     selectedMarketplaces, setSelectedMarketplaces,
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
+    showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     allTags, handleAddTag, handleRemoveTag,
