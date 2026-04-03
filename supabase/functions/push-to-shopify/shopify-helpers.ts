@@ -104,7 +104,8 @@ export function buildShopifyProduct(
         inventory_policy: "continue",
       }));
     }
-  } else {
+  } else if (!isUpdate) {
+    // Only set a default variant on creation — skip on updates to preserve existing options
     shopifyProduct.variants = [{
       price,
       inventory_management: null,
