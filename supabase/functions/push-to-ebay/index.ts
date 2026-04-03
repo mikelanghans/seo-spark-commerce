@@ -220,30 +220,24 @@ serve(async (req) => {
 
       // Ensure a default inventory location exists
       const locationKey = "default-location";
-      const locCheck = await ebayRequest(
-        `${apiBase}/sell/inventory/v1/location/${locationKey}`,
-        token,
-        "GET",
-      );
-      if (locCheck.status === 404 || locCheck.status >= 400) {
+      const locCheck = await ebayRequest(`${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "GET");
+      if (locCheck.status >= 300) {
         console.log("Creating default inventory location...");
         const locCreate = await ebayRequest(
-          `${apiBase}/sell/inventory/v1/location/${locationKey}`,
-          token,
-          "PUT",
-          {
+          `${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "POST", {
             location: {
               address: {
+                addressLine1: "123 Main St",
                 city: "New York",
                 stateOrProvince: "NY",
                 postalCode: "10001",
                 country: "US",
               },
             },
-            locationTypes: ["WAREHOUSE"],
-            name: "Default Location",
             merchantLocationStatus: "ENABLED",
-          },
+            name: "Default Location",
+            locationTypes: ["WAREHOUSE"],
+          }
         );
         console.log("Location create:", locCreate.status, locCreate.body);
       }
