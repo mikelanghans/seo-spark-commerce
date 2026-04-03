@@ -830,6 +830,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 >
                   <Edit2 className="h-3 w-3" />
                 </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
+                  onClick={() => {
+                    const colorSlug = (img.color_name || "mockup").replace(/\s+/g, "-").toLowerCase();
+                    const slug = productTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+                    downloadImage(img.image_url, `${slug}_${colorSlug}.jpg`);
+                  }}
+                  title="Download mockup"
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
                 {showFeedback && (
                   <Button
                     size="icon"
