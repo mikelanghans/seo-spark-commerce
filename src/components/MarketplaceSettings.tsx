@@ -168,8 +168,8 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   };
 
   const saveEbayCreds = async () => {
-    if (!ebayClientId.trim() || !ebayClientSecret.trim()) {
-      toast.error("Both Client ID and Client Secret are required");
+    if (!ebayClientId.trim() || !ebayClientSecret.trim() || !ebayRuName.trim()) {
+      toast.error("Client ID, Client Secret, and RuName are all required");
       return;
     }
     setSavingEbay(true);
