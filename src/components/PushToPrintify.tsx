@@ -608,18 +608,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </>
             )}
 
-            {hasMockups && (
-              <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2">
-                  <Store className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Also update Shopify mockups</p>
-                    <p className="text-xs text-muted-foreground">Push AI mockup images to your Shopify listing</p>
-                  </div>
-                </div>
-                <Switch checked={alsoUpdateShopify} onCheckedChange={setAlsoUpdateShopify} />
-              </div>
-            )}
 
             {/* Publish toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
