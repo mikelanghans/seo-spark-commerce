@@ -558,6 +558,15 @@ const Dashboard = () => {
 
       {deleteConfirmOrg && <DeleteOrgDialog org={deleteConfirmOrg} confirmText={deleteConfirmText} onConfirmTextChange={setDeleteConfirmText} onConfirm={confirmDeleteOrg} onCancel={() => setDeleteConfirmOrg(null)} />}
       {showTour && <OnboardingTour onClose={() => setShowTour(false)} />}
+      {selectedOrg && (
+        <PrintifyMatchDialog
+          open={showPrintifyMatch}
+          onOpenChange={setShowPrintifyMatch}
+          organizationId={selectedOrg.id}
+          products={products}
+          onMatched={() => { if (selectedOrg) loadProducts(selectedOrg.id); }}
+        />
+      )}
     </div>
   );
 };
