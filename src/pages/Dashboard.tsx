@@ -52,6 +52,7 @@ import { ProductDetailView } from "@/components/dashboard/ProductDetailView";
 import { useOrgHandlers } from "@/hooks/useOrgHandlers";
 import { useProductHandlers } from "@/hooks/useProductHandlers";
 import { useDesignProcessing } from "@/hooks/useDesignProcessing";
+import { PrintifyMatchDialog } from "@/components/PrintifyMatchDialog";
 
 import type { Product, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
@@ -124,6 +125,7 @@ const Dashboard = () => {
     selectedMarketplaces, setSelectedMarketplaces,
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
+    showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     allTags, handleAddTag, handleRemoveTag,
@@ -557,6 +559,15 @@ const Dashboard = () => {
 
       {deleteConfirmOrg && <DeleteOrgDialog org={deleteConfirmOrg} confirmText={deleteConfirmText} onConfirmTextChange={setDeleteConfirmText} onConfirm={confirmDeleteOrg} onCancel={() => setDeleteConfirmOrg(null)} />}
       {showTour && <OnboardingTour onClose={() => setShowTour(false)} />}
+      {selectedOrg && (
+        <PrintifyMatchDialog
+          open={showPrintifyMatch}
+          onOpenChange={setShowPrintifyMatch}
+          organizationId={selectedOrg.id}
+          products={products}
+          onMatched={() => { if (selectedOrg) loadProducts(selectedOrg.id); }}
+        />
+      )}
     </div>
   );
 };
