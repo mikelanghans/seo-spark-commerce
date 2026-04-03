@@ -159,7 +159,7 @@ serve(async (req) => {
 
     if (existingItemId) {
       // Revise existing listing
-      const reviseRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, {
+      const reviseRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, "PUT", {
         product: {
           title: listing.title.slice(0, 80),
           description: `<p>${description}</p>`,
@@ -186,7 +186,7 @@ serve(async (req) => {
       // Create new inventory item
       const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
 
-      const createRes = await ebayInventoryPut(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, {
+      const createRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", {
         product: {
           title: listing.title.slice(0, 80),
           description: `<p>${description}</p>`,
