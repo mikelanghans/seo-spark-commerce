@@ -207,7 +207,18 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ebay-oauth-callback`;
+      // Fetch the saved RuName from the connection
+      let ruName = ebayRuName;
+      if (!ruName && ebayConn) {
+        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", ebayConn.id).maybeSingle();
+        ruName = (connData as any)?.ru_name || "";
+      }
+      if (!ruName) {
+        toast.error("RuName is required. Please save your credentials with a RuName first.");
+        setSavingEbay(false);
+        return;
+      }
+
       const isSandbox = ebayEnv === "sandbox";
       const authBase = isSandbox
         ? "https://auth.sandbox.ebay.com/oauth2/authorize"
@@ -216,7 +227,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
       const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
 
-      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}`;
+      const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${encodeURIComponent(ruName)}&scope=${scopes}&state=${state}`;
 
       const popup = window.open(authUrl, "ebay-oauth", "width=600,height=700");
 
