@@ -56,7 +56,7 @@ export function CreditCostBreakdown() {
           Credit Costs Per Action
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Every AI feature has a fixed credit cost. No surprises.
+          Every AI feature has a fixed credit cost per product. No surprises.
         </p>
       </div>
 
