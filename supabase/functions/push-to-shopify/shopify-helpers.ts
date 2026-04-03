@@ -225,12 +225,16 @@ export async function uploadAndAssociateImages(
       const image = uploadedImages[i];
       if (!image || !image.colorName) continue;
 
-      // Find matching variant by color name (option1)
-      const matchingVariant = variants.find(
-        (v: any) => v.option1 && v.option1.toLowerCase() === image.colorName!.toLowerCase(),
+      // Find ALL matching variants by color name (option1/option2/option3)
+      // A Color×Size matrix has multiple variants per color (one per size)
+      const matchingVariants = variants.filter(
+        (v: any) =>
+          (v.option1 && v.option1.toLowerCase() === image.colorName!.toLowerCase()) ||
+          (v.option2 && v.option2.toLowerCase() === image.colorName!.toLowerCase()) ||
+          (v.option3 && v.option3.toLowerCase() === image.colorName!.toLowerCase()),
       );
 
-      if (matchingVariant) {
+      for (const matchingVariant of matchingVariants) {
         try {
           await fetch(`https://${domain}/admin/api/2024-01/variants/${matchingVariant.id}.json`, {
             method: "PUT",
