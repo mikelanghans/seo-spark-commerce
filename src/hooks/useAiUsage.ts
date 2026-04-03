@@ -33,6 +33,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
   const [purchasedCredits, setPurchasedCredits] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const subscriptionLoaded = subscriptionCreditsLimit !== undefined;
   const tierLimit = subscriptionCreditsLimit ?? FREE_TIER_LIMIT;
 
   const fetchUsage = useCallback(async () => {
@@ -78,9 +79,9 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
         return false;
       }
 
-      // Only warn when credits are genuinely low (≤10)
+      // Only warn when credits are genuinely low (≤10) AND subscription tier is loaded
       const remaining = limit - count;
-      if (remaining <= 10 && remaining > 0) {
+      if (subscriptionLoaded && remaining <= 10 && remaining > 0) {
         toast.warning("You're running low on AI credits", {
           description: `Only ${remaining} of ${limit} credits left — don't interrupt your workflow. Top up now!`,
           duration: 6000,
@@ -89,7 +90,7 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
 
       return true;
     },
-    [userId, tierLimit]
+    [userId, tierLimit, subscriptionLoaded]
   );
 
   const logUsage = useCallback(
