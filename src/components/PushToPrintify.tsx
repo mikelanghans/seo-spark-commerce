@@ -12,7 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, CheckCircle2, Printer, AlertTriangle, Store } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, CheckCircle2, Printer, AlertTriangle, Store, RefreshCw } from "lucide-react";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { getProductType } from "@/lib/productTypes";
 import { toast } from "sonner";
