@@ -1386,6 +1386,10 @@ export type Database = {
         Args: { _delta: number; _user_id: string }
         Returns: undefined
       }
+      deduct_user_credits: {
+        Args: { _amount: number; _user_id: string }
+        Returns: boolean
+      }
       get_org_role: {
         Args: { _org_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["org_role"]
