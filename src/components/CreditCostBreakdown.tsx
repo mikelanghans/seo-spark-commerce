@@ -1,6 +1,6 @@
 import { CREDIT_COSTS } from "@/lib/creditCosts";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle } from "lucide-react";
+import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle, CreditCard } from "lucide-react";
 
 const COST_GROUPS = [
   {
@@ -57,6 +57,30 @@ export function CreditCostBreakdown() {
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
           Every AI feature has a fixed credit cost per product. No surprises.
+        </p>
+      </div>
+
+      {/* Plan allowance callout */}
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Credits Included With Your Plan</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { plan: "Free", credits: "25", price: "$0/mo" },
+            { plan: "Starter", credits: "175", price: "$9/mo" },
+            { plan: "Pro", credits: "700", price: "$29/mo" },
+          ].map(({ plan, credits, price }) => (
+            <div key={plan} className="rounded-md border border-border bg-card p-3">
+              <p className="text-xs text-muted-foreground">{plan}</p>
+              <p className="text-lg font-bold text-foreground">{credits}</p>
+              <p className="text-xs text-muted-foreground">{price}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Need more? Purchase credit packs anytime — they never expire and stack on top of your monthly allowance.
         </p>
       </div>
 
