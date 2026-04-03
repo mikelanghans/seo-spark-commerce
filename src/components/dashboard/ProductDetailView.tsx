@@ -191,6 +191,7 @@ export const ProductDetailView = ({
         <TabsList className="w-full justify-start gap-1 bg-secondary/50 p-1">
           <TabsTrigger value="mockups" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><ImageIcon className="h-3.5 w-3.5" /> Mockups</TabsTrigger>
           <TabsTrigger value="listings" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Package className="h-3.5 w-3.5" /> Listings{!canAccess(effectiveTier, "ai-listings") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
+          <TabsTrigger value="pricing" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><DollarSign className="h-3.5 w-3.5" /> Pricing</TabsTrigger>
           <TabsTrigger value="push" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Store className="h-3.5 w-3.5" /> Push{!canAccess(effectiveTier, "marketplace-push") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
         </TabsList>
 
