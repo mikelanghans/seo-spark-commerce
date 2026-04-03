@@ -35,6 +35,7 @@ export function buildShopifyProduct(
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
+  const isUpdate = !!existingVariants;
 
   const shopifyProduct: Record<string, unknown> = {
     title: shopifyListing?.title || product.title,
@@ -55,27 +56,57 @@ export function buildShopifyProduct(
   };
 
   if (hasVariants) {
-    shopifyProduct.options = [{ name: "Color" }];
+    // On updates, do NOT send options — Shopify errors if you try to change option values
+    // that are already in use by existing variants. Only send on create.
+    if (!isUpdate) {
+      shopifyProduct.options = [{ name: "Color" }];
+    }
 
-    // When updating, match existing variant IDs by color name to preserve them
+    // When updating, match existing variant IDs by color name to preserve them.
+    // Only include variants that already exist on Shopify to avoid option conflicts.
     const existingByColor = new Map<string, number>();
     if (existingVariants) {
       for (const v of existingVariants) {
-        if (v.option1) existingByColor.set(v.option1.toLowerCase(), v.id);
+        if (v.option1) {
+          const key = v.option1.toLowerCase();
+          // Only store the first variant per color (avoid dupes from size matrix)
+          if (!existingByColor.has(key)) {
+            existingByColor.set(key, v.id);
+          }
+        }
       }
     }
 
-    shopifyProduct.variants = actualColorVariants.map((v) => {
-      const existingId = existingByColor.get(v.colorName.toLowerCase());
-      const variant: Record<string, unknown> = {
+    if (isUpdate) {
+      // For updates, only update price on existing matched variants — don't send new ones
+      // that would require option value changes
+      const matchedVariants = actualColorVariants
+        .filter((v) => existingByColor.has(v.colorName.toLowerCase()))
+        .map((v) => ({
+          id: existingByColor.get(v.colorName.toLowerCase()),
+          option1: v.colorName,
+          price,
+          inventory_management: null,
+          inventory_policy: "continue",
+        }));
+
+      // Also include unmatched existing variants (other colors/sizes) to keep them intact
+      const matchedIds = new Set(matchedVariants.map((v) => v.id));
+      const unmatchedExisting = existingVariants!
+        .filter((v) => !matchedIds.has(v.id))
+        .map((v) => ({ id: v.id, price }));
+
+      if (matchedVariants.length > 0 || unmatchedExisting.length > 0) {
+        shopifyProduct.variants = [...matchedVariants, ...unmatchedExisting];
+      }
+    } else {
+      shopifyProduct.variants = actualColorVariants.map((v) => ({
         option1: v.colorName,
         price,
         inventory_management: null,
         inventory_policy: "continue",
-      };
-      if (existingId) variant.id = existingId;
-      return variant;
-    });
+      }));
+    }
   } else {
     shopifyProduct.variants = [{
       price,
