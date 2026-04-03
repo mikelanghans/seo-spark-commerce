@@ -60,9 +60,10 @@ serve(async (req) => {
     }
 
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate);
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, isUpdate ? updateFields : undefined);
+    const shouldUpdateImages = !updateFields || updateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
-    console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}`);
+    console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${updateFields || "all"}`);
 
     // For updates, delete existing images first so we get clean mockups
     if (isUpdate && imageEntries.length > 0) {
