@@ -56,11 +56,8 @@ export function buildShopifyProduct(
   };
 
   if (hasVariants) {
-    // On updates, do NOT send options — Shopify errors if you try to change option values
-    // that are already in use by existing variants. Only send on create.
-    if (!isUpdate) {
-      shopifyProduct.options = [{ name: "Color" }];
-    }
+    // Always include options declaration — Shopify requires it when variants have option1
+    shopifyProduct.options = [{ name: "Color" }];
 
     // When updating, match existing variant IDs by color name to preserve them.
     // Only include variants that already exist on Shopify to avoid option conflicts.
@@ -90,11 +87,11 @@ export function buildShopifyProduct(
           inventory_policy: "continue",
         }));
 
-      // Also include unmatched existing variants (other colors/sizes) to keep them intact
+      // Also include unmatched existing variants to keep them intact — must include option1
       const matchedIds = new Set(matchedVariants.map((v) => v.id));
       const unmatchedExisting = existingVariants!
         .filter((v) => !matchedIds.has(v.id))
-        .map((v) => ({ id: v.id, price }));
+        .map((v) => ({ id: v.id, option1: v.option1, price }));
 
       if (matchedVariants.length > 0 || unmatchedExisting.length > 0) {
         shopifyProduct.variants = [...matchedVariants, ...unmatchedExisting];
