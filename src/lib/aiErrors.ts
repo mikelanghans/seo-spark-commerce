@@ -9,16 +9,19 @@ export function handleAiError(error: any, data: any, fallbackMessage = "AI reque
   // Check data.error first (edge function returned JSON error)
   const errorMsg = data?.error || error?.message || "";
 
+  // supabase.functions.invoke stores the HTTP status in error.context
+  const httpStatus = error?.context?.status || error?.status;
+
   // Log every AI error for admin debugging
   logCaughtError(error || new Error(errorMsg), "edge-function", {
     functionResponse: data?.error,
-    status: error?.status,
+    status: httpStatus,
   });
 
   if (
     errorMsg.includes("credits exhausted") ||
     errorMsg.includes("402") ||
-    error?.status === 402
+    httpStatus === 402
   ) {
     toast.error("AI credits exhausted", {
       description: "Your AI usage credits have run out. Please add more credits in Settings → Workspace → Usage to continue generating.",
@@ -30,7 +33,7 @@ export function handleAiError(error: any, data: any, fallbackMessage = "AI reque
   if (
     errorMsg.includes("Rate limit") ||
     errorMsg.includes("429") ||
-    error?.status === 429
+    httpStatus === 429
   ) {
     toast.error("Too many requests", {
       description: "Please wait a moment and try again.",
