@@ -55,6 +55,12 @@ interface ColorRecommendation {
   reason: string;
 }
 
+interface PreparedDesignVariants {
+  lightDesignBase64?: string;
+  darkDesignBase64?: string;
+  referenceDesignSize?: { width: number; height: number };
+}
+
 type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
 
 const MAX_COMPOSITION_DIM = 1600;
@@ -303,6 +309,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
     selectedColors.forEach(c => statusMap.set(c, "pending"));
     setGeneratingColors(new Map(statusMap));
     setGenerationProgress({ done: 0, total: selectedColors.length, current: "" });
+    await yieldToBrowser();
 
     try {
       // Fetch template
@@ -315,64 +322,75 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         reader.readAsDataURL(templateBlob);
       });
 
-      // Fetch design variants
-      const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
-        try {
-          const resp = await fetch(url);
-          const blob = await resp.blob();
-          return new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch { return undefined; }
-      };
+      let preparedDesigns: PreparedDesignVariants | null = null;
+      const getPreparedDesigns = async (): Promise<PreparedDesignVariants> => {
+        if (preparedDesigns) return preparedDesigns;
 
-      const { data: designImages } = await supabase
-        .from("product_images")
-        .select("image_url, color_name")
-        .eq("product_id", productId)
-        .eq("image_type", "design");
+        const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
+          try {
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch { return undefined; }
+        };
 
-      const normalizeKey = (v?: string | null) =>
-        (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
+        const { data: designImages } = await supabase
+          .from("product_images")
+          .select("image_url, color_name")
+          .eq("product_id", productId)
+          .eq("image_type", "design");
 
-      const lightDesignUrl = designImages?.find(d => {
-        const key = normalizeKey(d.color_name);
-        return key === "light-on-dark" || key === "light";
-      })?.image_url || designImageUrl;
+        const normalizeKey = (v?: string | null) =>
+          (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
 
-      const darkDesignUrl = designImages?.find(d => {
-        const key = normalizeKey(d.color_name);
-        return key === "dark-on-light" || key === "dark";
-      })?.image_url;
+        const lightDesignUrl = designImages?.find(d => {
+          const key = normalizeKey(d.color_name);
+          return key === "light-on-dark" || key === "light";
+        })?.image_url || designImageUrl;
 
-      let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
-      let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+        const darkDesignUrl = designImages?.find(d => {
+          const key = normalizeKey(d.color_name);
+          return key === "dark-on-light" || key === "dark";
+        })?.image_url;
 
-      if (!darkDesignBase64 && lightDesignBase64) {
-        try {
-          const multiColor = await isMultiColorDesign(lightDesignBase64);
-          if (!multiColor) {
-            const bgRemoved = await removeBackground(lightDesignBase64, "black");
-            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
-          } else {
-            // Multi-color: selectively darken bright/near-white pixels for contrast on light garments
-            const darkened = await darkenBrightPixels(lightDesignBase64);
-            darkDesignBase64 = ensureImageDataUrl(darkened);
-          }
-        } catch { /* continue */ }
-      }
+        let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
+        let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
 
-      if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
-        try {
-          const cleaned = await smartRemoveBackground(designImageUrl);
-          lightDesignBase64 = ensureImageDataUrl(cleaned);
-        } catch {
-          lightDesignBase64 = await fetchAsBase64(designImageUrl);
+        if (!darkDesignBase64 && lightDesignBase64) {
+          try {
+            const multiColor = await isMultiColorDesign(lightDesignBase64);
+            if (!multiColor) {
+              const bgRemoved = await removeBackground(lightDesignBase64, "black");
+              darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+            } else {
+              const darkened = await darkenBrightPixels(lightDesignBase64);
+              darkDesignBase64 = ensureImageDataUrl(darkened);
+            }
+          } catch { /* continue */ }
         }
-      }
+
+        if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+          try {
+            const cleaned = await smartRemoveBackground(designImageUrl);
+            lightDesignBase64 = ensureImageDataUrl(cleaned);
+          } catch {
+            lightDesignBase64 = await fetchAsBase64(designImageUrl);
+          }
+        }
+
+        let referenceDesignSize: { width: number; height: number } | undefined;
+        try {
+          referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+        } catch { /* continue without reference */ }
+
+        preparedDesigns = { lightDesignBase64, darkDesignBase64, referenceDesignSize };
+        return preparedDesigns;
+      };
 
       let plainTemplate = templateBase64;
       try {
@@ -384,12 +402,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
       const compositionSize = getCompositionSize(targetSize);
-
-      // Compute unified design dimensions so all color variants use the same design scale
-      let referenceDesignSize: { width: number; height: number } | undefined;
-      try {
-        referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
-      } catch { /* continue without reference */ }
 
       // Refresh session before starting the generation loop to prevent mid-loop auth expiry
       const sessionValid = await ensureValidSession();
@@ -413,13 +425,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         try {
           const isLight = isLightColor(typeConfig, colorName);
-          const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
-
-          console.log(`[mockup] ${colorName}: isLight=${isLight}, using=${isLight ? 'dark-ink' : 'light-ink'} variant, hasDesign=${!!designForComposite}, placement=${JSON.stringify(placementRef.current || placementOverride || 'default')}`);
-
-          if (!designForComposite) {
-            console.warn(`[mockup] ${colorName}: No design variant available — mockup will use AI output only`);
-          }
+          console.log(`[mockup] ${colorName}: isLight=${isLight}, placement=${JSON.stringify(placementRef.current || placementOverride || 'default')}`);
 
           const { data, error } = await supabase.functions.invoke("generate-color-variants", {
             body: {
@@ -446,6 +452,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const generatedBase64 = data.imageBase64;
           if (!generatedBase64) throw new Error("No image returned");
 
+          const { lightDesignBase64, darkDesignBase64, referenceDesignSize } = await getPreparedDesigns();
+          const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
           const generatedDataUrl = ensureImageDataUrl(generatedBase64);
           const blob = await normalizeAndLockToTemplateBlob({
             templateDataUrl: plainTemplate,
