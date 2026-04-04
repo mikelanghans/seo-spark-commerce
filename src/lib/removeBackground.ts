@@ -605,15 +605,25 @@ export async function darkenBrightPixels(
 
     // Only darken near-neutral bright pixels (low saturation, high luminance)
     if (sat < 0.15 && luma > 0.55) {
+      const denseNeighborCount = countDenseOpaqueNeighbors(i);
+      const isSoftGlowOrSparkle = alpha < 0.78;
+      const effectiveTargetLuma = isSoftGlowOrSparkle ? 88 : targetLuma;
+
       // Aggressively darken very bright near-whites
-      const darkFactor = luma > 0.82 ? targetLuma / 255 : Math.max(0.15, 1 - luma);
+      const darkFactor = luma > 0.82
+        ? effectiveTargetLuma / 255
+        : Math.max(isSoftGlowOrSparkle ? 0.32 : 0.15, 1 - luma);
+
       d[i] = Math.round(d[i] * darkFactor);
       d[i + 1] = Math.round(d[i + 1] * darkFactor);
       d[i + 2] = Math.round(d[i + 2] * darkFactor);
 
-      // Boost alpha only for solid text/artwork — leave soft glows/sparkles at their natural alpha
+      // Give soft glow details enough contrast to survive on light garments,
+      // while keeping them airy instead of turning into hard black marks.
       if (alpha >= 0.78) {
         d[i + 3] = Math.max(d[i + 3], 210);
+      } else if (denseNeighborCount >= 3) {
+        d[i + 3] = Math.max(d[i + 3], 118);
       }
     }
   }
