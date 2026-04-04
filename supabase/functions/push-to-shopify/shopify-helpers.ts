@@ -45,8 +45,11 @@ export function buildShopifyProduct(
     shopifyProduct.id = product.shopify_product_id;
   }
 
+  // Title is always required by Shopify API — include it regardless of updateFields
+  shopifyProduct.title = shopifyListing?.title || product.title || "Untitled Product";
+
   if (include("title")) {
-    shopifyProduct.title = shopifyListing?.title || product.title;
+    // title already set above
   }
   if (include("description")) {
     shopifyProduct.body_html = bodyHtml || `<p>${product.description || ""}</p>`;
