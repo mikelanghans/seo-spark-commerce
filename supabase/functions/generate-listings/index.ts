@@ -17,7 +17,7 @@ serve(async (req) => {
       if (!ok) return insufficientCreditsResponse("generate-listings");
     }
 
-    const { business, product, marketplaces: requestedMarketplaces } = await req.json();
+    const { business, product, marketplaces: requestedMarketplaces, excludedSections } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
