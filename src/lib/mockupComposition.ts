@@ -2,6 +2,20 @@ const MASK_DIFF_THRESHOLD = 16;
 const MASK_LUMA_THRESHOLD = 10;
 const MIN_MASK_COVERAGE = 0.01;
 const MAX_PREPARED_DESIGN_DIM = 1800;
+const PREPARED_DESIGN_CACHE_LIMIT = 8;
+const preparedDesignCache = new Map<string, HTMLCanvasElement>();
+
+function cachePreparedDesign(designDataUrl: string, canvas: HTMLCanvasElement) {
+  if (preparedDesignCache.has(designDataUrl)) {
+    preparedDesignCache.delete(designDataUrl);
+  }
+  preparedDesignCache.set(designDataUrl, canvas);
+
+  if (preparedDesignCache.size > PREPARED_DESIGN_CACHE_LIMIT) {
+    const oldestKey = preparedDesignCache.keys().next().value;
+    if (oldestKey) preparedDesignCache.delete(oldestKey);
+  }
+}
 
 export interface DesignPlacement {
   scale: number;    // fraction of canvas width the design occupies
