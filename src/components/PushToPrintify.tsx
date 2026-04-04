@@ -90,7 +90,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
   const [alsoUpdateShopify] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [publishOnPrintify, setPublishOnPrintify] = useState(false);
+  const [publishOnPrintify, setPublishOnPrintify] = useState(true);
 
   const isExisting = !!product.printify_product_id;
 
