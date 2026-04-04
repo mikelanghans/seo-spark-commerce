@@ -101,6 +101,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     { key: "tags", label: "Tags" },
     { key: "pricing", label: "Pricing" },
     { key: "colors", label: "Colors" },
+    { key: "mockups", label: "Mockups" },
   ];
   const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
     PRINTIFY_UPDATE_FIELDS.map(f => f.key)
@@ -374,17 +375,21 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     try {
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
-      // Build color-related data if "colors" is selected
+      // Build design-related data if colors or mockups need a Printify asset refresh
       let colorsPayload: Record<string, any> = {};
-      if (selectedUpdateFields.includes("colors")) {
+      const needsDesignUpload = selectedUpdateFields.includes("colors") || selectedUpdateFields.includes("mockups");
+      if (needsDesignUpload) {
+        if (!product.image_url) {
+          throw new Error("Product needs a design image to update colors or mockups");
+        }
+
         const colorsToUse = hasMockups ? uniqueMockupColors : ["Black"];
         const lightColorsSelected = colorsToUse.filter(
           (c) => LIGHT_COLORS.has(c.toLowerCase())
         );
         const hasLightColors = lightColorsSelected.length > 0;
 
-        // Upload design images for print_areas update
-        toast.info("Uploading design for color update...");
+        toast.info("Uploading design for Printify refresh...");
         let base64Contents = await removeBackground(product.image_url!, "black");
         base64Contents = await upscaleBase64Png(base64Contents, 4500);
         const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
