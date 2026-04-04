@@ -12,7 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, CheckCircle2, Printer } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, CheckCircle2, Printer, ChevronDown } from "lucide-react";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 import { toast } from "sonner";
 
