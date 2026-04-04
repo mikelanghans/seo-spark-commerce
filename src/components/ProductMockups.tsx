@@ -20,6 +20,7 @@ import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
 import { DesignPlacementEditor } from "@/components/DesignPlacementEditor";
+import { logCaughtError } from "@/lib/errorLogger";
 
 interface ProductImage {
   id: string;
@@ -56,6 +57,25 @@ interface ColorRecommendation {
 }
 
 type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
+
+const MAX_COMPOSITION_DIM = 1600;
+
+const getCompositionSize = (
+  size: { width: number; height: number } | null,
+  maxDim = MAX_COMPOSITION_DIM,
+) => {
+  if (!size) {
+    return { width: 1024, height: 1024 };
+  }
+
+  const scale = Math.min(1, maxDim / Math.max(size.width, size.height));
+  return {
+    width: Math.max(1, Math.round(size.width * scale)),
+    height: Math.max(1, Math.round(size.height * scale)),
+  };
+};
+
+const yieldToBrowser = () => new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
 const FEEDBACK_OPTIONS = [
   "Color is wrong",
