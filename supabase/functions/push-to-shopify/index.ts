@@ -124,6 +124,27 @@ serve(async (req) => {
       );
     }
 
+    // Disable inventory tracking on all variants (POD fulfillment — no stock to track)
+    if (createdProduct?.id && createdProduct.variants?.length) {
+      for (const variant of createdProduct.variants) {
+        if (variant.inventory_management !== null) {
+          try {
+            await fetch(
+              `https://${domain}/admin/api/2024-01/variants/${variant.id}.json`,
+              {
+                method: "PUT",
+                headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+                body: JSON.stringify({ variant: { id: variant.id, inventory_management: null } }),
+              },
+            );
+          } catch (err) {
+            console.error(`Failed to disable tracking on variant ${variant.id}:`, err);
+          }
+        }
+      }
+      console.log(`Disabled inventory tracking on ${createdProduct.variants.length} variants`);
+    }
+
     // Update SEO metafields (title_tag, description_tag) via metafields API
     const shouldUpdateSeo = !updateFields || updateFields.includes("seo");
     if (createdProduct?.id && shouldUpdateSeo) {
