@@ -247,9 +247,9 @@ serve(async (req) => {
     // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
-    // Move design up toward neckline — lower y = higher on shirt.
+    // Lower the default slightly so small chest prints sit closer to the mockup placement.
     const imageX = 0.5;
-    const imageY = 0.28;
+    const imageY = 0.34;
 
     // Scale up to fill the chest area generously.
     let imageScale = DEFAULT_IMAGE_SCALE;
