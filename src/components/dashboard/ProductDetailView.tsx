@@ -10,6 +10,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
+import { PushPrintifyThenShopify } from "@/components/PushPrintifyThenShopify";
 import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
@@ -356,6 +357,9 @@ export const ProductDetailView = ({
                     <PushToPrintify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />
                   ))}
 
+                  {showPrintify && showShopify && printifyConnected !== false && shopifyConnected !== false && !product.printify_product_id && (
+                    <PushPrintifyThenShopify product={product} listings={listingsMapped} userId={userId} organizationId={selectedOrg?.id} onProductUpdate={(updates) => { setSelectedProduct({ ...product, ...updates }); }} printifyShopId={selectedOrg?.printify_shop_id} />
+                  )}
                   {showOther && <PushToMarketplace product={product} listings={listingsMapped} images={product.image_url ? [{ id: "main", image_url: product.image_url, color_name: "", position: 0 }] : []} userId={userId} enabledChannels={channels} />}
                 </div>
 
