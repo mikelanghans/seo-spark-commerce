@@ -166,16 +166,17 @@ export function useProductHandlers(
 
   const handleCancelImport = () => { importAbortRef.current?.abort(); setImportingShopify(false); };
 
-  const handleGenerateAllListings = async () => {
-    if (!selectedOrg || products.length === 0) return;
+  const handleGenerateAllListings = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || targetProducts.length === 0) return;
     cancelGenAllRef.current = false;
     setGeneratingAll(true);
-    setGenAllProgress({ done: 0, total: products.length });
+    setGenAllProgress({ done: 0, total: targetProducts.length });
     let successCount = 0;
-    for (let i = 0; i < products.length; i++) {
+    for (let i = 0; i < targetProducts.length; i++) {
       if (cancelGenAllRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
-      const product = products[i];
-      setGenAllProgress({ done: i, total: products.length });
+      const product = targetProducts[i];
+      setGenAllProgress({ done: i, total: targetProducts.length });
       try {
         if (aiUsage) { const allowed = await aiUsage.checkAndLog("generate-listings", userId!); if (!allowed) { toast.error("AI generation limit reached"); break; } }
         const { data: result, error } = await supabase.functions.invoke("generate-listings", {
@@ -190,11 +191,11 @@ export function useProductHandlers(
         if (aiUsage) await aiUsage.logUsage("generate-listings", userId!);
         successCount++;
       } catch (err: any) { console.error(`Failed to generate listings for ${product.title}:`, err); toast.error(`Failed: ${product.title}`); }
-      if (i < products.length - 1) await new Promise((r) => setTimeout(r, 1500));
+      if (i < targetProducts.length - 1) await new Promise((r) => setTimeout(r, 1500));
     }
-    setGenAllProgress({ done: products.length, total: products.length });
+    setGenAllProgress({ done: targetProducts.length, total: targetProducts.length });
     setGeneratingAll(false);
-    if (!cancelGenAllRef.current) toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    if (!cancelGenAllRef.current) toast.success(`Generated listings for ${successCount}/${targetProducts.length} products!`);
   };
 
   const handlePushAllToShopify = async () => {
