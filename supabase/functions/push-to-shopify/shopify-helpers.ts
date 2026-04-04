@@ -70,7 +70,11 @@ export function buildShopifyProduct(
     })();
   }
   if (include("seo")) {
-    shopifyProduct.handle = shopifyListing?.url_handle || undefined;
+    // Only set handle on creation — resending it on updates causes Shopify
+    // to append "-1", "-2", etc. when the slug already exists.
+    if (!isUpdate) {
+      shopifyProduct.handle = shopifyListing?.url_handle || undefined;
+    }
   }
 
   // Only send variants when creating new products or explicitly forcing variant sync.
