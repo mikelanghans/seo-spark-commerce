@@ -46,6 +46,25 @@ function normalizeTitle(title: string): string {
     .trim();
 }
 
+/** Score how well two normalized titles match (0 = no match, higher = better) */
+function titleSimilarity(a: string, b: string): number {
+  if (a === b) return 100;
+  // One contains the other
+  if (a.includes(b) || b.includes(a)) {
+    const longer = Math.max(a.length, b.length);
+    const shorter = Math.min(a.length, b.length);
+    return 60 + Math.round((shorter / longer) * 40);
+  }
+  // Word overlap
+  const wordsA = new Set(a.split(" ").filter(Boolean));
+  const wordsB = new Set(b.split(" ").filter(Boolean));
+  const overlap = [...wordsA].filter((w) => wordsB.has(w)).length;
+  const total = Math.max(wordsA.size, wordsB.size);
+  if (total === 0) return 0;
+  const score = Math.round((overlap / total) * 80);
+  return score >= 40 ? score : 0; // Threshold: at least 50% word overlap
+}
+
 export const PrintifyMatchDialog = ({ open, onOpenChange, organizationId, products, onMatched }: Props) => {
   const [loading, setLoading] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -66,21 +85,30 @@ export const PrintifyMatchDialog = ({ open, onOpenChange, organizationId, produc
       const printifyProducts: PrintifyProduct[] = data.products || [];
       const unlinked = products.filter((p) => !p.printify_product_id);
 
-      // Build matches by normalized title
-      const printifyMap = new Map<string, PrintifyProduct>();
-      for (const pp of printifyProducts) {
-        printifyMap.set(normalizeTitle(pp.title), pp);
-      }
-
+      // Build matches using fuzzy title matching
+      const usedPrintifyIds = new Set<string>();
       const foundMatches: Match[] = [];
+
       for (const lp of unlinked) {
-        const normalized = normalizeTitle(lp.title);
-        const match = printifyMap.get(normalized);
-        if (match) {
+        const normLocal = normalizeTitle(lp.title);
+        let bestMatch: PrintifyProduct | null = null;
+        let bestScore = 0;
+
+        for (const pp of printifyProducts) {
+          if (usedPrintifyIds.has(pp.id)) continue;
+          const score = titleSimilarity(normLocal, normalizeTitle(pp.title));
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = pp;
+          }
+        }
+
+        if (bestMatch && bestScore >= 40) {
+          usedPrintifyIds.add(bestMatch.id);
           foundMatches.push({
             localProduct: lp,
-            printifyProduct: match,
-            selected: true,
+            printifyProduct: bestMatch,
+            selected: bestScore >= 80, // Auto-select high-confidence matches
           });
         }
       }
