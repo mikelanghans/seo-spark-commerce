@@ -147,6 +147,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   };
 
   const loadPrintifyInfo = async () => {
+    if (!selectedShop) return;
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
@@ -191,17 +192,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     }
   };
 
-  useEffect(() => {
-    if (open) {
-      loadShops();
-      loadPrintifyInfo();
-      loadMockups();
-      loadSizePricing();
-    }
-  }, [open]);
-
   const loadSizePricing = async () => {
-    // Load org-level default size pricing, then overlay product-level overrides
     const pt = PRODUCT_TYPE_REGISTRY["t-shirt"];
     const defaults: Record<string, string> = { ...pt.defaultSizePricing };
 
@@ -219,7 +210,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       }
     }
 
-    // Product-level overrides
     if (product.id) {
       const { data: prod } = await supabase
         .from("products")
@@ -249,9 +239,16 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     );
   };
 
-  // Re-fetch print provider info when product type changes
   useEffect(() => {
     if (open) {
+      loadShops();
+      loadMockups();
+      loadSizePricing();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && selectedShop) {
       setPrintProviderId(null);
       loadPrintifyInfo();
     }

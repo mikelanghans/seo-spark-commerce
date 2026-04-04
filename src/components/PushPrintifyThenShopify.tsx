@@ -121,6 +121,7 @@ export const PushPrintifyThenShopify = ({
   };
 
   const loadPrintifyInfo = async () => {
+    if (!selectedShop) return;
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
         body: {
@@ -174,7 +175,6 @@ export const PushPrintifyThenShopify = ({
   useEffect(() => {
     if (open) {
       loadShops();
-      loadPrintifyInfo();
       loadMockups();
       loadSizePricing();
       setStep("idle");
@@ -183,7 +183,7 @@ export const PushPrintifyThenShopify = ({
   }, [open]);
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedShop) {
       setPrintProviderId(null);
       loadPrintifyInfo();
     }
