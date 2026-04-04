@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, uploadAndAssociateImages } from "./shopify-helpers.ts";
+import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, uploadAndAssociateImages, updateSeoMetafields } from "./shopify-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,6 +120,18 @@ serve(async (req) => {
         createdProduct.variants || [],
         actualColorVariants,
         product.title,
+      );
+    }
+
+    // Update SEO metafields (title_tag, description_tag) via metafields API
+    const shouldUpdateSeo = !updateFields || updateFields.includes("seo");
+    if (createdProduct?.id && shouldUpdateSeo) {
+      await updateSeoMetafields(
+        domain,
+        connection.access_token,
+        createdProduct.id,
+        shopifyListing?.seo_title || shopifyListing?.seoTitle,
+        shopifyListing?.seo_description || shopifyListing?.seoDescription,
       );
     }
 

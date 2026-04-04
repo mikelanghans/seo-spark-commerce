@@ -64,8 +64,8 @@ export function buildShopifyProduct(
   }
   if (include("seo")) {
     shopifyProduct.handle = shopifyListing?.url_handle || undefined;
-    shopifyProduct.metafields_global_title_tag = shopifyListing?.seo_title || undefined;
-    shopifyProduct.metafields_global_description_tag = shopifyListing?.seo_description || undefined;
+    // Note: metafields_global_title_tag / metafields_global_description_tag are deprecated.
+    // SEO metafields are set separately via updateSeoMetafields() after product create/update.
   }
 
   if (!isUpdate && hasVariants) {
@@ -265,4 +265,61 @@ export async function uploadAndAssociateImages(
   }
 
   return uploadedImages;
+}
+
+/** Update SEO metafields (title_tag, description_tag) on a Shopify product */
+export async function updateSeoMetafields(
+  domain: string,
+  accessToken: string,
+  productId: number,
+  seoTitle?: string,
+  seoDescription?: string,
+) {
+  const metafields: { namespace: string; key: string; value: string; type: string }[] = [];
+
+  if (seoTitle) {
+    metafields.push({ namespace: "global", key: "title_tag", value: seoTitle, type: "single_line_text_field" });
+  }
+  if (seoDescription) {
+    metafields.push({ namespace: "global", key: "description_tag", value: seoDescription, type: "single_line_text_field" });
+  }
+
+  if (metafields.length === 0) return;
+
+  for (const mf of metafields) {
+    try {
+      const res = await fetch(
+        `https://${domain}/admin/api/2024-01/products/${productId}/metafields.json`,
+        {
+          method: "POST",
+          headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+          body: JSON.stringify({ metafield: { ...mf, owner_resource: "product", owner_id: productId } }),
+        },
+      );
+      if (!res.ok) {
+        // If metafield already exists, try to find and update it
+        const listRes = await fetch(
+          `https://${domain}/admin/api/2024-01/products/${productId}/metafields.json?namespace=global&key=${mf.key}`,
+          { headers: { "X-Shopify-Access-Token": accessToken } },
+        );
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const existing = listData.metafields?.[0];
+          if (existing) {
+            await fetch(
+              `https://${domain}/admin/api/2024-01/metafields/${existing.id}.json`,
+              {
+                method: "PUT",
+                headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+                body: JSON.stringify({ metafield: { id: existing.id, value: mf.value, type: mf.type } }),
+              },
+            );
+          }
+        }
+      }
+      console.log(`Set SEO metafield: ${mf.key}`);
+    } catch (e) {
+      console.error(`Failed to set SEO metafield ${mf.key}:`, e);
+    }
+  }
 }
