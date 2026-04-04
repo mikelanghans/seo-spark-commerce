@@ -138,25 +138,36 @@ serve(async (req) => {
       );
     }
 
-    // Disable inventory tracking on all variants (POD fulfillment — no stock to track)
+    // Disable inventory tracking and apply size-specific pricing on all variants
     if (createdProduct?.id && createdProduct.variants?.length) {
       for (const variant of createdProduct.variants) {
+        const updates: Record<string, unknown> = { id: variant.id };
         if (variant.inventory_management !== null) {
+          updates.inventory_management = null;
+        }
+        // Apply size-specific pricing if available
+        if (flatSizePricing) {
+          const size = (variant.option2 || variant.option1 || "").trim();
+          if (flatSizePricing[size]) {
+            updates.price = flatSizePricing[size];
+          }
+        }
+        if (Object.keys(updates).length > 1) {
           try {
             await fetch(
               `https://${domain}/admin/api/2024-01/variants/${variant.id}.json`,
               {
                 method: "PUT",
                 headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
-                body: JSON.stringify({ variant: { id: variant.id, inventory_management: null } }),
+                body: JSON.stringify({ variant: updates }),
               },
             );
           } catch (err) {
-            console.error(`Failed to disable tracking on variant ${variant.id}:`, err);
+            console.error(`Failed to update variant ${variant.id}:`, err);
           }
         }
       }
-      console.log(`Disabled inventory tracking on ${createdProduct.variants.length} variants`);
+      console.log(`Updated inventory tracking and pricing on ${createdProduct.variants.length} variants`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
