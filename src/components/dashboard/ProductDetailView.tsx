@@ -10,6 +10,7 @@ import { ProductMockups } from "@/components/ProductMockups";
 import { PushToShopify } from "@/components/PushToShopify";
 import { PushToPrintify } from "@/components/PushToPrintify";
 import { PushToMarketplace } from "@/components/PushToMarketplace";
+import { PushPrintifyThenShopify } from "@/components/PushPrintifyThenShopify";
 import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
