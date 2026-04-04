@@ -555,36 +555,6 @@ export const ProductGrid = ({
         </div>
       )}
 
-      {/* Archive section */}
-      {archivedProducts.length > 0 && (
-        <div className="space-y-3 pt-4 border-t border-border">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Archive className="h-4 w-4" />
-            Archived ({archivedProducts.length})
-            <span className="text-xs">{showArchived ? "▾" : "▸"}</span>
-          </button>
-
-          {showArchived && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
-              {archivedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onView={onViewProduct}
-                  onDelete={onDeleteProduct}
-                  onAddTag={onAddTag}
-                  onRemoveTag={onRemoveTag}
-                  onUploadDesign={onUploadDesign}
-                  onArchive={onArchiveProduct}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
