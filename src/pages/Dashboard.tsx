@@ -312,6 +312,9 @@ const Dashboard = () => {
                         <Store className="h-4 w-4" /> Import from Shopify
                         {!canAccess(effectiveTier, "shopify-sync") && <Lock className="h-3 w-3 text-muted-foreground ml-auto" />}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowPrintifyMatch(true)} className="gap-2">
+                        <Link2 className="h-4 w-4" /> Link Printify Products
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
