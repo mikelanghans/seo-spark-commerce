@@ -2,6 +2,20 @@ const MASK_DIFF_THRESHOLD = 16;
 const MASK_LUMA_THRESHOLD = 10;
 const MIN_MASK_COVERAGE = 0.01;
 const MAX_PREPARED_DESIGN_DIM = 1800;
+const PREPARED_DESIGN_CACHE_LIMIT = 8;
+const preparedDesignCache = new Map<string, HTMLCanvasElement>();
+
+function cachePreparedDesign(designDataUrl: string, canvas: HTMLCanvasElement) {
+  if (preparedDesignCache.has(designDataUrl)) {
+    preparedDesignCache.delete(designDataUrl);
+  }
+  preparedDesignCache.set(designDataUrl, canvas);
+
+  if (preparedDesignCache.size > PREPARED_DESIGN_CACHE_LIMIT) {
+    const oldestKey = preparedDesignCache.keys().next().value;
+    if (oldestKey) preparedDesignCache.delete(oldestKey);
+  }
+}
 
 export interface DesignPlacement {
   scale: number;    // fraction of canvas width the design occupies
@@ -64,10 +78,8 @@ export async function normalizeAndLockToTemplateBlob({
   // Paste the ORIGINAL design back on top so AI can never alter text/graphics
   if (designDataUrl) {
     try {
-        const designImg = await loadImage(designDataUrl);
-        const cleanedDesign = stripSolidEdgeBackground(designImg);
-        const preparedDesign = prepareDesignForCompositing(cleanedDesign);
-        drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
+      const preparedDesign = await getPreparedDesignCanvas(designDataUrl);
+      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -355,21 +367,33 @@ function loadImage(src: string): Promise<HTMLImageElement> {
  * Compute the prepared (tight-cropped) dimensions of a design image.
  * Used to establish a consistent reference size across light/dark variants.
  */
-export async function getPreparedDesignSize(
+export async function getPreparedDesignCanvas(
   designDataUrl: string,
-): Promise<{ width: number; height: number }> {
+): Promise<HTMLCanvasElement> {
+  const cached = preparedDesignCache.get(designDataUrl);
+  if (cached) {
+    cachePreparedDesign(designDataUrl, cached);
+    return cached;
+  }
+
   const img = await loadImage(designDataUrl);
   const cleaned = stripSolidEdgeBackground(img);
   const prepared = prepareDesignForCompositing(cleaned);
+  cachePreparedDesign(designDataUrl, prepared);
+  return prepared;
+}
+
+export async function getPreparedDesignSize(
+  designDataUrl: string,
+): Promise<{ width: number; height: number }> {
+  const prepared = await getPreparedDesignCanvas(designDataUrl);
   return { width: prepared.width, height: prepared.height };
 }
 
 export async function getPreparedDesignDataUrl(
   designDataUrl: string,
 ): Promise<string> {
-  const img = await loadImage(designDataUrl);
-  const cleaned = stripSolidEdgeBackground(img);
-  const prepared = prepareDesignForCompositing(cleaned);
+  const prepared = await getPreparedDesignCanvas(designDataUrl);
   return prepared.toDataURL("image/png");
 }
 
@@ -383,13 +407,12 @@ export async function getUnifiedDesignSize(
   const urls = designDataUrls.filter(Boolean) as string[];
   if (urls.length === 0) return undefined;
 
-  const sizes = await Promise.all(urls.map(u => getPreparedDesignSize(u)));
+  const sizes = await Promise.all(urls.map((url) => getPreparedDesignSize(url)));
   return {
-    width: Math.max(...sizes.map(s => s.width)),
-    height: Math.max(...sizes.map(s => s.height)),
+    width: Math.max(...sizes.map((size) => size.width)),
+    height: Math.max(...sizes.map((size) => size.height)),
   };
 }
-
 
 export async function compositeDesignOntoTemplate(
   templateDataUrl: string,
@@ -398,9 +421,9 @@ export async function compositeDesignOntoTemplate(
   designStyle?: string,
   placement?: DesignPlacement,
 ): Promise<string> {
-  const [templateImg, designImg] = await Promise.all([
+  const [templateImg, preparedDesignCanvas] = await Promise.all([
     loadImage(templateDataUrl),
-    loadImage(designDataUrl),
+    getPreparedDesignCanvas(designDataUrl),
   ]);
 
   const w = templateImg.naturalWidth || templateImg.width;
@@ -412,12 +435,7 @@ export async function compositeDesignOntoTemplate(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas context unavailable");
 
-  // Draw template first
   ctx.drawImage(templateImg, 0, 0, w, h);
-
-  // Clean design (remove solid edge bg if needed)
-  const cleanedDesignCanvas = stripSolidEdgeBackground(designImg);
-  const preparedDesignCanvas = prepareDesignForCompositing(cleanedDesignCanvas);
   drawDesignWithUnderbase(ctx, preparedDesignCanvas, w, h, isDarkGarment, designStyle, placement);
 
   return canvas.toDataURL("image/png");

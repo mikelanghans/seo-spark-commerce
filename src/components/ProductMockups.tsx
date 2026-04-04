@@ -63,7 +63,7 @@ interface PreparedDesignVariants {
 
 type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
 
-const MAX_COMPOSITION_DIM = 1600;
+const MAX_COMPOSITION_DIM = 1280;
 
 const getCompositionSize = (
   size: { width: number; height: number } | null,
