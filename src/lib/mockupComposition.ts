@@ -1,6 +1,7 @@
 const MASK_DIFF_THRESHOLD = 16;
 const MASK_LUMA_THRESHOLD = 10;
 const MIN_MASK_COVERAGE = 0.01;
+const MAX_PREPARED_DESIGN_DIM = 1800;
 
 export interface DesignPlacement {
   scale: number;    // fraction of canvas width the design occupies
@@ -519,6 +520,27 @@ function hasTransparentBorder(
   return transparent / total > 0.65;
 }
 
+function downscaleCanvasIfNeeded(
+  source: HTMLCanvasElement,
+  maxDim = MAX_PREPARED_DESIGN_DIM,
+): HTMLCanvasElement {
+  const largestSide = Math.max(source.width, source.height);
+  if (largestSide <= maxDim) return source;
+
+  const scale = maxDim / largestSide;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(source.width * scale));
+  canvas.height = Math.max(1, Math.round(source.height * scale));
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return source;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
 function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasElement {
   const srcCtx = source.getContext("2d");
   if (!srcCtx) return source;
@@ -554,7 +576,7 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
 
   // If nothing left, return original source to avoid hard failure.
   if (maxX < minX || maxY < minY) {
-    return source;
+    return downscaleCanvasIfNeeded(source);
   }
 
   const pad = 6;
@@ -581,7 +603,7 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
   tctx.putImageData(srcImage, 0, 0);
 
   cctx.drawImage(temp, minX, minY, cw, ch, 0, 0, cw, ch);
-  return cropped;
+  return downscaleCanvasIfNeeded(cropped);
 }
 
 /**
