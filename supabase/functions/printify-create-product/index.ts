@@ -247,11 +247,11 @@ serve(async (req) => {
     // These cannot be replaced via API. AI mockups are pushed to Shopify instead.
 
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
-    // Lower the default slightly so small chest prints sit closer to the mockup placement.
+    // Nudge slightly higher to better match the approved mockup chest position.
     const imageX = 0.5;
-    const imageY = 0.38;
+    const imageY = 0.34;
 
-    // Scale up to fill the chest area generously.
+    // Scale to stay prominent, but not oversized versus the mockup.
     let imageScale = DEFAULT_IMAGE_SCALE;
     try {
       const imageInfoRes = await fetch(
@@ -265,13 +265,12 @@ serve(async (req) => {
         console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
 
         if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
-          // Fill the chest area generously — no safety margin so designs print at full size.
           const widthFillScale = printAreaWidth / imgW;
           const heightFitScale = printAreaHeight / imgH;
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
 
-          imageScale = Math.max(0.35, Math.min(1.0, targetChestScale));
+          imageScale = Math.max(0.35, Math.min(0.82, targetChestScale));
           console.log(
             `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)})`
           );
