@@ -444,7 +444,7 @@ export const PushPrintifyThenShopify = ({
                     type="button"
                     variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
                     size="sm"
-                    onClick={() => { setSelectedProductType(pt); setSelectedSizes([...pt.sizes]); }}
+                    onClick={() => { setSelectedProductType(pt); if (!product.printify_product_id) setSelectedSizes([...pt.sizes]); }}
                   >
                     {pt.label}
                   </Button>

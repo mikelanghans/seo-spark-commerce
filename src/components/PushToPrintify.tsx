@@ -593,7 +593,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                         size="sm"
                         onClick={() => {
                           setSelectedProductType(pt);
-                          setSelectedSizes([...pt.sizes]);
+                          if (!product.printify_product_id) setSelectedSizes([...pt.sizes]);
                         }}
                       >
                         {pt.label}
