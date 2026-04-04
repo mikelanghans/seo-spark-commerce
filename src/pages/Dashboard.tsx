@@ -58,7 +58,7 @@ import type { Product, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -196,14 +196,18 @@ const Dashboard = () => {
   }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified, subscription.loading]);
 
   useEffect(() => {
-    if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
-    else sessionStorage.removeItem("dash_org_id");
-  }, [selectedOrg]);
+    if (!authLoading) {
+      if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
+      else if (user) sessionStorage.removeItem("dash_org_id");
+    }
+  }, [selectedOrg, user, authLoading]);
 
   useEffect(() => {
-    if (selectedProduct) sessionStorage.setItem("dash_product_id", selectedProduct.id);
-    else sessionStorage.removeItem("dash_product_id");
-  }, [selectedProduct]);
+    if (!authLoading) {
+      if (selectedProduct) sessionStorage.setItem("dash_product_id", selectedProduct.id);
+      else if (user) sessionStorage.removeItem("dash_product_id");
+    }
+  }, [selectedProduct, user, authLoading]);
 
   useEffect(() => {
     if (_restoredNav || !orgsLoaded) return;
@@ -235,6 +239,9 @@ const Dashboard = () => {
   };
 
   // ─── Render ───
+  if (authLoading) {
+    return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
   if (!user) return null;
 
   return (
