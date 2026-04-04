@@ -8,6 +8,18 @@ const corsHeaders = {
 
 const DEFAULT_BLUEPRINT_ID = 706;
 
+async function fetchWithRetry(url: string, headers: Record<string, string>, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, { headers });
+    if (res.status !== 429 || attempt === maxRetries) return res;
+    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 8000);
+    console.log(`Rate limited (429) on ${url}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
+    await res.text(); // consume body
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  throw new Error("Unreachable");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
