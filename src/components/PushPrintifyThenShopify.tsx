@@ -479,7 +479,8 @@ export const PushPrintifyThenShopify = ({
               <p><strong>Sizes:</strong> {selectedSizes.join(", ")}</p>
               <p><strong>Variants:</strong> ~{colorsForPush.length * selectedSizes.length}</p>
               <div className="mt-2 rounded border border-primary/20 bg-primary/5 p-2 text-xs text-primary">
-                <strong>Shopify will receive:</strong> Mockups, title, description, tags, SEO metadata
+                <strong>Printify syncs:</strong> Title, description, tags, pricing, variants<br />
+                <strong>Then Shopify gets:</strong> Custom mockup images + SEO metadata
               </div>
             </div>
 
