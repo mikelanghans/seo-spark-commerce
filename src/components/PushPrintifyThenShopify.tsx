@@ -386,7 +386,7 @@ export const PushPrintifyThenShopify = ({
               Printify → Shopify
             </DialogTitle>
             <DialogDescription>
-              Creates on Printify first, then pushes mockups, SEO, title, description & tags to Shopify.
+              Creates on Printify (syncs title, description, tags & pricing), then adds custom mockups & SEO to Shopify.
             </DialogDescription>
           </DialogHeader>
 
