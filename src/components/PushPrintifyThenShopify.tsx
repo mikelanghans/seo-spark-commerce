@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY } from "@/lib/productTypes";
-import { recolorOpaquePixels, removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { recolorOpaquePixels } from "@/lib/removeBackground";
+import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { getProductType } from "@/lib/productTypes";
 import { Button } from "@/components/ui/button";
@@ -198,8 +199,7 @@ export const PushPrintifyThenShopify = ({
 
       toast.info("Step 1/2: Removing background & uploading to Printify...");
 
-      let base64Contents = await removeBackground(product.image_url!, "black");
-      base64Contents = await upscaleBase64Png(base64Contents, 4500);
+      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
         { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }

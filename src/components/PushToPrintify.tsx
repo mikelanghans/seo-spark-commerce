@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY, type ProductTypeKey } from "@/lib/productTypes";
-import { recolorOpaquePixels, removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { recolorOpaquePixels } from "@/lib/removeBackground";
+import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -270,9 +271,8 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
 
       toast.info("Removing background & uploading design to Printify...");
 
-      // Step 1: Remove black background client-side, upscale for high DPI, then upload as base64
-      let base64Contents = await removeBackground(product.image_url!, "black");
-      base64Contents = await upscaleBase64Png(base64Contents, 4500);
+      // Step 1: Use the same tightly prepared artwork as the mockup pipeline
+      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
         { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
