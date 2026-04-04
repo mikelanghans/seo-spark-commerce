@@ -63,9 +63,9 @@ serve(async (req) => {
 
     if (printifyProductId && shopId) {
       const productRes = await fetchWithRetry(
-54:         `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
-55:         { Authorization: `Bearer ${printifyToken}` }
-56:       );
+        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+        { Authorization: `Bearer ${printifyToken}` }
+      );
       if (productRes.ok) {
         const product = await productRes.json();
         productBlueprintId = product?.blueprint_id ?? null;
