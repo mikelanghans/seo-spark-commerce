@@ -694,6 +694,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       toast.success(`${colorName} mockup regenerated!`);
     } catch (err: any) {
       console.error("Regenerate single error:", err);
+      logCaughtError(err, "mockup-generation-single", {
+        productId,
+        organizationId,
+        colorName,
+      });
       toast.error(err.message || "Failed to regenerate mockup");
     } finally {
       setRegeneratingId(null);

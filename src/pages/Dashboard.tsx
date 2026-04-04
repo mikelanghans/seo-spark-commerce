@@ -196,18 +196,26 @@ const Dashboard = () => {
   }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified, subscription.loading]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (selectedOrg) sessionStorage.setItem("dash_org_id", selectedOrg.id);
-      else if (user) sessionStorage.removeItem("dash_org_id");
+    if (authLoading) return;
+    if (selectedOrg) {
+      sessionStorage.setItem("dash_org_id", selectedOrg.id);
     }
-  }, [selectedOrg, user, authLoading]);
+  }, [selectedOrg, authLoading]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (selectedProduct) sessionStorage.setItem("dash_product_id", selectedProduct.id);
-      else if (user) sessionStorage.removeItem("dash_product_id");
+    if (authLoading) return;
+    if (selectedProduct) {
+      sessionStorage.setItem("dash_product_id", selectedProduct.id);
     }
-  }, [selectedProduct, user, authLoading]);
+  }, [selectedProduct, authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      sessionStorage.removeItem("dash_org_id");
+      sessionStorage.removeItem("dash_product_id");
+      sessionStorage.removeItem("dash_view");
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (_restoredNav || !orgsLoaded) return;
