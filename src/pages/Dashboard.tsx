@@ -58,7 +58,7 @@ import type { Product, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
