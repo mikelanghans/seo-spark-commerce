@@ -122,14 +122,28 @@ serve(async (req) => {
       }
 
       // Handle colors update: re-enable/disable variants based on new color selection
-      // and update print_areas with the new design images
+      // Reuses existing design images already on the Printify product.
       if (fields.includes("colors") && body.selectedColors) {
         const selectedColors: string[] = body.selectedColors || [];
         const selectedSizes: string[] = body.selectedSizes || [];
-        const printifyImageId = body.printifyImageId;
-        const darkPrintifyImageId = body.darkPrintifyImageId;
         const lightColors: string[] = (body.lightColors || []).map((c: string) => c.toLowerCase());
         const lightColorSet = new Set(lightColors);
+
+        // Extract existing design image IDs from the product's current print_areas
+        const existingAreas = printifyProduct.print_areas || [];
+        const existingImageIds: string[] = [];
+        for (const area of existingAreas) {
+          for (const ph of (area.placeholders || [])) {
+            for (const img of (ph.images || [])) {
+              if (img.id && !existingImageIds.includes(img.id)) {
+                existingImageIds.push(img.id);
+              }
+            }
+          }
+        }
+        const primaryImageId = existingImageIds[0] || null;
+        const secondaryImageId = existingImageIds[1] || null;
+        console.log(`Colors update: reusing existing design IDs: primary=${primaryImageId}, secondary=${secondaryImageId}`);
 
         // Determine which variants to enable based on color + size selection
         const allVariants = printifyProduct.variants || [];
@@ -155,12 +169,12 @@ serve(async (req) => {
           return { id: v.id, price: priceVal, is_enabled: colorMatch && sizeMatch };
         });
 
-        // Update print_areas if we have a design image
-        if (printifyImageId) {
+        // Update print_areas reusing existing design images
+        if (primaryImageId) {
           const allVariantIds = allVariants.map((v: any) => v.id);
-          const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+          const hasDualDesign = !!secondaryImageId && lightColorSet.size > 0;
 
-          if (hasDarkDesign) {
+          if (hasDualDesign) {
             const darkIds: number[] = [];
             const lightIds: number[] = [];
             for (const v of allVariants) {
@@ -175,20 +189,20 @@ serve(async (req) => {
             if (darkIds.length > 0) {
               areas.push({
                 variant_ids: darkIds,
-                placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+                placeholders: [{ position: "front", images: [{ id: primaryImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
               });
             }
             if (lightIds.length > 0) {
               areas.push({
                 variant_ids: lightIds,
-                placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+                placeholders: [{ position: "front", images: [{ id: secondaryImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
               });
             }
             updatePayload.print_areas = areas;
           } else {
             updatePayload.print_areas = [{
               variant_ids: allVariantIds,
-              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+              placeholders: [{ position: "front", images: [{ id: primaryImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
             }];
           }
         }
@@ -197,7 +211,13 @@ serve(async (req) => {
         console.log(`Colors update: ${enabledCount} variants enabled for colors: ${selectedColors.join(", ")}`);
       }
 
-      if (Object.keys(updatePayload).length === 0) {
+      // Handle mockups update: republish to force Printify to regenerate mockups
+      if (fields.includes("mockups")) {
+        console.log("Mockups update: will republish after update to regenerate mockups");
+      }
+
+      // Early return if nothing to change and no republish needed
+      if (Object.keys(updatePayload).length === 0 && !fields.includes("mockups")) {
         return new Response(JSON.stringify({ success: true, message: "Nothing to update" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -205,14 +225,32 @@ serve(async (req) => {
 
       console.log(`Updating Printify product ${pPrintifyProductId}: fields=${fields.join(",")}`);
 
-      const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify(updatePayload),
-      });
-      if (!updateRes.ok) {
-        const errText = await updateRes.text();
-        throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
+      if (Object.keys(updatePayload).length > 0) {
+        const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify(updatePayload),
+        });
+        if (!updateRes.ok) {
+          const errText = await updateRes.text();
+          throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
+        }
+      }
+
+      // Republish if mockups field selected (forces Printify mockup regeneration)
+      if (fields.includes("mockups")) {
+        console.log(`Republishing product ${pPrintifyProductId} to regenerate mockups...`);
+        const publishRes = await fetch(
+          `https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}/publish.json`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ title: true, description: true, images: true, variants: true, tags: true }),
+          }
+        );
+        if (!publishRes.ok) {
+          console.error(`Republish failed: ${publishRes.status} ${await publishRes.text()}`);
+        }
       }
 
       return new Response(JSON.stringify({ success: true, updatedFields: fields }), {
