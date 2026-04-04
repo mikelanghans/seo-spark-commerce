@@ -327,10 +327,9 @@ export const PushPrintifyThenShopify = ({
         alt_text: l.alt_text,
       }));
 
-      const useEfficientShopifyUpdate = publishOnPrintify && !!currentShopifyId;
-      if (!useEfficientShopifyUpdate) {
-        toast.info("Running a full Shopify push so title, description, tags, SEO, and mockups all update.");
-      }
+      // Always do a full Shopify push so title, description, tags, SEO, and mockups are all set
+      // (Printify's native sync is unreliable for metadata)
+      const useEfficientShopifyUpdate = false;
 
       const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
         body: {
@@ -347,7 +346,6 @@ export const PushPrintifyThenShopify = ({
           listings: listingsMapped,
           imageUrl: product.image_url,
           variants: optimizedVariants,
-          ...(useEfficientShopifyUpdate ? { updateFields: ["images", "seo"] } : {}),
         },
       });
 
