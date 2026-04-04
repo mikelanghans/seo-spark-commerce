@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, shopifyStatus, organizationId, updateFields } = body;
+    const { product, listings, imageUrl, variants, shopifyStatus, organizationId, updateFields, forceVariants } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -61,7 +61,7 @@ serve(async (req) => {
     }
 
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields);
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
