@@ -424,35 +424,18 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" />
-              Push to Printify
+              {isExisting ? "Update on Printify" : "Push to Printify"}
             </DialogTitle>
             <DialogDescription>
-              {hasMockups ? "Colors are pulled from your generated mockups." : "No mockups found — defaulting to Black only."}
+              {isExisting
+                ? "This product is already linked to Printify. Choose what to update."
+                : hasMockups
+                  ? "Colors are pulled from your generated mockups."
+                  : "No mockups found — defaulting to Black only."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
-            {/* Product type selector */}
-            <div className="space-y-2">
-              <Label className="font-medium">Product Type</Label>
-              <div className="flex flex-wrap gap-2">
-                {PRODUCT_TYPES.map((pt) => (
-                  <Button
-                    key={pt.blueprintId}
-                    type="button"
-                    variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setSelectedProductType(pt);
-                      setSelectedSizes([...pt.sizes]);
-                    }}
-                  >
-                    {pt.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
             {/* Shop - just show the name, no picker */}
             {loadingShops ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -466,69 +449,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
               </p>
             )}
 
-            {/* Mockup colors */}
-            <div className="space-y-3">
-              <Label className="font-medium">
-                Colors from mockups {loadingMockups && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
-              </Label>
-
-              {uniqueMockupColors.length > 0 ? (
-              <div className="space-y-2">
-                  {uniqueMockupColors.map((colorName) => {
-                    const mockup = mockups.find((m) => m.color_name === colorName);
-                    const isLight = LIGHT_COLORS.has(colorName.toLowerCase());
-                    return (
-                      <div key={colorName} className="flex items-center gap-3 p-2 rounded-md border border-border bg-muted/30">
-                        {mockup && (
-                          <img
-                            src={mockup.image_url}
-                            alt={colorName}
-                            className="h-10 w-10 rounded object-cover border border-border shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{colorName}</p>
-                          {isLight && (
-                            <p className="text-xs text-muted-foreground">Dark design will be applied</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : loadingMockups ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading mockups...
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-border p-3 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No mockups generated — will push with Black only.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Sizes */}
-            <div className="space-y-2">
-              <Label className="font-medium">Sizes</Label>
-              <div className="flex flex-wrap gap-2">
-                {selectedProductType.sizes.map((size) => (
-                  <Button
-                    key={size}
-                    type="button"
-                    variant={selectedSizes.includes(size) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleSize(size)}
-                    className="min-w-[3rem]"
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Existing product: update fields selector as PRIMARY action */}
+            {/* ===== EXISTING PRODUCT: Update as primary action ===== */}
             {isExisting && (
               <>
                 <UpdateFieldSelector
@@ -542,57 +463,180 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                   platformName="Printify"
                 />
 
-                {/* Divider + warning for creating new */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">or create new</span>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm space-y-1">
-                  <p className="font-medium text-destructive">⚠ When is a new product needed?</p>
-                  <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
-                    <li><strong>Design changes</strong> — Printify locks the print file to the product; updating the design requires a new listing.</li>
-                    <li><strong>Color variant changes</strong> — adding or removing colors changes the variant matrix, which can't be patched.</li>
-                  </ul>
-                  <p className="text-xs text-muted-foreground mt-1">Title, description, tags, and pricing can be updated above without creating a new product.</p>
-                </div>
+                {/* Collapsible "Create New" option */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full justify-center py-2">
+                      <ChevronDown className="h-3 w-3" />
+                      Need to recreate this product?
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-2">
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm space-y-1">
+                      <p className="font-medium text-destructive">⚠ When is a new product needed?</p>
+                      <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
+                        <li><strong>Design changes</strong> — Printify locks the print file to the product; updating the design requires a new listing.</li>
+                        <li><strong>Color variant changes</strong> — adding or removing colors changes the variant matrix, which can't be patched.</li>
+                      </ul>
+                    </div>
 
-                {/* Publish toggle for new creation */}
-                <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <div>
-                    <p className="text-sm font-medium">Publish & Sync to Shopify</p>
-                    <p className="text-xs text-muted-foreground">Published products auto-sync to your Shopify store via Printify</p>
-                  </div>
-                  <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
-                </div>
+                    {/* Product type selector */}
+                    <div className="space-y-2">
+                      <Label className="font-medium">Product Type</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {PRODUCT_TYPES.map((pt) => (
+                          <Button
+                            key={pt.blueprintId}
+                            type="button"
+                            variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProductType(pt);
+                              setSelectedSizes([...pt.sizes]);
+                            }}
+                          >
+                            {pt.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
 
-                <Button
-                  onClick={handlePush}
-                  disabled={pushing || !selectedShop || !selectedSizes.length}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  {pushing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating new on Printify...
-                    </>
-                  ) : (
-                    <>
-                      <Printer className="h-4 w-4" />
-                      Create New on Printify
-                    </>
-                  )}
-                </Button>
+                    {/* Sizes */}
+                    <div className="space-y-2">
+                      <Label className="font-medium">Sizes</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProductType.sizes.map((size) => (
+                          <Button
+                            key={size}
+                            type="button"
+                            variant={selectedSizes.includes(size) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSize(size)}
+                            className="min-w-[3rem]"
+                          >
+                            {size}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div>
+                        <p className="text-sm font-medium">Publish & Sync to Shopify</p>
+                        <p className="text-xs text-muted-foreground">Published products auto-sync to your Shopify store via Printify</p>
+                      </div>
+                      <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
+                    </div>
+
+                    <Button
+                      onClick={handlePush}
+                      disabled={pushing || !selectedShop || !selectedSizes.length}
+                      variant="destructive"
+                      className="w-full gap-2"
+                    >
+                      {pushing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating new on Printify...
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="h-4 w-4" />
+                          Replace with New Printify Product
+                        </>
+                      )}
+                    </Button>
+                  </CollapsibleContent>
+                </Collapsible>
               </>
             )}
 
-            {/* New product: single create button */}
+            {/* ===== NEW PRODUCT: Create flow ===== */}
             {!isExisting && (
               <>
+                {/* Product type selector */}
+                <div className="space-y-2">
+                  <Label className="font-medium">Product Type</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRODUCT_TYPES.map((pt) => (
+                      <Button
+                        key={pt.blueprintId}
+                        type="button"
+                        variant={selectedProductType.blueprintId === pt.blueprintId ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setSelectedProductType(pt);
+                          setSelectedSizes([...pt.sizes]);
+                        }}
+                      >
+                        {pt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mockup colors */}
+                <div className="space-y-3">
+                  <Label className="font-medium">
+                    Colors from mockups {loadingMockups && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+                  </Label>
+
+                  {uniqueMockupColors.length > 0 ? (
+                    <div className="space-y-2">
+                      {uniqueMockupColors.map((colorName) => {
+                        const mockup = mockups.find((m) => m.color_name === colorName);
+                        const isLight = LIGHT_COLORS.has(colorName.toLowerCase());
+                        return (
+                          <div key={colorName} className="flex items-center gap-3 p-2 rounded-md border border-border bg-muted/30">
+                            {mockup && (
+                              <img
+                                src={mockup.image_url}
+                                alt={colorName}
+                                className="h-10 w-10 rounded object-cover border border-border shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{colorName}</p>
+                              {isLight && (
+                                <p className="text-xs text-muted-foreground">Dark design will be applied</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : loadingMockups ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading mockups...
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-3 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        No mockups generated — will push with Black only.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sizes */}
+                <div className="space-y-2">
+                  <Label className="font-medium">Sizes</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedProductType.sizes.map((size) => (
+                      <Button
+                        key={size}
+                        type="button"
+                        variant={selectedSizes.includes(size) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleSize(size)}
+                        className="min-w-[3rem]"
+                      >
+                        {size}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Publish toggle */}
                 <div className="flex items-center justify-between rounded-lg border border-border p-3">
                   <div>
