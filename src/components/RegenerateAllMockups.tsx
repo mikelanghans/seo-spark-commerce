@@ -9,7 +9,6 @@ import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
-  compositeDesignOntoTemplate,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
@@ -240,24 +239,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           }
         }
 
-        // Pre-composite
-        let preCompositedDark = templateBase64;
-        let preCompositedLight = templateBase64;
-
-        if (lightDesignBase64) {
-          try {
-            preCompositedDark = await compositeDesignOntoTemplate(templateBase64, lightDesignBase64, true);
-          } catch { /* use template */ }
-        }
-        if (darkDesignBase64 || lightDesignBase64) {
-          try {
-            preCompositedLight = await compositeDesignOntoTemplate(templateBase64, (darkDesignBase64 || lightDesignBase64)!, false);
-          } catch { /* use template */ }
-        }
-
+        let compressedTemplateBase64 = templateBase64;
         try {
-          preCompositedDark = await compressForEdgeFunction(preCompositedDark, 1024, 0.8);
-          preCompositedLight = await compressForEdgeFunction(preCompositedLight, 1024, 0.8);
+          compressedTemplateBase64 = await compressForEdgeFunction(templateBase64, 1024, 0.8);
         } catch { /* use uncompressed */ }
 
         let targetSize: { width: number; height: number } | null = null;
@@ -272,12 +256,11 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
           try {
             const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
-            const preComposited = isLight ? preCompositedLight : preCompositedDark;
             const designForRecomposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
             const { data, error } = await supabase.functions.invoke("generate-color-variants", {
               body: {
-                imageBase64: preComposited,
+                imageBase64: compressedTemplateBase64,
                 colorName,
                 productTitle: product.title,
                 sourceWidth: targetSize?.width || null,
@@ -307,7 +290,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
             const generatedDataUrl = ensureImageDataUrl(generatedBase64);
             const blob = await normalizeAndLockToTemplateBlob({
-              templateDataUrl: preComposited,
+              templateDataUrl: templateBase64,
               generatedDataUrl,
               targetWidth: targetSize?.width || 1024,
               targetHeight: targetSize?.height || 1024,
