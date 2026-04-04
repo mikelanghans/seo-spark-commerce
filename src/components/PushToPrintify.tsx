@@ -150,11 +150,23 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
-        body: { blueprintId: selectedProductType.blueprintId, organizationId },
+        body: {
+          blueprintId: selectedProductType.blueprintId,
+          organizationId,
+          shopId: selectedShop,
+          printifyProductId: product.printify_product_id,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data.printProviderId) setPrintProviderId(data.printProviderId);
+      if (product.printify_product_id && data?.blueprintId) {
+        const matchedType = PRODUCT_TYPES.find((pt) => pt.blueprintId === data.blueprintId);
+        if (matchedType) {
+          setSelectedProductType(matchedType);
+          setSelectedSizes(data.enabledSizes?.length ? data.enabledSizes : matchedType.sizes);
+        }
+      }
     } catch (err: any) {
       console.error("Failed to load Printify info:", err);
     } finally {

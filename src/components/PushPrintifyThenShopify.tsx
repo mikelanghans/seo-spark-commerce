@@ -123,10 +123,22 @@ export const PushPrintifyThenShopify = ({
   const loadPrintifyInfo = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
-        body: { blueprintId: selectedProductType.blueprintId, organizationId },
+        body: {
+          blueprintId: selectedProductType.blueprintId,
+          organizationId,
+          shopId: selectedShop,
+          printifyProductId: product.printify_product_id,
+        },
       });
       if (error) throw error;
       if (data?.printProviderId) setPrintProviderId(data.printProviderId);
+      if (product.printify_product_id && data?.blueprintId) {
+        const matchedType = PRODUCT_TYPES.find((pt) => pt.blueprintId === data.blueprintId);
+        if (matchedType) {
+          setSelectedProductType(matchedType);
+          setSelectedSizes(data.enabledSizes?.length ? data.enabledSizes : matchedType.sizes);
+        }
+      }
     } catch {}
   };
 
