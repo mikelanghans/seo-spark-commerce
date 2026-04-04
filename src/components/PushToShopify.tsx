@@ -16,6 +16,7 @@ interface Product {
   keywords: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  size_pricing?: Record<string, Record<string, string>> | null;
 }
 
 interface Listing {
