@@ -64,8 +64,8 @@ export function buildShopifyProduct(
   }
   if (include("seo")) {
     shopifyProduct.handle = shopifyListing?.url_handle || undefined;
-    shopifyProduct.metafields_global_title_tag = shopifyListing?.seo_title || undefined;
-    shopifyProduct.metafields_global_description_tag = shopifyListing?.seo_description || undefined;
+    // Note: metafields_global_title_tag / metafields_global_description_tag are deprecated.
+    // SEO metafields are set separately via updateSeoMetafields() after product create/update.
   }
 
   if (!isUpdate && hasVariants) {
