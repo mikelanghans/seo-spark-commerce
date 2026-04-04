@@ -361,6 +361,31 @@ export const ProductGrid = ({
         </div>
       )}
 
+      {/* Selection bar */}
+      {onToggleSelect && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onSelectAll}
+            className="text-xs text-primary hover:underline"
+          >
+            Select all ({activeProducts.length})
+          </button>
+          {selectedProductIds && selectedProductIds.size > 0 && (
+            <button
+              onClick={onDeselectAll}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              Deselect all
+            </button>
+          )}
+          {selectedProductIds && selectedProductIds.size > 0 && (
+            <span className="text-xs font-medium text-primary">
+              {selectedProductIds.size} selected
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
         {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
