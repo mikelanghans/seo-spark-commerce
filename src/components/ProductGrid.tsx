@@ -74,12 +74,16 @@ export const ProductGrid = ({
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
-  const [showArchived, setShowArchived] = useState(false);
+  const [_showArchived, _setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">("product-types");
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
+      // Archive filtering: if "__archived" filter is active, show only archived; otherwise hide archived
+      if (activeFilter === "__archived") return !!p.archived_at;
+      if (p.archived_at) return false;
+
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (activeFilter === "__unsynced")
@@ -116,9 +120,10 @@ export const ProductGrid = ({
     return list;
   }, [products, searchQuery, activeFilter, sort, collectionData]);
 
-  // Split active vs archived
-  const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
-  const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
+  // When viewing archived filter, all filtered are "active" for display purposes
+  const isArchiveView = activeFilter === "__archived";
+  const activeProducts = useMemo(() => filtered, [filtered]);
+  const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
 
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
@@ -285,6 +290,21 @@ export const ProductGrid = ({
             ⚡ Not on Shopify ({unsyncedCount})
           </button>
         )}
+        {archivedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => onFilterChange(activeFilter === "__archived" ? null : "__archived")}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              activeFilter === "__archived"
+                ? "bg-muted-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+          >
+            <Archive className="inline h-3 w-3 mr-1 -mt-0.5" />
+            Archived ({archivedCount})
+          </button>
+        )}
         {/* Collection filters (when in collections mode) */}
         {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
           <button
@@ -388,7 +408,7 @@ export const ProductGrid = ({
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
+        {isArchiveView ? `${activeProducts.length} archived` : `${activeProducts.length} active${archivedCount > 0 ? `, ${archivedCount} archived` : ""}`}
         {searchQuery && ` — matching "${searchQuery}"`}
       </p>
 
@@ -550,36 +570,6 @@ export const ProductGrid = ({
         </div>
       )}
 
-      {/* Archive section */}
-      {archivedProducts.length > 0 && (
-        <div className="space-y-3 pt-4 border-t border-border">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Archive className="h-4 w-4" />
-            Archived ({archivedProducts.length})
-            <span className="text-xs">{showArchived ? "▾" : "▸"}</span>
-          </button>
-
-          {showArchived && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
-              {archivedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onView={onViewProduct}
-                  onDelete={onDeleteProduct}
-                  onAddTag={onAddTag}
-                  onRemoveTag={onRemoveTag}
-                  onUploadDesign={onUploadDesign}
-                  onArchive={onArchiveProduct}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
