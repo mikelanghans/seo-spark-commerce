@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, uploadAndAssociateImages, updateSeoMetafields } from "./shopify-helpers.ts";
+import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, addMissingColorVariants, uploadAndAssociateImages, updateSeoMetafields } from "./shopify-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,22 +125,35 @@ serve(async (req) => {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id }).eq("id", product.id);
     }
 
-    // Upload images and associate with variants (use fresh variant list from response)
+    // For updates, add any missing color variants before uploading images
+    let allVariants = createdProduct?.variants || [];
+    if (isUpdate && createdProduct?.id && actualColorVariants.length > 0) {
+      allVariants = await addMissingColorVariants(
+        domain,
+        connection.access_token,
+        createdProduct.id,
+        allVariants,
+        actualColorVariants.map((v) => v.colorName),
+        price,
+      );
+    }
+
+    // Upload images and associate with variants (use fresh variant list)
     if (createdProduct?.id && shouldUpdateImages && imageEntries.length > 0) {
       await uploadAndAssociateImages(
         domain,
         connection.access_token,
         createdProduct.id,
         imageEntries,
-        createdProduct.variants || [],
+        allVariants,
         actualColorVariants,
         product.title,
       );
     }
 
     // Update all variants: disable inventory tracking, set shipping, apply pricing
-    if (createdProduct?.id && createdProduct.variants?.length) {
-      for (const variant of createdProduct.variants) {
+    if (createdProduct?.id && allVariants.length) {
+      for (const variant of allVariants) {
         const updates: Record<string, unknown> = { id: variant.id };
         if (variant.inventory_management !== null) {
           updates.inventory_management = null;
@@ -174,7 +187,7 @@ serve(async (req) => {
           }
         }
       }
-      console.log(`Updated ${createdProduct.variants.length} variants (inventory, shipping, pricing)`);
+      console.log(`Updated ${allVariants.length} variants (inventory, shipping, pricing)`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
