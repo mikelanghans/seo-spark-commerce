@@ -138,19 +138,26 @@ serve(async (req) => {
       );
     }
 
-    // Disable inventory tracking and apply size-specific pricing on all variants
+    // Update all variants: disable inventory tracking, set shipping, apply pricing
     if (createdProduct?.id && createdProduct.variants?.length) {
       for (const variant of createdProduct.variants) {
         const updates: Record<string, unknown> = { id: variant.id };
         if (variant.inventory_management !== null) {
           updates.inventory_management = null;
         }
-        // Apply size-specific pricing if available
+        if (!variant.requires_shipping) {
+          updates.requires_shipping = true;
+        }
+        // Apply size-specific pricing if available, otherwise base price
         if (flatSizePricing) {
           const size = (variant.option2 || variant.option1 || "").trim();
           if (flatSizePricing[size]) {
             updates.price = flatSizePricing[size];
+          } else if (price !== "0.00") {
+            updates.price = price;
           }
+        } else if (price !== "0.00" && variant.price === "0.00") {
+          updates.price = price;
         }
         if (Object.keys(updates).length > 1) {
           try {
@@ -167,7 +174,7 @@ serve(async (req) => {
           }
         }
       }
-      console.log(`Updated inventory tracking and pricing on ${createdProduct.variants.length} variants`);
+      console.log(`Updated ${createdProduct.variants.length} variants (inventory, shipping, pricing)`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
