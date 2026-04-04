@@ -290,6 +290,21 @@ export const ProductGrid = ({
             ⚡ Not on Shopify ({unsyncedCount})
           </button>
         )}
+        {archivedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => onFilterChange(activeFilter === "__archived" ? null : "__archived")}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              activeFilter === "__archived"
+                ? "bg-muted-foreground text-background"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+          >
+            <Archive className="inline h-3 w-3 mr-1 -mt-0.5" />
+            Archived ({archivedCount})
+          </button>
+        )}
         {/* Collection filters (when in collections mode) */}
         {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
           <button
