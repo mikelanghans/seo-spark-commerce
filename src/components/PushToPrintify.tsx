@@ -375,53 +375,14 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     try {
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
-      // Build design-related data if colors or mockups need a Printify asset refresh
+      // Build colors payload (no design re-upload — edge function reuses existing Printify images)
       let colorsPayload: Record<string, any> = {};
-      const needsDesignUpload = selectedUpdateFields.includes("colors") || selectedUpdateFields.includes("mockups");
-      if (needsDesignUpload) {
-        if (!product.image_url) {
-          throw new Error("Product needs a design image to update colors or mockups");
-        }
-
+      if (selectedUpdateFields.includes("colors")) {
         const colorsToUse = hasMockups ? uniqueMockupColors : ["Black"];
-        const lightColorsSelected = colorsToUse.filter(
-          (c) => LIGHT_COLORS.has(c.toLowerCase())
-        );
-        const hasLightColors = lightColorsSelected.length > 0;
-
-        toast.info("Uploading design for Printify refresh...");
-        let base64Contents = await removeBackground(product.image_url!, "black");
-        base64Contents = await upscaleBase64Png(base64Contents, 4500);
-        const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
-          "printify-upload-image",
-          { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
-        );
-        if (uploadError) throw uploadError;
-        if (uploadData?.error) throw new Error(uploadData.error);
-        const printifyImageId = uploadData.image?.id;
-        if (!printifyImageId) throw new Error("Failed to get uploaded image ID");
-
-        let darkPrintifyImageId: string | null = null;
-        if (hasLightColors) {
-          toast.info(`Creating dark ink variant for ${lightColorsSelected.length} light colors...`);
-          const darkBase64Contents = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-          const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
-            "printify-upload-image",
-            { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png`, organizationId } }
-          );
-          if (darkUploadError) throw darkUploadError;
-          if (darkUpload?.error) throw new Error(darkUpload.error);
-          darkPrintifyImageId = darkUpload.image?.id || null;
-        }
-
         colorsPayload = {
           selectedColors: colorsToUse,
-          printifyImageId,
-          darkPrintifyImageId,
-          lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
           selectedSizes,
-          blueprintId: selectedProductType.blueprintId,
-          printProviderId,
+          lightColors: [...LIGHT_COLORS],
         };
       }
 
