@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 0.82;
+const DEFAULT_IMAGE_SCALE = 0.58;
 const DEFAULT_IMAGE_X = 0.5;
 const DEFAULT_IMAGE_Y = 0.34;
 const DEFAULT_EDITOR_SCALE = 0.36;
@@ -40,6 +40,26 @@ const parsePlacement = (value: unknown): PlacementInput | null => {
   };
 };
 
+const getSavedPlacement = async (
+  adminClient: ReturnType<typeof createClient>,
+  productId: string | null | undefined,
+): Promise<PlacementInput | null> => {
+  if (!productId) return null;
+
+  const { data, error } = await adminClient
+    .from("products")
+    .select("print_placement")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn(`Failed to load saved placement for product ${productId}:`, error.message);
+    return null;
+  }
+
+  return parsePlacement((data as { print_placement?: unknown } | null)?.print_placement);
+};
+
 const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   if (!placement) {
     return {
@@ -52,7 +72,7 @@ const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   return {
     imageX: clamp(DEFAULT_IMAGE_X + placement.offsetX, 0.15, 0.85),
     imageY: clamp(DEFAULT_IMAGE_Y + (placement.offsetY - DEFAULT_EDITOR_OFFSET_Y), 0.12, 0.65),
-    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), 0.35, 0.95),
+    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), 0.22, 0.78),
   };
 };
 
@@ -296,7 +316,10 @@ serve(async (req) => {
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Nudge slightly higher to better match the approved mockup chest position.
     const parsedPlacement = parsePlacement(placement);
-    const { imageX, imageY, desiredScale } = mapPlacementToPrintify(parsedPlacement);
+    const savedPlacement = parsedPlacement ?? await getSavedPlacement(adminClient, productId);
+    const resolvedPlacement = parsedPlacement ?? savedPlacement;
+    const placementSource = parsedPlacement ? "request" : savedPlacement ? "product" : "default";
+    const { imageX, imageY, desiredScale } = mapPlacementToPrintify(resolvedPlacement);
 
     // Scale to stay prominent, but not oversized versus the mockup.
     let imageScale = desiredScale;
@@ -317,7 +340,7 @@ serve(async (req) => {
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, desiredScale);
 
-          imageScale = clamp(targetChestScale, 0.35, 0.95);
+          imageScale = clamp(targetChestScale, 0.22, 0.78);
           console.log(
             `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)}, desired=${desiredScale.toFixed(4)})`
           );
@@ -329,7 +352,7 @@ serve(async (req) => {
       console.log(`Image info fetch failed, using default scale: ${imgErr}`);
     }
 
-    console.log(`Using Printify placement x=${imageX.toFixed(3)} y=${imageY.toFixed(3)} scale=${imageScale.toFixed(3)} from editor=${JSON.stringify(parsedPlacement)}`);
+    console.log(`Using Printify placement x=${imageX.toFixed(3)} y=${imageY.toFixed(3)} scale=${imageScale.toFixed(3)} source=${placementSource} placement=${JSON.stringify(resolvedPlacement)}`);
 
     // Split variants into light and dark groups if we have a dark design
     // CRITICAL: Printify requires ALL variant IDs from the blueprint to appear
