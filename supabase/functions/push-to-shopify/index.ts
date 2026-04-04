@@ -54,16 +54,17 @@ serve(async (req) => {
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     const existingShopifyId = product.shopify_product_id;
     const isUpdate = !!existingShopifyId;
+    const effectiveUpdateFields = isUpdate && Array.isArray(updateFields) ? updateFields : undefined;
 
     if (isUpdate) {
       console.log("Updating existing Shopify product while preserving current variant/options matrix");
     }
 
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, isUpdate ? updateFields : undefined);
-    const shouldUpdateImages = !updateFields || updateFields.includes("images");
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields);
+    const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
-    console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${updateFields || "all"}`);
+    console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
 
     // For updates, delete existing images first so we get clean mockups
     if (isUpdate && shouldUpdateImages && imageEntries.length > 0) {

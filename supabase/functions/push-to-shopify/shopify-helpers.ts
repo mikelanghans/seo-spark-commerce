@@ -36,11 +36,14 @@ export function buildShopifyProduct(
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
-
-  // If updateFields is provided, only include those fields
-  const include = (field: string) => !updateFields || updateFields.includes(field);
+  const effectiveUpdateFields = isUpdate ? updateFields : undefined;
+  const include = (field: string) => !effectiveUpdateFields || effectiveUpdateFields.includes(field);
 
   const shopifyProduct: Record<string, unknown> = {};
+
+  if (isUpdate && product.shopify_product_id) {
+    shopifyProduct.id = product.shopify_product_id;
+  }
 
   if (include("title")) {
     shopifyProduct.title = shopifyListing?.title || product.title;
@@ -48,7 +51,7 @@ export function buildShopifyProduct(
   if (include("description")) {
     shopifyProduct.body_html = bodyHtml || `<p>${product.description || ""}</p>`;
   }
-  if (include("title") || !updateFields) {
+  if (include("title") || !effectiveUpdateFields) {
     shopifyProduct.product_type = product.category;
     shopifyProduct.status = shopifyStatus === "draft" ? "draft" : "active";
   }
@@ -64,8 +67,6 @@ export function buildShopifyProduct(
   }
   if (include("seo")) {
     shopifyProduct.handle = shopifyListing?.url_handle || undefined;
-    // Note: metafields_global_title_tag / metafields_global_description_tag are deprecated.
-    // SEO metafields are set separately via updateSeoMetafields() after product create/update.
   }
 
   if (!isUpdate && hasVariants) {
