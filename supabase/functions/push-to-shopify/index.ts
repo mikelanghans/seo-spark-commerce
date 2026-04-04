@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const missingProductRetryDelays = [3000, 5000, 8000];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -98,35 +101,61 @@ serve(async (req) => {
       },
     );
 
-    // If update returns 404, the linked Shopify product no longer exists
+    // If update returns 404, give Shopify a few seconds to finish native sync before deciding it's missing.
     if (isUpdate && shopifyResponse.status === 404) {
       console.log("Existing Shopify product not found (404)");
-      if (!allowCreateOnMissingProduct) {
-        throw new Error("Linked Shopify product no longer exists. Wait for the latest Printify sync or create a new Shopify product intentionally.");
+
+      for (const delayMs of missingProductRetryDelays) {
+        await shopifyResponse.text().catch(() => "");
+        console.log(`Retrying Shopify product update in ${delayMs}ms...`);
+        await wait(delayMs);
+
+        shopifyResponse = await fetch(
+          `https://${domain}/admin/api/2024-01/products/${existingShopifyId}.json`,
+          {
+            method: "PUT",
+            headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+            body: JSON.stringify({ product: shopifyProduct }),
+          },
+        );
+
+        if (shopifyResponse.status !== 404) {
+          console.log("Shopify product became available after retry");
+          break;
+        }
+
+        console.log("Shopify product still not found after retry");
       }
 
-      console.log("Existing Shopify product not found (404), creating new product instead");
-      shopifyProduct = buildShopifyProduct(
-        product,
-        shopifyListing,
-        bodyHtml,
-        shopifyStatus,
-        colorVariants,
-        price,
-        false,
-        undefined,
-        true,
-        flatSizePricing,
-        sizes,
-      );
-      shopifyResponse = await fetch(
-        `https://${domain}/admin/api/2024-01/products.json`,
-        {
-          method: "POST",
-          headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
-          body: JSON.stringify({ product: shopifyProduct }),
-        },
-      );
+      // If it is still missing after retries, either fail intentionally or create a replacement.
+      if (shopifyResponse.status !== 404) {
+        // proceed with the successful retry response
+      } else if (!allowCreateOnMissingProduct) {
+        throw new Error("Linked Shopify product no longer exists. Wait for the latest Printify sync or create a new Shopify product intentionally.");
+      } else {
+        console.log("Existing Shopify product not found (404), creating new product instead");
+        shopifyProduct = buildShopifyProduct(
+          product,
+          shopifyListing,
+          bodyHtml,
+          shopifyStatus,
+          colorVariants,
+          price,
+          false,
+          undefined,
+          true,
+          flatSizePricing,
+          sizes,
+        );
+        shopifyResponse = await fetch(
+          `https://${domain}/admin/api/2024-01/products.json`,
+          {
+            method: "POST",
+            headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+            body: JSON.stringify({ product: shopifyProduct }),
+          },
+        );
+      }
     }
 
     if (!shopifyResponse.ok) {
