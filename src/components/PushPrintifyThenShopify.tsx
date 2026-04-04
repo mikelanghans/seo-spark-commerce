@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY } from "@/lib/productTypes";
-import { recolorOpaquePixels, removeBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { recolorOpaquePixels } from "@/lib/removeBackground";
+import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { getProductType } from "@/lib/productTypes";
 import { Button } from "@/components/ui/button";
