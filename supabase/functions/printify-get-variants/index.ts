@@ -24,8 +24,9 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const { blueprintId, organizationId } = await req.json();
-    const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
+    const { blueprintId, organizationId, shopId, printifyProductId } = await req.json();
+    let productBlueprintId: number | null = null;
+    let enabledSizes: string[] = [];
 
     // Try org-level token first, then fall back to env var
     let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
@@ -47,6 +48,25 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (printifyProductId && shopId) {
+      const productRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      );
+      if (productRes.ok) {
+        const product = await productRes.json();
+        productBlueprintId = product?.blueprint_id ?? null;
+        enabledSizes = Array.from(new Set(
+          (product?.variants || [])
+            .filter((variant: any) => variant?.is_enabled)
+            .map((variant: any) => (variant?.options?.size || "").trim())
+            .filter(Boolean)
+        ));
+      }
+    }
+
+    const bpId = productBlueprintId || blueprintId || DEFAULT_BLUEPRINT_ID;
 
     // Get print providers
     const providersRes = await fetch(
@@ -111,7 +131,7 @@ serve(async (req) => {
 
     console.log(`Blueprint ${bpId}, provider ${ppId}: ${colors.length} colors, ${sizes.length} sizes, printArea: ${JSON.stringify(printAreaSpecs)}`);
 
-    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId, printAreaSpecs }), {
+    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId, printAreaSpecs, blueprintId: bpId, enabledSizes }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
