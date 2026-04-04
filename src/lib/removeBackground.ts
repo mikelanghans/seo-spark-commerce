@@ -480,7 +480,14 @@ async function analyzeDesignColors(base64: string) {
   canvas.width = img.width;
   canvas.height = img.height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
+  if (!ctx) {
+    return {
+      opaqueCount: 0,
+      chromaCount: 0,
+      accentPixelCount: 0,
+      hueBuckets: new Set<number>(),
+    };
+  }
   ctx.drawImage(img, 0, 0);
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
