@@ -137,6 +137,27 @@ const Dashboard = () => {
 
   const designProcessing = useDesignProcessing(user?.id);
 
+  // Product selection state
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const toggleProductSelect = (id: string) => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const selectAllProducts = () => {
+    const activeIds = products.filter((p) => !p.archived_at).map((p) => p.id);
+    setSelectedProductIds(new Set(activeIds));
+  };
+  const deselectAllProducts = () => setSelectedProductIds(new Set());
+
+  const getSelectedProducts = (): Product[] => {
+    if (selectedProductIds.size === 0) return products.filter((p) => !p.archived_at);
+    return products.filter((p) => selectedProductIds.has(p.id));
+  };
+
   const loading = orgLoading || productLoading;
 
   // ─── Effects ───
