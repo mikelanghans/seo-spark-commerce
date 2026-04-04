@@ -266,7 +266,7 @@ export const PrintifyMatchDialog = ({ open, onOpenChange, organizationId, produc
           {matches.length === 0 && !loading && !done && (
             <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
               <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-              Products are matched by exact title. Make sure titles match between your app and Printify.
+              Products are matched by title similarity. Partial and fuzzy matches are included — review before linking.
             </div>
           )}
         </div>
