@@ -3,11 +3,14 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -16,7 +19,7 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -29,14 +32,16 @@ serve(async (req) => {
     if (organizationId) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
       const { data: secrets } = await adminClient
         .from("organization_secrets")
         .select("printify_api_token")
         .eq("organization_id", organizationId)
         .single();
-      if (secrets?.printify_api_token) printifyToken = secrets.printify_api_token;
+      if (secrets?.printify_api_token) {
+        printifyToken = secrets.printify_api_token;
+      }
     }
 
     if (!printifyToken) throw new Error("No Printify API token configured");
@@ -45,7 +50,9 @@ serve(async (req) => {
     const shopsRes = await fetch("https://api.printify.com/v1/shops.json", {
       headers: { Authorization: `Bearer ${printifyToken}` },
     });
-    if (!shopsRes.ok) throw new Error(`Failed to fetch shops: ${shopsRes.status}`);
+    if (!shopsRes.ok) {
+      throw new Error(`Failed to fetch shops: ${shopsRes.status}`);
+    }
     const shops = await shopsRes.json();
     if (!shops.length) throw new Error("No Printify shops found");
 
@@ -59,17 +66,23 @@ serve(async (req) => {
       while (hasMore) {
         const res = await fetch(
           `https://api.printify.com/v1/shops/${shop.id}/products.json?page=${page}`,
-          { headers: { Authorization: `Bearer ${printifyToken}` } }
+          { headers: { Authorization: `Bearer ${printifyToken}` } },
         );
 
         if (!res.ok) {
           const errorText = await res.text();
-          console.error(`Failed to fetch products from shop ${shop.id}: ${res.status} ${errorText}`);
+          console.error(
+            `Failed to fetch products from shop ${shop.id}: ${res.status} ${errorText}`,
+          );
           break;
         }
 
         const data = await res.json();
-        const products = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        const products = Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data)
+          ? data
+          : [];
 
         for (const p of products) {
           allProducts.push({ id: p.id, title: p.title, shopId: shop.id });
@@ -82,16 +95,23 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Fetched ${allProducts.length} Printify products from ${shops.length} shop(s)`);
+    console.log(
+      `Fetched ${allProducts.length} Printify products from ${shops.length} shop(s)`,
+    );
 
     return new Response(JSON.stringify({ products: allProducts }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("printify-list-products error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
