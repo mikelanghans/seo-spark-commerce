@@ -576,10 +576,28 @@ export async function darkenBrightPixels(
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imageData.data;
+  const sourcePixels = new Uint8ClampedArray(d);
+
+  const countDenseOpaqueNeighbors = (pixelIndex: number) => {
+    const x = (pixelIndex / 4) % canvas.width;
+    const y = Math.floor(pixelIndex / 4 / canvas.width);
+    let count = 0;
+
+    for (let ny = Math.max(0, y - 2); ny <= Math.min(canvas.height - 1, y + 2); ny++) {
+      for (let nx = Math.max(0, x - 2); nx <= Math.min(canvas.width - 1, x + 2); nx++) {
+        if (nx === x && ny === y) continue;
+        const neighborIdx = (ny * canvas.width + nx) * 4;
+        if (sourcePixels[neighborIdx + 3] >= 120) count++;
+      }
+    }
+
+    return count;
+  };
 
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 30) continue; // skip transparent
 
+    const alpha = d[i + 3] / 255;
     const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -587,13 +605,20 @@ export async function darkenBrightPixels(
 
     // Only darken near-neutral bright pixels (low saturation, high luminance)
     if (sat < 0.15 && luma > 0.55) {
+      const denseNeighborCount = countDenseOpaqueNeighbors(i);
+      const isSoftGlowOrSparkle = alpha < 0.78 && denseNeighborCount < 10;
+      if (isSoftGlowOrSparkle) continue;
+
       // Aggressively darken very bright near-whites
       const darkFactor = luma > 0.82 ? targetLuma / 255 : Math.max(0.15, 1 - luma);
       d[i] = Math.round(d[i] * darkFactor);
       d[i + 1] = Math.round(d[i + 1] * darkFactor);
       d[i + 2] = Math.round(d[i + 2] * darkFactor);
-      // Enforce minimum alpha for text crispness
-      d[i + 3] = Math.max(d[i + 3], 210);
+
+      // Keep anti-aliased text edges crisp without turning soft glows into solid black marks.
+      if (alpha >= 0.78 || denseNeighborCount >= 12) {
+        d[i + 3] = Math.max(d[i + 3], 210);
+      }
     }
   }
 
