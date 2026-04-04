@@ -376,6 +376,7 @@ export const PushPrintifyThenShopify = ({
           imageUrl: product.image_url,
           variants: optimizedVariants,
           forceVariants: false,
+          allowCreateOnMissingProduct: false,
         },
       });
 
