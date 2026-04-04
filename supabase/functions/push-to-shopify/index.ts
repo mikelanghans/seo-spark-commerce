@@ -187,7 +187,7 @@ serve(async (req) => {
           }
         }
       }
-      console.log(`Updated ${createdProduct.variants.length} variants (inventory, shipping, pricing)`);
+      console.log(`Updated ${allVariants.length} variants (inventory, shipping, pricing)`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
