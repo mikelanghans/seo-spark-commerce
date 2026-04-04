@@ -81,9 +81,9 @@ serve(async (req) => {
     const bpId = productBlueprintId || blueprintId || DEFAULT_BLUEPRINT_ID;
 
     // Get print providers
-    const providersRes = await fetch(
+    const providersRes = await fetchWithRetry(
       `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
-      { headers: { Authorization: `Bearer ${printifyToken}` } }
+      { Authorization: `Bearer ${printifyToken}` }
     );
     if (!providersRes.ok) throw new Error(`Failed to get providers (${providersRes.status})`);
     const providers = await providersRes.json();
