@@ -187,7 +187,7 @@ export const PushPrintifyThenShopify = ({
       setPrintProviderId(null);
       loadPrintifyInfo();
     }
-  }, [selectedProductType]);
+  }, [selectedProductType, selectedShop, open]);
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) =>

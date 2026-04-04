@@ -255,7 +255,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setPrintProviderId(null);
       loadPrintifyInfo();
     }
-  }, [selectedProductType]);
+  }, [selectedProductType, selectedShop, open]);
 
   const toggleSize = (size: string) => {
     setSelectedSizes((prev) =>
