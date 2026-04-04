@@ -5,6 +5,7 @@ import { recolorOpaquePixels } from "@/lib/removeBackground";
 import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { getProductType } from "@/lib/productTypes";
+import { parsePrintPlacement } from "@/lib/printPlacement";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -182,6 +183,18 @@ export const PushPrintifyThenShopify = ({
     );
   };
 
+  const loadSavedPlacement = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("print_placement")
+      .eq("id", product.id)
+      .maybeSingle();
+
+    return parsePrintPlacement(
+      (data as { print_placement?: unknown } | null)?.print_placement,
+    );
+  };
+
   const handlePushBoth = async () => {
     if (!selectedShop) { toast.error("Please select a Printify shop"); return; }
     if (!selectedSizes.length) { toast.error("Please select at least one size"); return; }
@@ -223,6 +236,7 @@ export const PushPrintifyThenShopify = ({
         darkPrintifyImageId = darkUpload.image?.id || null;
       }
 
+      const savedPlacement = await loadSavedPlacement();
       const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
       for (const colorName of colorsToUse) {
         const mockup = mockups.find((m) => m.color_name === colorName);
@@ -246,6 +260,7 @@ export const PushPrintifyThenShopify = ({
           sizePricing,
           mockupImages,
           productId: product.id,
+          placement: savedPlacement,
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
           organizationId,
