@@ -165,6 +165,65 @@ export async function deleteExistingImages(
   }
 }
 
+/** Add missing color variants to an existing Shopify product.
+ *  Reads the existing sizes from current variants and creates Color×Size entries
+ *  for any pushed colors that don't already exist on the product. */
+export async function addMissingColorVariants(
+  domain: string,
+  accessToken: string,
+  productId: number,
+  existingVariants: { id: number; option1?: string; option2?: string }[],
+  pushedColors: string[],
+  price: string,
+): Promise<{ id: number; option1?: string; option2?: string }[]> {
+  const existingColors = new Set(
+    existingVariants.map((v) => (v.option1 || "").toLowerCase()),
+  );
+  const missingColors = pushedColors.filter(
+    (c) => !existingColors.has(c.toLowerCase()),
+  );
+  if (missingColors.length === 0) return existingVariants;
+
+  // Determine sizes from existing variants (option2)
+  const sizes = Array.from(
+    new Set(existingVariants.map((v) => v.option2).filter(Boolean)),
+  ) as string[];
+
+  const newVariants: { id: number; option1?: string; option2?: string }[] = [];
+
+  for (const color of missingColors) {
+    const toCreate = sizes.length > 0
+      ? sizes.map((size) => ({ option1: color, option2: size, price, inventory_management: null, inventory_policy: "continue", requires_shipping: true }))
+      : [{ option1: color, price, inventory_management: null, inventory_policy: "continue", requires_shipping: true }];
+
+    for (const variant of toCreate) {
+      try {
+        const res = await fetch(
+          `https://${domain}/admin/api/2024-01/products/${productId}/variants.json`,
+          {
+            method: "POST",
+            headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ variant }),
+          },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          newVariants.push(data.variant);
+          console.log(`Created variant: ${color}${sizes.length > 0 ? ` / ${variant.option2}` : ""}`);
+        } else {
+          const errText = await res.text();
+          console.error(`Failed to create variant ${color}: ${errText}`);
+        }
+      } catch (e) {
+        console.error(`Error creating variant ${color}:`, e);
+      }
+    }
+  }
+
+  console.log(`Added ${newVariants.length} new color variants to Shopify product ${productId}`);
+  return [...existingVariants, ...newVariants];
+}
+
 /** Delete stale variants that are not in the new color list */
 export async function deleteStaleVariants(
   domain: string,
