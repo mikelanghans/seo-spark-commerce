@@ -174,7 +174,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setLoadingColors(false);
     }
   };
-...
+
   useEffect(() => {
     if (open) {
       loadShops();
@@ -182,7 +182,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       loadSizePricing();
     }
   }, [open]);
-...
+
   useEffect(() => {
     if (open && selectedShop) {
       setPrintProviderId(null);

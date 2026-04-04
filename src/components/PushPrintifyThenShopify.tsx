@@ -142,7 +142,7 @@ export const PushPrintifyThenShopify = ({
       }
     } catch {}
   };
-...
+
   useEffect(() => {
     if (open) {
       loadShops();
