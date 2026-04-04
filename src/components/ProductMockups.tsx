@@ -386,9 +386,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
       } catch { /* continue without reference */ }
 
+      // Refresh session before starting the generation loop to prevent mid-loop auth expiry
+      const sessionValid = await ensureValidSession();
+      if (!sessionValid) {
+        toast.error("Session expired — please log in again and retry.");
+        setGenStep("choose-colors");
+        return;
+      }
+
       // Generate sequentially (respect rate limits)
       let doneCount = 0;
       for (const colorName of selectedColors) {
+        // Refresh session every 3 colors to prevent timeout during long batches
+        if (doneCount > 0 && doneCount % 3 === 0) {
+          await ensureValidSession();
+        }
         setGenerationProgress({ done: doneCount, total: selectedColors.length, current: colorName });
 
         try {
