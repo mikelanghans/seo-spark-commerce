@@ -125,14 +125,27 @@ serve(async (req) => {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id }).eq("id", product.id);
     }
 
-    // Upload images and associate with variants (use fresh variant list from response)
+    // For updates, add any missing color variants before uploading images
+    let allVariants = createdProduct?.variants || [];
+    if (isUpdate && createdProduct?.id && actualColorVariants.length > 0) {
+      allVariants = await addMissingColorVariants(
+        domain,
+        connection.access_token,
+        createdProduct.id,
+        allVariants,
+        actualColorVariants.map((v) => v.colorName),
+        price,
+      );
+    }
+
+    // Upload images and associate with variants (use fresh variant list)
     if (createdProduct?.id && shouldUpdateImages && imageEntries.length > 0) {
       await uploadAndAssociateImages(
         domain,
         connection.access_token,
         createdProduct.id,
         imageEntries,
-        createdProduct.variants || [],
+        allVariants,
         actualColorVariants,
         product.title,
       );
