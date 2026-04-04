@@ -87,12 +87,14 @@ export function buildShopifyProduct(
       price,
       inventory_management: null,
       inventory_policy: "continue",
+      requires_shipping: true,
     }));
   } else if (shouldSendVariants) {
     shopifyProduct.variants = [{
       price,
       inventory_management: null,
       inventory_policy: "continue",
+      requires_shipping: true,
     }];
   }
 
