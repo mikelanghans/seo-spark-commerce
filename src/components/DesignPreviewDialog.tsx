@@ -11,7 +11,7 @@ import {
 import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { darkenBrightPixels, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
+import { darkenBrightPixels, hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
 
 interface HistoryEntry {
   id: string;
@@ -128,9 +128,9 @@ export const DesignPreviewDialog = ({
           }),
       );
 
-    const multiColor = await isMultiColorDesign(lightDesignBase64);
-    const darkVariantBase64 = multiColor
-      ? await darkenBrightPixels(lightDesignBase64)
+    const preserveAccentColors = await hasMeaningfulAccentColors(lightDesignBase64) || await isMultiColorDesign(lightDesignBase64);
+    const darkVariantBase64 = preserveAccentColors
+      ? `data:image/png;base64,${await darkenBrightPixels(lightDesignBase64)}`
       : `data:image/png;base64,${await recolorOpaquePixels(await removeBackground(lightDesignBase64, "black"), { r: 24, g: 24, b: 24 })}`;
 
     const darkBlob = await fetch(darkVariantBase64).then((response) => response.blob());

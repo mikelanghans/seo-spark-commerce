@@ -11,7 +11,7 @@ import {
   normalizeAndLockToTemplateBlob,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { darkenBrightPixels, hasMeaningfulAccentColors, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -199,12 +199,24 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+        let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+
+        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+          try {
+            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
+            if (!darkHasAccentColors) {
+              darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
+            }
+          } catch {
+            // continue without
+          }
+        }
 
         // Derive dark variant if missing
         if (!darkDesignBase64 && lightDesignBase64) {
           try {
-            const multiColor = await isMultiColorDesign(lightDesignBase64);
-            if (multiColor) {
+            const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+            if (preserveAccentColors) {
               darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
             } else {
               const bgRemoved = await removeBackground(lightDesignBase64, "black");
@@ -223,10 +235,17 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           } catch {
             lightDesignBase64 = await fetchAsBase64(product.image_url);
           }
+          if (lightDesignBase64 && !lightHasAccentColors) {
+            try {
+              lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
+            } catch {
+              // continue
+            }
+          }
           if (!darkDesignBase64 && lightDesignBase64) {
             try {
-              const multiColor = await isMultiColorDesign(lightDesignBase64);
-              if (multiColor) {
+              const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+              if (preserveAccentColors) {
                 darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
               } else {
                 const bgRemoved = await removeBackground(lightDesignBase64, "black");
@@ -478,41 +497,11 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
 /** Derive dark-ink design from light-ink for light garments */
 async function deriveDarkInk(sourceDataUrl: string): Promise<string> {
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Failed to load design"));
-    img.src = sourceDataUrl;
-  });
-
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth || image.width;
-  canvas.height = image.naturalHeight || image.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas unavailable");
-
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const pixels = imgData.data;
-
-  for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i + 3] < 14) continue;
-    const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    const sat = max === 0 ? 0 : (max - min) / max;
-    const isVeryLightNeutral = luma > 0.82 && sat < 0.18;
-    const isLightInk = luma > 0.55 && (sat < 0.25 || (r > 160 && g > 160 && b > 160));
-    if (!isLightInk) continue;
-    const target = 24;
-    const strength = isVeryLightNeutral ? 1 : Math.min(1, (luma - 0.55) / 0.35);
-    pixels[i] = Math.round(r * (1 - strength) + target * strength);
-    pixels[i + 1] = Math.round(g * (1 - strength) + target * strength);
-    pixels[i + 2] = Math.round(b * (1 - strength) + target * strength);
-    pixels[i + 3] = Math.max(pixels[i + 3], 210);
+  const preserveAccentColors = await hasMeaningfulAccentColors(sourceDataUrl) || await isMultiColorDesign(sourceDataUrl);
+  if (preserveAccentColors) {
+    return ensureImageDataUrl(await darkenBrightPixels(sourceDataUrl));
   }
 
-  ctx.putImageData(imgData, 0, 0);
-  return canvas.toDataURL("image/png");
+  const bgRemoved = await removeBackground(sourceDataUrl, "black");
+  return ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
 }
