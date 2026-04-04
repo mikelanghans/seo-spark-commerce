@@ -18,6 +18,7 @@ import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveB
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
+import { parsePrintPlacement } from "@/lib/printPlacement";
 import { DesignPlacementEditor } from "@/components/DesignPlacementEditor";
 import { logCaughtError } from "@/lib/errorLogger";
 
@@ -153,6 +154,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
   useEffect(() => {
     loadImages();
+    loadSavedPlacement();
   }, [productId]);
 
   const loadImages = async () => {
@@ -165,6 +167,24 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       .order("position", { ascending: true });
     setImages((data as ProductImage[]) || []);
     setLoading(false);
+  };
+
+  const loadSavedPlacement = async () => {
+    setPlacementOverride(null);
+    placementRef.current = null;
+
+    const { data } = await supabase
+      .from("products")
+      .select("print_placement")
+      .eq("id", productId)
+      .maybeSingle();
+
+    const savedPlacement = parsePrintPlacement(
+      (data as { print_placement?: unknown } | null)?.print_placement,
+    );
+
+    setPlacementOverride(savedPlacement);
+    placementRef.current = savedPlacement;
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1063,9 +1083,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           templateUrl={sourceImageUrl}
           designUrl={designImageUrl}
           initialPlacement={placementOverride || undefined}
-          onConfirm={(p) => {
+          onConfirm={async (p) => {
             setPlacementOverride(p);
             placementRef.current = p;
+            const { error } = await supabase
+              .from("products")
+              .update({ print_placement: p as any })
+              .eq("id", productId);
+
+            if (error) {
+              toast.error("Failed to save placement");
+              return;
+            }
+
             generateMockups();
           }}
           onCancel={() => setGenStep("choose-colors")}

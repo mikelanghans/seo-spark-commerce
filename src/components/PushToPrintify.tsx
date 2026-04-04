@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Loader2, CheckCircle2, Printer, ChevronDown } from "lucide-react";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
+import { parsePrintPlacement } from "@/lib/printPlacement";
 import { toast } from "sonner";
 
 interface Product {
@@ -224,6 +225,18 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     setSizePricing(defaults);
   };
 
+  const loadSavedPlacement = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("print_placement")
+      .eq("id", product.id)
+      .maybeSingle();
+
+    return parsePrintPlacement(
+      (data as { print_placement?: unknown } | null)?.print_placement,
+    );
+  };
+
   // Re-fetch print provider info when product type changes
   useEffect(() => {
     if (open) {
@@ -307,6 +320,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       }
 
       // Build mockup images using color names directly (empty if no mockups)
+      const savedPlacement = await loadSavedPlacement();
       const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
       for (const colorName of colorsToUse) {
         const mockup = mockups.find((m) => m.color_name === colorName);
@@ -336,6 +350,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           sizePricing,
           mockupImages,
           productId: product.id,
+          placement: savedPlacement,
           printProviderId,
           blueprintId: selectedProductType.blueprintId,
           organizationId,

@@ -1145,6 +1145,7 @@ export type Database = {
           meta_listing_id: string | null
           organization_id: string
           price: string
+          print_placement: Json | null
           printify_product_id: string | null
           shopify_product_id: number | null
           size_pricing: Json | null
@@ -1167,6 +1168,7 @@ export type Database = {
           meta_listing_id?: string | null
           organization_id: string
           price?: string
+          print_placement?: Json | null
           printify_product_id?: string | null
           shopify_product_id?: number | null
           size_pricing?: Json | null
@@ -1189,6 +1191,7 @@ export type Database = {
           meta_listing_id?: string | null
           organization_id?: string
           price?: string
+          print_placement?: Json | null
           printify_product_id?: string | null
           shopify_product_id?: number | null
           size_pricing?: Json | null

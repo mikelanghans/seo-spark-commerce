@@ -8,6 +8,53 @@ const corsHeaders = {
 
 const DEFAULT_BLUEPRINT_ID = 706;
 const DEFAULT_IMAGE_SCALE = 0.82;
+const DEFAULT_IMAGE_X = 0.5;
+const DEFAULT_IMAGE_Y = 0.34;
+const DEFAULT_EDITOR_SCALE = 0.36;
+const DEFAULT_EDITOR_OFFSET_Y = 0.20;
+
+type PlacementInput = {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const parsePlacement = (value: unknown): PlacementInput | null => {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Partial<PlacementInput>;
+  if (
+    typeof candidate.scale !== "number" ||
+    typeof candidate.offsetX !== "number" ||
+    typeof candidate.offsetY !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    scale: candidate.scale,
+    offsetX: candidate.offsetX,
+    offsetY: candidate.offsetY,
+  };
+};
+
+const mapPlacementToPrintify = (placement: PlacementInput | null) => {
+  if (!placement) {
+    return {
+      imageX: DEFAULT_IMAGE_X,
+      imageY: DEFAULT_IMAGE_Y,
+      desiredScale: DEFAULT_IMAGE_SCALE,
+    };
+  }
+
+  return {
+    imageX: clamp(DEFAULT_IMAGE_X + placement.offsetX, 0.15, 0.85),
+    imageY: clamp(DEFAULT_IMAGE_Y + (placement.offsetY - DEFAULT_EDITOR_OFFSET_Y), 0.12, 0.65),
+    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), 0.35, 0.95),
+  };
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -31,7 +78,7 @@ serve(async (req) => {
       darkPrintifyImageId, lightColors,
       selectedColors, selectedSizes, price, sizePricing,
       blueprintId, printProviderId, productId, printifyProductId,
-      organizationId, action, publish,
+      organizationId, action, publish, placement,
     } = body;
 
     // Try org-level token first, then fall back to env var
@@ -248,11 +295,11 @@ serve(async (req) => {
 
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Nudge slightly higher to better match the approved mockup chest position.
-    const imageX = 0.5;
-    const imageY = 0.34;
+    const parsedPlacement = parsePlacement(placement);
+    const { imageX, imageY, desiredScale } = mapPlacementToPrintify(parsedPlacement);
 
     // Scale to stay prominent, but not oversized versus the mockup.
-    let imageScale = DEFAULT_IMAGE_SCALE;
+    let imageScale = desiredScale;
     try {
       const imageInfoRes = await fetch(
         `https://api.printify.com/v1/uploads/${printifyImageId}.json`,
@@ -268,11 +315,11 @@ serve(async (req) => {
           const widthFillScale = printAreaWidth / imgW;
           const heightFitScale = printAreaHeight / imgH;
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
-          const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
+          const targetChestScale = Math.min(fullyVisibleScale, desiredScale);
 
-          imageScale = Math.max(0.35, Math.min(0.82, targetChestScale));
+          imageScale = clamp(targetChestScale, 0.35, 0.95);
           console.log(
-            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)})`
+            `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)}, desired=${desiredScale.toFixed(4)})`
           );
         }
       } else {
@@ -281,6 +328,8 @@ serve(async (req) => {
     } catch (imgErr) {
       console.log(`Image info fetch failed, using default scale: ${imgErr}`);
     }
+
+    console.log(`Using Printify placement x=${imageX.toFixed(3)} y=${imageY.toFixed(3)} scale=${imageScale.toFixed(3)} from editor=${JSON.stringify(parsedPlacement)}`);
 
     // Split variants into light and dark groups if we have a dark design
     // CRITICAL: Printify requires ALL variant IDs from the blueprint to appear
