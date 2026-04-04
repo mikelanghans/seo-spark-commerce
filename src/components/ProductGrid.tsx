@@ -67,6 +67,10 @@ export const ProductGrid = ({
   collectionLoading,
   onRefreshCollections,
   collectionLastFetched,
+  selectedProductIds,
+  onToggleSelect,
+  onSelectAll,
+  onDeselectAll,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
