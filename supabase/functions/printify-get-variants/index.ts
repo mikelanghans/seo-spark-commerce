@@ -131,7 +131,7 @@ serve(async (req) => {
 
     console.log(`Blueprint ${bpId}, provider ${ppId}: ${colors.length} colors, ${sizes.length} sizes, printArea: ${JSON.stringify(printAreaSpecs)}`);
 
-    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId, printAreaSpecs }), {
+    return new Response(JSON.stringify({ colors, sizes, printProviderId: ppId, printAreaSpecs, blueprintId: bpId, enabledSizes }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
