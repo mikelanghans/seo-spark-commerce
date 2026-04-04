@@ -41,6 +41,10 @@ interface Props {
   collectionLoading?: boolean;
   onRefreshCollections?: () => void;
   collectionLastFetched?: number | null;
+  selectedProductIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
   children?: React.ReactNode;
 }
 
@@ -63,6 +67,10 @@ export const ProductGrid = ({
   collectionLoading,
   onRefreshCollections,
   collectionLastFetched,
+  selectedProductIds,
+  onToggleSelect,
+  onSelectAll,
+  onDeselectAll,
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
@@ -353,6 +361,31 @@ export const ProductGrid = ({
         </div>
       )}
 
+      {/* Selection bar */}
+      {onToggleSelect && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onSelectAll}
+            className="text-xs text-primary hover:underline"
+          >
+            Select all ({activeProducts.length})
+          </button>
+          {selectedProductIds && selectedProductIds.size > 0 && (
+            <button
+              onClick={onDeselectAll}
+              className="text-xs text-muted-foreground hover:underline"
+            >
+              Deselect all
+            </button>
+          )}
+          {selectedProductIds && selectedProductIds.size > 0 && (
+            <span className="text-xs font-medium text-primary">
+              {selectedProductIds.size} selected
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
         {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
@@ -407,6 +440,8 @@ export const ProductGrid = ({
                         onRemoveTag={onRemoveTag}
                         onUploadDesign={onUploadDesign}
                         onArchive={onArchiveProduct}
+                        isSelected={selectedProductIds?.has(product.id)}
+                        onToggleSelect={onToggleSelect}
                       />
                     ))}
                   </div>
@@ -438,6 +473,8 @@ export const ProductGrid = ({
                       onRemoveTag={onRemoveTag}
                       onUploadDesign={onUploadDesign}
                       onArchive={onArchiveProduct}
+                      isSelected={selectedProductIds?.has(product.id)}
+                      onToggleSelect={onToggleSelect}
                     />
                   ))}
                 </div>
@@ -482,6 +519,8 @@ export const ProductGrid = ({
                           onRemoveTag={onRemoveTag}
                           onUploadDesign={onUploadDesign}
                           onArchive={onArchiveProduct}
+                          isSelected={selectedProductIds?.has(product.id)}
+                          onToggleSelect={onToggleSelect}
                         />
                       </div>
                     ))}
@@ -504,6 +543,8 @@ export const ProductGrid = ({
               onRemoveTag={onRemoveTag}
               onUploadDesign={onUploadDesign}
               onArchive={onArchiveProduct}
+              isSelected={selectedProductIds?.has(product.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))}
         </div>
@@ -554,6 +595,8 @@ interface CardProps {
   onUploadDesign: (id: string, file: File) => void;
   onArchive?: (id: string, archive: boolean) => void;
   compact?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const ProductCard = ({
@@ -565,6 +608,8 @@ const ProductCard = ({
   onUploadDesign,
   onArchive,
   compact,
+  isSelected,
+  onToggleSelect,
 }: CardProps) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(product.image_url);
 
@@ -630,11 +675,32 @@ const ProductCard = ({
   return (
     <div
       className={cn(
-        "group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40",
-        compact && "rounded-lg"
+        "group relative cursor-pointer rounded-xl border-2 bg-card overflow-hidden transition-colors hover:border-primary/40",
+        compact && "rounded-lg",
+        isSelected ? "border-primary ring-1 ring-primary/20" : "border-border"
       )}
       onClick={() => onView(product)}
     >
+      {/* Selection checkbox */}
+      {onToggleSelect && (
+        <div
+          className="absolute top-2 left-2 z-10"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(product.id); }}
+        >
+          <div className={cn(
+            "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer",
+            isSelected
+              ? "bg-primary border-primary text-primary-foreground"
+              : "bg-background/80 border-muted-foreground/40 hover:border-primary"
+          )}>
+            {isSelected && (
+              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
       {thumbnailUrl ? (
         <div className={cn("overflow-hidden bg-secondary", compact ? "h-32" : "h-48")}>
           <img

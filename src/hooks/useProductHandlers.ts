@@ -166,16 +166,17 @@ export function useProductHandlers(
 
   const handleCancelImport = () => { importAbortRef.current?.abort(); setImportingShopify(false); };
 
-  const handleGenerateAllListings = async () => {
-    if (!selectedOrg || products.length === 0) return;
+  const handleGenerateAllListings = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || targetProducts.length === 0) return;
     cancelGenAllRef.current = false;
     setGeneratingAll(true);
-    setGenAllProgress({ done: 0, total: products.length });
+    setGenAllProgress({ done: 0, total: targetProducts.length });
     let successCount = 0;
-    for (let i = 0; i < products.length; i++) {
+    for (let i = 0; i < targetProducts.length; i++) {
       if (cancelGenAllRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
-      const product = products[i];
-      setGenAllProgress({ done: i, total: products.length });
+      const product = targetProducts[i];
+      setGenAllProgress({ done: i, total: targetProducts.length });
       try {
         if (aiUsage) { const allowed = await aiUsage.checkAndLog("generate-listings", userId!); if (!allowed) { toast.error("AI generation limit reached"); break; } }
         const { data: result, error } = await supabase.functions.invoke("generate-listings", {
@@ -190,25 +191,26 @@ export function useProductHandlers(
         if (aiUsage) await aiUsage.logUsage("generate-listings", userId!);
         successCount++;
       } catch (err: any) { console.error(`Failed to generate listings for ${product.title}:`, err); toast.error(`Failed: ${product.title}`); }
-      if (i < products.length - 1) await new Promise((r) => setTimeout(r, 1500));
+      if (i < targetProducts.length - 1) await new Promise((r) => setTimeout(r, 1500));
     }
-    setGenAllProgress({ done: products.length, total: products.length });
+    setGenAllProgress({ done: targetProducts.length, total: targetProducts.length });
     setGeneratingAll(false);
-    if (!cancelGenAllRef.current) toast.success(`Generated listings for ${successCount}/${products.length} products!`);
+    if (!cancelGenAllRef.current) toast.success(`Generated listings for ${successCount}/${targetProducts.length} products!`);
   };
 
-  const handlePushAllToShopify = async () => {
-    if (!selectedOrg || products.length === 0) return;
+  const handlePushAllToShopify = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || targetProducts.length === 0) return;
     const { data: shopifyConn } = await supabase.from("shopify_connections").select("id").eq("user_id", userId!).eq("organization_id", selectedOrg.id).maybeSingle();
     if (!shopifyConn) { toast.error("No Shopify store connected. Go to Settings to connect first."); return; }
     cancelPushAllRef.current = false;
     setPushingAllShopify(true);
-    setPushAllProgress({ done: 0, total: products.length });
+    setPushAllProgress({ done: 0, total: targetProducts.length });
     let successCount = 0;
-    for (let i = 0; i < products.length; i++) {
+    for (let i = 0; i < targetProducts.length; i++) {
       if (cancelPushAllRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
-      const product = products[i];
-      setPushAllProgress({ done: i, total: products.length });
+      const product = targetProducts[i];
+      setPushAllProgress({ done: i, total: targetProducts.length });
       try {
         const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
         if (!productListings || productListings.length === 0) continue;
@@ -223,11 +225,11 @@ export function useProductHandlers(
         console.error(`Failed to push ${product.title} to Shopify:`, err);
         if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Shopify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
       }
-      if (i < products.length - 1) await new Promise((r) => setTimeout(r, 1000));
+      if (i < targetProducts.length - 1) await new Promise((r) => setTimeout(r, 1000));
     }
-    setPushAllProgress({ done: products.length, total: products.length });
+    setPushAllProgress({ done: targetProducts.length, total: targetProducts.length });
     setPushingAllShopify(false);
-    if (!cancelPushAllRef.current) { toast.success(`Pushed ${successCount}/${products.length} products to Shopify!`); if (selectedOrg) loadProducts(selectedOrg.id); }
+    if (!cancelPushAllRef.current) { toast.success(`Pushed ${successCount}/${targetProducts.length} products to Shopify!`); if (selectedOrg) loadProducts(selectedOrg.id); }
   };
 
   return {
