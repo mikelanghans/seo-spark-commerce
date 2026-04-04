@@ -393,7 +393,7 @@ export const ProductGrid = ({
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {activeProducts.length} active{archivedProducts.length > 0 && `, ${archivedProducts.length} archived`}
+        {isArchiveView ? `${activeProducts.length} archived` : `${activeProducts.length} active${archivedCount > 0 ? `, ${archivedCount} archived` : ""}`}
         {searchQuery && ` — matching "${searchQuery}"`}
       </p>
 
