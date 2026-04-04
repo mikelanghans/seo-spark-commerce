@@ -34,6 +34,7 @@ export function buildShopifyProduct(
   isUpdate = false,
   updateFields?: string[],
   forceVariants = false,
+  sizePricing?: Record<string, string> | null,
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;

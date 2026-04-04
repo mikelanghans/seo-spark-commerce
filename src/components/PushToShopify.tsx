@@ -16,6 +16,7 @@ interface Product {
   keywords: string;
   image_url: string | null;
   shopify_product_id: number | null;
+  size_pricing?: any;
 }
 
 interface Listing {
@@ -78,6 +79,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
             price: product.price,
             keywords: product.keywords,
             shopify_product_id: product.shopify_product_id,
+            size_pricing: product.size_pricing || undefined,
           },
           listings,
           imageUrl: product.image_url,

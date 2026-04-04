@@ -61,7 +61,21 @@ serve(async (req) => {
     }
 
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants);
+    // Resolve size pricing: product-level overrides keyed by product type
+    const rawSizePricing = product.size_pricing;
+    let flatSizePricing: Record<string, string> | null = null;
+    if (rawSizePricing && typeof rawSizePricing === "object") {
+      // size_pricing can be { "t-shirt": { "S": "24.99", ... } } or flat { "S": "24.99" }
+      const category = (product.category || "").toLowerCase().replace(/\s+/g, "-");
+      if (rawSizePricing[category] && typeof rawSizePricing[category] === "object") {
+        flatSizePricing = rawSizePricing[category];
+      } else {
+        // Assume flat format
+        flatSizePricing = rawSizePricing;
+      }
+    }
+
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
@@ -124,25 +138,36 @@ serve(async (req) => {
       );
     }
 
-    // Disable inventory tracking on all variants (POD fulfillment — no stock to track)
+    // Disable inventory tracking and apply size-specific pricing on all variants
     if (createdProduct?.id && createdProduct.variants?.length) {
       for (const variant of createdProduct.variants) {
+        const updates: Record<string, unknown> = { id: variant.id };
         if (variant.inventory_management !== null) {
+          updates.inventory_management = null;
+        }
+        // Apply size-specific pricing if available
+        if (flatSizePricing) {
+          const size = (variant.option2 || variant.option1 || "").trim();
+          if (flatSizePricing[size]) {
+            updates.price = flatSizePricing[size];
+          }
+        }
+        if (Object.keys(updates).length > 1) {
           try {
             await fetch(
               `https://${domain}/admin/api/2024-01/variants/${variant.id}.json`,
               {
                 method: "PUT",
                 headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
-                body: JSON.stringify({ variant: { id: variant.id, inventory_management: null } }),
+                body: JSON.stringify({ variant: updates }),
               },
             );
           } catch (err) {
-            console.error(`Failed to disable tracking on variant ${variant.id}:`, err);
+            console.error(`Failed to update variant ${variant.id}:`, err);
           }
         }
       }
-      console.log(`Disabled inventory tracking on ${createdProduct.variants.length} variants`);
+      console.log(`Updated inventory tracking and pricing on ${createdProduct.variants.length} variants`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
