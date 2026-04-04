@@ -35,9 +35,11 @@ export function buildShopifyProduct(
   updateFields?: string[],
   forceVariants = false,
   sizePricing?: Record<string, string> | null,
+  sizes?: string[],
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
+  const hasSizes = sizes && sizes.length > 0;
   const effectiveUpdateFields = isUpdate ? updateFields : undefined;
   const include = (field: string) => !effectiveUpdateFields || effectiveUpdateFields.includes(field);
 
@@ -82,21 +84,52 @@ export function buildShopifyProduct(
   // Sending variants on update replaces the existing set, which disassociates images.
   const shouldSendVariants = !isUpdate || forceVariants;
   if (shouldSendVariants && hasVariants) {
-    shopifyProduct.options = [{ name: "Color" }];
-    shopifyProduct.variants = actualColorVariants.map((v) => ({
-      option1: v.colorName,
-      price,
-      inventory_management: null,
-      inventory_policy: "continue",
-      requires_shipping: true,
-    }));
+    if (hasSizes) {
+      // Build Color × Size matrix
+      shopifyProduct.options = [{ name: "Color" }, { name: "Size" }];
+      const variantList: Record<string, unknown>[] = [];
+      for (const cv of actualColorVariants) {
+        for (const size of sizes!) {
+          const variantPrice = sizePricing?.[size] || price;
+          variantList.push({
+            option1: cv.colorName,
+            option2: size,
+            price: variantPrice,
+            inventory_management: null,
+            inventory_policy: "continue",
+            requires_shipping: true,
+          });
+        }
+      }
+      shopifyProduct.variants = variantList;
+    } else {
+      shopifyProduct.options = [{ name: "Color" }];
+      shopifyProduct.variants = actualColorVariants.map((v) => ({
+        option1: v.colorName,
+        price,
+        inventory_management: null,
+        inventory_policy: "continue",
+        requires_shipping: true,
+      }));
+    }
   } else if (shouldSendVariants) {
-    shopifyProduct.variants = [{
-      price,
-      inventory_management: null,
-      inventory_policy: "continue",
-      requires_shipping: true,
-    }];
+    if (hasSizes) {
+      shopifyProduct.options = [{ name: "Size" }];
+      shopifyProduct.variants = sizes!.map((size) => ({
+        option1: size,
+        price: sizePricing?.[size] || price,
+        inventory_management: null,
+        inventory_policy: "continue",
+        requires_shipping: true,
+      }));
+    } else {
+      shopifyProduct.variants = [{
+        price,
+        inventory_management: null,
+        inventory_policy: "continue",
+        requires_shipping: true,
+      }];
+    }
   }
 
   return shopifyProduct;
