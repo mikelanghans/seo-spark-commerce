@@ -100,6 +100,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     { key: "description", label: "Description" },
     { key: "tags", label: "Tags" },
     { key: "pricing", label: "Pricing" },
+    { key: "colors", label: "Colors" },
   ];
   const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
     PRINTIFY_UPDATE_FIELDS.map(f => f.key)
@@ -373,6 +374,52 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     try {
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
+      // Build color-related data if "colors" is selected
+      let colorsPayload: Record<string, any> = {};
+      if (selectedUpdateFields.includes("colors")) {
+        const colorsToUse = hasMockups ? uniqueMockupColors : ["Black"];
+        const lightColorsSelected = colorsToUse.filter(
+          (c) => LIGHT_COLORS.has(c.toLowerCase())
+        );
+        const hasLightColors = lightColorsSelected.length > 0;
+
+        // Upload design images for print_areas update
+        toast.info("Uploading design for color update...");
+        let base64Contents = await removeBackground(product.image_url!, "black");
+        base64Contents = await upscaleBase64Png(base64Contents, 4500);
+        const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
+          "printify-upload-image",
+          { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
+        );
+        if (uploadError) throw uploadError;
+        if (uploadData?.error) throw new Error(uploadData.error);
+        const printifyImageId = uploadData.image?.id;
+        if (!printifyImageId) throw new Error("Failed to get uploaded image ID");
+
+        let darkPrintifyImageId: string | null = null;
+        if (hasLightColors) {
+          toast.info(`Creating dark ink variant for ${lightColorsSelected.length} light colors...`);
+          const darkBase64Contents = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+          const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
+            "printify-upload-image",
+            { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png`, organizationId } }
+          );
+          if (darkUploadError) throw darkUploadError;
+          if (darkUpload?.error) throw new Error(darkUpload.error);
+          darkPrintifyImageId = darkUpload.image?.id || null;
+        }
+
+        colorsPayload = {
+          selectedColors: colorsToUse,
+          printifyImageId,
+          darkPrintifyImageId,
+          lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
+          selectedSizes,
+          blueprintId: selectedProductType.blueprintId,
+          printProviderId,
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
         body: {
           action: "update",
@@ -386,6 +433,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
           price: product.price,
           sizePricing,
+          ...colorsPayload,
         },
       });
 

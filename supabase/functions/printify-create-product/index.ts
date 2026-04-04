@@ -121,6 +121,82 @@ serve(async (req) => {
         });
       }
 
+      // Handle colors update: re-enable/disable variants based on new color selection
+      // and update print_areas with the new design images
+      if (fields.includes("colors") && body.selectedColors) {
+        const selectedColors: string[] = body.selectedColors || [];
+        const selectedSizes: string[] = body.selectedSizes || [];
+        const printifyImageId = body.printifyImageId;
+        const darkPrintifyImageId = body.darkPrintifyImageId;
+        const lightColors: string[] = (body.lightColors || []).map((c: string) => c.toLowerCase());
+        const lightColorSet = new Set(lightColors);
+
+        // Determine which variants to enable based on color + size selection
+        const allVariants = printifyProduct.variants || [];
+        const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
+        const sizePriceCents: Record<string, number> = {};
+        if (body.sizePricing && typeof body.sizePricing === "object") {
+          for (const [size, p] of Object.entries(body.sizePricing)) {
+            const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
+            if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
+          }
+        }
+
+        updatePayload.variants = allVariants.map((v: any) => {
+          const vColor = (v.options?.color || "").trim();
+          const vSize = (v.options?.size || "").trim();
+          const colorMatch = selectedColors.some(
+            (c: string) => c.toLowerCase() === vColor.toLowerCase()
+          );
+          const sizeMatch = !selectedSizes.length || selectedSizes.some(
+            (s: string) => s.toLowerCase() === vSize.toLowerCase()
+          );
+          const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
+          return { id: v.id, price: priceVal, is_enabled: colorMatch && sizeMatch };
+        });
+
+        // Update print_areas if we have a design image
+        if (printifyImageId) {
+          const allVariantIds = allVariants.map((v: any) => v.id);
+          const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+
+          if (hasDarkDesign) {
+            const darkIds: number[] = [];
+            const lightIds: number[] = [];
+            for (const v of allVariants) {
+              if (lightColorSet.has((v.options?.color || "").trim().toLowerCase())) {
+                lightIds.push(v.id);
+              } else {
+                darkIds.push(v.id);
+              }
+            }
+
+            const areas: any[] = [];
+            if (darkIds.length > 0) {
+              areas.push({
+                variant_ids: darkIds,
+                placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+              });
+            }
+            if (lightIds.length > 0) {
+              areas.push({
+                variant_ids: lightIds,
+                placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+              });
+            }
+            updatePayload.print_areas = areas;
+          } else {
+            updatePayload.print_areas = [{
+              variant_ids: allVariantIds,
+              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+            }];
+          }
+        }
+
+        const enabledCount = (updatePayload.variants as any[]).filter((v: any) => v.is_enabled).length;
+        console.log(`Colors update: ${enabledCount} variants enabled for colors: ${selectedColors.join(", ")}`);
+      }
+
       if (Object.keys(updatePayload).length === 0) {
         return new Response(JSON.stringify({ success: true, message: "Nothing to update" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
