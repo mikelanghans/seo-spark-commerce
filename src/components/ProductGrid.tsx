@@ -600,6 +600,8 @@ const ProductCard = ({
   onUploadDesign,
   onArchive,
   compact,
+  isSelected,
+  onToggleSelect,
 }: CardProps) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(product.image_url);
 
