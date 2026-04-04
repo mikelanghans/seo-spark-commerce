@@ -22,6 +22,9 @@ interface PrintifyProduct {
   id: string;
   title: string;
   shopId: number;
+  thumbnail: string | null;
+  variantCount: number;
+  tags: string[];
 }
 
 interface Match {
@@ -224,8 +227,29 @@ export const PrintifyMatchDialog = ({ open, onOpenChange, organizationId, produc
                         <Link2 className="h-3 w-3" />
                         Printify: {match.printifyProduct.title}
                       </p>
+                      {(match.printifyProduct.variantCount > 0 || match.printifyProduct.tags.length > 0) && (
+                        <p className="text-xs text-muted-foreground">
+                          {match.printifyProduct.variantCount > 0 && (
+                            <span>{match.printifyProduct.variantCount} variants</span>
+                          )}
+                          {match.printifyProduct.variantCount > 0 && match.printifyProduct.tags.length > 0 && (
+                            <span> · </span>
+                          )}
+                          {match.printifyProduct.tags.length > 0 && (
+                            <span>{match.printifyProduct.tags.slice(0, 3).join(", ")}</span>
+                          )}
+                        </p>
+                      )}
                     </div>
-                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    {match.printifyProduct.thumbnail ? (
+                      <img
+                        src={match.printifyProduct.thumbnail}
+                        alt={match.printifyProduct.title}
+                        className="h-12 w-12 rounded object-cover shrink-0 border border-border"
+                      />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    )}
                   </label>
                 ))}
               </div>
