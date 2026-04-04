@@ -173,13 +173,12 @@ serve(async (req) => {
     // Update all variants: disable inventory tracking, set shipping, apply pricing
     if (createdProduct?.id && allVariants.length) {
       for (const variant of allVariants) {
-        const updates: Record<string, unknown> = { id: variant.id };
-        if (variant.inventory_management !== null) {
-          updates.inventory_management = null;
-        }
-        if (!variant.requires_shipping) {
-          updates.requires_shipping = true;
-        }
+        const updates: Record<string, unknown> = {
+          id: variant.id,
+          inventory_management: null,
+          inventory_policy: "continue",
+          requires_shipping: true,
+        };
         // Apply size-specific pricing if available, otherwise base price
         if (flatSizePricing) {
           const size = (variant.option2 || variant.option1 || "").trim();
@@ -191,22 +190,20 @@ serve(async (req) => {
         } else if (price !== "0.00" && variant.price === "0.00") {
           updates.price = price;
         }
-        if (Object.keys(updates).length > 1) {
-          try {
-            await fetch(
-              `https://${domain}/admin/api/2024-01/variants/${variant.id}.json`,
-              {
-                method: "PUT",
-                headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
-                body: JSON.stringify({ variant: updates }),
-              },
-            );
-          } catch (err) {
-            console.error(`Failed to update variant ${variant.id}:`, err);
-          }
+        try {
+          await fetch(
+            `https://${domain}/admin/api/2024-01/variants/${variant.id}.json`,
+            {
+              method: "PUT",
+              headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+              body: JSON.stringify({ variant: updates }),
+            },
+          );
+        } catch (err) {
+          console.error(`Failed to update variant ${variant.id}:`, err);
         }
       }
-      console.log(`Updated ${allVariants.length} variants (inventory, shipping, pricing)`);
+      console.log(`Updated ${allVariants.length} variants (inventory=not tracked, shipping, pricing)`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
