@@ -915,6 +915,7 @@ export type Database = {
           enabled_product_types: string[]
           enabled_social_platforms: string[]
           id: string
+          listing_excluded_sections: string[]
           logo_url: string | null
           mockup_templates: Json
           name: string
@@ -940,6 +941,7 @@ export type Database = {
           enabled_product_types?: string[]
           enabled_social_platforms?: string[]
           id?: string
+          listing_excluded_sections?: string[]
           logo_url?: string | null
           mockup_templates?: Json
           name: string
@@ -965,6 +967,7 @@ export type Database = {
           enabled_product_types?: string[]
           enabled_social_platforms?: string[]
           id?: string
+          listing_excluded_sections?: string[]
           logo_url?: string | null
           mockup_templates?: Json
           name?: string
