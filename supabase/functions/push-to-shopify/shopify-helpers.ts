@@ -33,6 +33,7 @@ export function buildShopifyProduct(
   price: string,
   isUpdate = false,
   updateFields?: string[],
+  forceVariants = false,
 ): Record<string, unknown> {
   const actualColorVariants = colorVariants.filter((v) => v.colorName !== "Size Chart");
   const hasVariants = actualColorVariants.length > 0;
@@ -72,7 +73,7 @@ export function buildShopifyProduct(
     shopifyProduct.handle = shopifyListing?.url_handle || undefined;
   }
 
-  if (!isUpdate && hasVariants) {
+  if ((!isUpdate || forceVariants) && hasVariants) {
     shopifyProduct.options = [{ name: "Color" }];
     shopifyProduct.variants = actualColorVariants.map((v) => ({
       option1: v.colorName,
@@ -80,7 +81,7 @@ export function buildShopifyProduct(
       inventory_management: null,
       inventory_policy: "continue",
     }));
-  } else if (!isUpdate) {
+  } else if (!isUpdate || forceVariants) {
     shopifyProduct.variants = [{
       price,
       inventory_management: null,

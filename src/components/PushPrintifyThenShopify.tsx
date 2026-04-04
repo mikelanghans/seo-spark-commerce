@@ -346,6 +346,7 @@ export const PushPrintifyThenShopify = ({
           listings: listingsMapped,
           imageUrl: product.image_url,
           variants: optimizedVariants,
+          forceVariants: true,
         },
       });
 
