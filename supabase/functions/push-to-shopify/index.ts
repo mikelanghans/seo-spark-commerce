@@ -152,8 +152,8 @@ serve(async (req) => {
     }
 
     // Update all variants: disable inventory tracking, set shipping, apply pricing
-    if (createdProduct?.id && createdProduct.variants?.length) {
-      for (const variant of createdProduct.variants) {
+    if (createdProduct?.id && allVariants.length) {
+      for (const variant of allVariants) {
         const updates: Record<string, unknown> = { id: variant.id };
         if (variant.inventory_management !== null) {
           updates.inventory_management = null;
