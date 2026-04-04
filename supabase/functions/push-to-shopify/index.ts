@@ -123,6 +123,18 @@ serve(async (req) => {
       );
     }
 
+    // Update SEO metafields (title_tag, description_tag) via metafields API
+    const shouldUpdateSeo = !updateFields || updateFields.includes("seo");
+    if (createdProduct?.id && shouldUpdateSeo) {
+      await updateSeoMetafields(
+        domain,
+        connection.access_token,
+        createdProduct.id,
+        shopifyListing?.seo_title || shopifyListing?.seoTitle,
+        shopifyListing?.seo_description || shopifyListing?.seoDescription,
+      );
+    }
+
     return new Response(JSON.stringify({
       success: true,
       shopifyProduct: createdProduct,
