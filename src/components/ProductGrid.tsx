@@ -74,7 +74,7 @@ export const ProductGrid = ({
   children,
 }: Props) => {
   const [sort, setSort] = useState<SortOption>("newest");
-  const [showArchived, setShowArchived] = useState(false);
+  const [_showArchived, _setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">("product-types");
 
