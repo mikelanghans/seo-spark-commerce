@@ -478,6 +478,32 @@ serve(async (req) => {
       );
       if (!publishRes.ok) {
         console.error(`Publish failed: ${publishRes.status} ${await publishRes.text()}`);
+      } else {
+        // Poll Printify for the external (Shopify) product ID that native sync creates
+        console.log("Polling Printify for external Shopify product ID...");
+        for (let attempt = 0; attempt < 12; attempt++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          try {
+            const extRes = await fetch(
+              `https://api.printify.com/v1/shops/${effectiveShopId}/products/${createdProduct.id}.json`,
+              { headers: { Authorization: `Bearer ${printifyToken}` } },
+            );
+            if (extRes.ok) {
+              const extData = await extRes.json();
+              const externalId = extData?.external?.id;
+              if (externalId && productId) {
+                const numericId = typeof externalId === "string" ? parseInt(externalId, 10) : externalId;
+                if (numericId) {
+                  await adminClient.from("products").update({ shopify_product_id: numericId }).eq("id", productId);
+                  console.log(`Saved Printify-synced Shopify product ID: ${numericId}`);
+                }
+                break;
+              }
+            }
+          } catch (pollErr) {
+            console.error(`Poll attempt ${attempt + 1} failed:`, pollErr);
+          }
+        }
       }
     }
 

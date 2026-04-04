@@ -69,6 +69,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
       }
 
       const isUpdate = !!product.shopify_product_id;
+      // Don't force-replace variants on update — preserves Printify's Color×Size matrix
 
       // Resolve sizes for this product type so Shopify creates a Color×Size matrix
       const sizes = typeConfig.sizes || [];
@@ -89,7 +90,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
           listings,
           imageUrl: product.image_url,
           variants: optimizedVariants,
-          sizes,
+          sizes: !isUpdate ? sizes : undefined,
           forceVariants: !isUpdate,
           ...(updateFields ? { updateFields } : {}),
         },
