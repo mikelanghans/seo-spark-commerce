@@ -80,6 +80,10 @@ export const ProductGrid = ({
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
+      // Archive filtering: if "__archived" filter is active, show only archived; otherwise hide archived
+      if (activeFilter === "__archived") return !!p.archived_at;
+      if (p.archived_at) return false;
+
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (activeFilter === "__unsynced")
@@ -116,9 +120,10 @@ export const ProductGrid = ({
     return list;
   }, [products, searchQuery, activeFilter, sort, collectionData]);
 
-  // Split active vs archived
-  const activeProducts = useMemo(() => filtered.filter((p) => !p.archived_at), [filtered]);
-  const archivedProducts = useMemo(() => filtered.filter((p) => !!p.archived_at), [filtered]);
+  // When viewing archived filter, all filtered are "active" for display purposes
+  const isArchiveView = activeFilter === "__archived";
+  const activeProducts = useMemo(() => filtered, [filtered]);
+  const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
 
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
