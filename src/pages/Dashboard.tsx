@@ -417,6 +417,7 @@ const Dashboard = () => {
                 <div className="rounded-xl border border-border bg-card p-5"><ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
+                {selectedOrg && <div className="rounded-xl border border-border bg-card p-5"><ListingExcludedSections organizationId={selectedOrg.id} /></div>}
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSetupGuide /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (

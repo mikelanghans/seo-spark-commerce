@@ -179,7 +179,7 @@ export function useProductHandlers(
       try {
         if (aiUsage) { const allowed = await aiUsage.checkAndLog("generate-listings", userId!); if (!allowed) { toast.error("AI generation limit reached"); break; } }
         const { data: result, error } = await supabase.functions.invoke("generate-listings", {
-          body: { business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience }, product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features } },
+          body: { business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience }, product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features }, excludedSections: selectedOrg.listing_excluded_sections || [] },
         });
         if (error) throw error;
         if (result?.error) throw new Error(result.error);
