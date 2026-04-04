@@ -20,6 +20,7 @@ import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
 import { DesignPlacementEditor } from "@/components/DesignPlacementEditor";
+import { logCaughtError } from "@/lib/errorLogger";
 
 interface ProductImage {
   id: string;
@@ -56,6 +57,25 @@ interface ColorRecommendation {
 }
 
 type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
+
+const MAX_COMPOSITION_DIM = 1600;
+
+const getCompositionSize = (
+  size: { width: number; height: number } | null,
+  maxDim = MAX_COMPOSITION_DIM,
+) => {
+  if (!size) {
+    return { width: 1024, height: 1024 };
+  }
+
+  const scale = Math.min(1, maxDim / Math.max(size.width, size.height));
+  return {
+    width: Math.max(1, Math.round(size.width * scale)),
+    height: Math.max(1, Math.round(size.height * scale)),
+  };
+};
+
+const yieldToBrowser = () => new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
 const FEEDBACK_OPTIONS = [
   "Color is wrong",
@@ -379,6 +399,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
+      const compositionSize = getCompositionSize(targetSize);
 
       // Compute unified design dimensions so all color variants use the same design scale
       let referenceDesignSize: { width: number; height: number } | undefined;
@@ -399,7 +420,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       for (const colorName of selectedColors) {
         // Refresh session every 3 colors to prevent timeout during long batches
         if (doneCount > 0 && doneCount % 3 === 0) {
-          await ensureValidSession();
+          const stillValid = await ensureValidSession();
+          if (!stillValid) {
+            throw new Error("Session expired while generating mockups. Please log in again and retry.");
+          }
         }
         setGenerationProgress({ done: doneCount, total: selectedColors.length, current: colorName });
 
@@ -418,8 +442,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               imageBase64: plainTemplate,
               colorName,
               productTitle,
-              sourceWidth: targetSize?.width || null,
-              sourceHeight: targetSize?.height || null,
+              sourceWidth: compositionSize.width,
+              sourceHeight: compositionSize.height,
               customInstructions: customInstructions || undefined,
               swatchHints: typeConfig.swatchHints,
             },
@@ -438,8 +462,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const blob = await normalizeAndLockToTemplateBlob({
             templateDataUrl: plainTemplate,
             generatedDataUrl,
-            targetWidth: targetSize?.width || 1024,
-            targetHeight: targetSize?.height || 1024,
+            targetWidth: compositionSize.width,
+            targetHeight: compositionSize.height,
             designDataUrl: designForComposite,
             isDarkGarment: !isLight,
             referenceDesignSize,
@@ -466,12 +490,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           statusMap.set(colorName, "done");
         } catch (err) {
           console.error(`Error generating ${colorName}:`, err);
+          logCaughtError(err, "mockup-generation-color", {
+            productId,
+            organizationId,
+            colorName,
+            batchSize: selectedColors.length,
+          });
           statusMap.set(colorName, "error");
         }
 
         setGeneratingColors(new Map(statusMap));
         doneCount++;
         setGenerationProgress({ done: doneCount, total: selectedColors.length, current: "" });
+        await yieldToBrowser();
       }
 
       await loadImages();
@@ -479,6 +510,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       toast.success(`Generated ${doneCount} mockups!`);
     } catch (err: any) {
       console.error("Generation error:", err);
+      logCaughtError(err, "mockup-generation-batch", {
+        productId,
+        organizationId,
+        selectedColors,
+      });
       toast.error(err.message || "Failed to generate mockups");
       setGenStep("choose-colors");
     }
@@ -494,6 +530,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
     setRegeneratingId(colorName);
     try {
+      const sessionValid = await ensureValidSession();
+      if (!sessionValid) {
+        throw new Error("Session expired — please log in again and retry.");
+      }
+
       const templateResp = await fetch(templateUrl);
       const templateBlob = await templateResp.blob();
       const templateBase64 = await new Promise<string>((resolve, reject) => {
@@ -590,6 +631,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
+      const compositionSize = getCompositionSize(targetSize);
 
       // Compute unified design dimensions for consistent sizing
       let referenceDesignSize: { width: number; height: number } | undefined;
@@ -604,8 +646,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           imageBase64: plainTemplate,
           colorName,
           productTitle,
-          sourceWidth: targetSize?.width || null,
-          sourceHeight: targetSize?.height || null,
+          sourceWidth: compositionSize.width,
+          sourceHeight: compositionSize.height,
           customInstructions,
           swatchHints: typeConfig.swatchHints,
         },
@@ -623,8 +665,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const blob = await normalizeAndLockToTemplateBlob({
         templateDataUrl: plainTemplate,
         generatedDataUrl,
-        targetWidth: targetSize?.width || 1024,
-        targetHeight: targetSize?.height || 1024,
+        targetWidth: compositionSize.width,
+        targetHeight: compositionSize.height,
         designDataUrl: cleanedDesignForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
@@ -652,6 +694,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       toast.success(`${colorName} mockup regenerated!`);
     } catch (err: any) {
       console.error("Regenerate single error:", err);
+      logCaughtError(err, "mockup-generation-single", {
+        productId,
+        organizationId,
+        colorName,
+      });
       toast.error(err.message || "Failed to regenerate mockup");
     } finally {
       setRegeneratingId(null);
