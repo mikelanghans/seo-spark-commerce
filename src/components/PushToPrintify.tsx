@@ -100,6 +100,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     { key: "description", label: "Description" },
     { key: "tags", label: "Tags" },
     { key: "pricing", label: "Pricing" },
+    { key: "colors", label: "Colors" },
   ];
   const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
     PRINTIFY_UPDATE_FIELDS.map(f => f.key)
