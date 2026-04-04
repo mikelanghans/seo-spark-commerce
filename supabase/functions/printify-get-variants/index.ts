@@ -24,8 +24,9 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const { blueprintId, organizationId } = await req.json();
-    const bpId = blueprintId || DEFAULT_BLUEPRINT_ID;
+    const { blueprintId, organizationId, shopId, printifyProductId } = await req.json();
+    let productBlueprintId: number | null = null;
+    let enabledSizes: string[] = [];
 
     // Try org-level token first, then fall back to env var
     let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN");
