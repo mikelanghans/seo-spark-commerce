@@ -138,6 +138,7 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsag
               audience: organization.audience,
             },
             product: productData,
+            excludedSections: organization.listing_excluded_sections || [],
           },
         });
         if (listError) throw new Error(`AI enrichment failed: ${listError.message}`);

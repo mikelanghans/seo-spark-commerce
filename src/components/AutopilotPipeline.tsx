@@ -333,6 +333,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
                 audience: organization.audience,
               },
               product: productData,
+              excludedSections: organization.listing_excluded_sections || [],
             },
           }),
           { label: `listings-${i}` }

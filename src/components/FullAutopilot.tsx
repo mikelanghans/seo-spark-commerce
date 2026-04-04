@@ -467,6 +467,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                   keywords: organization.niche,
                 },
                 marketplaces: ["shopify"],
+                excludedSections: organization.listing_excluded_sections || [],
               },
             }),
             { label: `listing-${i}` }

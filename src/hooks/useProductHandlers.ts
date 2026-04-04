@@ -62,6 +62,7 @@ export function useProductHandlers(
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
           product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
           marketplaces: targets,
+          excludedSections: selectedOrg.listing_excluded_sections || [],
         },
       });
       if (error) throw error;
