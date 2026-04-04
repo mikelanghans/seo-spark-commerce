@@ -41,6 +41,10 @@ interface Props {
   collectionLoading?: boolean;
   onRefreshCollections?: () => void;
   collectionLastFetched?: number | null;
+  selectedProductIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
   children?: React.ReactNode;
 }
 
