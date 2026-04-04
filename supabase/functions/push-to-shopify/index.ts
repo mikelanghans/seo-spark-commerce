@@ -61,7 +61,21 @@ serve(async (req) => {
     }
 
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants);
+    // Resolve size pricing: product-level overrides keyed by product type
+    const rawSizePricing = product.size_pricing;
+    let flatSizePricing: Record<string, string> | null = null;
+    if (rawSizePricing && typeof rawSizePricing === "object") {
+      // size_pricing can be { "t-shirt": { "S": "24.99", ... } } or flat { "S": "24.99" }
+      const category = (product.category || "").toLowerCase().replace(/\s+/g, "-");
+      if (rawSizePricing[category] && typeof rawSizePricing[category] === "object") {
+        flatSizePricing = rawSizePricing[category];
+      } else {
+        // Assume flat format
+        flatSizePricing = rawSizePricing;
+      }
+    }
+
+    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
