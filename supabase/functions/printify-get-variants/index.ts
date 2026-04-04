@@ -8,6 +8,18 @@ const corsHeaders = {
 
 const DEFAULT_BLUEPRINT_ID = 706;
 
+async function fetchWithRetry(url: string, headers: Record<string, string>, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, { headers });
+    if (res.status !== 429 || attempt === maxRetries) return res;
+    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 8000);
+    console.log(`Rate limited (429) on ${url}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
+    await res.text(); // consume body
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  throw new Error("Unreachable");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -50,9 +62,9 @@ serve(async (req) => {
     }
 
     if (printifyProductId && shopId) {
-      const productRes = await fetch(
+      const productRes = await fetchWithRetry(
         `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
+        { Authorization: `Bearer ${printifyToken}` }
       );
       if (productRes.ok) {
         const product = await productRes.json();
@@ -69,9 +81,9 @@ serve(async (req) => {
     const bpId = productBlueprintId || blueprintId || DEFAULT_BLUEPRINT_ID;
 
     // Get print providers
-    const providersRes = await fetch(
+    const providersRes = await fetchWithRetry(
       `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
-      { headers: { Authorization: `Bearer ${printifyToken}` } }
+      { Authorization: `Bearer ${printifyToken}` }
     );
     if (!providersRes.ok) throw new Error(`Failed to get providers (${providersRes.status})`);
     const providers = await providersRes.json();
@@ -80,13 +92,13 @@ serve(async (req) => {
 
     // Get variants and printing specs in parallel
     const [variantsRes, printingRes] = await Promise.all([
-      fetch(
+      fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
+        { Authorization: `Bearer ${printifyToken}` }
       ),
-      fetch(
+      fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/printing.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
+        { Authorization: `Bearer ${printifyToken}` }
       ),
     ]);
 
