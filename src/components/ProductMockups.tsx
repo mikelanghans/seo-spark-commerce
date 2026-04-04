@@ -11,7 +11,6 @@ import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
   normalizeAndLockToTemplateBlob,
-  compositeDesignOntoTemplate,
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
@@ -380,21 +379,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
-      // Ensure design variants are proper transparent PNGs before compositing.
-      // smartRemoveBackground is a no-op if the border is already transparent.
-      if (lightDesignBase64) {
-        try {
-          const cleaned = await smartRemoveBackground(lightDesignBase64);
-          lightDesignBase64 = ensureImageDataUrl(cleaned);
-        } catch { /* keep as-is */ }
-      }
-      if (darkDesignBase64) {
-        try {
-          const cleaned = await smartRemoveBackground(darkDesignBase64);
-          darkDesignBase64 = ensureImageDataUrl(cleaned);
-        } catch { /* keep as-is */ }
-      }
-
       let targetSize: { width: number; height: number } | null = null;
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -450,6 +434,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           });
 
           if (error || data?.error) {
+            if (handleAiError(error, data, `Failed to generate ${colorName}`)) {
+              setGenStep("choose-colors");
+              return;
+            }
             statusMap.set(colorName, "error");
             setGeneratingColors(new Map(statusMap));
             continue;
@@ -610,21 +598,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
-      // Ensure design variants are proper transparent PNGs
-      if (lightDesignBase64) {
-        try {
-          const cleaned = await smartRemoveBackground(lightDesignBase64);
-          lightDesignBase64 = ensureImageDataUrl(cleaned);
-        } catch { /* keep as-is */ }
-      }
-      if (darkDesignBase64) {
-        try {
-          const cleaned = await smartRemoveBackground(darkDesignBase64);
-          darkDesignBase64 = ensureImageDataUrl(cleaned);
-        } catch { /* keep as-is */ }
-      }
-
-      // Re-resolve design after cleaning since URLs may have changed
       const cleanedDesignForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
 
       let targetSize: { width: number; height: number } | null = null;
@@ -654,7 +627,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       });
 
       if (error || data?.error) {
-        handleAiError(error, data, `Failed to regenerate ${colorName}`);
+        if (handleAiError(error, data, `Failed to regenerate ${colorName}`)) return;
+        if (data?.error) throw new Error(data.error);
         return;
       }
 
