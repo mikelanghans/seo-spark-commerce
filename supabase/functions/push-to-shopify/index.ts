@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, shopifyStatus, organizationId, updateFields, forceVariants } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants } = body;
 
     // Resolve Shopify connection
     let connection = null;
