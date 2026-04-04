@@ -73,7 +73,10 @@ export function buildShopifyProduct(
     shopifyProduct.handle = shopifyListing?.url_handle || undefined;
   }
 
-  if ((!isUpdate || forceVariants) && hasVariants) {
+  // Only send variants when creating new products or explicitly forcing variant sync.
+  // Sending variants on update replaces the existing set, which disassociates images.
+  const shouldSendVariants = !isUpdate || forceVariants;
+  if (shouldSendVariants && hasVariants) {
     shopifyProduct.options = [{ name: "Color" }];
     shopifyProduct.variants = actualColorVariants.map((v) => ({
       option1: v.colorName,
@@ -81,7 +84,7 @@ export function buildShopifyProduct(
       inventory_management: null,
       inventory_policy: "continue",
     }));
-  } else if (!isUpdate || forceVariants) {
+  } else if (shouldSendVariants) {
     shopifyProduct.variants = [{
       price,
       inventory_management: null,
