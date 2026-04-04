@@ -249,7 +249,7 @@ serve(async (req) => {
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Lower the default slightly so small chest prints sit closer to the mockup placement.
     const imageX = 0.5;
-    const imageY = 0.34;
+    const imageY = 0.38;
 
     // Scale up to fill the chest area generously.
     let imageScale = DEFAULT_IMAGE_SCALE;
