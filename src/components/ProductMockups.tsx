@@ -530,6 +530,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
     setRegeneratingId(colorName);
     try {
+      const sessionValid = await ensureValidSession();
+      if (!sessionValid) {
+        throw new Error("Session expired — please log in again and retry.");
+      }
+
       const templateResp = await fetch(templateUrl);
       const templateBlob = await templateResp.blob();
       const templateBase64 = await new Promise<string>((resolve, reject) => {
