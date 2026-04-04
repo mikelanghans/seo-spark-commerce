@@ -75,7 +75,8 @@ serve(async (req) => {
       }
     }
 
-    let shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
+    const sizes: string[] = Array.isArray(productSizes) ? productSizes : [];
+    let shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing, sizes);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
