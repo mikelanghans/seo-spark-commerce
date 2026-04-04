@@ -587,6 +587,8 @@ interface CardProps {
   onUploadDesign: (id: string, file: File) => void;
   onArchive?: (id: string, archive: boolean) => void;
   compact?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const ProductCard = ({
