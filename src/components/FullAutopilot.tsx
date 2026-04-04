@@ -33,6 +33,7 @@ interface Organization {
   brand_style_notes?: string;
   design_styles?: string[];
   printify_shop_id?: number | null;
+  listing_excluded_sections?: string[];
 }
 
 interface Props {
@@ -467,6 +468,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                   keywords: organization.niche,
                 },
                 marketplaces: ["shopify"],
+                excludedSections: organization.listing_excluded_sections || [],
               },
             }),
             { label: `listing-${i}` }

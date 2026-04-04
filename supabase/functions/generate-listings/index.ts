@@ -17,7 +17,7 @@ serve(async (req) => {
       if (!ok) return insufficientCreditsResponse("generate-listings");
     }
 
-    const { business, product, marketplaces: requestedMarketplaces } = await req.json();
+    const { business, product, marketplaces: requestedMarketplaces, excludedSections } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -52,7 +52,10 @@ IMPORTANT FORMATTING RULES:
 - Descriptions must be PLAIN TEXT only — no markdown (no #, ##, ###, **, *, etc.)
 - Use natural paragraph breaks for readability
 - Bullet points go in the bulletPoints array, NOT in the description field
-
+${excludedSections?.length ? `
+CONTENT EXCLUSIONS — DO NOT include any of the following topics in the description or bullet points:
+${(excludedSections as string[]).includes("materials") ? "- Materials, fabric composition, garment specs, fit details, sizing info (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("care") ? "- Care instructions, washing/drying/ironing guidance (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("shipping") ? "- Shipping times, delivery info, return policy, refund details (the storefront displays these separately)\n" : ""}Focus ONLY on the product story, lifestyle benefits, and brand voice.
+` : ""}
 For EACH marketplace listing, also generate:
 - seoTitle: An SEO meta title (under 60 chars, with primary keyword)
 - seoDescription: An SEO meta description (under 160 chars, compelling with CTA)

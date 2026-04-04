@@ -14,6 +14,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  listing_excluded_sections?: string[];
 }
 
 interface AiUsage {
@@ -138,6 +139,7 @@ export const ShopifyEnrich = ({ organization, userId, onComplete, onBack, aiUsag
               audience: organization.audience,
             },
             product: productData,
+            excludedSections: organization.listing_excluded_sections || [],
           },
         });
         if (listError) throw new Error(`AI enrichment failed: ${listError.message}`);

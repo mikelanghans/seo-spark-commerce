@@ -26,6 +26,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  listing_excluded_sections?: string[];
 }
 
 interface Props {
@@ -333,6 +334,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
                 audience: organization.audience,
               },
               product: productData,
+              excludedSections: organization.listing_excluded_sections || [],
             },
           }),
           { label: `listings-${i}` }
