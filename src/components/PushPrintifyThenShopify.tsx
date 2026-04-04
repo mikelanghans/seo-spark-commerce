@@ -295,10 +295,11 @@ export const PushPrintifyThenShopify = ({
       setStep("shopify");
       toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      const previousShopifyId = product.shopify_product_id ?? null;
-      let currentShopifyId = previousShopifyId;
+      // If we already have a Shopify product ID, use it directly (Printify updates the same product).
+      // Only poll when we don't have one yet (first-time publish).
+      let currentShopifyId = product.shopify_product_id ?? null;
 
-      if (publishOnPrintify) {
+      if (!currentShopifyId && publishOnPrintify) {
         toast.info("Waiting for Printify sync to Shopify...");
         for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
@@ -307,23 +308,15 @@ export const PushPrintifyThenShopify = ({
             .select("shopify_product_id")
             .eq("id", product.id)
             .single();
-
-          const freshShopifyId = freshProduct?.shopify_product_id ?? null;
-          if (!freshShopifyId) continue;
-          if (!previousShopifyId || freshShopifyId !== previousShopifyId) {
-            currentShopifyId = freshShopifyId;
+          if (freshProduct?.shopify_product_id) {
+            currentShopifyId = freshProduct.shopify_product_id;
             break;
           }
         }
       }
 
-      const waitingForFreshShopifyId = publishOnPrintify && !!previousShopifyId && currentShopifyId === previousShopifyId;
-      if (!currentShopifyId || waitingForFreshShopifyId) {
-        toast.warning(
-          publishOnPrintify
-            ? "Printify sync to Shopify hasn't returned a fresh product link yet, so the Shopify update was skipped to avoid a duplicate. Try again in a moment."
-            : "No Shopify product is linked yet — publish from Printify first, then try Shopify again.",
-        );
+      if (!currentShopifyId) {
+        toast.warning("No Shopify product is linked yet — publish from Printify first, then push to Shopify separately.");
         setStep("done");
         setResult({ success: true });
         setOpen(false);
