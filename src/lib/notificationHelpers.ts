@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const LOW_CREDIT_NOTIFICATION_MILESTONES = [10, 5, 3, 1] as const;
+
 interface CreateNotificationParams {
   userId: string;
   organizationId?: string | null;
@@ -33,11 +35,40 @@ export async function notifySyncFailure(userId: string, orgId: string, marketpla
 }
 
 export async function notifyLowCredits(userId: string, remaining: number) {
+  if (!LOW_CREDIT_NOTIFICATION_MILESTONES.includes(remaining as typeof LOW_CREDIT_NOTIFICATION_MILESTONES[number])) {
+    return { data: null, error: null };
+  }
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const message = `You have ${remaining} AI credits remaining. Consider upgrading or purchasing a credit pack.`;
+
+  const { data: existingNotification, error: existingNotificationError } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", "low_credits")
+    .eq("title", "AI credits running low")
+    .eq("message", message)
+    .gte("created_at", startOfMonth.toISOString())
+    .limit(1)
+    .maybeSingle();
+
+  if (existingNotificationError) {
+    return { data: null, error: existingNotificationError };
+  }
+
+  if (existingNotification) {
+    return { data: null, error: null };
+  }
+
   return createNotification({
     userId,
     type: "low_credits",
     title: "AI credits running low",
-    message: `You have ${remaining} AI credits remaining. Consider upgrading or purchasing a credit pack.`,
+    message,
   });
 }
 

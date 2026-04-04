@@ -58,6 +58,8 @@ import { PrintifyMatchDialog } from "@/components/PrintifyMatchDialog";
 import type { Product, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
 
+const LOW_CREDIT_NOTIFICATION_MILESTONES = [10, 5, 3, 1] as const;
+
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -75,7 +77,6 @@ const Dashboard = () => {
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const [productsTab, setProductsTab] = useState("messages");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [lowCreditNotified, setLowCreditNotified] = useState(false);
   const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
   const [showImportWarning, setShowImportWarning] = useState(false);
 
@@ -208,14 +209,12 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user || aiUsage.loading || subscription.loading || lowCreditNotified) return;
+    if (!user || aiUsage.loading || subscription.loading) return;
     const remaining = aiUsage.limit - aiUsage.usedCount;
-    // Only notify when credits are genuinely low (≤10), not a percentage
-    if (remaining > 0 && remaining <= 10) {
-      setLowCreditNotified(true);
+    if (LOW_CREDIT_NOTIFICATION_MILESTONES.includes(remaining as typeof LOW_CREDIT_NOTIFICATION_MILESTONES[number])) {
       notifyLowCredits(user.id, remaining);
     }
-  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, lowCreditNotified, subscription.loading]);
+  }, [user, aiUsage.loading, aiUsage.usedCount, aiUsage.limit, subscription.loading]);
 
   useEffect(() => {
     if (authLoading) return;
