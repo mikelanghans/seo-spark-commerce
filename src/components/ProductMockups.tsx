@@ -631,6 +631,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
+      const compositionSize = getCompositionSize(targetSize);
 
       // Compute unified design dimensions for consistent sizing
       let referenceDesignSize: { width: number; height: number } | undefined;
@@ -645,8 +646,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           imageBase64: plainTemplate,
           colorName,
           productTitle,
-          sourceWidth: targetSize?.width || null,
-          sourceHeight: targetSize?.height || null,
+          sourceWidth: compositionSize.width,
+          sourceHeight: compositionSize.height,
           customInstructions,
           swatchHints: typeConfig.swatchHints,
         },
@@ -664,8 +665,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const blob = await normalizeAndLockToTemplateBlob({
         templateDataUrl: plainTemplate,
         generatedDataUrl,
-        targetWidth: targetSize?.width || 1024,
-        targetHeight: targetSize?.height || 1024,
+        targetWidth: compositionSize.width,
+        targetHeight: compositionSize.height,
         designDataUrl: cleanedDesignForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
