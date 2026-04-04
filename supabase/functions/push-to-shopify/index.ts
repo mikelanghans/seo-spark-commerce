@@ -112,6 +112,7 @@ serve(async (req) => {
         undefined,
         true,
         flatSizePricing,
+        sizes,
       );
       shopifyResponse = await fetch(
         `https://${domain}/admin/api/2024-01/products.json`,
