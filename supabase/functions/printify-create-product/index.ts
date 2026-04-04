@@ -7,7 +7,9 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 1.0;
+// Match the mockup placement: design occupies ~36% of garment width.
+// The print area covers ~55% of garment width, so target 0.36/0.55 ≈ 0.65 of print area.
+const DEFAULT_IMAGE_SCALE = 0.65;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
