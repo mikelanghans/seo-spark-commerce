@@ -58,24 +58,26 @@ serve(async (req) => {
 
       while (hasMore) {
         const res = await fetch(
-          `https://api.printify.com/v1/shops/${shop.id}/products.json?page=${page}&limit=100`,
+          `https://api.printify.com/v1/shops/${shop.id}/products.json?page=${page}`,
           { headers: { Authorization: `Bearer ${printifyToken}` } }
         );
+
         if (!res.ok) {
-          console.error(`Failed to fetch products from shop ${shop.id}: ${res.status}`);
+          const errorText = await res.text();
+          console.error(`Failed to fetch products from shop ${shop.id}: ${res.status} ${errorText}`);
           break;
         }
-        const data = await res.json();
-        const products = data.data || data || [];
 
-        if (Array.isArray(products)) {
-          for (const p of products) {
-            allProducts.push({ id: p.id, title: p.title, shopId: shop.id });
-          }
-          hasMore = products.length === 100;
-        } else {
-          hasMore = false;
+        const data = await res.json();
+        const products = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+
+        for (const p of products) {
+          allProducts.push({ id: p.id, title: p.title, shopId: shop.id });
         }
+
+        const currentPage = Number(data?.current_page ?? page);
+        const lastPage = Number(data?.last_page ?? currentPage);
+        hasMore = currentPage < lastPage && products.length > 0;
         page++;
       }
     }
