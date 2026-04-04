@@ -667,11 +667,32 @@ const ProductCard = ({
   return (
     <div
       className={cn(
-        "group relative cursor-pointer rounded-xl border border-border bg-card overflow-hidden transition-colors hover:border-primary/40",
-        compact && "rounded-lg"
+        "group relative cursor-pointer rounded-xl border-2 bg-card overflow-hidden transition-colors hover:border-primary/40",
+        compact && "rounded-lg",
+        isSelected ? "border-primary ring-1 ring-primary/20" : "border-border"
       )}
       onClick={() => onView(product)}
     >
+      {/* Selection checkbox */}
+      {onToggleSelect && (
+        <div
+          className="absolute top-2 left-2 z-10"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(product.id); }}
+        >
+          <div className={cn(
+            "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer",
+            isSelected
+              ? "bg-primary border-primary text-primary-foreground"
+              : "bg-background/80 border-muted-foreground/40 hover:border-primary"
+          )}>
+            {isSelected && (
+              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
       {thumbnailUrl ? (
         <div className={cn("overflow-hidden bg-secondary", compact ? "h-32" : "h-48")}>
           <img
