@@ -123,15 +123,12 @@ serve(async (req) => {
 
       // Handle colors update: re-enable/disable variants based on new color selection
       // and update print_areas with the new design images
+      // Handle mockups update: re-upload design to print_areas and republish
+      const needsPrintAreaUpdate = (fields.includes("colors") || fields.includes("mockups")) && body.printifyImageId;
+      
       if (fields.includes("colors") && body.selectedColors) {
         const selectedColors: string[] = body.selectedColors || [];
         const selectedSizes: string[] = body.selectedSizes || [];
-        const printifyImageId = body.printifyImageId;
-        const darkPrintifyImageId = body.darkPrintifyImageId;
-        const lightColors: string[] = (body.lightColors || []).map((c: string) => c.toLowerCase());
-        const lightColorSet = new Set(lightColors);
-
-        // Determine which variants to enable based on color + size selection
         const allVariants = printifyProduct.variants || [];
         const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
         const sizePriceCents: Record<string, number> = {};
@@ -155,46 +152,53 @@ serve(async (req) => {
           return { id: v.id, price: priceVal, is_enabled: colorMatch && sizeMatch };
         });
 
-        // Update print_areas if we have a design image
-        if (printifyImageId) {
-          const allVariantIds = allVariants.map((v: any) => v.id);
-          const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
-
-          if (hasDarkDesign) {
-            const darkIds: number[] = [];
-            const lightIds: number[] = [];
-            for (const v of allVariants) {
-              if (lightColorSet.has((v.options?.color || "").trim().toLowerCase())) {
-                lightIds.push(v.id);
-              } else {
-                darkIds.push(v.id);
-              }
-            }
-
-            const areas: any[] = [];
-            if (darkIds.length > 0) {
-              areas.push({
-                variant_ids: darkIds,
-                placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
-              });
-            }
-            if (lightIds.length > 0) {
-              areas.push({
-                variant_ids: lightIds,
-                placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
-              });
-            }
-            updatePayload.print_areas = areas;
-          } else {
-            updatePayload.print_areas = [{
-              variant_ids: allVariantIds,
-              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
-            }];
-          }
-        }
-
         const enabledCount = (updatePayload.variants as any[]).filter((v: any) => v.is_enabled).length;
         console.log(`Colors update: ${enabledCount} variants enabled for colors: ${selectedColors.join(", ")}`);
+      }
+
+      // Update print_areas with new design images (for both colors and mockups updates)
+      if (needsPrintAreaUpdate) {
+        const printifyImageId = body.printifyImageId;
+        const darkPrintifyImageId = body.darkPrintifyImageId;
+        const lightColors: string[] = (body.lightColors || []).map((c: string) => c.toLowerCase());
+        const lightColorSet = new Set(lightColors);
+        const allVariants = printifyProduct.variants || [];
+        const allVariantIds = allVariants.map((v: any) => v.id);
+        const hasDarkDesign = !!darkPrintifyImageId && lightColorSet.size > 0;
+
+        if (hasDarkDesign) {
+          const darkIds: number[] = [];
+          const lightIds: number[] = [];
+          for (const v of allVariants) {
+            if (lightColorSet.has((v.options?.color || "").trim().toLowerCase())) {
+              lightIds.push(v.id);
+            } else {
+              darkIds.push(v.id);
+            }
+          }
+
+          const areas: any[] = [];
+          if (darkIds.length > 0) {
+            areas.push({
+              variant_ids: darkIds,
+              placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+            });
+          }
+          if (lightIds.length > 0) {
+            areas.push({
+              variant_ids: lightIds,
+              placeholders: [{ position: "front", images: [{ id: darkPrintifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+            });
+          }
+          updatePayload.print_areas = areas;
+        } else {
+          updatePayload.print_areas = [{
+            variant_ids: allVariantIds,
+            placeholders: [{ position: "front", images: [{ id: printifyImageId, x: 0.5, y: 0.28, scale: 1.0, angle: 0 }] }],
+          }];
+        }
+
+        console.log(`Print areas updated with design image${hasDarkDesign ? " (dual light/dark)" : ""}`);
       }
 
       if (Object.keys(updatePayload).length === 0) {
@@ -213,6 +217,22 @@ serve(async (req) => {
       if (!updateRes.ok) {
         const errText = await updateRes.text();
         throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
+      }
+
+      // Republish if mockups were updated so Printify regenerates its auto-mockups
+      if (fields.includes("mockups")) {
+        console.log(`Republishing product ${pPrintifyProductId} to refresh Printify mockups...`);
+        const publishRes = await fetch(
+          `https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}/publish.json`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ title: true, description: true, images: true, variants: true, tags: true }),
+          }
+        );
+        if (!publishRes.ok) {
+          console.error(`Republish failed: ${publishRes.status} ${await publishRes.text()}`);
+        }
       }
 
       return new Response(JSON.stringify({ success: true, updatedFields: fields }), {
