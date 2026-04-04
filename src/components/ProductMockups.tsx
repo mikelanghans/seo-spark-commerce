@@ -442,8 +442,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               imageBase64: plainTemplate,
               colorName,
               productTitle,
-              sourceWidth: targetSize?.width || null,
-              sourceHeight: targetSize?.height || null,
+              sourceWidth: compositionSize.width,
+              sourceHeight: compositionSize.height,
               customInstructions: customInstructions || undefined,
               swatchHints: typeConfig.swatchHints,
             },
@@ -462,8 +462,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const blob = await normalizeAndLockToTemplateBlob({
             templateDataUrl: plainTemplate,
             generatedDataUrl,
-            targetWidth: targetSize?.width || 1024,
-            targetHeight: targetSize?.height || 1024,
+            targetWidth: compositionSize.width,
+            targetHeight: compositionSize.height,
             designDataUrl: designForComposite,
             isDarkGarment: !isLight,
             referenceDesignSize,
@@ -490,12 +490,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           statusMap.set(colorName, "done");
         } catch (err) {
           console.error(`Error generating ${colorName}:`, err);
+          logCaughtError(err, "mockup-generation-color", {
+            productId,
+            organizationId,
+            colorName,
+            batchSize: selectedColors.length,
+          });
           statusMap.set(colorName, "error");
         }
 
         setGeneratingColors(new Map(statusMap));
         doneCount++;
         setGenerationProgress({ done: doneCount, total: selectedColors.length, current: "" });
+        await yieldToBrowser();
       }
 
       await loadImages();
