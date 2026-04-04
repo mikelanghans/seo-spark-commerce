@@ -265,14 +265,13 @@ serve(async (req) => {
         console.log(`Uploaded image: ${imgW}x${imgH}, print area: ${printAreaWidth}x${printAreaHeight}`);
 
         if (imgW > 0 && imgH > 0 && printAreaWidth > 0 && printAreaHeight > 0) {
-          // Scale to fill the chest area generously — allow slight overflow for bold placement.
-          const safetyMargin = 0.95;
-          const widthFillScale = (printAreaWidth / imgW) * safetyMargin;
-          const heightFitScale = (printAreaHeight / imgH) * safetyMargin;
+          // Fill the chest area generously — no safety margin so designs print at full size.
+          const widthFillScale = printAreaWidth / imgW;
+          const heightFitScale = printAreaHeight / imgH;
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, DEFAULT_IMAGE_SCALE);
 
-          imageScale = Math.max(0.2, Math.min(0.95, targetChestScale));
+          imageScale = Math.max(0.35, Math.min(1.0, targetChestScale));
           console.log(
             `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)})`
           );
