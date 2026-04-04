@@ -482,6 +482,10 @@ const Dashboard = () => {
                   collectionLoading={collectionMemberships.loading}
                   onRefreshCollections={collectionMemberships.refresh}
                   collectionLastFetched={collectionMemberships.lastFetched}
+                  selectedProductIds={selectedProductIds}
+                  onToggleSelect={toggleProductSelect}
+                  onSelectAll={selectAllProducts}
+                  onDeselectAll={deselectAllProducts}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {generatingAll || pushingAllShopify ? (
