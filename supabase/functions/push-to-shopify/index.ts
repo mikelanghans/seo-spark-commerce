@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, shopifyStatus, organizationId, updateFields, forceVariants } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -75,7 +75,8 @@ serve(async (req) => {
       }
     }
 
-    let shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
+    const sizes: string[] = Array.isArray(productSizes) ? productSizes : [];
+    let shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing, sizes);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
@@ -111,6 +112,7 @@ serve(async (req) => {
         undefined,
         true,
         flatSizePricing,
+        sizes,
       );
       shopifyResponse = await fetch(
         `https://${domain}/admin/api/2024-01/products.json`,

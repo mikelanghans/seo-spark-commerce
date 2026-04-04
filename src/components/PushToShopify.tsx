@@ -70,6 +70,9 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
 
       const isUpdate = !!product.shopify_product_id;
 
+      // Resolve sizes for this product type so Shopify creates a Color×Size matrix
+      const sizes = typeConfig.sizes || [];
+
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           organizationId,
@@ -86,6 +89,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
           listings,
           imageUrl: product.image_url,
           variants: optimizedVariants,
+          sizes,
           forceVariants: !isUpdate,
           ...(updateFields ? { updateFields } : {}),
         },
