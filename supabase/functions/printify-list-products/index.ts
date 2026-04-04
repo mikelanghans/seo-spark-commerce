@@ -57,7 +57,7 @@ serve(async (req) => {
     if (!shops.length) throw new Error("No Printify shops found");
 
     // Fetch products from all shops (usually just one)
-    const allProducts: { id: string; title: string; shopId: number; thumbnail: string | null; variantCount: number; tags: string[] }[] = [];
+    const allProducts: { id: string; title: string; shopId: number }[] = [];
 
     for (const shop of shops) {
       let page = 1;
@@ -85,10 +85,7 @@ serve(async (req) => {
           : [];
 
         for (const p of products) {
-          const firstImage = p.images?.length > 0 ? p.images[0]?.src : null;
-          const variantCount = Array.isArray(p.variants) ? p.variants.length : 0;
-          const tags = Array.isArray(p.tags) ? p.tags : [];
-          allProducts.push({ id: p.id, title: p.title, shopId: shop.id, thumbnail: firstImage, variantCount, tags });
+          allProducts.push({ id: p.id, title: p.title, shopId: shop.id });
         }
 
         const currentPage = Number(data?.current_page ?? page);

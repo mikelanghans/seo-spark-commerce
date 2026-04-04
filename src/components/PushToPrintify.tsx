@@ -100,8 +100,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     { key: "description", label: "Description" },
     { key: "tags", label: "Tags" },
     { key: "pricing", label: "Pricing" },
-    { key: "colors", label: "Colors" },
-    { key: "mockups", label: "Mockups" },
   ];
   const [selectedUpdateFields, setSelectedUpdateFields] = useState<string[]>(
     PRINTIFY_UPDATE_FIELDS.map(f => f.key)
@@ -375,17 +373,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
     try {
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
-      // Build colors payload (no design re-upload — edge function reuses existing Printify images)
-      let colorsPayload: Record<string, any> = {};
-      if (selectedUpdateFields.includes("colors")) {
-        const colorsToUse = hasMockups ? uniqueMockupColors : ["Black"];
-        colorsPayload = {
-          selectedColors: colorsToUse,
-          selectedSizes,
-          lightColors: [...LIGHT_COLORS],
-        };
-      }
-
       const { data, error } = await supabase.functions.invoke("printify-create-product", {
         body: {
           action: "update",
@@ -399,7 +386,6 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
           tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
           price: product.price,
           sizePricing,
-          ...colorsPayload,
         },
       });
 

@@ -8,98 +8,6 @@ const corsHeaders = {
 
 const DEFAULT_BLUEPRINT_ID = 706;
 const DEFAULT_IMAGE_SCALE = 1.0;
-const DEFAULT_IMAGE_X = 0.5;
-const DEFAULT_IMAGE_Y = 0.28;
-
-async function uploadPrintifyImageFromUrl(printifyToken: string, imageUrl: string, fileName: string) {
-  const uploadRes = await fetch("https://api.printify.com/v1/uploads/images.json", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${printifyToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      file_name: fileName,
-      url: imageUrl,
-    }),
-  });
-
-  if (!uploadRes.ok) {
-    throw new Error(`Failed to upload Printify artwork: ${uploadRes.status} ${await uploadRes.text()}`);
-  }
-
-  const uploadedImage = await uploadRes.json();
-  if (!uploadedImage?.id) {
-    throw new Error("Printify upload succeeded but no image ID was returned");
-  }
-
-  return uploadedImage.id as string;
-}
-
-function extractPrintAreaImageIds(printifyProduct: any): string[] {
-  const imageIds: string[] = [];
-
-  for (const area of printifyProduct?.print_areas || []) {
-    for (const placeholder of area?.placeholders || []) {
-      for (const image of placeholder?.images || []) {
-        if (image?.id && !imageIds.includes(image.id)) {
-          imageIds.push(image.id);
-        }
-      }
-    }
-  }
-
-  return imageIds;
-}
-
-function buildPrintAreasFromImageIds(allVariants: any[], primaryImageId: string, secondaryImageId: string | null, lightColorSet: Set<string>) {
-  const allVariantIds = allVariants.map((variant) => variant.id);
-  const hasDualDesign = !!secondaryImageId && lightColorSet.size > 0;
-
-  if (!hasDualDesign) {
-    return [{
-      variant_ids: allVariantIds,
-      placeholders: [{
-        position: "front",
-        images: [{ id: primaryImageId, x: DEFAULT_IMAGE_X, y: DEFAULT_IMAGE_Y, scale: DEFAULT_IMAGE_SCALE, angle: 0 }],
-      }],
-    }];
-  }
-
-  const darkIds: number[] = [];
-  const lightIds: number[] = [];
-
-  for (const variant of allVariants) {
-    if (lightColorSet.has((variant.options?.color || "").trim().toLowerCase())) {
-      lightIds.push(variant.id);
-    } else {
-      darkIds.push(variant.id);
-    }
-  }
-
-  const areas: any[] = [];
-  if (darkIds.length > 0) {
-    areas.push({
-      variant_ids: darkIds,
-      placeholders: [{
-        position: "front",
-        images: [{ id: primaryImageId, x: DEFAULT_IMAGE_X, y: DEFAULT_IMAGE_Y, scale: DEFAULT_IMAGE_SCALE, angle: 0 }],
-      }],
-    });
-  }
-
-  if (lightIds.length > 0 && secondaryImageId) {
-    areas.push({
-      variant_ids: lightIds,
-      placeholders: [{
-        position: "front",
-        images: [{ id: secondaryImageId, x: DEFAULT_IMAGE_X, y: DEFAULT_IMAGE_Y, scale: DEFAULT_IMAGE_SCALE, angle: 0 }],
-      }],
-    });
-  }
-
-  return areas;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -183,47 +91,6 @@ serve(async (req) => {
 
       // Which fields to update — default to all for backward compat with "update-price"
       const fields: string[] = body.updateFields || ["pricing"];
-      const lightColorSet = new Set(((body.lightColors || []) as string[]).map((c: string) => c.toLowerCase()));
-      const needsArtworkRefresh = fields.includes("colors") || fields.includes("mockups");
-      const allVariants = printifyProduct.variants || [];
-
-      let existingArtworkIds = extractPrintAreaImageIds(printifyProduct);
-      let primaryImageId: string | null = existingArtworkIds[0] || null;
-      let secondaryImageId: string | null = existingArtworkIds[1] || null;
-      let restoredArtworkFromLocalFiles = false;
-
-      if (needsArtworkRefresh && !primaryImageId && productId) {
-        const [{ data: productRecord }, { data: latestDesign }] = await Promise.all([
-          adminClient
-            .from("products")
-            .select("image_url")
-            .eq("id", productId)
-            .maybeSingle(),
-          adminClient
-            .from("generated_messages")
-            .select("design_url, dark_design_url")
-            .eq("product_id", productId)
-            .or("design_url.not.is.null,dark_design_url.not.is.null")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        ]);
-
-        const primaryArtworkUrl = latestDesign?.design_url || productRecord?.image_url || null;
-        const secondaryArtworkUrl = latestDesign?.dark_design_url || null;
-
-        if (!primaryArtworkUrl) {
-          throw new Error("No saved design image was found for this product, so Printify artwork could not be restored.");
-        }
-
-        primaryImageId = await uploadPrintifyImageFromUrl(printifyToken, primaryArtworkUrl, `${productId}-design.png`);
-        secondaryImageId = secondaryArtworkUrl
-          ? await uploadPrintifyImageFromUrl(printifyToken, secondaryArtworkUrl, `${productId}-dark-design.png`)
-          : null;
-        restoredArtworkFromLocalFiles = true;
-        existingArtworkIds = [primaryImageId, ...(secondaryImageId ? [secondaryImageId] : [])];
-        console.log(`Restored missing Printify artwork from local files: primary=${primaryImageId}, secondary=${secondaryImageId}`);
-      }
 
       if (fields.includes("title") && body.title) {
         updatePayload.title = body.title;
@@ -254,55 +121,7 @@ serve(async (req) => {
         });
       }
 
-      // Handle colors update: re-enable/disable variants based on new color selection
-      // Reuses existing design images already on the Printify product.
-      if (fields.includes("colors") && body.selectedColors) {
-        const selectedColors: string[] = body.selectedColors || [];
-        const selectedSizes: string[] = body.selectedSizes || [];
-        console.log(`Colors update: using design IDs primary=${primaryImageId}, secondary=${secondaryImageId}`);
-
-        // Determine which variants to enable based on color + size selection
-        const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
-        const sizePriceCents: Record<string, number> = {};
-        if (body.sizePricing && typeof body.sizePricing === "object") {
-          for (const [size, p] of Object.entries(body.sizePricing)) {
-            const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
-            if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
-          }
-        }
-
-        updatePayload.variants = allVariants.map((v: any) => {
-          const vColor = (v.options?.color || "").trim();
-          const vSize = (v.options?.size || "").trim();
-          const colorMatch = selectedColors.some(
-            (c: string) => c.toLowerCase() === vColor.toLowerCase()
-          );
-          const sizeMatch = !selectedSizes.length || selectedSizes.some(
-            (s: string) => s.toLowerCase() === vSize.toLowerCase()
-          );
-          const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
-          return { id: v.id, price: priceVal, is_enabled: colorMatch && sizeMatch };
-        });
-
-        // Update print_areas reusing existing design images
-        if (primaryImageId) {
-          updatePayload.print_areas = buildPrintAreasFromImageIds(allVariants, primaryImageId, secondaryImageId, lightColorSet);
-        }
-
-        const enabledCount = (updatePayload.variants as any[]).filter((v: any) => v.is_enabled).length;
-        console.log(`Colors update: ${enabledCount} variants enabled for colors: ${selectedColors.join(", ")}`);
-      }
-
-      // Handle mockups update: if artwork is missing, restore it first; then republish to regenerate mockups
-      if (fields.includes("mockups")) {
-        if (!updatePayload.print_areas && restoredArtworkFromLocalFiles && primaryImageId) {
-          updatePayload.print_areas = buildPrintAreasFromImageIds(allVariants, primaryImageId, secondaryImageId, lightColorSet);
-        }
-        console.log("Mockups update: will republish after update to regenerate mockups");
-      }
-
-      // Early return if nothing to change and no republish needed
-      if (Object.keys(updatePayload).length === 0 && !fields.includes("mockups")) {
+      if (Object.keys(updatePayload).length === 0) {
         return new Response(JSON.stringify({ success: true, message: "Nothing to update" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -310,32 +129,14 @@ serve(async (req) => {
 
       console.log(`Updating Printify product ${pPrintifyProductId}: fields=${fields.join(",")}`);
 
-      if (Object.keys(updatePayload).length > 0) {
-        const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify(updatePayload),
-        });
-        if (!updateRes.ok) {
-          const errText = await updateRes.text();
-          throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
-        }
-      }
-
-      // Republish if mockups field selected (forces Printify mockup regeneration)
-      if (fields.includes("mockups")) {
-        console.log(`Republishing product ${pPrintifyProductId} to regenerate mockups...`);
-        const publishRes = await fetch(
-          `https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}/publish.json`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ title: true, description: true, images: true, variants: true, tags: true }),
-          }
-        );
-        if (!publishRes.ok) {
-          console.error(`Republish failed: ${publishRes.status} ${await publishRes.text()}`);
-        }
+      const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload),
+      });
+      if (!updateRes.ok) {
+        const errText = await updateRes.text();
+        throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
       }
 
       return new Response(JSON.stringify({ success: true, updatedFields: fields }), {
@@ -447,8 +248,8 @@ serve(async (req) => {
 
     // Printify normalized placement: (0.5, 0.5) is centered in the print area.
     // Move design up toward neckline — lower y = higher on shirt.
-    const imageX = DEFAULT_IMAGE_X;
-    const imageY = DEFAULT_IMAGE_Y;
+    const imageX = 0.5;
+    const imageY = 0.28;
 
     // Scale up to fill the chest area generously.
     let imageScale = DEFAULT_IMAGE_SCALE;

@@ -1,1 +1,0 @@
-UPDATE products SET printify_product_id = '6975346cbc829ad959071ea8' WHERE id = '9b3a8a44-b87d-4230-8bed-e3cce176a626';
