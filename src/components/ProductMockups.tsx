@@ -399,6 +399,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
       } catch { /* null */ }
+      const compositionSize = getCompositionSize(targetSize);
 
       // Compute unified design dimensions so all color variants use the same design scale
       let referenceDesignSize: { width: number; height: number } | undefined;
@@ -419,7 +420,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       for (const colorName of selectedColors) {
         // Refresh session every 3 colors to prevent timeout during long batches
         if (doneCount > 0 && doneCount % 3 === 0) {
-          await ensureValidSession();
+          const stillValid = await ensureValidSession();
+          if (!stillValid) {
+            throw new Error("Session expired while generating mockups. Please log in again and retry.");
+          }
         }
         setGenerationProgress({ done: doneCount, total: selectedColors.length, current: colorName });
 
