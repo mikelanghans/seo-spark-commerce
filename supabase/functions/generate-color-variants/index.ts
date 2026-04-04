@@ -68,7 +68,7 @@ IMAGE 1 is the IMMUTABLE master photo of a garment. Keep it pixel-locked:
 - Same background texture, color, lighting, props, and prop positions
 - Same wrinkles and shadow geometry on the shirt
 - Same overall framing and composition — do NOT zoom, pan, reframe, or shift ANY element
-- If there is any print/design on the shirt, keep it in the EXACT same position, size, and orientation
+- If there is any print/design on the shirt, keep it in the EXACT same position, size, orientation, AND COLORS. The design artwork colors must be 100% preserved — do NOT recolor any part of the printed design. Only the fabric around/behind the design should change color. For example, if a design contains green, red, yellow, or any colored elements, those MUST remain their original color even if the surrounding fabric changes.
 - Do NOT add, remove, move, resize, shift, or distort any elements
 
 Your edit scope is ONLY fabric recoloring.
