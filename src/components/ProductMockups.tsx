@@ -510,6 +510,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       toast.success(`Generated ${doneCount} mockups!`);
     } catch (err: any) {
       console.error("Generation error:", err);
+      logCaughtError(err, "mockup-generation-batch", {
+        productId,
+        organizationId,
+        selectedColors,
+      });
       toast.error(err.message || "Failed to generate mockups");
       setGenStep("choose-colors");
     }
