@@ -26,6 +26,7 @@ interface Organization {
   niche: string;
   tone: string;
   audience: string;
+  listing_excluded_sections?: string[];
 }
 
 interface Props {
