@@ -75,7 +75,7 @@ serve(async (req) => {
       }
     }
 
-    const shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
+    let shopifyProduct = buildShopifyProduct(product, shopifyListing, bodyHtml, shopifyStatus, colorVariants, price, isUpdate, effectiveUpdateFields, !!forceVariants, flatSizePricing);
     const shouldUpdateImages = !effectiveUpdateFields || effectiveUpdateFields.includes("images");
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
@@ -100,6 +100,18 @@ serve(async (req) => {
     // If update returns 404, the product was deleted on Shopify — fall back to create
     if (isUpdate && shopifyResponse.status === 404) {
       console.log("Existing Shopify product not found (404), creating new product instead");
+      shopifyProduct = buildShopifyProduct(
+        product,
+        shopifyListing,
+        bodyHtml,
+        shopifyStatus,
+        colorVariants,
+        price,
+        false,
+        undefined,
+        true,
+        flatSizePricing,
+      );
       shopifyResponse = await fetch(
         `https://${domain}/admin/api/2024-01/products.json`,
         {
