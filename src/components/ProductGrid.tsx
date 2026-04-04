@@ -440,6 +440,8 @@ export const ProductGrid = ({
                         onRemoveTag={onRemoveTag}
                         onUploadDesign={onUploadDesign}
                         onArchive={onArchiveProduct}
+                        isSelected={selectedProductIds?.has(product.id)}
+                        onToggleSelect={onToggleSelect}
                       />
                     ))}
                   </div>
