@@ -216,90 +216,112 @@ export const PushPrintifyThenShopify = ({
     setResult(null);
 
     try {
-      // ===== STEP 1: Push to Printify =====
+      // ===== STEP 1: Sync Printify =====
       setStep("printify");
-      const colorsToUse = colorsForPush;
-      const lightColorsSelected = colorsToUse.filter((c) => LIGHT_COLORS.has(c.toLowerCase()));
-      const hasLightColors = lightColorsSelected.length > 0;
-
-      toast.info("Step 1/2: Removing background & uploading to Printify...");
-
-      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
-        "printify-upload-image",
-        { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
-      );
-      if (uploadError) throw uploadError;
-      if (uploadData?.error) throw new Error(uploadData.error);
-
-      const printifyImageId = uploadData.image?.id;
-      if (!printifyImageId) throw new Error("Failed to get uploaded image ID");
-
-      let darkPrintifyImageId: string | null = null;
-      if (hasLightColors) {
-        toast.info("Creating dark ink variant for light colors...");
-        const darkBase64Contents = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-        const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
-          "printify-upload-image",
-          { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png`, organizationId } }
-        );
-        if (darkUploadError) throw darkUploadError;
-        if (darkUpload?.error) throw new Error(darkUpload.error);
-        darkPrintifyImageId = darkUpload.image?.id || null;
-      }
-
-      const savedPlacement = await loadSavedPlacement();
-      const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
-      for (const colorName of colorsToUse) {
-        const mockup = mockups.find((m) => m.color_name === colorName);
-        if (mockup) mockupImages.push({ printifyColorName: colorName, imageUrl: mockup.image_url });
-      }
-
       const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+      const printifyPayloadBase = {
+        shopId: selectedShop,
+        title: shopifyListing?.title || product.title,
+        description: shopifyListing?.description || product.description,
+        tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
+        price: product.price,
+        sizePricing,
+        productId: product.id,
+        organizationId,
+      };
+      let createdNewPrintifyProduct = false;
 
-      const { data: printifyData, error: printifyError } = await supabase.functions.invoke("printify-create-product", {
-        body: {
-          shopId: selectedShop,
-          title: shopifyListing?.title || product.title,
-          description: shopifyListing?.description || product.description,
-          tags: shopifyListing?.tags || product.keywords?.split(",").map((k: string) => k.trim()),
-          printifyImageId,
-          darkPrintifyImageId,
-          lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
-          selectedColors: colorsToUse,
-          selectedSizes,
-          price: product.price,
-          sizePricing,
-          mockupImages,
-          productId: product.id,
-          placement: savedPlacement,
-          printProviderId,
-          blueprintId: selectedProductType.blueprintId,
-          organizationId,
-          publish: publishOnPrintify,
-        },
-      });
+      if (product.printify_product_id) {
+        toast.info("Step 1/2: Updating existing Printify product...");
+        const { data: printifyData, error: printifyError } = await supabase.functions.invoke("printify-create-product", {
+          body: {
+            action: "update",
+            printifyProductId: product.printify_product_id,
+            updateFields: ["title", "description", "tags", "pricing"],
+            ...printifyPayloadBase,
+          },
+        });
 
-      if (printifyError) throw printifyError;
-      if (printifyData?.error) throw new Error(printifyData.error);
+        if (printifyError) throw printifyError;
+        if (printifyData?.error) throw new Error(printifyData.error);
 
-      const printifyProductId = printifyData.printifyProductId;
-      if (printifyProductId) {
-        onProductUpdate?.({ printify_product_id: printifyProductId });
+        toast.success("✓ Printify: Existing product updated");
+      } else {
+        const colorsToUse = colorsForPush;
+        const lightColorsSelected = colorsToUse.filter((c) => LIGHT_COLORS.has(c.toLowerCase()));
+        const hasLightColors = lightColorsSelected.length > 0;
+
+        toast.info("Step 1/2: Removing background & uploading to Printify...");
+
+        const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
+        const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
+          "printify-upload-image",
+          { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
+        );
+        if (uploadError) throw uploadError;
+        if (uploadData?.error) throw new Error(uploadData.error);
+
+        const printifyImageId = uploadData.image?.id;
+        if (!printifyImageId) throw new Error("Failed to get uploaded image ID");
+
+        let darkPrintifyImageId: string | null = null;
+        if (hasLightColors) {
+          toast.info("Creating dark ink variant for light colors...");
+          const darkBase64Contents = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+          const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
+            "printify-upload-image",
+            { body: { base64Contents: darkBase64Contents, fileName: `${product.title}-dark-design.png`, organizationId } }
+          );
+          if (darkUploadError) throw darkUploadError;
+          if (darkUpload?.error) throw new Error(darkUpload.error);
+          darkPrintifyImageId = darkUpload.image?.id || null;
+        }
+
+        const savedPlacement = await loadSavedPlacement();
+        const mockupImages: { printifyColorName: string; imageUrl: string }[] = [];
+        for (const colorName of colorsToUse) {
+          const mockup = mockups.find((m) => m.color_name === colorName);
+          if (mockup) mockupImages.push({ printifyColorName: colorName, imageUrl: mockup.image_url });
+        }
+
+        const { data: printifyData, error: printifyError } = await supabase.functions.invoke("printify-create-product", {
+          body: {
+            ...printifyPayloadBase,
+            printifyImageId,
+            darkPrintifyImageId,
+            lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
+            selectedColors: colorsToUse,
+            selectedSizes,
+            mockupImages,
+            placement: savedPlacement,
+            printProviderId,
+            blueprintId: selectedProductType.blueprintId,
+            publish: publishOnPrintify,
+          },
+        });
+
+        if (printifyError) throw printifyError;
+        if (printifyData?.error) throw new Error(printifyData.error);
+
+        createdNewPrintifyProduct = true;
+
+        const printifyProductId = printifyData.printifyProductId;
+        if (printifyProductId) {
+          onProductUpdate?.({ printify_product_id: printifyProductId });
+        }
+
+        toast.success(`✓ Printify: Created with ${printifyData.variantCount} variants`);
       }
-
-      toast.success(`✓ Printify: Created with ${printifyData.variantCount} variants`);
 
       // ===== STEP 2: Push mockups + SEO to Shopify =====
       // Printify sync handles variants & pricing — we only add custom mockups + SEO
       setStep("shopify");
       toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      // If we already have a Shopify product ID, use it directly (Printify updates the same product).
-      // Only poll when we don't have one yet (first-time publish).
-      let currentShopifyId = product.shopify_product_id ?? null;
+      const previousShopifyId = product.shopify_product_id ?? null;
+      let currentShopifyId = previousShopifyId;
 
-      if (!currentShopifyId && publishOnPrintify) {
+      if (createdNewPrintifyProduct && publishOnPrintify) {
         toast.info("Waiting for Printify sync to Shopify...");
         for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
@@ -308,8 +330,9 @@ export const PushPrintifyThenShopify = ({
             .select("shopify_product_id")
             .eq("id", product.id)
             .single();
-          if (freshProduct?.shopify_product_id) {
-            currentShopifyId = freshProduct.shopify_product_id;
+          const freshShopifyId = freshProduct?.shopify_product_id ?? null;
+          if ((!previousShopifyId && freshShopifyId) || (previousShopifyId && freshShopifyId && freshShopifyId !== previousShopifyId)) {
+            currentShopifyId = freshShopifyId;
             break;
           }
         }
@@ -369,7 +392,7 @@ export const PushPrintifyThenShopify = ({
           imageUrl: product.image_url,
           variants: optimizedVariants,
           forceVariants: false,
-          allowCreateOnMissingProduct: true,
+          allowCreateOnMissingProduct: false,
         },
       });
 
