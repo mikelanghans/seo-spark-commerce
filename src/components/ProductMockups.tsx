@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels } from "@/lib/removeBackground";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels, hasMeaningfulAccentColors } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -380,11 +380,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+        let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+
+        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+          try {
+            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
+            if (!darkHasAccentColors) {
+              darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+            }
+          } catch { /* continue */ }
+        }
 
         if (!darkDesignBase64 && lightDesignBase64) {
           try {
-            const multiColor = await isMultiColorDesign(lightDesignBase64);
-            if (!multiColor) {
+            const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+            if (!preserveAccentColors) {
               const bgRemoved = await removeBackground(lightDesignBase64, "black");
               darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
             } else {
@@ -401,6 +411,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           } catch {
             lightDesignBase64 = await fetchAsBase64(designImageUrl);
           }
+        }
+
+        if (lightDesignBase64 && !lightHasAccentColors) {
+          try {
+            lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
+          } catch { /* continue */ }
+        }
+
+        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+          try {
+            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
+            if (!darkHasAccentColors) {
+              darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+            }
+          } catch { /* continue */ }
         }
 
         let referenceDesignSize: { width: number; height: number } | undefined;
@@ -594,11 +619,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
       let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+      let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+
+      if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+        try {
+          const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
+          if (!darkHasAccentColors) {
+            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          }
+        } catch { /* continue */ }
+      }
 
       if (!darkDesignBase64 && lightDesignBase64) {
         try {
-          const multiColor = await isMultiColorDesign(lightDesignBase64);
-          if (multiColor) {
+          const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+          if (preserveAccentColors) {
             const darkened = await darkenBrightPixels(lightDesignBase64);
             darkDesignBase64 = ensureImageDataUrl(darkened);
           } else {
@@ -615,6 +650,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch {
           lightDesignBase64 = await fetchAsBase64(designImageUrl);
         }
+      }
+
+      if (lightDesignBase64 && !lightHasAccentColors) {
+        try {
+          lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
+        } catch { /* continue */ }
+      }
+
+      if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+        try {
+          const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
+          if (!darkHasAccentColors) {
+            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          }
+        } catch { /* continue */ }
       }
 
       const isLight = isLightColor(typeConfig, colorName);

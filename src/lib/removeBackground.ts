@@ -456,13 +456,38 @@ export async function recolorOpaquePixels(
  * If true, the design should NOT be recolored for light garments — use as-is.
  */
 export async function isMultiColorDesign(base64: string): Promise<boolean> {
+  const analysis = await analyzeDesignColors(base64);
+  const chromaRatio = analysis.opaqueCount > 0 ? analysis.chromaCount / analysis.opaqueCount : 0;
+  const accentRatio = analysis.opaqueCount > 0 ? analysis.accentPixelCount / analysis.opaqueCount : 0;
+
+  return (
+    (analysis.hueBuckets.size >= 3 && chromaRatio > 0.04) ||
+    (analysis.accentPixelCount >= 36 && accentRatio > 0.003)
+  );
+}
+
+export async function hasMeaningfulAccentColors(base64: string): Promise<boolean> {
+  const analysis = await analyzeDesignColors(base64);
+  const accentRatio = analysis.opaqueCount > 0 ? analysis.accentPixelCount / analysis.opaqueCount : 0;
+
+  return analysis.accentPixelCount >= 36 && accentRatio > 0.003;
+}
+
+async function analyzeDesignColors(base64: string) {
   const src = base64.startsWith("data:image/") ? base64 : `data:image/png;base64,${base64}`;
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
   canvas.height = img.height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
+  if (!ctx) {
+    return {
+      opaqueCount: 0,
+      chromaCount: 0,
+      accentPixelCount: 0,
+      hueBuckets: new Set<number>(),
+    };
+  }
   ctx.drawImage(img, 0, 0);
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -470,14 +495,20 @@ export async function isMultiColorDesign(base64: string): Promise<boolean> {
   const hueBuckets = new Set<number>();
   let opaqueCount = 0;
   let chromaCount = 0; // pixels with meaningful saturation
+  let accentPixelCount = 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 30) continue; // skip transparent
+    const alpha = data[i + 3] / 255;
+    if (alpha < 0.12) continue; // skip transparent
     opaqueCount++;
     const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const delta = max - min;
-    if (delta < 0.12) continue; // near-gray, skip
+    const sat = max === 0 ? 0 : delta / max;
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    if (delta < 0.12 || sat < 0.12) continue; // near-gray, skip
+
     chromaCount++;
     let hue = 0;
     if (delta > 0) {
@@ -487,11 +518,13 @@ export async function isMultiColorDesign(base64: string): Promise<boolean> {
       hue = Math.round(((hue * 60 + 360) % 360) / 30); // 12 buckets
     }
     hueBuckets.add(hue);
+
+    if (alpha >= 0.35 && sat > 0.22 && delta > 0.18 && luma > 0.12 && luma < 0.95) {
+      accentPixelCount++;
+    }
   }
 
-  // Multi-color if ≥3 distinct hue buckets AND ≥15% of opaque pixels are chromatic
-  const chromaRatio = opaqueCount > 0 ? chromaCount / opaqueCount : 0;
-  return hueBuckets.size >= 3 && chromaRatio > 0.15;
+  return { opaqueCount, chromaCount, accentPixelCount, hueBuckets };
 }
 
 /**
