@@ -268,11 +268,11 @@ export const PushPrintifyThenShopify = ({
       setStep("shopify");
       toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      // If Printify publish is on, wait briefly for Printify→Shopify sync to create the product
+      // If Printify publish is on, wait for the native Printify→Shopify sync first.
       let currentShopifyId = product.shopify_product_id;
       if (publishOnPrintify && !currentShopifyId) {
         toast.info("Waiting for Printify to sync to Shopify...");
-        for (let attempt = 0; attempt < 12; attempt++) {
+        for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
           const { data: freshProduct } = await supabase
             .from("products")
@@ -312,6 +312,11 @@ export const PushPrintifyThenShopify = ({
         alt_text: l.alt_text,
       }));
 
+      const useEfficientShopifyUpdate = publishOnPrintify && !!currentShopifyId;
+      if (!useEfficientShopifyUpdate) {
+        toast.info("Running a full Shopify push so title, description, tags, SEO, and mockups all update.");
+      }
+
       const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           organizationId,
@@ -327,8 +332,7 @@ export const PushPrintifyThenShopify = ({
           listings: listingsMapped,
           imageUrl: product.image_url,
           variants: optimizedVariants,
-          // Only update images + SEO — Printify already synced title/desc/tags/pricing
-          updateFields: ["images", "seo"],
+          ...(useEfficientShopifyUpdate ? { updateFields: ["images", "seo"] } : {}),
         },
       });
 
