@@ -263,11 +263,30 @@ export const PushPrintifyThenShopify = ({
 
       toast.success(`✓ Printify: Created with ${printifyData.variantCount} variants`);
 
-      // ===== STEP 2: Push to Shopify =====
+      // ===== STEP 2: Push mockups + SEO to Shopify =====
+      // Printify sync handles title, description, tags, pricing — we only add custom mockups + SEO
       setStep("shopify");
-      toast.info("Step 2/2: Pushing to Shopify with mockups & SEO...");
+      toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      const selectedMockups = mockups; // use all mockups
+      // If Printify publish is on, wait briefly for Printify→Shopify sync to create the product
+      let currentShopifyId = product.shopify_product_id;
+      if (publishOnPrintify && !currentShopifyId) {
+        toast.info("Waiting for Printify to sync to Shopify...");
+        for (let attempt = 0; attempt < 12; attempt++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const { data: freshProduct } = await supabase
+            .from("products")
+            .select("shopify_product_id")
+            .eq("id", product.id)
+            .single();
+          if (freshProduct?.shopify_product_id) {
+            currentShopifyId = freshProduct.shopify_product_id;
+            break;
+          }
+        }
+      }
+
+      const selectedMockups = mockups;
       const rawVariants = selectedMockups.map((m) => ({
         colorName: m.color_name,
         imageUrl: m.image_url,
@@ -303,11 +322,13 @@ export const PushPrintifyThenShopify = ({
             category: product.category,
             price: product.price,
             keywords: product.keywords,
-            shopify_product_id: product.shopify_product_id,
+            shopify_product_id: currentShopifyId,
           },
           listings: listingsMapped,
           imageUrl: product.image_url,
           variants: optimizedVariants,
+          // Only update images + SEO — Printify already synced title/desc/tags/pricing
+          updateFields: ["images", "seo"],
         },
       });
 
@@ -318,7 +339,7 @@ export const PushPrintifyThenShopify = ({
         onProductUpdate?.({ shopify_product_id: shopifyData.shopifyProduct.id });
       }
 
-      toast.success("✓ Shopify: Product pushed with mockups, SEO, title, description & tags!");
+      toast.success("✓ Shopify: Custom mockups & SEO applied!");
 
       setStep("done");
       setResult({ success: true });
