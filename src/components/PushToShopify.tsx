@@ -92,6 +92,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
           variants: optimizedVariants,
           sizes,
           forceVariants: !isUpdate,
+          sizes: !isUpdate ? sizes : undefined,
           ...(updateFields ? { updateFields } : {}),
         },
       });
