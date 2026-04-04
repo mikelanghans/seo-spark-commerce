@@ -26,7 +26,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, allowCreateOnMissingProduct = true } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -98,8 +98,13 @@ serve(async (req) => {
       },
     );
 
-    // If update returns 404, the product was deleted on Shopify — fall back to create
+    // If update returns 404, the linked Shopify product no longer exists
     if (isUpdate && shopifyResponse.status === 404) {
+      console.log("Existing Shopify product not found (404)");
+      if (!allowCreateOnMissingProduct) {
+        throw new Error("Linked Shopify product no longer exists. Wait for the latest Printify sync or create a new Shopify product intentionally.");
+      }
+
       console.log("Existing Shopify product not found (404), creating new product instead");
       shopifyProduct = buildShopifyProduct(
         product,

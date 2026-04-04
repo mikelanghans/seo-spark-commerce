@@ -295,9 +295,10 @@ export const PushPrintifyThenShopify = ({
       setStep("shopify");
       toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      // Wait for the Printify-synced Shopify product ID (saved by printify-create-product after publish)
-      let currentShopifyId = product.shopify_product_id;
-      if (!currentShopifyId) {
+      const previousShopifyId = product.shopify_product_id ?? null;
+      let currentShopifyId = previousShopifyId;
+
+      if (publishOnPrintify) {
         toast.info("Waiting for Printify sync to Shopify...");
         for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
@@ -306,15 +307,23 @@ export const PushPrintifyThenShopify = ({
             .select("shopify_product_id")
             .eq("id", product.id)
             .single();
-          if (freshProduct?.shopify_product_id) {
-            currentShopifyId = freshProduct.shopify_product_id;
+
+          const freshShopifyId = freshProduct?.shopify_product_id ?? null;
+          if (!freshShopifyId) continue;
+          if (!previousShopifyId || freshShopifyId !== previousShopifyId) {
+            currentShopifyId = freshShopifyId;
             break;
           }
         }
       }
 
-      if (!currentShopifyId) {
-        toast.warning("Printify sync to Shopify timed out — mockups & SEO not applied. You can push to Shopify separately.");
+      const waitingForFreshShopifyId = publishOnPrintify && !!previousShopifyId && currentShopifyId === previousShopifyId;
+      if (!currentShopifyId || waitingForFreshShopifyId) {
+        toast.warning(
+          publishOnPrintify
+            ? "Printify sync to Shopify hasn't returned a fresh product link yet, so the Shopify update was skipped to avoid a duplicate. Try again in a moment."
+            : "No Shopify product is linked yet — publish from Printify first, then try Shopify again.",
+        );
         setStep("done");
         setResult({ success: true });
         setOpen(false);
@@ -367,6 +376,7 @@ export const PushPrintifyThenShopify = ({
           imageUrl: product.image_url,
           variants: optimizedVariants,
           forceVariants: false,
+          allowCreateOnMissingProduct: false,
         },
       });
 
