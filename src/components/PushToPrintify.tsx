@@ -90,7 +90,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   const [sizePricing, setSizePricing] = useState<Record<string, string>>({});
   const [alsoUpdateShopify] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [publishOnPrintify, setPublishOnPrintify] = useState(false);
+  const [publishOnPrintify, setPublishOnPrintify] = useState(true);
 
   const isExisting = !!product.printify_product_id;
 
@@ -562,8 +562,8 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                 {/* Publish toggle for new creation */}
                 <div className="flex items-center justify-between rounded-lg border border-border p-3">
                   <div>
-                    <p className="text-sm font-medium">Publish on Printify</p>
-                    <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
+                    <p className="text-sm font-medium">Publish & Sync to Shopify</p>
+                    <p className="text-xs text-muted-foreground">Published products auto-sync to your Shopify store via Printify</p>
                   </div>
                   <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
                 </div>
@@ -595,8 +595,8 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
                 {/* Publish toggle */}
                 <div className="flex items-center justify-between rounded-lg border border-border p-3">
                   <div>
-                    <p className="text-sm font-medium">Publish on Printify</p>
-                    <p className="text-xs text-muted-foreground">Off = saved as draft, On = published immediately</p>
+                    <p className="text-sm font-medium">Publish & Sync to Shopify</p>
+                    <p className="text-xs text-muted-foreground">Published products auto-sync to your Shopify store via Printify</p>
                   </div>
                   <Switch checked={publishOnPrintify} onCheckedChange={setPublishOnPrintify} />
                 </div>
