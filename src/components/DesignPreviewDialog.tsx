@@ -11,6 +11,7 @@ import {
 import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { darkenBrightPixels, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
 
 interface HistoryEntry {
   id: string;
@@ -108,6 +109,51 @@ export const DesignPreviewDialog = ({
   };
 
   const activeUrl = viewingUrl || (activeVariant === "dark" && darkDesignUrl ? darkDesignUrl : designUrl);
+
+  const generateDarkVariantLocally = async () => {
+    if (!designUrl || !messageId) throw new Error("Missing design");
+
+    const lightDesignBase64 = await fetch(designUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to load design");
+        return response.blob();
+      })
+      .then(
+        (blob) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error("Failed to read design"));
+            reader.readAsDataURL(blob);
+          }),
+      );
+
+    const multiColor = await isMultiColorDesign(lightDesignBase64);
+    const darkVariantBase64 = multiColor
+      ? await darkenBrightPixels(lightDesignBase64)
+      : `data:image/png;base64,${await recolorOpaquePixels(await removeBackground(lightDesignBase64, "black"), { r: 24, g: 24, b: 24 })}`;
+
+    const darkBlob = await fetch(darkVariantBase64).then((response) => response.blob());
+    const path = `${userId}/designs/${messageId}-dark-${Date.now()}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(path, darkBlob, { contentType: "image/png", upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+    const savedDarkUrl = urlData.publicUrl;
+
+    const { error: updateError } = await supabase
+      .from("generated_messages")
+      .update({ dark_design_url: savedDarkUrl })
+      .eq("id", messageId);
+
+    if (updateError) throw updateError;
+
+    return savedDarkUrl;
+  };
 
   const handleDownload = async () => {
     if (!activeUrl) return;
@@ -208,16 +254,9 @@ export const DesignPreviewDialog = ({
                 if (!darkDesignUrl && !generatingDark && designUrl && messageId) {
                   setGeneratingDark(true);
                   try {
-                    const { data, error } = await supabase.functions.invoke("generate-dark-design", {
-                      body: { designUrl, messageId, organizationId },
-                    });
-                    if (error || data?.error) {
-                      toast.error("Failed to generate dark variant");
-                      setActiveVariant("light");
-                    } else if (data?.darkDesignUrl) {
-                      toast.success("Dark variant generated!");
-                      onDarkDesignGenerated?.(messageId, data.darkDesignUrl);
-                    }
+                    const savedDarkUrl = await generateDarkVariantLocally();
+                    toast.success("Dark variant generated!");
+                    onDarkDesignGenerated?.(messageId, savedDarkUrl);
                   } catch {
                     toast.error("Failed to generate dark variant");
                     setActiveVariant("light");
