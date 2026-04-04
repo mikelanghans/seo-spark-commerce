@@ -49,6 +49,25 @@ serve(async (req) => {
       });
     }
 
+    if (printifyProductId && shopId) {
+      const productRes = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+        { headers: { Authorization: `Bearer ${printifyToken}` } }
+      );
+      if (productRes.ok) {
+        const product = await productRes.json();
+        productBlueprintId = product?.blueprint_id ?? null;
+        enabledSizes = Array.from(new Set(
+          (product?.variants || [])
+            .filter((variant: any) => variant?.is_enabled)
+            .map((variant: any) => (variant?.options?.size || "").trim())
+            .filter(Boolean)
+        ));
+      }
+    }
+
+    const bpId = productBlueprintId || blueprintId || DEFAULT_BLUEPRINT_ID;
+
     // Get print providers
     const providersRes = await fetch(
       `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
