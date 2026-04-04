@@ -147,6 +147,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
   };
 
   const loadPrintifyInfo = async () => {
+    if (!selectedShop) return;
     setLoadingColors(true);
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
@@ -173,85 +174,17 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       setLoadingColors(false);
     }
   };
-
-  const loadMockups = async () => {
-    setLoadingMockups(true);
-    try {
-      const { data } = await supabase
-        .from("product_images")
-        .select("*")
-        .eq("product_id", product.id)
-        .eq("image_type", "mockup")
-        .order("position");
-      setMockups((data as MockupImage[]) || []);
-    } catch {
-      // silent
-    } finally {
-      setLoadingMockups(false);
-    }
-  };
-
+...
   useEffect(() => {
     if (open) {
       loadShops();
-      loadPrintifyInfo();
       loadMockups();
       loadSizePricing();
     }
   }, [open]);
-
-  const loadSizePricing = async () => {
-    // Load org-level default size pricing, then overlay product-level overrides
-    const pt = PRODUCT_TYPE_REGISTRY["t-shirt"];
-    const defaults: Record<string, string> = { ...pt.defaultSizePricing };
-
-    if (organizationId) {
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("default_size_pricing")
-        .eq("id", organizationId)
-        .single();
-      const orgPricing = (org as any)?.default_size_pricing?.["t-shirt"] as Record<string, string> | undefined;
-      if (orgPricing) {
-        for (const [size, price] of Object.entries(orgPricing)) {
-          if (price) defaults[size] = price;
-        }
-      }
-    }
-
-    // Product-level overrides
-    if (product.id) {
-      const { data: prod } = await supabase
-        .from("products")
-        .select("size_pricing")
-        .eq("id", product.id)
-        .single();
-      const prodPricing = (prod as any)?.size_pricing as Record<string, string> | undefined;
-      if (prodPricing) {
-        for (const [size, price] of Object.entries(prodPricing)) {
-          if (price) defaults[size] = price;
-        }
-      }
-    }
-
-    setSizePricing(defaults);
-  };
-
-  const loadSavedPlacement = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("print_placement")
-      .eq("id", product.id)
-      .maybeSingle();
-
-    return parsePrintPlacement(
-      (data as { print_placement?: unknown } | null)?.print_placement,
-    );
-  };
-
-  // Re-fetch print provider info when product type changes
+...
   useEffect(() => {
-    if (open) {
+    if (open && selectedShop) {
       setPrintProviderId(null);
       loadPrintifyInfo();
     }

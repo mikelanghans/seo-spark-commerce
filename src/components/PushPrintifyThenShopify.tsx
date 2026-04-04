@@ -121,6 +121,7 @@ export const PushPrintifyThenShopify = ({
   };
 
   const loadPrintifyInfo = async () => {
+    if (!selectedShop) return;
     try {
       const { data, error } = await supabase.functions.invoke("printify-get-variants", {
         body: {
@@ -141,40 +142,10 @@ export const PushPrintifyThenShopify = ({
       }
     } catch {}
   };
-
-  const loadMockups = async () => {
-    setLoadingMockups(true);
-    try {
-      const { data } = await supabase
-        .from("product_images")
-        .select("*")
-        .eq("product_id", product.id)
-        .eq("image_type", "mockup")
-        .order("position");
-      setMockups((data as MockupImage[]) || []);
-    } catch {} finally { setLoadingMockups(false); }
-  };
-
-  const loadSizePricing = async () => {
-    const pt = PRODUCT_TYPE_REGISTRY["t-shirt"];
-    const defaults: Record<string, string> = { ...pt.defaultSizePricing };
-    if (organizationId) {
-      const { data: org } = await supabase.from("organizations").select("default_size_pricing").eq("id", organizationId).single();
-      const orgPricing = (org as any)?.default_size_pricing?.["t-shirt"] as Record<string, string> | undefined;
-      if (orgPricing) for (const [size, price] of Object.entries(orgPricing)) { if (price) defaults[size] = price; }
-    }
-    if (product.id) {
-      const { data: prod } = await supabase.from("products").select("size_pricing").eq("id", product.id).single();
-      const prodPricing = (prod as any)?.size_pricing as Record<string, string> | undefined;
-      if (prodPricing) for (const [size, price] of Object.entries(prodPricing)) { if (price) defaults[size] = price; }
-    }
-    setSizePricing(defaults);
-  };
-
+...
   useEffect(() => {
     if (open) {
       loadShops();
-      loadPrintifyInfo();
       loadMockups();
       loadSizePricing();
       setStep("idle");
@@ -183,7 +154,7 @@ export const PushPrintifyThenShopify = ({
   }, [open]);
 
   useEffect(() => {
-    if (open) {
+    if (open && selectedShop) {
       setPrintProviderId(null);
       loadPrintifyInfo();
     }

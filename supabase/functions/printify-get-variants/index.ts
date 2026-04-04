@@ -7,18 +7,34 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
+const DEFAULT_PROVIDER_ID = 99;
 
-async function fetchWithRetry(url: string, headers: Record<string, string>, maxRetries = 3): Promise<Response> {
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getRetryDelayMs = (response: Response, attempt: number) => {
+  const retryAfterHeader = response.headers.get("retry-after");
+  const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : Number.NaN;
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.min(retryAfterSeconds * 1000, 15000);
+  }
+
+  return Math.min(1500 * Math.pow(2, attempt) + Math.random() * 1000, 15000);
+};
+
+async function fetchWithRetry(url: string, headers: Record<string, string>, label: string, maxRetries = 4): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(url, { headers });
     if (res.status !== 429 || attempt === maxRetries) return res;
-    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 8000);
-    console.log(`Rate limited (429) on ${url}, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
-    await res.text(); // consume body
-    await new Promise((r) => setTimeout(r, delay));
+
+    const delay = getRetryDelayMs(res, attempt);
+    console.warn(`${label} hit Printify rate limits (429). Retrying in ${Math.round(delay)}ms (${attempt + 1}/${maxRetries})`);
+    await res.text();
+    await sleep(delay);
   }
+
   throw new Error("Unreachable");
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
