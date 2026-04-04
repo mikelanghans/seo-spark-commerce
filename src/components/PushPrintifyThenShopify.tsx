@@ -291,14 +291,14 @@ export const PushPrintifyThenShopify = ({
       toast.success(`✓ Printify: Created with ${printifyData.variantCount} variants`);
 
       // ===== STEP 2: Push mockups + SEO to Shopify =====
-      // Printify sync handles title, description, tags, pricing — we only add custom mockups + SEO
+      // Printify sync handles variants & pricing — we only add custom mockups + SEO
       setStep("shopify");
       toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
-      // If Printify publish is on, wait for the native Printify→Shopify sync first.
+      // Wait for the Printify-synced Shopify product ID (saved by printify-create-product after publish)
       let currentShopifyId = product.shopify_product_id;
-      if (publishOnPrintify && !currentShopifyId) {
-        toast.info("Waiting for Printify to sync to Shopify...");
+      if (!currentShopifyId) {
+        toast.info("Waiting for Printify sync to Shopify...");
         for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
           const { data: freshProduct } = await supabase
@@ -312,6 +312,17 @@ export const PushPrintifyThenShopify = ({
           }
         }
       }
+
+      if (!currentShopifyId) {
+        toast.warning("Printify sync to Shopify timed out — mockups & SEO not applied. You can push to Shopify separately.");
+        setStep("done");
+        setResult({ success: true });
+        setOpen(false);
+        return;
+      }
+
+      // Update the local state immediately
+      onProductUpdate?.({ shopify_product_id: currentShopifyId });
 
       const selectedMockups = mockups;
       const rawVariants = selectedMockups.map((m) => ({
@@ -339,10 +350,7 @@ export const PushPrintifyThenShopify = ({
         alt_text: l.alt_text,
       }));
 
-      // Always do a full Shopify push so title, description, tags, SEO, and mockups are all set
-      // (Printify's native sync is unreliable for metadata)
-      const useEfficientShopifyUpdate = false;
-
+      // Update the Printify-synced Shopify product — DON'T force variants (preserve Printify's Color×Size matrix)
       const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           organizationId,
@@ -358,7 +366,7 @@ export const PushPrintifyThenShopify = ({
           listings: listingsMapped,
           imageUrl: product.image_url,
           variants: optimizedVariants,
-          forceVariants: true,
+          forceVariants: false,
         },
       });
 
