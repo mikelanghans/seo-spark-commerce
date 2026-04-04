@@ -92,13 +92,13 @@ serve(async (req) => {
 
     // Get variants and printing specs in parallel
     const [variantsRes, printingRes] = await Promise.all([
-      fetch(
+      fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
+        { Authorization: `Bearer ${printifyToken}` }
       ),
-      fetch(
+      fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/printing.json`,
-        { headers: { Authorization: `Bearer ${printifyToken}` } }
+        { Authorization: `Bearer ${printifyToken}` }
       ),
     ]);
 
