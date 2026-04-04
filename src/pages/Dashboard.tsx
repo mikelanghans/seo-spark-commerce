@@ -502,31 +502,37 @@ const Dashboard = () => {
                         <DropdownMenuTrigger asChild>
                           <Button disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm">
                             <Rocket className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Publish</span>
-                            <span className="sm:hidden">Publish</span>
+                            <span className="hidden sm:inline">Publish{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
+                            <span className="sm:hidden">Publish{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
                             <ChevronDown className="h-3 w-3 ml-0.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuItem onClick={handleGenerateAllListings} className="gap-2">
+                          <DropdownMenuItem onClick={() => handleGenerateAllListings(getSelectedProducts())} className="gap-2">
                             <Sparkles className="h-4 w-4" />
                             <div>
                               <p className="font-medium">Generate SEO</p>
-                              <p className="text-[10px] text-muted-foreground">Create optimized listings for all products</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {selectedProductIds.size > 0 ? `For ${selectedProductIds.size} selected products` : "For all products"}
+                              </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handlePushAllToShopify} className="gap-2">
+                          <DropdownMenuItem onClick={() => handlePushAllToShopify(getSelectedProducts())} className="gap-2">
                             <Store className="h-4 w-4" />
                             <div>
-                              <p className="font-medium">Push All to Shopify</p>
-                              <p className="text-[10px] text-muted-foreground">Sync all products &amp; listings to your store</p>
+                              <p className="font-medium">Push to Shopify</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {selectedProductIds.size > 0 ? `Sync ${selectedProductIds.size} selected products` : "Sync all products"}
+                              </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={async () => { await handleGenerateAllListings(); if (!cancelGenAllRef.current) handlePushAllToShopify(); }} className="gap-2 border-t border-border">
+                          <DropdownMenuItem onClick={async () => { const subset = getSelectedProducts(); await handleGenerateAllListings(subset); if (!cancelGenAllRef.current) handlePushAllToShopify(subset); }} className="gap-2 border-t border-border">
                             <Rocket className="h-4 w-4 text-primary" />
                             <div>
                               <p className="font-medium text-primary">Generate &amp; Push</p>
-                              <p className="text-[10px] text-muted-foreground">Run both steps sequentially</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {selectedProductIds.size > 0 ? `Both steps for ${selectedProductIds.size} selected` : "Run both steps for all"}
+                              </p>
                             </div>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
