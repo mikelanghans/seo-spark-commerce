@@ -230,6 +230,7 @@ export const PushPrintifyThenShopify = ({
         organizationId,
       };
       let createdNewPrintifyProduct = false;
+      let currentShopifyId: number | null = product.shopify_product_id ?? null;
 
       if (product.printify_product_id) {
         toast.info("Step 1/2: Updating existing Printify product...");
