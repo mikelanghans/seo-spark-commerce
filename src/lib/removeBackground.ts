@@ -605,7 +605,21 @@ export async function darkenBrightPixels(
     accentB = Math.round(accentSumB / accentCount);
   }
 
-  const countBrightNeutralNeighbors = (pixelIndex: number, radius: number) => {
+  const countDenseOpaqueNeighbors = (pixelIndex: number, radius: number) => {
+    const x = (pixelIndex / 4) % w;
+    const y = Math.floor(pixelIndex / 4 / w);
+    let count = 0;
+    for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
+      for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
+        if (nx === x && ny === y) continue;
+        const neighborIdx = (ny * w + nx) * 4;
+        if (sourcePixels[neighborIdx + 3] >= 120) count++;
+      }
+    }
+    return count;
+  };
+
+
     const x = (pixelIndex / 4) % w;
     const y = Math.floor(pixelIndex / 4 / w);
     let count = 0;
