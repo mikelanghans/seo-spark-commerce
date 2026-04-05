@@ -261,6 +261,14 @@ export const OrgFormView = ({
         })}
       </div>
     )}
+
+    {/* Listing Excluded Sections */}
+    {editingOrg && (
+      <div className="rounded-xl border border-border bg-card p-5">
+        <ListingExcludedSections organizationId={editingOrg.id} />
+      </div>
+    )}
+
     <div className="flex justify-end">
       <Button type="submit" className="gap-2">
         {editingOrg ? <><Check className="h-4 w-4" /> Save Changes</> : <><Plus className="h-4 w-4" /> Create</>}
