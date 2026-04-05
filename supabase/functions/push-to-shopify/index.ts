@@ -111,10 +111,12 @@ serve(async (req) => {
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
 
-    // For updates, delete only images for colors being pushed (not all images)
+    // For updates, delete images before re-uploading.
+    // replaceAllImages = true → wipe everything (used after Printify sync to replace Printify mockups with local ones)
     const pushedColorNames = actualColorVariants.map((v) => v.colorName);
+    const deleteColorFilter = replaceAllImages ? undefined : (pushedColorNames.length > 0 ? pushedColorNames : undefined);
     if (isUpdate && shouldUpdateImages && imageEntries.length > 0) {
-      await deleteExistingImages(domain, connection.access_token, existingShopifyId, pushedColorNames.length > 0 ? pushedColorNames : undefined);
+      await deleteExistingImages(domain, connection.access_token, existingShopifyId, deleteColorFilter);
     }
 
     // Create or update product
