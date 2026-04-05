@@ -618,8 +618,7 @@ export async function darkenBrightPixels(
         const nMax = Math.max(nr, ng, nb), nMin = Math.min(nr, ng, nb);
         const nSat = nMax === 0 ? 0 : (nMax - nMin) / nMax;
         const nLuma = 0.2126 * nr + 0.7152 * ng + 0.0722 * nb;
-        // Count neighbors that are neutral enough to belong to text/stars, even if mid-gray.
-        if (nSat < 0.18 && nLuma > 0.22) count++;
+        if (nSat < 0.18 && nLuma > 0.08) count++;
       }
     }
     return count;
@@ -644,6 +643,20 @@ export async function darkenBrightPixels(
     return count;
   };
 
+  const countOpaqueNeighbors = (pixelIndex: number, radius: number) => {
+    const x = (pixelIndex / 4) % w;
+    const y = Math.floor(pixelIndex / 4 / w);
+    let count = 0;
+    for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
+      for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
+        if (nx === x && ny === y) continue;
+        const nIdx = (ny * w + nx) * 4;
+        if (sourcePixels[nIdx + 3] >= 80) count++;
+      }
+    }
+    return count;
+  };
+
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 30) continue;
 
@@ -653,30 +666,31 @@ export async function darkenBrightPixels(
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const sat = max === 0 ? 0 : (max - min) / max;
 
-    // Process neutral artwork broadly enough to catch mid-gray stars, not just white ones.
-    if (sat < 0.18 && luma > 0.22) {
-      // Detect isolated decorative stars/sparkles separately from bright text.
+    // Process neutral artwork broadly enough to catch dark detached sparkles too.
+    if (sat < 0.18 && alpha > 0.08) {
       const neutralNearby = countNeutralNeighbors(i, 4);
       const neutralDensity = neutralNearby / ((9 * 9) - 1);
       const chromaticNearby = countChromaticNeighbors(i, 3);
       const chromaticDensity = chromaticNearby / ((7 * 7) - 1);
-      const isIsolatedDecoration = neutralDensity < 0.22;
-      const sitsOnColoredArtwork = isIsolatedDecoration && chromaticDensity > 0.06 && luma > 0.45;
+      const opaqueNearby = countOpaqueNeighbors(i, 4);
+      const opaqueDensity = opaqueNearby / ((9 * 9) - 1);
+      const isDetachedDecoration = neutralDensity < 0.22 && opaqueDensity < 0.46;
+      const sitsOnColoredArtwork = isDetachedDecoration && chromaticDensity > 0.06 && luma > 0.45;
 
       if (sitsOnColoredArtwork) {
-        // Keep bright stars that are part of colored artwork, like the one on the blue circle.
         d[i + 3] = Math.max(d[i + 3], 170);
-      } else if (isIsolatedDecoration) {
-        // Decorative stars/sparkles on light garments: tint them with the
-        // design's accent color (gold/warm) at low opacity so they look like
-        // subtle metallic accents rather than dark ink marks.
-        d[i] = accentR;
-        d[i + 1] = accentG;
-        d[i + 2] = accentB;
-        // Keep them very subtle — low alpha so they don't dominate on white
-        d[i + 3] = Math.min(d[i + 3], alpha >= 0.5 ? 90 : 55);
-      } else {
-        // Dense neutral artwork such as text should still become dark enough to read.
+      } else if (isDetachedDecoration) {
+        const accentBlend = luma < 0.22 ? 0.72 : 0.88;
+        const warmBase = luma < 0.22 ? 72 : 96;
+        const targetAlpha = luma < 0.22
+          ? (alpha >= 0.45 ? 110 : 85)
+          : (alpha >= 0.45 ? 90 : 55);
+
+        d[i] = Math.round(warmBase * (1 - accentBlend) + accentR * accentBlend);
+        d[i + 1] = Math.round(warmBase * (1 - accentBlend) + accentG * accentBlend);
+        d[i + 2] = Math.round(warmBase * (1 - accentBlend) + accentB * accentBlend);
+        d[i + 3] = alpha >= 0.45 ? targetAlpha : Math.min(d[i + 3], targetAlpha);
+      } else if (luma > 0.22) {
         d[i] = targetLuma;
         d[i + 1] = targetLuma;
         d[i + 2] = targetLuma;
