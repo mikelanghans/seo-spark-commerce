@@ -183,11 +183,21 @@ serve(async (req) => {
         const fallbackPriceCents = Math.round(parseFloat((body.price || "29.99").replace(/[^0-9.]/g, "")) * 100);
         const sizePriceCents: Record<string, number> = {};
         if (body.sizePricing && typeof body.sizePricing === "object") {
-          for (const [size, p] of Object.entries(body.sizePricing)) {
+          // sizePricing can be nested { "t-shirt": { "S": "29.99" } } or flat { "S": "29.99" }
+          let flatPricing = body.sizePricing;
+          const firstValue = Object.values(body.sizePricing)[0];
+          if (firstValue && typeof firstValue === "object") {
+            // Nested format — try to find the right category key, else use the first one
+            const category = (body.category || "").toLowerCase().replace(/\s+/g, "-");
+            flatPricing = (body.sizePricing as Record<string, Record<string, string>>)[category] || Object.values(body.sizePricing)[0] || {};
+          }
+          for (const [size, p] of Object.entries(flatPricing as Record<string, string>)) {
             const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
             if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
           }
         }
+
+        console.log(`Pricing update: fallback=${fallbackPriceCents}, sizePrices=${JSON.stringify(sizePriceCents)}, variants=${printifyProduct.variants.length}`);
 
         updatePayload.variants = printifyProduct.variants.map((v: any) => {
           const vSize = (v.options?.size || v.title || "").trim();
