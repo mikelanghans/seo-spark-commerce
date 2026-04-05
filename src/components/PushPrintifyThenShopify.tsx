@@ -398,6 +398,14 @@ export const PushPrintifyThenShopify = ({
       if (shopifyError) throw shopifyError;
       if (shopifyData?.error) throw new Error(shopifyData.error);
 
+      if (shopifyData?.staleShopifyIdCleared) {
+        onProductUpdate?.({ shopify_product_id: null });
+        toast.warning("The linked Shopify product no longer exists. The stale link was cleared — wait for Printify sync, then retry.");
+        setStep("idle");
+        setResult(null);
+        return;
+      }
+
       if (shopifyData?.shopifyProduct?.id) {
         onProductUpdate?.({ shopify_product_id: shopifyData.shopifyProduct.id });
       }

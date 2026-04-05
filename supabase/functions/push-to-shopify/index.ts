@@ -174,31 +174,44 @@ serve(async (req) => {
             }
           }
         }
-      } else if (!allowCreateOnMissingProduct) {
-        throw new Error("Linked Shopify product no longer exists. Wait for the latest Printify sync or create a new Shopify product intentionally.");
-      }
-
-      // If it is still missing after retries, either fail intentionally or create a replacement.
-      if (shopifyResponse.status !== 404) {
-        // proceed with the successful retry response
-      } else if (!allowCreateOnMissingProduct) {
-        throw new Error("Linked Shopify product no longer exists. Wait for the latest Printify sync or create a new Shopify product intentionally.");
       } else {
-        console.log("Existing Shopify product not found (404), creating new product instead");
-        shopifyProduct = buildShopifyProduct(
-          product,
-          shopifyListing,
-          bodyHtml,
-          shopifyStatus,
-          colorVariants,
-          price,
-          false,
-          undefined,
-          true,
-          flatSizePricing,
-          sizes,
-        );
-        shopifyResponse = await createShopifyProduct(domain, connection.access_token, shopifyProduct);
+        if (product.id) {
+          await adminClient
+            .from("products")
+            .update({ shopify_product_id: null })
+            .eq("id", product.id);
+        }
+
+        // If it is still missing after retries, either tell the client to retry
+        // after Printify sync completes or create a replacement immediately.
+        if (shopifyResponse.status !== 404) {
+          // proceed with the successful retry response
+        } else if (!allowCreateOnMissingProduct) {
+          await shopifyResponse.text().catch(() => "");
+          return new Response(JSON.stringify({
+            success: false,
+            staleShopifyIdCleared: true,
+            message: "Linked Shopify product no longer exists. The stale link was cleared. Wait for the latest Printify sync, then retry, or intentionally create a new Shopify product.",
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } else {
+          console.log("Existing Shopify product not found (404), creating new product instead");
+          shopifyProduct = buildShopifyProduct(
+            product,
+            shopifyListing,
+            bodyHtml,
+            shopifyStatus,
+            colorVariants,
+            price,
+            false,
+            undefined,
+            true,
+            flatSizePricing,
+            sizes,
+          );
+          shopifyResponse = await createShopifyProduct(domain, connection.access_token, shopifyProduct);
+        }
       }
     }
 
