@@ -93,7 +93,17 @@ export async function normalizeAndLockToTemplateBlob({
         designDataUrl,
         preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
       );
-      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
+      drawDesignWithUnderbase(
+        ctx,
+        preparedDesign,
+        targetWidth,
+        targetHeight,
+        isDarkGarment,
+        designStyle,
+        placement,
+        referenceDesignSize,
+        preserveOriginalDesignAlpha,
+      );
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -139,6 +149,7 @@ function drawDesignWithUnderbase(
   designStyle?: string,
   placement?: DesignPlacement,
   referenceDesignSize?: { width: number; height: number },
+  preserveOriginalAppearance?: boolean,
 ) {
   // Use reference dimensions if provided for cross-variant consistency
   const designWidth = referenceDesignSize?.width ?? cleanedDesign.width;
@@ -153,7 +164,7 @@ function drawDesignWithUnderbase(
 
   // For dark garments, add a subtle white underbase behind the design
   // so dark outlines / shadows in the artwork remain visible on dark fabric.
-  if (isDarkGarment) {
+  if (isDarkGarment && !preserveOriginalAppearance) {
     const designToDraw = enhanceDarkPixelsForDarkGarment(cleanedDesign);
     ctx.drawImage(designToDraw, dx, dy, drawWidth, drawHeight);
   } else {

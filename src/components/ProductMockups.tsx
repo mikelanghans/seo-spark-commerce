@@ -680,8 +680,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         plainTemplate = await compressForEdgeFunction(plainTemplate, 1024, 0.8);
       } catch { /* use uncompressed */ }
 
-      const cleanedDesignForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
-
       let targetSize: { width: number; height: number } | null = null;
       try {
         targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -726,7 +724,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         generatedDataUrl,
         targetWidth: compositionSize.width,
         targetHeight: compositionSize.height,
-        designDataUrl: cleanedDesignForComposite,
+        designDataUrl: designForComposite,
         isDarkGarment: !isLight,
         referenceDesignSize,
         placement: activePlacement,

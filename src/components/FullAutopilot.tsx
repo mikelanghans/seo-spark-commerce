@@ -342,12 +342,21 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             let lightDesignBase64: string | undefined;
             let darkDesignBase64: string | undefined;
+            let preserveOriginalDesignAlpha = false;
 
             try {
               const cleaned = await smartRemoveBackground(designUrl);
               lightDesignBase64 = ensureImageDataUrl(cleaned);
             } catch {
               lightDesignBase64 = await fetchImageAsBase64(designUrl);
+            }
+
+            if (lightDesignBase64) {
+              try {
+                preserveOriginalDesignAlpha = await hasMeaningfulAccentColors(lightDesignBase64);
+              } catch {
+                preserveOriginalDesignAlpha = false;
+              }
             }
 
             try {
@@ -360,6 +369,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               darkDesignBase64 = undefined;
             }
 
+            if (lightDesignBase64 && !darkDesignBase64 && preserveOriginalDesignAlpha) {
+              darkDesignBase64 = lightDesignBase64;
+            }
+
             let targetSize: { width: number; height: number } | null = null;
             try {
               targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -369,7 +382,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             let referenceDesignSize: { width: number; height: number } | undefined;
             try {
-              referenceDesignSize = await getUnifiedDesignSize([lightDesignBase64, darkDesignBase64]);
+              referenceDesignSize = await getUnifiedDesignSize(
+                [lightDesignBase64, darkDesignBase64],
+                preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
+              );
             } catch {
               referenceDesignSize = undefined;
             }
@@ -405,7 +421,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 if (!genBase64) continue;
 
                 const isLight = typeConfig.lightColors.has(colorName.toLowerCase().trim());
-                const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+                const designForComposite = preserveOriginalDesignAlpha
+                  ? (lightDesignBase64 || darkDesignBase64)
+                  : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
                 const generatedDataUrl = ensureImageDataUrl(genBase64);
                 const blob = await normalizeAndLockToTemplateBlob({
                   templateDataUrl: plainTemplate,
@@ -415,6 +433,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                   designDataUrl: designForComposite,
                   isDarkGarment: !isLight,
                   referenceDesignSize,
+                  preserveOriginalDesignAlpha,
                 });
 
                 const { data: sess } = await supabase.auth.getSession();
