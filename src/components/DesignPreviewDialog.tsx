@@ -11,7 +11,7 @@ import {
 import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { darkenBrightPixels, hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
+import { hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
 
 interface HistoryEntry {
   id: string;
@@ -110,7 +110,7 @@ export const DesignPreviewDialog = ({
 
   const activeUrl = viewingUrl || (activeVariant === "dark" && darkDesignUrl ? darkDesignUrl : designUrl);
 
-  const generateDarkVariantLocally = async () => {
+  const generateDarkVariantLocally = async (): Promise<string | null> => {
     if (!designUrl || !messageId) throw new Error("Missing design");
 
     const lightDesignBase64 = await fetch(designUrl)
@@ -129,9 +129,11 @@ export const DesignPreviewDialog = ({
       );
 
     const preserveAccentColors = await hasMeaningfulAccentColors(lightDesignBase64) || await isMultiColorDesign(lightDesignBase64);
-    const darkVariantBase64 = preserveAccentColors
-      ? `data:image/png;base64,${await darkenBrightPixels(lightDesignBase64)}`
-      : `data:image/png;base64,${await recolorOpaquePixels(await removeBackground(lightDesignBase64, "black"), { r: 24, g: 24, b: 24 })}`;
+    if (preserveAccentColors) {
+      return null;
+    }
+
+    const darkVariantBase64 = `data:image/png;base64,${await recolorOpaquePixels(await removeBackground(lightDesignBase64, "black"), { r: 24, g: 24, b: 24 })}`;
 
     const darkBlob = await fetch(darkVariantBase64).then((response) => response.blob());
     const path = `${userId}/designs/${messageId}-dark-${Date.now()}.png`;
@@ -255,8 +257,12 @@ export const DesignPreviewDialog = ({
                   setGeneratingDark(true);
                   try {
                     const savedDarkUrl = await generateDarkVariantLocally();
-                    toast.success("Dark variant generated!");
-                    onDarkDesignGenerated?.(messageId, savedDarkUrl);
+                    if (savedDarkUrl) {
+                      toast.success("Dark variant generated!");
+                      onDarkDesignGenerated?.(messageId, savedDarkUrl);
+                    } else {
+                      toast.success("This design uses the same artwork on light shirts.");
+                    }
                   } catch {
                     toast.error("Failed to generate dark variant");
                     setActiveVariant("light");
