@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
 import { getStyleLabel } from "@/lib/designStyles";
+import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
@@ -472,8 +473,12 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const handlePreviewDesign = (msgId: string) => {
     const msg = messages.find((m) => m.id === msgId);
     if (!msg) return;
-    setPreviewUrl(msg.design_url);
-    setPreviewDarkUrl(msg.dark_design_url);
+    const { lightUrl, darkUrl } = resolveSingleDesignVariant([
+      ...(msg.design_url ? [{ image_url: msg.design_url, color_name: "light-on-dark" }] : []),
+      ...(msg.dark_design_url ? [{ image_url: msg.dark_design_url, color_name: "dark-on-light" }] : []),
+    ], msg.design_url);
+    setPreviewUrl(lightUrl);
+    setPreviewDarkUrl(darkUrl);
     setPreviewMessage(msg.message_text);
     setPreviewMessageId(msg.id);
   };

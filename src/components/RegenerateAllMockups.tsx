@@ -12,7 +12,7 @@ import {
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 import { hasMeaningfulAccentColors, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
-import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
+import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 
 interface Props {
@@ -167,18 +167,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           .eq("product_id", product.id)
           .eq("image_type", "design");
 
-        const normalizeKey = (v?: string | null) =>
-          (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
-
-        const lightDesignUrl = designImages?.find((d) => {
-          const key = normalizeKey(d.color_name);
-          return key === "light-on-dark" || key === "light";
-        })?.image_url || product.image_url;
-
-        const darkDesignUrl = designImages?.find((d) => {
-          const key = normalizeKey(d.color_name);
-          return key === "dark-on-light" || key === "dark";
-        })?.image_url;
+        const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, product.image_url);
 
         const fetchAsBase64 = async (url: string): Promise<string | undefined> => {
           try {
@@ -201,7 +190,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
 
-        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+        if (hasSingleSharedFile && lightDesignBase64) {
+          darkDesignBase64 = lightDesignBase64;
+        } else if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
           try {
             const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
             if (!darkHasAccentColors) {

@@ -15,7 +15,7 @@ import {
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors } from "@/lib/removeBackground";
-import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
+import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
 import { parsePrintPlacement } from "@/lib/printPlacement";
@@ -365,18 +365,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           .eq("product_id", productId)
           .eq("image_type", "design");
 
-        const normalizeKey = (v?: string | null) =>
-          (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
-
-        const lightDesignUrl = designImages?.find(d => {
-          const key = normalizeKey(d.color_name);
-          return key === "light-on-dark" || key === "light";
-        })?.image_url || designImageUrl;
-
-        const darkDesignUrl = designImages?.find(d => {
-          const key = normalizeKey(d.color_name);
-          return key === "dark-on-light" || key === "dark";
-        })?.image_url;
+        const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
@@ -391,7 +380,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           }
         }
 
-        if (lightDesignBase64 && lightPreservesAccentInk) {
+        if (hasSingleSharedFile && lightDesignBase64) {
+          darkDesignBase64 = lightDesignBase64;
+        } else if (lightDesignBase64 && lightPreservesAccentInk) {
           try {
             darkDesignBase64 = lightDesignBase64;
           } catch { /* continue */ }
@@ -601,18 +592,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         .eq("product_id", productId)
         .eq("image_type", "design");
 
-      const normalizeKey = (v?: string | null) =>
-        (v || "").toLowerCase().trim().replace(/[_\s]+/g, "-");
-
-      const lightDesignUrl = designImages?.find(d => {
-        const key = normalizeKey(d.color_name);
-        return key === "light-on-dark" || key === "light";
-      })?.image_url || designImageUrl;
-
-      const darkDesignUrl = designImages?.find(d => {
-        const key = normalizeKey(d.color_name);
-        return key === "dark-on-light" || key === "dark";
-      })?.image_url;
+      const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
       let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
@@ -627,7 +607,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (lightDesignBase64 && lightPreservesAccentInk) {
+      if (hasSingleSharedFile && lightDesignBase64) {
+        darkDesignBase64 = lightDesignBase64;
+      } else if (lightDesignBase64 && lightPreservesAccentInk) {
         try {
           darkDesignBase64 = lightDesignBase64;
         } catch { /* continue */ }
