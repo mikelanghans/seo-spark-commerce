@@ -605,7 +605,7 @@ export async function darkenBrightPixels(
     accentB = Math.round(accentSumB / accentCount);
   }
 
-  const countBrightNeutralNeighbors = (pixelIndex: number, radius: number) => {
+  const countNeutralNeighbors = (pixelIndex: number, radius: number) => {
     const x = (pixelIndex / 4) % w;
     const y = Math.floor(pixelIndex / 4 / w);
     let count = 0;
@@ -618,8 +618,8 @@ export async function darkenBrightPixels(
         const nMax = Math.max(nr, ng, nb), nMin = Math.min(nr, ng, nb);
         const nSat = nMax === 0 ? 0 : (nMax - nMin) / nMax;
         const nLuma = 0.2126 * nr + 0.7152 * ng + 0.0722 * nb;
-        // Count only neighbors that are also bright and neutral (like text)
-        if (nSat < 0.15 && nLuma > 0.55) count++;
+        // Count neighbors that are neutral enough to belong to text/stars, even if mid-gray.
+        if (nSat < 0.18 && nLuma > 0.22) count++;
       }
     }
     return count;
@@ -653,15 +653,15 @@ export async function darkenBrightPixels(
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const sat = max === 0 ? 0 : (max - min) / max;
 
-    // Only process near-neutral bright pixels (low saturation, high luminance)
-    if (sat < 0.15 && luma > 0.55) {
+    // Process neutral artwork broadly enough to catch mid-gray stars, not just white ones.
+    if (sat < 0.18 && luma > 0.22) {
       // Detect isolated decorative stars/sparkles separately from bright text.
-      const brightNeutralNearby = countBrightNeutralNeighbors(i, 4);
-      const brightNeutralDensity = brightNeutralNearby / ((9 * 9) - 1);
+      const neutralNearby = countNeutralNeighbors(i, 4);
+      const neutralDensity = neutralNearby / ((9 * 9) - 1);
       const chromaticNearby = countChromaticNeighbors(i, 3);
       const chromaticDensity = chromaticNearby / ((7 * 7) - 1);
-      const isIsolatedDecoration = brightNeutralDensity < 0.25 && luma > 0.65;
-      const sitsOnColoredArtwork = isIsolatedDecoration && chromaticDensity > 0.08;
+      const isIsolatedDecoration = neutralDensity < 0.22;
+      const sitsOnColoredArtwork = isIsolatedDecoration && chromaticDensity > 0.06 && luma > 0.45;
 
       if (sitsOnColoredArtwork) {
         // Keep bright stars that are part of colored artwork, like the one on the blue circle.
