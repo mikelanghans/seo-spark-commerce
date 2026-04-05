@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
+  getUnifiedDesignSize,
   normalizeAndLockToTemplateBlob,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
@@ -271,6 +272,16 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           }
         }
 
+        let referenceDesignSize: { width: number; height: number } | undefined;
+        try {
+          referenceDesignSize = await getUnifiedDesignSize(
+            [lightDesignBase64, darkDesignBase64],
+            preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
+          );
+        } catch {
+          referenceDesignSize = undefined;
+        }
+
         let compressedTemplateBase64 = templateBase64;
         try {
           compressedTemplateBase64 = await compressForEdgeFunction(templateBase64, 1024, 0.8);
@@ -288,7 +299,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
           try {
             const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
-            const designForRecomposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+            const designForRecomposite = preserveOriginalDesignAlpha
+              ? (lightDesignBase64 || darkDesignBase64)
+              : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
 
             const { data, error } = await supabase.functions.invoke("generate-color-variants", {
               body: {
@@ -328,6 +341,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               targetHeight: targetSize?.height || 1024,
               designDataUrl: designForRecomposite,
               isDarkGarment: !isLight,
+              referenceDesignSize,
               preserveOriginalDesignAlpha,
             });
 

@@ -422,16 +422,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           } catch { /* continue */ }
         }
 
+        const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
+
         let referenceDesignSize: { width: number; height: number } | undefined;
         try {
-          referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+          referenceDesignSize = await getUnifiedDesignSize(
+            [lightDesignBase64, darkDesignBase64],
+            preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
+          );
         } catch { /* continue without reference */ }
 
         preparedDesigns = {
           lightDesignBase64,
           darkDesignBase64,
           referenceDesignSize,
-          preserveOriginalDesignAlpha: hasSingleSharedFile || lightPreservesAccentInk,
+          preserveOriginalDesignAlpha,
         };
         return preparedDesigns;
       };
@@ -497,7 +502,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           if (!generatedBase64) throw new Error("No image returned");
 
           const { lightDesignBase64, darkDesignBase64, referenceDesignSize, preserveOriginalDesignAlpha } = await getPreparedDesigns();
-          const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+          const designForComposite = preserveOriginalDesignAlpha
+            ? (lightDesignBase64 || darkDesignBase64)
+            : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
           const generatedDataUrl = ensureImageDataUrl(generatedBase64);
           const blob = await normalizeAndLockToTemplateBlob({
             templateDataUrl: plainTemplate,
@@ -663,7 +670,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
       const isLight = isLightColor(typeConfig, colorName);
-      const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
+      const designForComposite = preserveOriginalDesignAlpha
+        ? (lightDesignBase64 || darkDesignBase64)
+        : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
       const activePlacement = placementRef.current || placementOverride || undefined;
 
       let plainTemplate = templateBase64;
@@ -682,7 +691,10 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       // Compute unified design dimensions for consistent sizing
       let referenceDesignSize: { width: number; height: number } | undefined;
       try {
-        referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+        referenceDesignSize = await getUnifiedDesignSize(
+          [lightDesignBase64, darkDesignBase64],
+          preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
+        );
       } catch { /* continue without reference */ }
 
       const customInstructions = `IMPORTANT FEEDBACK FROM USER: ${feedback}. Please address these issues in the regenerated mockup.`;
