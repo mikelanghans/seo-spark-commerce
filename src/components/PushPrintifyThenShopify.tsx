@@ -310,41 +310,28 @@ export const PushPrintifyThenShopify = ({
           onProductUpdate?.({ printify_product_id: printifyProductId });
         }
 
+        // Use the Shopify ID that Printify's native sync created (returned by the edge function)
+        if (printifyData.shopifyProductId) {
+          currentShopifyId = printifyData.shopifyProductId;
+          onProductUpdate?.({ shopify_product_id: currentShopifyId });
+        }
+
         toast.success(`✓ Printify: Created with ${printifyData.variantCount} variants`);
       }
 
       // ===== STEP 2: Push mockups + SEO to Shopify =====
       // Printify sync handles variants & pricing — we only add custom mockups + SEO
       setStep("shopify");
-      toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
-
-      const previousShopifyId = product.shopify_product_id ?? null;
-      let currentShopifyId = previousShopifyId;
-
-      if (createdNewPrintifyProduct && publishOnPrintify) {
-        toast.info("Waiting for Printify sync to Shopify...");
-        for (let attempt = 0; attempt < 18; attempt++) {
-          await new Promise((r) => setTimeout(r, 5000));
-          const { data: freshProduct } = await supabase
-            .from("products")
-            .select("shopify_product_id")
-            .eq("id", product.id)
-            .single();
-          const freshShopifyId = freshProduct?.shopify_product_id ?? null;
-          if ((!previousShopifyId && freshShopifyId) || (previousShopifyId && freshShopifyId && freshShopifyId !== previousShopifyId)) {
-            currentShopifyId = freshShopifyId;
-            break;
-          }
-        }
-      }
 
       if (!currentShopifyId) {
-        toast.warning("No Shopify product is linked yet — publish from Printify first, then push to Shopify separately.");
+        toast.warning("No Shopify product is linked yet — Printify sync may still be in progress. Try pushing to Shopify separately in a moment.");
         setStep("done");
         setResult({ success: true });
         setOpen(false);
         return;
       }
+
+      toast.info("Step 2/2: Pushing mockups & SEO to Shopify...");
 
       // Update the local state immediately
       onProductUpdate?.({ shopify_product_id: currentShopifyId });
