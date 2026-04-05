@@ -11,7 +11,7 @@ import {
   normalizeAndLockToTemplateBlob,
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
-import { hasMeaningfulAccentColors, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
+import { darkenBrightPixels, hasMeaningfulAccentColors, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 
@@ -513,7 +513,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 async function deriveDarkInk(sourceDataUrl: string): Promise<string> {
   const preserveAccentColors = await hasMeaningfulAccentColors(sourceDataUrl) || await isMultiColorDesign(sourceDataUrl);
   if (preserveAccentColors) {
-    return sourceDataUrl;
+    return ensureImageDataUrl(await darkenBrightPixels(sourceDataUrl));
   }
 
   const bgRemoved = await removeBackground(sourceDataUrl, "black");
