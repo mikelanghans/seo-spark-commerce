@@ -50,7 +50,7 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "This is a t-shirt design with white/light colored text and graphics on a transparent background. I need you to create an IDENTICAL version of this exact same design, but change ALL the white/light colored elements (text, graphics, lines, illustrations) to dark black/charcoal color instead. Keep the exact same layout, fonts, sizing, positioning, and graphic elements — only change the color from white/light to dark black. The background must remain transparent. Output ONLY the modified design image.",
+                text: "This is a t-shirt design with white/light colored text and graphics on a transparent background. I need you to create an IDENTICAL version of this exact same design, but change the white/light colored TEXT and NEUTRAL elements to dark black/charcoal color instead. IMPORTANT: Any decorative elements that have a distinct color — such as golden, metallic, colored sparkles, stars, gradients, or accent graphics — must be PRESERVED with their EXACT original color and appearance. Do NOT convert colored/metallic/golden elements to black. Only convert neutral white/light gray text and graphics. Keep the exact same layout, fonts, sizing, positioning, and all graphic elements. The background must remain transparent. Output ONLY the modified design image.",
               },
               {
                 type: "image_url",
