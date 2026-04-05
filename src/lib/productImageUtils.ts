@@ -64,6 +64,17 @@ export function normalizeDesignColorName(name: string): string {
   return name;
 }
 
+function normalizeDesignUrl(url?: string | null): string | null {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url, "https://lovable.dev");
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return url.split("?")[0].split("#")[0].trim() || null;
+  }
+}
+
 export function resolveSingleDesignVariant<T extends { image_url: string; color_name?: string | null }>(
   designImages: T[] | null | undefined,
   fallbackUrl?: string | null,
@@ -75,6 +86,23 @@ export function resolveSingleDesignVariant<T extends { image_url: string; color_
 
   const light = normalized.find((image) => image.normalizedColorName === "light-on-dark")?.image_url || fallbackUrl || null;
   const dark = normalized.find((image) => image.normalizedColorName === "dark-on-light")?.image_url || null;
+  const normalizedUrls = new Set(
+    [
+      ...normalized.map((image) => normalizeDesignUrl(image.image_url)),
+      normalizeDesignUrl(fallbackUrl),
+    ].filter(Boolean),
+  );
+  const sharedUrl = light || dark || normalized[0]?.image_url || fallbackUrl || null;
+
+  if (
+    sharedUrl &&
+    (
+      normalizedUrls.size === 1 ||
+      (!!light && !!dark && normalizeDesignUrl(light) === normalizeDesignUrl(dark))
+    )
+  ) {
+    return { lightUrl: sharedUrl, darkUrl: sharedUrl, hasSingleSharedFile: true };
+  }
 
   if (light && !dark) {
     return { lightUrl: light, darkUrl: light, hasSingleSharedFile: true };
