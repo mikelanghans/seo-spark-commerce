@@ -671,7 +671,7 @@ export async function darkenBrightPixels(
         d[i] = targetLuma;
         d[i + 1] = targetLuma;
         d[i + 2] = targetLuma;
-        d[i + 3] = Math.max(d[i + 3], alpha >= 0.55 ? 220 : 150);
+        d[i + 3] = Math.max(d[i + 3], alpha >= 0.2 ? 245 : 220);
       }
     }
   }
