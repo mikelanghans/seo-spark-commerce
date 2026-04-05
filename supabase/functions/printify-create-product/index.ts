@@ -143,11 +143,19 @@ serve(async (req) => {
       });
       if (!fetchRes.ok) {
         if (fetchRes.status === 404) {
-          // Product was deleted on Printify — clear the stored ID
+          // Product was deleted on Printify — clear the stored ID and signal the client
           if (body.productId) {
             await adminClient.from("products").update({ printify_product_id: null }).eq("id", body.productId);
           }
-          throw new Error("Product not found on Printify (404). ID has been cleared — you can push as a new product.");
+          console.log("Printify product 404 — cleared stale ID, client should retry as new creation");
+          return new Response(JSON.stringify({
+            success: false,
+            staleIdCleared: true,
+            message: "Product no longer exists on Printify. The link has been cleared — please retry to create a new product.",
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
         throw new Error(`Failed to fetch Printify product: ${fetchRes.status}`);
       }
