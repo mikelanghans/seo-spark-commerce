@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { smartRemoveBackground, isMultiColorDesign, recolorOpaquePixels, upscaleBase64Png } from "@/lib/removeBackground";
+import { smartRemoveBackground, isMultiColorDesign, hasMeaningfulAccentColors, darkenBrightPixels, recolorOpaquePixels, upscaleBase64Png } from "@/lib/removeBackground";
 
 export function useDesignProcessing(userId: string | undefined) {
   const [isProcessingDesign, setIsProcessingDesign] = useState(false);
@@ -17,9 +17,13 @@ export function useDesignProcessing(userId: string | undefined) {
       const transparentBase64 = await smartRemoveBackground(base64);
       setDesignProcessingStep("Analyzing design colors…");
       const multiColor = await isMultiColorDesign(transparentBase64);
+      const hasAccents = !multiColor && await hasMeaningfulAccentColors(transparentBase64);
       let darkBase64: string;
       if (multiColor) {
         darkBase64 = transparentBase64;
+      } else if (hasAccents) {
+        setDesignProcessingStep("Creating dark variant (preserving accents)…");
+        darkBase64 = await darkenBrightPixels(transparentBase64);
       } else {
         setDesignProcessingStep("Creating dark variant…");
         darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
