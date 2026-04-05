@@ -588,7 +588,7 @@ export async function darkenBrightPixels(
   for (let i = 0; i < d.length; i += 4) {
     if (sourcePixels[i + 3] < 120) continue;
     const rr = sourcePixels[i] / 255, gg = sourcePixels[i + 1] / 255, bb = sourcePixels[i + 2] / 255;
-    const mx = Math.max(rr, gg, bb), mn = Math.min(mx, gg, bb);
+    const mx = Math.max(rr, gg, bb), mn = Math.min(rr, gg, bb);
     const s = mx === 0 ? 0 : (mx - mn) / mx;
     const l = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
     // Collect warm-toned chromatic pixels (gold, orange, amber)
@@ -639,6 +639,25 @@ export async function darkenBrightPixels(
     return count;
   };
 
+  const countChromaticNeighbors = (pixelIndex: number, radius: number) => {
+    const x = (pixelIndex / 4) % w;
+    const y = Math.floor(pixelIndex / 4 / w);
+    let count = 0;
+    for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
+      for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
+        if (nx === x && ny === y) continue;
+        const nIdx = (ny * w + nx) * 4;
+        if (sourcePixels[nIdx + 3] < 80) continue;
+        const nr = sourcePixels[nIdx] / 255, ng = sourcePixels[nIdx + 1] / 255, nb = sourcePixels[nIdx + 2] / 255;
+        const nMax = Math.max(nr, ng, nb), nMin = Math.min(nr, ng, nb);
+        const nSat = nMax === 0 ? 0 : (nMax - nMin) / nMax;
+        const nLuma = 0.2126 * nr + 0.7152 * ng + 0.0722 * nb;
+        if (nSat > 0.18 && nLuma > 0.08 && nLuma < 0.92) count++;
+      }
+    }
+    return count;
+  };
+
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 30) continue;
 
@@ -653,24 +672,23 @@ export async function darkenBrightPixels(
       const denseNeighborCount = countDenseOpaqueNeighbors(i, 2);
       const isSoftGlowOrSparkle = alpha < 0.78;
 
-      // Detect sparkle-like elements: bright neutral pixels surrounded mostly
-      // by colored/dark pixels (artwork), NOT by other bright neutral pixels (text).
-      // Text pixels have many bright-neutral neighbors; sparkles over artwork don't.
+      // Detect isolated decorative stars/sparkles separately from bright text.
       const brightNeutralNearby = countBrightNeutralNeighbors(i, 4);
-      const maxNeighbors = (9 * 9) - 1; // 4-radius box
-      const brightNeutralDensity = brightNeutralNearby / maxNeighbors;
-      // If less than 25% of nearby pixels are also bright+neutral, it's a sparkle
-      const isSparkleElement = brightNeutralDensity < 0.25 && luma > 0.65;
+      const brightNeutralDensity = brightNeutralNearby / ((9 * 9) - 1);
+      const chromaticNearby = countChromaticNeighbors(i, 3);
+      const chromaticDensity = chromaticNearby / ((7 * 7) - 1);
+      const isIsolatedDecoration = brightNeutralDensity < 0.25 && luma > 0.65;
+      const sitsOnColoredArtwork = isIsolatedDecoration && chromaticDensity > 0.08;
 
-      if (isSparkleElement) {
-        // Recolor sparkles to the design's accent color (warm gold)
-        // so they're visible on light garments and match the design palette
-        const lumaMix = Math.max(0.6, luma); // keep them bright-ish
-        d[i] = Math.round(accentR * lumaMix);
-        d[i + 1] = Math.round(accentG * lumaMix);
-        d[i + 2] = Math.round(accentB * lumaMix);
-        // Preserve or slightly boost alpha so they stay visible
-        d[i + 3] = Math.max(d[i + 3], 180);
+      if (sitsOnColoredArtwork) {
+        // Keep bright stars that are part of colored artwork, like the one on the blue circle.
+        d[i + 3] = Math.max(d[i + 3], 170);
+      } else if (isIsolatedDecoration) {
+        // Standalone stars should match the dark ink version instead of turning gray.
+        d[i] = targetLuma;
+        d[i + 1] = targetLuma;
+        d[i + 2] = targetLuma;
+        d[i + 3] = Math.max(d[i + 3], alpha >= 0.55 ? 220 : 150);
       } else {
         const effectiveTargetLuma = isSoftGlowOrSparkle ? 88 : targetLuma;
 
