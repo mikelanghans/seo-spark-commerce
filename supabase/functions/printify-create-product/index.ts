@@ -466,6 +466,7 @@ serve(async (req) => {
     }
 
     // Publish if requested
+    let syncedShopifyProductId: number | null = null;
     if (publish && createdProduct.id) {
       console.log(`Publishing product ${createdProduct.id} on Printify...`);
       const publishRes = await fetch(
@@ -481,7 +482,7 @@ serve(async (req) => {
       } else {
         // Poll Printify for the external (Shopify) product ID that native sync creates
         console.log("Polling Printify for external Shopify product ID...");
-        for (let attempt = 0; attempt < 12; attempt++) {
+        for (let attempt = 0; attempt < 18; attempt++) {
           await new Promise((r) => setTimeout(r, 5000));
           try {
             const extRes = await fetch(
@@ -496,6 +497,7 @@ serve(async (req) => {
                 if (numericId) {
                   await adminClient.from("products").update({ shopify_product_id: numericId }).eq("id", productId);
                   console.log(`Saved Printify-synced Shopify product ID: ${numericId}`);
+                  syncedShopifyProductId = numericId;
                 }
                 break;
               }
@@ -503,6 +505,9 @@ serve(async (req) => {
           } catch (pollErr) {
             console.error(`Poll attempt ${attempt + 1} failed:`, pollErr);
           }
+        }
+        if (!syncedShopifyProductId) {
+          console.warn("Could not retrieve Shopify product ID from Printify after polling");
         }
       }
     }
