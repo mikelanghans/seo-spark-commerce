@@ -246,6 +246,16 @@ export const PushPrintifyThenShopify = ({
         if (printifyError) throw printifyError;
         if (printifyData?.error) throw new Error(printifyData.error);
 
+        if (printifyData?.staleIdCleared) {
+          // The linked product was deleted on Printify — the stale ID has been
+          // cleared server-side. Notify the user and ask them to retry so we
+          // go through the "create new" branch next time.
+          toast.warning("The linked Printify product no longer exists. The link has been cleared — please retry to create a new product.");
+          onProductUpdate?.({ printify_product_id: null } as any);
+          setStatus("idle");
+          return;
+        }
+
         toast.success("✓ Printify: Existing product updated");
       } else {
         const colorsToUse = colorsForPush;
