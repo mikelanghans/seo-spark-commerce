@@ -5,11 +5,19 @@ const MAX_PREPARED_DESIGN_DIM = 1800;
 const PREPARED_DESIGN_CACHE_LIMIT = 8;
 const preparedDesignCache = new Map<string, HTMLCanvasElement>();
 
-function cachePreparedDesign(designDataUrl: string, canvas: HTMLCanvasElement) {
-  if (preparedDesignCache.has(designDataUrl)) {
-    preparedDesignCache.delete(designDataUrl);
+interface PrepareDesignOptions {
+  preserveFaintPixels?: boolean;
+}
+
+function getPreparedDesignCacheKey(designDataUrl: string, options: PrepareDesignOptions = {}) {
+  return `${designDataUrl}::${options.preserveFaintPixels ? "preserve-faint" : "default"}`;
+}
+
+function cachePreparedDesign(cacheKey: string, canvas: HTMLCanvasElement) {
+  if (preparedDesignCache.has(cacheKey)) {
+    preparedDesignCache.delete(cacheKey);
   }
-  preparedDesignCache.set(designDataUrl, canvas);
+  preparedDesignCache.set(cacheKey, canvas);
 
   if (preparedDesignCache.size > PREPARED_DESIGN_CACHE_LIMIT) {
     const oldestKey = preparedDesignCache.keys().next().value;
@@ -81,13 +89,11 @@ export async function normalizeAndLockToTemplateBlob({
   // Paste the ORIGINAL design back on top so AI can never alter text/graphics
   if (designDataUrl) {
     try {
-      const preparedDesign = preserveOriginalDesignAlpha
-        ? await loadImageToCanvas(designDataUrl)
-        : await getPreparedDesignCanvas(designDataUrl);
-      // When preserving original alpha (shared/multicolor designs), ignore referenceDesignSize
-      // because it was computed from the tight-cropped version and would distort the raw image's aspect ratio.
-      const effectiveRefSize = preserveOriginalDesignAlpha ? undefined : referenceDesignSize;
-      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, effectiveRefSize);
+      const preparedDesign = await getPreparedDesignCanvas(
+        designDataUrl,
+        preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
+      );
+      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
@@ -388,31 +394,35 @@ async function loadImageToCanvas(src: string): Promise<HTMLCanvasElement> {
  */
 export async function getPreparedDesignCanvas(
   designDataUrl: string,
+  options: PrepareDesignOptions = {},
 ): Promise<HTMLCanvasElement> {
-  const cached = preparedDesignCache.get(designDataUrl);
+  const cacheKey = getPreparedDesignCacheKey(designDataUrl, options);
+  const cached = preparedDesignCache.get(cacheKey);
   if (cached) {
-    cachePreparedDesign(designDataUrl, cached);
+    cachePreparedDesign(cacheKey, cached);
     return cached;
   }
 
   const img = await loadImage(designDataUrl);
   const cleaned = stripSolidEdgeBackground(img);
-  const prepared = prepareDesignForCompositing(cleaned);
-  cachePreparedDesign(designDataUrl, prepared);
+  const prepared = prepareDesignForCompositing(cleaned, options);
+  cachePreparedDesign(cacheKey, prepared);
   return prepared;
 }
 
 export async function getPreparedDesignSize(
   designDataUrl: string,
+  options: PrepareDesignOptions = {},
 ): Promise<{ width: number; height: number }> {
-  const prepared = await getPreparedDesignCanvas(designDataUrl);
+  const prepared = await getPreparedDesignCanvas(designDataUrl, options);
   return { width: prepared.width, height: prepared.height };
 }
 
 export async function getPreparedDesignDataUrl(
   designDataUrl: string,
+  options: PrepareDesignOptions = {},
 ): Promise<string> {
-  const prepared = await getPreparedDesignCanvas(designDataUrl);
+  const prepared = await getPreparedDesignCanvas(designDataUrl, options);
   return prepared.toDataURL("image/png");
 }
 
@@ -421,12 +431,13 @@ export async function getPreparedDesignDataUrl(
  * Uses the maximum bounding box so all variants render at the same visual scale.
  */
 export async function getUnifiedDesignSize(
-  ...designDataUrls: (string | undefined)[]
+  designDataUrls: (string | undefined)[],
+  options: PrepareDesignOptions = {},
 ): Promise<{ width: number; height: number } | undefined> {
   const urls = designDataUrls.filter(Boolean) as string[];
   if (urls.length === 0) return undefined;
 
-  const sizes = await Promise.all(urls.map((url) => getPreparedDesignSize(url)));
+  const sizes = await Promise.all(urls.map((url) => getPreparedDesignSize(url, options)));
   return {
     width: Math.max(...sizes.map((size) => size.width)),
     height: Math.max(...sizes.map((size) => size.height)),
@@ -578,13 +589,13 @@ function downscaleCanvasIfNeeded(
   return canvas;
 }
 
-function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasElement {
+function prepareDesignForCompositing(source: HTMLCanvasElement, options: PrepareDesignOptions = {}): HTMLCanvasElement {
   const srcCtx = source.getContext("2d");
   if (!srcCtx) return source;
 
   const srcImage = srcCtx.getImageData(0, 0, source.width, source.height);
   const srcData = srcImage.data;
-  const ALPHA_KEEP_THRESHOLD = 10;
+  const ALPHA_KEEP_THRESHOLD = options.preserveFaintPixels ? 1 : 10;
 
   // 0) Clean checkerboard transparency patterns (AI-rendered grids).
   cleanCheckerboardInCompositing(srcData, source.width, source.height);
@@ -616,7 +627,7 @@ function prepareDesignForCompositing(source: HTMLCanvasElement): HTMLCanvasEleme
     return downscaleCanvasIfNeeded(source);
   }
 
-  const pad = 6;
+  const pad = options.preserveFaintPixels ? 10 : 6;
   minX = Math.max(0, minX - pad);
   minY = Math.max(0, minY - pad);
   maxX = Math.min(source.width - 1, maxX + pad);

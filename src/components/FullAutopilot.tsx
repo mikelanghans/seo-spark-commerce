@@ -369,7 +369,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             let referenceDesignSize: { width: number; height: number } | undefined;
             try {
-              referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
+              referenceDesignSize = await getUnifiedDesignSize([lightDesignBase64, darkDesignBase64]);
             } catch {
               referenceDesignSize = undefined;
             }
