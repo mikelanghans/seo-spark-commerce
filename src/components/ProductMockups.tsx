@@ -706,6 +706,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const generatedBase64 = data.imageBase64;
       if (!generatedBase64) throw new Error("No image returned");
 
+      const { preserveOriginalDesignAlpha } = await getPreparedDesigns();
       const generatedDataUrl = ensureImageDataUrl(generatedBase64);
       const blob = await normalizeAndLockToTemplateBlob({
         templateDataUrl: plainTemplate,
@@ -716,6 +717,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         isDarkGarment: !isLight,
         referenceDesignSize,
         placement: activePlacement,
+        preserveOriginalDesignAlpha,
       });
 
       const path = `${userId}/${crypto.randomUUID()}.jpg`;
