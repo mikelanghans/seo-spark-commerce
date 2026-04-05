@@ -252,7 +252,8 @@ export const PushPrintifyThenShopify = ({
           // go through the "create new" branch next time.
           toast.warning("The linked Printify product no longer exists. The link has been cleared — please retry to create a new product.");
           onProductUpdate?.({ printify_product_id: null } as any);
-          setStatus("idle");
+          setStep("idle");
+          setPushing(false);
           return;
         }
 
