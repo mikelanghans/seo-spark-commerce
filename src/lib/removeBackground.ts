@@ -666,8 +666,19 @@ export async function darkenBrightPixels(
       if (sitsOnColoredArtwork) {
         // Keep bright stars that are part of colored artwork, like the one on the blue circle.
         d[i + 3] = Math.max(d[i + 3], 170);
+      } else if (isIsolatedDecoration) {
+        // Decorative stars/glows on light garments should gain contrast softly,
+        // not flip to harsh black ink.
+        const neutralValue = Math.round((d[i] + d[i + 1] + d[i + 2]) / 3);
+        const softenedValue = Math.max(96, Math.min(160, Math.round(neutralValue * 0.58)));
+        const accentBlend = chromaticDensity > 0.02 ? 0.1 : 0;
+
+        d[i] = Math.round(softenedValue * (1 - accentBlend) + accentR * accentBlend);
+        d[i + 1] = Math.round(softenedValue * (1 - accentBlend) + accentG * accentBlend);
+        d[i + 2] = Math.round(softenedValue * (1 - accentBlend) + accentB * accentBlend);
+        d[i + 3] = Math.max(d[i + 3], alpha >= 0.2 ? 205 : 180);
       } else {
-        // All other neutral bright artwork should become dark ink, not gray.
+        // Dense neutral artwork such as text should still become dark enough to read.
         d[i] = targetLuma;
         d[i + 1] = targetLuma;
         d[i + 2] = targetLuma;
