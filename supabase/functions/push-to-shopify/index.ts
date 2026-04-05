@@ -259,16 +259,15 @@ serve(async (req) => {
       );
     }
 
-    // Update all variants: disable inventory tracking, set shipping, apply pricing
+    // Update all variants: disable inventory tracking via InventoryItem API, set shipping, apply pricing
     if (createdProduct?.id && allVariants.length) {
       for (const variant of allVariants) {
+        // 1. Update variant pricing and shipping
         const updates: Record<string, unknown> = {
           id: variant.id,
-          inventory_management: null,
           inventory_policy: "continue",
           requires_shipping: true,
         };
-        // Apply size-specific pricing if available, otherwise base price
         if (flatSizePricing) {
           const size = (variant.option2 || variant.option1 || "").trim();
           if (flatSizePricing[size]) {
@@ -291,8 +290,24 @@ serve(async (req) => {
         } catch (err) {
           console.error(`Failed to update variant ${variant.id}:`, err);
         }
+
+        // 2. Disable inventory tracking via InventoryItem API
+        if (variant.inventory_item_id) {
+          try {
+            await fetch(
+              `https://${domain}/admin/api/2024-01/inventory_items/${variant.inventory_item_id}.json`,
+              {
+                method: "PUT",
+                headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+                body: JSON.stringify({ inventory_item: { id: variant.inventory_item_id, tracked: false } }),
+              },
+            );
+          } catch (err) {
+            console.error(`Failed to disable tracking for inventory item ${variant.inventory_item_id}:`, err);
+          }
+        }
       }
-      console.log(`Updated ${allVariants.length} variants (inventory=not tracked, shipping, pricing)`);
+      console.log(`Updated ${allVariants.length} variants (inventory tracking disabled, shipping, pricing)`);
     }
 
     // Update SEO metafields (title_tag, description_tag) via metafields API
