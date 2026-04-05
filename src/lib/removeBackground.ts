@@ -576,26 +576,51 @@ export async function darkenBrightPixels(
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imageData.data;
+  const w = canvas.width;
+  const h = canvas.height;
   const sourcePixels = new Uint8ClampedArray(d);
 
-  const countDenseOpaqueNeighbors = (pixelIndex: number) => {
-    const x = (pixelIndex / 4) % canvas.width;
-    const y = Math.floor(pixelIndex / 4 / canvas.width);
-    let count = 0;
+  // Pre-pass: detect the dominant warm accent color from the design
+  // to recolor sparkles to match the design's palette
+  let accentR = 218, accentG = 165, accentB = 32; // default: warm gold
+  let accentCount = 0;
+  let accentSumR = 0, accentSumG = 0, accentSumB = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (sourcePixels[i + 3] < 120) continue;
+    const rr = sourcePixels[i] / 255, gg = sourcePixels[i + 1] / 255, bb = sourcePixels[i + 2] / 255;
+    const mx = Math.max(rr, gg, bb), mn = Math.min(mx, gg, bb);
+    const s = mx === 0 ? 0 : (mx - mn) / mx;
+    const l = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+    // Collect warm-toned chromatic pixels (gold, orange, amber)
+    if (s > 0.25 && l > 0.2 && l < 0.85 && rr > gg && rr > bb) {
+      accentSumR += sourcePixels[i];
+      accentSumG += sourcePixels[i + 1];
+      accentSumB += sourcePixels[i + 2];
+      accentCount++;
+    }
+  }
+  if (accentCount > 50) {
+    accentR = Math.round(accentSumR / accentCount);
+    accentG = Math.round(accentSumG / accentCount);
+    accentB = Math.round(accentSumB / accentCount);
+  }
 
-    for (let ny = Math.max(0, y - 2); ny <= Math.min(canvas.height - 1, y + 2); ny++) {
-      for (let nx = Math.max(0, x - 2); nx <= Math.min(canvas.width - 1, x + 2); nx++) {
+  const countDenseOpaqueNeighbors = (pixelIndex: number, radius: number) => {
+    const x = (pixelIndex / 4) % w;
+    const y = Math.floor(pixelIndex / 4 / w);
+    let count = 0;
+    for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
+      for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
         if (nx === x && ny === y) continue;
-        const neighborIdx = (ny * canvas.width + nx) * 4;
+        const neighborIdx = (ny * w + nx) * 4;
         if (sourcePixels[neighborIdx + 3] >= 120) count++;
       }
     }
-
     return count;
   };
 
   for (let i = 0; i < d.length; i += 4) {
-    if (d[i + 3] < 30) continue; // skip transparent
+    if (d[i + 3] < 30) continue;
 
     const alpha = d[i + 3] / 255;
     const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
@@ -603,27 +628,43 @@ export async function darkenBrightPixels(
     const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     const sat = max === 0 ? 0 : (max - min) / max;
 
-    // Only darken near-neutral bright pixels (low saturation, high luminance)
+    // Only process near-neutral bright pixels (low saturation, high luminance)
     if (sat < 0.15 && luma > 0.55) {
-      const denseNeighborCount = countDenseOpaqueNeighbors(i);
+      const denseNeighborCount = countDenseOpaqueNeighbors(i, 2);
+      const wideNeighborCount = countDenseOpaqueNeighbors(i, 5);
       const isSoftGlowOrSparkle = alpha < 0.78;
-      const effectiveTargetLuma = isSoftGlowOrSparkle ? 88 : targetLuma;
 
-      // Aggressively darken very bright near-whites
-      const darkFactor = luma > 0.82
-        ? effectiveTargetLuma / 255
-        : Math.max(isSoftGlowOrSparkle ? 0.32 : 0.15, 1 - luma);
+      // Detect sparkle-like elements: bright, relatively isolated pixel clusters
+      // Sparkles have few neighbors in a wider radius compared to text/solid areas
+      const maxWideNeighbors = (11 * 11) - 1; // 5-radius box
+      const density = wideNeighborCount / maxWideNeighbors;
+      const isSparkleElement = density < 0.35 && luma > 0.7;
 
-      d[i] = Math.round(d[i] * darkFactor);
-      d[i + 1] = Math.round(d[i + 1] * darkFactor);
-      d[i + 2] = Math.round(d[i + 2] * darkFactor);
+      if (isSparkleElement) {
+        // Recolor sparkles to the design's accent color (warm gold)
+        // so they're visible on light garments and match the design palette
+        const lumaMix = Math.max(0.6, luma); // keep them bright-ish
+        d[i] = Math.round(accentR * lumaMix);
+        d[i + 1] = Math.round(accentG * lumaMix);
+        d[i + 2] = Math.round(accentB * lumaMix);
+        // Preserve or slightly boost alpha so they stay visible
+        d[i + 3] = Math.max(d[i + 3], 180);
+      } else {
+        const effectiveTargetLuma = isSoftGlowOrSparkle ? 88 : targetLuma;
 
-      // Give soft glow details enough contrast to survive on light garments,
-      // while keeping them airy instead of turning into hard black marks.
-      if (alpha >= 0.78) {
-        d[i + 3] = Math.max(d[i + 3], 210);
-      } else if (denseNeighborCount >= 3) {
-        d[i + 3] = Math.max(d[i + 3], 118);
+        const darkFactor = luma > 0.82
+          ? effectiveTargetLuma / 255
+          : Math.max(isSoftGlowOrSparkle ? 0.32 : 0.15, 1 - luma);
+
+        d[i] = Math.round(d[i] * darkFactor);
+        d[i + 1] = Math.round(d[i + 1] * darkFactor);
+        d[i + 2] = Math.round(d[i + 2] * darkFactor);
+
+        if (alpha >= 0.78) {
+          d[i + 3] = Math.max(d[i + 3], 210);
+        } else if (denseNeighborCount >= 3) {
+          d[i + 3] = Math.max(d[i + 3], 118);
+        }
       }
     }
   }
