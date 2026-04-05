@@ -202,11 +202,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         let preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
         if (preserveOriginalDesignAlpha && lightDesignBase64) {
-          try {
-            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-          } catch {
-            sharedLightGarmentDesignBase64 = lightDesignBase64;
-          }
+          sharedLightGarmentDesignBase64 = lightDesignBase64;
         }
 
         if (hasSingleSharedFile && lightDesignBase64) {
