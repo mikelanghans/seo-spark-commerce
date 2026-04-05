@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors } from "@/lib/removeBackground";
+import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -59,6 +59,7 @@ interface ColorRecommendation {
 interface PreparedDesignVariants {
   lightDesignBase64?: string;
   darkDesignBase64?: string;
+  sharedLightGarmentDesignBase64?: string;
   referenceDesignSize?: { width: number; height: number };
   preserveOriginalDesignAlpha?: boolean;
 }
@@ -370,6 +371,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+        let sharedLightGarmentDesignBase64: string | undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
         let lightPreservesAccentInk = false;
 
@@ -424,10 +426,18 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
+        if (preserveOriginalDesignAlpha && lightDesignBase64) {
+          try {
+            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          } catch {
+            sharedLightGarmentDesignBase64 = lightDesignBase64;
+          }
+        }
+
         let referenceDesignSize: { width: number; height: number } | undefined;
         try {
           referenceDesignSize = await getUnifiedDesignSize(
-            [lightDesignBase64, darkDesignBase64],
+            [lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64],
             preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
           );
         } catch { /* continue without reference */ }
@@ -435,6 +445,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         preparedDesigns = {
           lightDesignBase64,
           darkDesignBase64,
+          sharedLightGarmentDesignBase64,
           referenceDesignSize,
           preserveOriginalDesignAlpha,
         };
@@ -501,9 +512,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const generatedBase64 = data.imageBase64;
           if (!generatedBase64) throw new Error("No image returned");
 
-          const { lightDesignBase64, darkDesignBase64, referenceDesignSize, preserveOriginalDesignAlpha } = await getPreparedDesigns();
+          const { lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64, referenceDesignSize, preserveOriginalDesignAlpha } = await getPreparedDesigns();
           const designForComposite = preserveOriginalDesignAlpha
-            ? (lightDesignBase64 || darkDesignBase64)
+            ? (isLight
+              ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
+              : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
             : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
           const generatedDataUrl = ensureImageDataUrl(generatedBase64);
           const blob = await normalizeAndLockToTemplateBlob({
@@ -615,6 +628,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
       let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+      let sharedLightGarmentDesignBase64: string | undefined;
       let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
       let lightPreservesAccentInk = false;
 
@@ -669,9 +683,19 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
+      if (preserveOriginalDesignAlpha && lightDesignBase64) {
+        try {
+          sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+        } catch {
+          sharedLightGarmentDesignBase64 = lightDesignBase64;
+        }
+      }
+
       const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = preserveOriginalDesignAlpha
-        ? (lightDesignBase64 || darkDesignBase64)
+        ? (isLight
+          ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
+          : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
         : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
       const activePlacement = placementRef.current || placementOverride || undefined;
 
@@ -690,7 +714,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let referenceDesignSize: { width: number; height: number } | undefined;
       try {
         referenceDesignSize = await getUnifiedDesignSize(
-          [lightDesignBase64, darkDesignBase64],
+          [lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64],
           preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
         );
       } catch { /* continue without reference */ }

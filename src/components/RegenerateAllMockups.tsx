@@ -189,6 +189,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+        let sharedLightGarmentDesignBase64: string | undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
         let lightPreservesAccentInk = lightHasAccentColors;
         if (lightDesignBase64 && !lightPreservesAccentInk) {
@@ -199,6 +200,14 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           }
         }
         let preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
+
+        if (preserveOriginalDesignAlpha && lightDesignBase64) {
+          try {
+            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          } catch {
+            sharedLightGarmentDesignBase64 = lightDesignBase64;
+          }
+        }
 
         if (hasSingleSharedFile && lightDesignBase64) {
           darkDesignBase64 = lightDesignBase64;
@@ -275,7 +284,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         let referenceDesignSize: { width: number; height: number } | undefined;
         try {
           referenceDesignSize = await getUnifiedDesignSize(
-            [lightDesignBase64, darkDesignBase64],
+            [lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64],
             preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
           );
         } catch {
@@ -300,7 +309,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           try {
             const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
             const designForRecomposite = preserveOriginalDesignAlpha
-              ? (lightDesignBase64 || darkDesignBase64)
+              ? (isLight
+                ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
+                : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
               : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
 
             const { data, error } = await supabase.functions.invoke("generate-color-variants", {
