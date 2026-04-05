@@ -15,7 +15,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
 import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
-import { ListingExcludedSections } from "@/components/ListingExcludedSections";
+
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
@@ -438,7 +438,7 @@ const Dashboard = () => {
                 <div className="rounded-xl border border-border bg-card p-5"><ShopifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><PrintifySettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSettings userId={user!.id} organizationId={selectedOrg?.id} /></div>
-                {selectedOrg && <div className="rounded-xl border border-border bg-card p-5"><ListingExcludedSections organizationId={selectedOrg.id} /></div>}
+                
                 <div className="rounded-xl border border-border bg-card p-5"><MarketplaceSetupGuide /></div>
                 <div className="rounded-xl border border-border bg-card p-5">
                   {canAccess(effectiveTier, "team-collaboration") ? (
