@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES } from "@/lib/productTypes";
 import { useAuth } from "@/hooks/useAuth";
@@ -271,7 +271,7 @@ const Dashboard = () => {
   if (authLoading) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
-  if (!user) return null;
+  if (!user) return <Navigate to="/auth" replace />;
 
   return (
     <div className="min-h-screen bg-background">
