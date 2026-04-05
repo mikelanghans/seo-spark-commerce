@@ -76,7 +76,12 @@ serve(async (req) => {
             const size = (v.option2 || v.option1 || "").trim();
             if (sizePricing[size]) variantPrice = sizePricing[size];
           }
-          return { id: v.id, price: variantPrice };
+          return {
+            id: v.id,
+            price: variantPrice,
+            inventory_management: null,
+            inventory_policy: "continue",
+          };
         });
       }
     }
