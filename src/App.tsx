@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Component, lazy, Suspense } from "react";
+import { Component, lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Loader2 } from "lucide-react";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 const queryClient = new QueryClient();
+const MODULE_RETRY_STORAGE_KEY = "lovable:route-module-retry-at";
+const MODULE_RETRY_WINDOW_MS = 10000;
 
 const lazyRetry = <T extends { default: React.ComponentType<any> }>(
   importer: () => Promise<T>,
@@ -31,14 +33,43 @@ const lazyRetry = <T extends { default: React.ComponentType<any> }>(
       });
   });
 
-const Auth = lazy(() => lazyRetry(() => import("./pages/Auth")));
-const Dashboard = lazy(() => lazyRetry(() => import("./pages/Dashboard")));
-const AcceptInvite = lazy(() => lazyRetry(() => import("./pages/AcceptInvite")));
-const Features = lazy(() => lazyRetry(() => import("./pages/Features")));
-const Admin = lazy(() => lazyRetry(() => import("./pages/Admin")));
-const NotFound = lazy(() => lazyRetry(() => import("./pages/NotFound")));
-const Terms = lazy(() => lazyRetry(() => import("./pages/Terms")));
-const EbayOAuthCallback = lazy(() => lazyRetry(() => import("./pages/EbayOAuthCallback")));
+const createLazyRoute = (importer: () => Promise<{ default: React.ComponentType<any> }>) => {
+  let pendingImport: Promise<{ default: React.ComponentType<any> }> | null = null;
+
+  const load = () => {
+    if (!pendingImport) {
+      pendingImport = lazyRetry(importer).catch((error) => {
+        pendingImport = null;
+        throw error;
+      });
+    }
+
+    return pendingImport;
+  };
+
+  return {
+    Component: lazy(load),
+    preload: load,
+  };
+};
+
+const authRoute = createLazyRoute(() => import("./pages/Auth"));
+const dashboardRoute = createLazyRoute(() => import("./pages/Dashboard"));
+const acceptInviteRoute = createLazyRoute(() => import("./pages/AcceptInvite"));
+const featuresRoute = createLazyRoute(() => import("./pages/Features"));
+const adminRoute = createLazyRoute(() => import("./pages/Admin"));
+const notFoundRoute = createLazyRoute(() => import("./pages/NotFound"));
+const termsRoute = createLazyRoute(() => import("./pages/Terms"));
+const ebayOAuthCallbackRoute = createLazyRoute(() => import("./pages/EbayOAuthCallback"));
+
+const Auth = authRoute.Component;
+const Dashboard = dashboardRoute.Component;
+const AcceptInvite = acceptInviteRoute.Component;
+const Features = featuresRoute.Component;
+const Admin = adminRoute.Component;
+const NotFound = notFoundRoute.Component;
+const Terms = termsRoute.Component;
+const EbayOAuthCallback = ebayOAuthCallbackRoute.Component;
 
 const AppShellLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -55,6 +86,19 @@ class RouteErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
 
   componentDidCatch(error: unknown) {
     console.error("Route load failed:", error);
+
+    const message = error instanceof Error ? error.message : String(error);
+    const isModuleLoadError = /Failed to fetch dynamically imported module|Importing a module script failed/i.test(message);
+
+    if (isModuleLoadError) {
+      const lastRetryAt = Number(window.sessionStorage.getItem(MODULE_RETRY_STORAGE_KEY) || "0");
+
+      if (Date.now() - lastRetryAt > MODULE_RETRY_WINDOW_MS) {
+        window.sessionStorage.setItem(MODULE_RETRY_STORAGE_KEY, String(Date.now()));
+        window.location.reload();
+        return;
+      }
+    }
   }
 
   handleRetry = () => {
@@ -117,30 +161,37 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <FeedbackWidget />
-      <BrowserRouter>
-        <RouteErrorBoundary>
-          <Suspense fallback={<AppShellLoader />}>
-            <Routes>
-              <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-              <Route path="/oauth/ebay/callback" element={<EbayOAuthCallback />} />
-              <Route path="/invite/:token" element={<AcceptInvite />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </RouteErrorBoundary>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    void authRoute.preload();
+    void dashboardRoute.preload();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <FeedbackWidget />
+        <BrowserRouter>
+          <RouteErrorBoundary>
+            <Suspense fallback={<AppShellLoader />}>
+              <Routes>
+                <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+                <Route path="/oauth/ebay/callback" element={<EbayOAuthCallback />} />
+                <Route path="/invite/:token" element={<AcceptInvite />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </RouteErrorBoundary>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
