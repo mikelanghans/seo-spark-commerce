@@ -13,12 +13,11 @@ export function useDesignProcessing(userId: string | undefined) {
     if (!userId) return;
     setIsProcessingDesign(true);
     try {
-      setDesignProcessingStep("Removing background…");
-      const transparentBase64 = await smartRemoveBackground(base64);
       setDesignProcessingStep("Analyzing design colors…");
-      const multiColor = await isMultiColorDesign(transparentBase64);
-      const hasAccents = !multiColor && await hasMeaningfulAccentColors(transparentBase64);
+      const multiColor = await isMultiColorDesign(base64);
+      const hasAccents = !multiColor && await hasMeaningfulAccentColors(base64);
       const usesSharedDesign = multiColor || hasAccents;
+      const transparentBase64 = usesSharedDesign ? base64 : await smartRemoveBackground(base64);
       let darkUpscaled: string | null = null;
 
       if (!usesSharedDesign) {

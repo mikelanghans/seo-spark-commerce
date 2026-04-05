@@ -221,8 +221,13 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
         if (!lightDesignBase64 && !darkDesignBase64 && product.image_url) {
           try {
-            const cleaned = await smartRemoveBackground(product.image_url);
-            lightDesignBase64 = ensureImageDataUrl(cleaned);
+            const preserveOriginal = await isMultiColorDesign(product.image_url) || await hasMeaningfulAccentColors(product.image_url);
+            if (preserveOriginal) {
+              lightDesignBase64 = await fetchAsBase64(product.image_url);
+            } else {
+              const cleaned = await smartRemoveBackground(product.image_url);
+              lightDesignBase64 = ensureImageDataUrl(cleaned);
+            }
           } catch {
             lightDesignBase64 = await fetchAsBase64(product.image_url);
           }
