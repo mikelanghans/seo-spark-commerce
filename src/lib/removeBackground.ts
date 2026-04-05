@@ -619,7 +619,7 @@ export async function darkenBrightPixels(
     return count;
   };
 
-
+  const countBrightNeutralNeighbors = (pixelIndex: number, radius: number) => {
     const x = (pixelIndex / 4) % w;
     const y = Math.floor(pixelIndex / 4 / w);
     let count = 0;
