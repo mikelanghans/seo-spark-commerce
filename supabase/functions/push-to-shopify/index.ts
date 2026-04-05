@@ -162,7 +162,7 @@ serve(async (req) => {
           shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
 
           if (shouldUpdateImages && imageEntries.length > 0) {
-            await deleteExistingImages(domain, connection.access_token, latestShopifyId, pushedColorNames.length > 0 ? pushedColorNames : undefined);
+            await deleteExistingImages(domain, connection.access_token, latestShopifyId, deleteColorFilter);
           }
 
           shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);

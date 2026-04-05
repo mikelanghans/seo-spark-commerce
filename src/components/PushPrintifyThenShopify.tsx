@@ -375,6 +375,7 @@ export const PushPrintifyThenShopify = ({
       }));
 
       // Update the Printify-synced Shopify product — DON'T force variants (preserve Printify's Color×Size matrix)
+      // replaceAllImages: true → delete ALL Printify-generated mockups and replace with our local ones
       const { data: shopifyData, error: shopifyError } = await supabase.functions.invoke("push-to-shopify", {
         body: {
           organizationId,
@@ -392,6 +393,7 @@ export const PushPrintifyThenShopify = ({
           variants: optimizedVariants,
           forceVariants: false,
           allowCreateOnMissingProduct: false,
+          replaceAllImages: true,
         },
       });
 
