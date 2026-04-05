@@ -189,26 +189,27 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
-        let preserveOriginalDesignAlpha = hasSingleSharedFile;
+        let lightPreservesAccentInk = lightHasAccentColors;
+        if (lightDesignBase64 && !lightPreservesAccentInk) {
+          try {
+            lightPreservesAccentInk = await isMultiColorDesign(lightDesignBase64);
+          } catch {
+            lightPreservesAccentInk = lightHasAccentColors;
+          }
+        }
+        let preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
         if (hasSingleSharedFile && lightDesignBase64) {
           darkDesignBase64 = lightDesignBase64;
-        } else if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
-          try {
-            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
-            if (!darkHasAccentColors) {
-              darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
-              preserveOriginalDesignAlpha = true;
-            }
-          } catch {
-            // continue without
-          }
+        } else if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
+          darkDesignBase64 = lightDesignBase64;
+          preserveOriginalDesignAlpha = true;
         }
 
         // Derive dark variant if missing
         if (!darkDesignBase64 && lightDesignBase64) {
           try {
-            const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+            const preserveAccentColors = lightPreservesAccentInk || await isMultiColorDesign(lightDesignBase64);
             if (preserveAccentColors) {
               darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
               preserveOriginalDesignAlpha = true;
@@ -242,9 +243,20 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               // continue
             }
           }
+          if (lightDesignBase64) {
+            try {
+              lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+            } catch {
+              lightPreservesAccentInk = lightHasAccentColors;
+            }
+            if (lightPreservesAccentInk) {
+              darkDesignBase64 = lightDesignBase64;
+              preserveOriginalDesignAlpha = true;
+            }
+          }
           if (!darkDesignBase64 && lightDesignBase64) {
             try {
-              const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+              const preserveAccentColors = lightPreservesAccentInk || await isMultiColorDesign(lightDesignBase64);
               if (preserveAccentColors) {
                 darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
                 preserveOriginalDesignAlpha = true;
