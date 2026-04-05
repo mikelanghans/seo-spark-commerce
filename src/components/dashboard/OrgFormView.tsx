@@ -7,8 +7,9 @@ import { DESIGN_STYLE_DESCRIPTIONS } from "@/lib/designStyles";
 import type { Organization, View } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
 import { ProductTypeSettings } from "@/components/ProductTypeSettings";
+import { ListingExcludedSections } from "@/components/ListingExcludedSections";
 import {
-  ArrowLeft, Plus, Check, ImageIcon, Package, DollarSign,
+  ArrowLeft, Plus, Check, ImageIcon, Package, DollarSign, ListFilter,
 } from "lucide-react";
 
 interface Props {
