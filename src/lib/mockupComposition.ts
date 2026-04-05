@@ -38,6 +38,8 @@ interface CompositionLockParams {
   placement?: DesignPlacement;
   /** Reference design dimensions to ensure consistent sizing across variants */
   referenceDesignSize?: { width: number; height: number };
+  /** When true, recomposite the original design without thresholding/tight-cropping. */
+  preserveOriginalDesignAlpha?: boolean;
 }
 
 export const ensureImageDataUrl = (value: string) =>
@@ -63,6 +65,7 @@ export async function normalizeAndLockToTemplateBlob({
   designStyle,
   placement,
   referenceDesignSize,
+  preserveOriginalDesignAlpha,
 }: CompositionLockParams): Promise<Blob> {
   const generatedImage = await loadImage(generatedDataUrl);
 
@@ -78,7 +81,9 @@ export async function normalizeAndLockToTemplateBlob({
   // Paste the ORIGINAL design back on top so AI can never alter text/graphics
   if (designDataUrl) {
     try {
-      const preparedDesign = await getPreparedDesignCanvas(designDataUrl);
+      const preparedDesign = preserveOriginalDesignAlpha
+        ? await loadImageToCanvas(designDataUrl)
+        : await getPreparedDesignCanvas(designDataUrl);
       drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
@@ -361,6 +366,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error("Failed to load image"));
     image.src = src;
   });
+}
+
+async function loadImageToCanvas(src: string): Promise<HTMLCanvasElement> {
+  const image = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width;
+  canvas.height = image.naturalHeight || image.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas context unavailable");
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas;
 }
 
 /**
