@@ -177,6 +177,8 @@ export async function deleteExistingImages(
   domain: string,
   accessToken: string,
   productId: number,
+  /** If provided, only delete images whose alt text matches one of these color names */
+  onlyColors?: string[],
 ) {
   try {
     const res = await fetch(
@@ -185,9 +187,24 @@ export async function deleteExistingImages(
     );
     if (!res.ok) return;
     const data = await res.json();
-    const images = data.images || [];
-    console.log(`Deleting ${images.length} existing images from Shopify product ${productId}`);
-    for (const img of images) {
+    const allImages = data.images || [];
+
+    let imagesToDelete = allImages;
+    if (onlyColors && onlyColors.length > 0) {
+      const colorSet = new Set(onlyColors.map((c: string) => c.toLowerCase()));
+      imagesToDelete = allImages.filter((img: any) => {
+        const alt = (img.alt || "").toLowerCase();
+        // Match if alt text contains the color name, or if it's an extra like "size chart"
+        return colorSet.has(alt) || [...colorSet].some((c) => alt.includes(` - ${c}`)) || alt.includes(alt);
+      });
+      // If we can't reliably match by alt text, fall back to deleting all
+      if (imagesToDelete.length === 0) {
+        imagesToDelete = allImages;
+      }
+    }
+
+    console.log(`Deleting ${imagesToDelete.length}/${allImages.length} images from Shopify product ${productId}`);
+    for (const img of imagesToDelete) {
       await fetch(
         `https://${domain}/admin/api/2024-01/products/${productId}/images/${img.id}.json`,
         { method: "DELETE", headers: { "X-Shopify-Access-Token": accessToken } },
