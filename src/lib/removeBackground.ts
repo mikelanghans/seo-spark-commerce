@@ -605,20 +605,6 @@ export async function darkenBrightPixels(
     accentB = Math.round(accentSumB / accentCount);
   }
 
-  const countDenseOpaqueNeighbors = (pixelIndex: number, radius: number) => {
-    const x = (pixelIndex / 4) % w;
-    const y = Math.floor(pixelIndex / 4 / w);
-    let count = 0;
-    for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
-      for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
-        if (nx === x && ny === y) continue;
-        const neighborIdx = (ny * w + nx) * 4;
-        if (sourcePixels[neighborIdx + 3] >= 120) count++;
-      }
-    }
-    return count;
-  };
-
   const countBrightNeutralNeighbors = (pixelIndex: number, radius: number) => {
     const x = (pixelIndex / 4) % w;
     const y = Math.floor(pixelIndex / 4 / w);
@@ -669,9 +655,6 @@ export async function darkenBrightPixels(
 
     // Only process near-neutral bright pixels (low saturation, high luminance)
     if (sat < 0.15 && luma > 0.55) {
-      const denseNeighborCount = countDenseOpaqueNeighbors(i, 2);
-      const isSoftGlowOrSparkle = alpha < 0.78;
-
       // Detect isolated decorative stars/sparkles separately from bright text.
       const brightNeutralNearby = countBrightNeutralNeighbors(i, 4);
       const brightNeutralDensity = brightNeutralNearby / ((9 * 9) - 1);
@@ -683,28 +666,12 @@ export async function darkenBrightPixels(
       if (sitsOnColoredArtwork) {
         // Keep bright stars that are part of colored artwork, like the one on the blue circle.
         d[i + 3] = Math.max(d[i + 3], 170);
-      } else if (isIsolatedDecoration) {
-        // Standalone stars should match the dark ink version instead of turning gray.
+      } else {
+        // All other neutral bright artwork should become dark ink, not gray.
         d[i] = targetLuma;
         d[i + 1] = targetLuma;
         d[i + 2] = targetLuma;
         d[i + 3] = Math.max(d[i + 3], alpha >= 0.55 ? 220 : 150);
-      } else {
-        const effectiveTargetLuma = isSoftGlowOrSparkle ? 88 : targetLuma;
-
-        const darkFactor = luma > 0.82
-          ? effectiveTargetLuma / 255
-          : Math.max(isSoftGlowOrSparkle ? 0.32 : 0.15, 1 - luma);
-
-        d[i] = Math.round(d[i] * darkFactor);
-        d[i + 1] = Math.round(d[i + 1] * darkFactor);
-        d[i + 2] = Math.round(d[i + 2] * darkFactor);
-
-        if (alpha >= 0.78) {
-          d[i + 3] = Math.max(d[i + 3], 210);
-        } else if (denseNeighborCount >= 3) {
-          d[i + 3] = Math.max(d[i + 3], 118);
-        }
       }
     }
   }
