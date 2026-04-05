@@ -15,7 +15,7 @@ import { ShopifySettings } from "@/components/ShopifySettings";
 import { PrintifySettings } from "@/components/PrintifySettings";
 import { MarketplaceSetupGuide } from "@/components/MarketplaceSetupGuide";
 import { MarketplaceSettings } from "@/components/MarketplaceSettings";
-import { ListingExcludedSections } from "@/components/ListingExcludedSections";
+
 import { MessageGenerator } from "@/components/MessageGenerator";
 import { CollaborationHub } from "@/components/CollaborationHub";
 import { SocialPostGenerator } from "@/components/SocialPostGenerator";
