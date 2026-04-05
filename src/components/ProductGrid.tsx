@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import type { Product } from "@/types/dashboard";
 import { PRODUCT_TYPES } from "@/lib/productTypes";
 import type { CollectionMembershipData } from "@/hooks/useCollectionMemberships";
+import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
 
 type SortOption = "newest" | "oldest" | "alpha" | "alpha-desc";
 
@@ -644,12 +645,11 @@ const ProductCard = ({
       if (variant === "dark" || variant === "both") {
         const { data: imgs } = await supabase
           .from("product_images")
-          .select("image_url")
+          .select("image_url, color_name")
           .eq("product_id", product.id)
           .eq("image_type", "design")
-          .eq("color_name", "dark-on-light")
           .limit(1);
-        const darkUrl = imgs?.[0]?.image_url;
+        const { darkUrl } = resolveSingleDesignVariant(imgs as Array<{ image_url: string; color_name?: string | null }> | null, product.image_url);
         if (!darkUrl) {
           toast(variant === "both" ? "Only light variant available" : "No dark variant found");
           return;

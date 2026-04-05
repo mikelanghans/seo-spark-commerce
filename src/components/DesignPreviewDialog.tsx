@@ -108,7 +108,8 @@ export const DesignPreviewDialog = ({
     setHistory(data || []);
   };
 
-  const activeUrl = viewingUrl || (activeVariant === "dark" && darkDesignUrl ? darkDesignUrl : designUrl);
+  const effectiveDarkDesignUrl = darkDesignUrl || designUrl;
+  const activeUrl = viewingUrl || (activeVariant === "dark" && effectiveDarkDesignUrl ? effectiveDarkDesignUrl : designUrl);
 
   const generateDarkVariantLocally = async (): Promise<string | null> => {
     if (!designUrl || !messageId) throw new Error("Missing design");

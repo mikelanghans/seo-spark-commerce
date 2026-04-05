@@ -63,3 +63,26 @@ export function normalizeDesignColorName(name: string): string {
   if (key === "dark" || key === "dark-on-light") return "dark-on-light";
   return name;
 }
+
+export function resolveSingleDesignVariant<T extends { image_url: string; color_name?: string | null }>(
+  designImages: T[] | null | undefined,
+  fallbackUrl?: string | null,
+) {
+  const normalized = (designImages || []).map((image) => ({
+    ...image,
+    normalizedColorName: normalizeDesignColorName(image.color_name || ""),
+  }));
+
+  const light = normalized.find((image) => image.normalizedColorName === "light-on-dark")?.image_url || fallbackUrl || null;
+  const dark = normalized.find((image) => image.normalizedColorName === "dark-on-light")?.image_url || null;
+
+  if (light && !dark) {
+    return { lightUrl: light, darkUrl: light, hasSingleSharedFile: true };
+  }
+
+  if (!light && dark) {
+    return { lightUrl: dark, darkUrl: dark, hasSingleSharedFile: true };
+  }
+
+  return { lightUrl: light, darkUrl: dark, hasSingleSharedFile: false };
+}
