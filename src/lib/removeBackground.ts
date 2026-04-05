@@ -699,6 +699,80 @@ export async function darkenBrightPixels(
     }
   }
 
+  const totalPixels = w * h;
+  const componentVisited = new Uint8Array(totalPixels);
+  const isDarkNeutralComponentPixel = (pixelIndex: number) => {
+    const idx = pixelIndex * 4;
+    if (d[idx + 3] < 48) return false;
+    const rr = d[idx] / 255;
+    const gg = d[idx + 1] / 255;
+    const bb = d[idx + 2] / 255;
+    const mx = Math.max(rr, gg, bb);
+    const mn = Math.min(rr, gg, bb);
+    const pxSat = mx === 0 ? 0 : (mx - mn) / mx;
+    const pxLuma = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+    return pxSat < 0.2 && pxLuma < 0.36;
+  };
+
+  for (let pixel = 0; pixel < totalPixels; pixel++) {
+    if (componentVisited[pixel] || !isDarkNeutralComponentPixel(pixel)) continue;
+
+    const stack = [pixel];
+    const members: number[] = [];
+    componentVisited[pixel] = 1;
+    let minX = w;
+    let minY = h;
+    let maxX = 0;
+    let maxY = 0;
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (current === undefined) continue;
+      members.push(current);
+      const x = current % w;
+      const y = Math.floor(current / w);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+
+      for (let ny = Math.max(0, y - 1); ny <= Math.min(h - 1, y + 1); ny++) {
+        for (let nx = Math.max(0, x - 1); nx <= Math.min(w - 1, x + 1); nx++) {
+          if (nx === x && ny === y) continue;
+          const next = ny * w + nx;
+          if (componentVisited[next] || !isDarkNeutralComponentPixel(next)) continue;
+          componentVisited[next] = 1;
+          stack.push(next);
+        }
+      }
+    }
+
+    const boxWidth = maxX - minX + 1;
+    const boxHeight = maxY - minY + 1;
+    const fillRatio = members.length / Math.max(1, boxWidth * boxHeight);
+    const looksLikeDetachedDarkDecoration = (
+      members.length >= 24 &&
+      members.length <= totalPixels * 0.0025 &&
+      boxWidth <= w * 0.14 &&
+      boxHeight <= h * 0.16 &&
+      fillRatio <= 0.28
+    );
+
+    if (!looksLikeDetachedDarkDecoration) continue;
+
+    console.log(`[darkenBrightPixels] softening detached dark decoration area=${members.length} box=${boxWidth}x${boxHeight}`);
+    for (const member of members) {
+      const idx = member * 4;
+      const memberAlpha = d[idx + 3] / 255;
+      const accentBlend = memberAlpha >= 0.5 ? 0.84 : 0.76;
+      const warmBase = 84;
+      d[idx] = Math.round(warmBase * (1 - accentBlend) + accentR * accentBlend);
+      d[idx + 1] = Math.round(warmBase * (1 - accentBlend) + accentG * accentBlend);
+      d[idx + 2] = Math.round(warmBase * (1 - accentBlend) + accentB * accentBlend);
+      d[idx + 3] = Math.min(d[idx + 3], memberAlpha >= 0.5 ? 105 : 78);
+    }
+  }
+
   ctx.putImageData(imageData, 0, 0);
   return canvasToPngBase64(canvas);
 }
