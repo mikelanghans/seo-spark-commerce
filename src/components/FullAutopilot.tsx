@@ -342,6 +342,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
             let lightDesignBase64: string | undefined;
             let darkDesignBase64: string | undefined;
+            let sharedLightGarmentDesignBase64: string | undefined;
             let preserveOriginalDesignAlpha = false;
 
             try {
@@ -373,6 +374,14 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
               darkDesignBase64 = lightDesignBase64;
             }
 
+            if (preserveOriginalDesignAlpha && lightDesignBase64) {
+              try {
+                sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+              } catch {
+                sharedLightGarmentDesignBase64 = lightDesignBase64;
+              }
+            }
+
             let targetSize: { width: number; height: number } | null = null;
             try {
               targetSize = await getImageDimensionsFromDataUrl(templateBase64);
@@ -383,7 +392,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             let referenceDesignSize: { width: number; height: number } | undefined;
             try {
               referenceDesignSize = await getUnifiedDesignSize(
-                [lightDesignBase64, darkDesignBase64],
+                  [lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64],
                 preserveOriginalDesignAlpha ? { preserveFaintPixels: true } : undefined,
               );
             } catch {
@@ -422,7 +431,9 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
                 const isLight = typeConfig.lightColors.has(colorName.toLowerCase().trim());
                 const designForComposite = preserveOriginalDesignAlpha
-                  ? (lightDesignBase64 || darkDesignBase64)
+                  ? (isLight
+                    ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
+                    : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
                   : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
                 const generatedDataUrl = ensureImageDataUrl(genBase64);
                 const blob = await normalizeAndLockToTemplateBlob({
