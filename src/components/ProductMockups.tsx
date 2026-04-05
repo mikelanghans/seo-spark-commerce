@@ -660,6 +660,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch { /* continue */ }
       }
 
+      const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
+
       const isLight = isLightColor(typeConfig, colorName);
       const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
       const activePlacement = placementRef.current || placementOverride || undefined;
@@ -706,7 +708,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const generatedBase64 = data.imageBase64;
       if (!generatedBase64) throw new Error("No image returned");
 
-      const { preserveOriginalDesignAlpha } = await getPreparedDesigns();
       const generatedDataUrl = ensureImageDataUrl(generatedBase64);
       const blob = await normalizeAndLockToTemplateBlob({
         templateDataUrl: plainTemplate,
