@@ -84,7 +84,10 @@ export async function normalizeAndLockToTemplateBlob({
       const preparedDesign = preserveOriginalDesignAlpha
         ? await loadImageToCanvas(designDataUrl)
         : await getPreparedDesignCanvas(designDataUrl);
-      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, referenceDesignSize);
+      // When preserving original alpha (shared/multicolor designs), ignore referenceDesignSize
+      // because it was computed from the tight-cropped version and would distort the raw image's aspect ratio.
+      const effectiveRefSize = preserveOriginalDesignAlpha ? undefined : referenceDesignSize;
+      drawDesignWithUnderbase(ctx, preparedDesign, targetWidth, targetHeight, isDarkGarment, designStyle, placement, effectiveRefSize);
     } catch (err) {
       console.warn("Design recomposite failed, using AI output as-is:", err);
     }
