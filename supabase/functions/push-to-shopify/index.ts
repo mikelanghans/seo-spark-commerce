@@ -111,9 +111,10 @@ serve(async (req) => {
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
 
-    // For updates, delete existing images first so we get clean mockups
+    // For updates, delete only images for colors being pushed (not all images)
+    const pushedColorNames = actualColorVariants.map((v) => v.colorName);
     if (isUpdate && shouldUpdateImages && imageEntries.length > 0) {
-      await deleteExistingImages(domain, connection.access_token, existingShopifyId);
+      await deleteExistingImages(domain, connection.access_token, existingShopifyId, pushedColorNames.length > 0 ? pushedColorNames : undefined);
     }
 
     // Create or update product
