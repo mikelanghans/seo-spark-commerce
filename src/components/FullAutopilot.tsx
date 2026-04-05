@@ -527,7 +527,10 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             if (!printifyImageId) throw new Error("Failed to upload design to Printify");
 
             // Upload dark-ink variant for light-colored shirts
-            const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+            const hasAccents = await hasMeaningfulAccentColors(base64Contents);
+            const darkBase64 = hasAccents
+              ? await darkenBrightPixels(base64Contents)
+              : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
             const { data: darkUpload } = await supabase.functions.invoke("printify-upload-image", {
               body: { base64Contents: darkBase64, fileName: `${productTitle}-dark-design.png`, organizationId: organization.id },
             });
