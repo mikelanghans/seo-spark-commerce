@@ -516,6 +516,7 @@ serve(async (req) => {
       success: true,
       variantCount: filteredVariants.length,
       printifyProductId: createdProduct.id,
+      shopifyProductId: syncedShopifyProductId,
       mockupsUploaded: 0,
       matchedColors,
     }), {
