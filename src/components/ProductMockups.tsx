@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, darkenBrightPixels, hasMeaningfulAccentColors } from "@/lib/removeBackground";
+import { removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -393,7 +393,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         if (lightDesignBase64 && lightPreservesAccentInk) {
           try {
-            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+            darkDesignBase64 = lightDesignBase64;
           } catch { /* continue */ }
         }
 
@@ -421,7 +421,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
           try {
-            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+            darkDesignBase64 = lightDesignBase64;
           } catch { /* continue */ }
         }
 
@@ -629,7 +629,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       if (lightDesignBase64 && lightPreservesAccentInk) {
         try {
-          darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          darkDesignBase64 = lightDesignBase64;
         } catch { /* continue */ }
       }
 
@@ -657,7 +657,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
         try {
-          darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          darkDesignBase64 = lightDesignBase64;
         } catch { /* continue */ }
       }
 
