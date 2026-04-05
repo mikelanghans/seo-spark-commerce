@@ -397,8 +397,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
           try {
-            const cleaned = await smartRemoveBackground(designImageUrl);
-            lightDesignBase64 = ensureImageDataUrl(cleaned);
+            const preserveOriginal = await isMultiColorDesign(designImageUrl) || await hasMeaningfulAccentColors(designImageUrl);
+            if (preserveOriginal) {
+              lightDesignBase64 = await fetchAsBase64(designImageUrl);
+            } else {
+              const cleaned = await smartRemoveBackground(designImageUrl);
+              lightDesignBase64 = ensureImageDataUrl(cleaned);
+            }
           } catch {
             lightDesignBase64 = await fetchAsBase64(designImageUrl);
           }
@@ -624,8 +629,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
         try {
-          const cleaned = await smartRemoveBackground(designImageUrl);
-          lightDesignBase64 = ensureImageDataUrl(cleaned);
+          const preserveOriginal = await isMultiColorDesign(designImageUrl) || await hasMeaningfulAccentColors(designImageUrl);
+          if (preserveOriginal) {
+            lightDesignBase64 = await fetchAsBase64(designImageUrl);
+          } else {
+            const cleaned = await smartRemoveBackground(designImageUrl);
+            lightDesignBase64 = ensureImageDataUrl(cleaned);
+          }
         } catch {
           lightDesignBase64 = await fetchAsBase64(designImageUrl);
         }
