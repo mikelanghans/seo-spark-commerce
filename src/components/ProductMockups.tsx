@@ -60,6 +60,7 @@ interface PreparedDesignVariants {
   lightDesignBase64?: string;
   darkDesignBase64?: string;
   referenceDesignSize?: { width: number; height: number };
+  preserveOriginalDesignAlpha?: boolean;
 }
 
 type GenerationStep = "choose-colors" | "placement" | "generating" | "size-check" | "review";
@@ -426,7 +427,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           referenceDesignSize = await getUnifiedDesignSize(lightDesignBase64, darkDesignBase64);
         } catch { /* continue without reference */ }
 
-        preparedDesigns = { lightDesignBase64, darkDesignBase64, referenceDesignSize };
+        preparedDesigns = {
+          lightDesignBase64,
+          darkDesignBase64,
+          referenceDesignSize,
+          preserveOriginalDesignAlpha: hasSingleSharedFile || lightPreservesAccentInk,
+        };
         return preparedDesigns;
       };
 
@@ -490,7 +496,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           const generatedBase64 = data.imageBase64;
           if (!generatedBase64) throw new Error("No image returned");
 
-          const { lightDesignBase64, darkDesignBase64, referenceDesignSize } = await getPreparedDesigns();
+          const { lightDesignBase64, darkDesignBase64, referenceDesignSize, preserveOriginalDesignAlpha } = await getPreparedDesigns();
           const designForComposite = isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64;
           const generatedDataUrl = ensureImageDataUrl(generatedBase64);
           const blob = await normalizeAndLockToTemplateBlob({
@@ -502,6 +508,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             isDarkGarment: !isLight,
             referenceDesignSize,
             placement: placementRef.current || placementOverride || undefined,
+            preserveOriginalDesignAlpha,
           });
 
           const path = `${userId}/${crypto.randomUUID()}.jpg`;
