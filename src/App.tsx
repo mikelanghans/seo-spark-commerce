@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 const MODULE_RETRY_STORAGE_KEY = "lovable:route-module-retry-at";
@@ -54,7 +55,6 @@ const createLazyRoute = (importer: () => Promise<{ default: React.ComponentType<
 };
 
 const authRoute = createLazyRoute(() => import("./pages/Auth"));
-const dashboardRoute = createLazyRoute(() => import("./pages/Dashboard"));
 const acceptInviteRoute = createLazyRoute(() => import("./pages/AcceptInvite"));
 const featuresRoute = createLazyRoute(() => import("./pages/Features"));
 const adminRoute = createLazyRoute(() => import("./pages/Admin"));
@@ -63,7 +63,6 @@ const termsRoute = createLazyRoute(() => import("./pages/Terms"));
 const ebayOAuthCallbackRoute = createLazyRoute(() => import("./pages/EbayOAuthCallback"));
 
 const Auth = authRoute.Component;
-const Dashboard = dashboardRoute.Component;
 const AcceptInvite = acceptInviteRoute.Component;
 const Features = featuresRoute.Component;
 const Admin = adminRoute.Component;
@@ -164,7 +163,6 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => {
   useEffect(() => {
     void authRoute.preload();
-    void dashboardRoute.preload();
   }, []);
 
   return (
