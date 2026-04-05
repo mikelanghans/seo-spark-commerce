@@ -680,11 +680,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
       if (preserveOriginalDesignAlpha && lightDesignBase64) {
-        try {
-          sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-        } catch {
-          sharedLightGarmentDesignBase64 = lightDesignBase64;
-        }
+        sharedLightGarmentDesignBase64 = lightDesignBase64;
       }
 
       const isLight = isLightColor(typeConfig, colorName);
