@@ -381,26 +381,26 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+        let lightPreservesAccentInk = false;
 
-        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+        if (lightDesignBase64) {
           try {
-            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
-            if (!darkHasAccentColors) {
-              darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-            }
+            lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+          } catch {
+            lightPreservesAccentInk = lightHasAccentColors;
+          }
+        }
+
+        if (lightDesignBase64 && lightPreservesAccentInk) {
+          try {
+            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
           } catch { /* continue */ }
         }
 
         if (!darkDesignBase64 && lightDesignBase64) {
           try {
-            const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
-            if (!preserveAccentColors) {
-              const bgRemoved = await removeBackground(lightDesignBase64, "black");
-              darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
-            } else {
-              const darkened = await darkenBrightPixels(lightDesignBase64);
-              darkDesignBase64 = ensureImageDataUrl(darkened);
-            }
+            const bgRemoved = await removeBackground(lightDesignBase64, "black");
+            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
           } catch { /* continue */ }
         }
 
@@ -419,12 +419,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           } catch { /* continue */ }
         }
 
-        if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+        if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
           try {
-            const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
-            if (!darkHasAccentColors) {
-              darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-            }
+            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
           } catch { /* continue */ }
         }
 
@@ -620,26 +617,26 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
       let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
       let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+      let lightPreservesAccentInk = false;
 
-      if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+      if (lightDesignBase64) {
         try {
-          const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
-          if (!darkHasAccentColors) {
-            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-          }
+          lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+        } catch {
+          lightPreservesAccentInk = lightHasAccentColors;
+        }
+      }
+
+      if (lightDesignBase64 && lightPreservesAccentInk) {
+        try {
+          darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
         } catch { /* continue */ }
       }
 
       if (!darkDesignBase64 && lightDesignBase64) {
         try {
-          const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
-          if (preserveAccentColors) {
-            const darkened = await darkenBrightPixels(lightDesignBase64);
-            darkDesignBase64 = ensureImageDataUrl(darkened);
-          } else {
-            const bgRemoved = await removeBackground(lightDesignBase64, "black");
-            darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
-          }
+          const bgRemoved = await removeBackground(lightDesignBase64, "black");
+          darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
         } catch { /* continue */ }
       }
 
@@ -658,12 +655,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch { /* continue */ }
       }
 
-      if (lightDesignBase64 && darkDesignBase64 && lightHasAccentColors) {
+      if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
         try {
-          const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
-          if (!darkHasAccentColors) {
-            darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-          }
+          darkDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
         } catch { /* continue */ }
       }
 
