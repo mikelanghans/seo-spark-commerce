@@ -189,6 +189,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
+        let preserveOriginalDesignAlpha = hasSingleSharedFile;
 
         if (hasSingleSharedFile && lightDesignBase64) {
           darkDesignBase64 = lightDesignBase64;
@@ -197,6 +198,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
             const darkHasAccentColors = await hasMeaningfulAccentColors(darkDesignBase64);
             if (!darkHasAccentColors) {
               darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
+              preserveOriginalDesignAlpha = true;
             }
           } catch {
             // continue without
@@ -209,6 +211,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
             const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
             if (preserveAccentColors) {
               darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
+              preserveOriginalDesignAlpha = true;
             } else {
               const bgRemoved = await removeBackground(lightDesignBase64, "black");
               const rawDark = await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 });
@@ -224,6 +227,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
             const preserveOriginal = await isMultiColorDesign(product.image_url) || await hasMeaningfulAccentColors(product.image_url);
             if (preserveOriginal) {
               lightDesignBase64 = await fetchAsBase64(product.image_url);
+              preserveOriginalDesignAlpha = true;
             } else {
               const cleaned = await smartRemoveBackground(product.image_url);
               lightDesignBase64 = ensureImageDataUrl(cleaned);
@@ -243,6 +247,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               const preserveAccentColors = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
               if (preserveAccentColors) {
                 darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
+                preserveOriginalDesignAlpha = true;
               } else {
                 const bgRemoved = await removeBackground(lightDesignBase64, "black");
                 const rawDark = await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 });
@@ -311,6 +316,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               targetHeight: targetSize?.height || 1024,
               designDataUrl: designForRecomposite,
               isDarkGarment: !isLight,
+              preserveOriginalDesignAlpha,
             });
 
             // Refresh session
