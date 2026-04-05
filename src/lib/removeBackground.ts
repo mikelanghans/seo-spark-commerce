@@ -605,15 +605,21 @@ export async function darkenBrightPixels(
     accentB = Math.round(accentSumB / accentCount);
   }
 
-  const countDenseOpaqueNeighbors = (pixelIndex: number, radius: number) => {
+  const countBrightNeutralNeighbors = (pixelIndex: number, radius: number) => {
     const x = (pixelIndex / 4) % w;
     const y = Math.floor(pixelIndex / 4 / w);
     let count = 0;
     for (let ny = Math.max(0, y - radius); ny <= Math.min(h - 1, y + radius); ny++) {
       for (let nx = Math.max(0, x - radius); nx <= Math.min(w - 1, x + radius); nx++) {
         if (nx === x && ny === y) continue;
-        const neighborIdx = (ny * w + nx) * 4;
-        if (sourcePixels[neighborIdx + 3] >= 120) count++;
+        const nIdx = (ny * w + nx) * 4;
+        if (sourcePixels[nIdx + 3] < 80) continue;
+        const nr = sourcePixels[nIdx] / 255, ng = sourcePixels[nIdx + 1] / 255, nb = sourcePixels[nIdx + 2] / 255;
+        const nMax = Math.max(nr, ng, nb), nMin = Math.min(nr, ng, nb);
+        const nSat = nMax === 0 ? 0 : (nMax - nMin) / nMax;
+        const nLuma = 0.2126 * nr + 0.7152 * ng + 0.0722 * nb;
+        // Count only neighbors that are also bright and neutral (like text)
+        if (nSat < 0.15 && nLuma > 0.55) count++;
       }
     }
     return count;
@@ -631,14 +637,16 @@ export async function darkenBrightPixels(
     // Only process near-neutral bright pixels (low saturation, high luminance)
     if (sat < 0.15 && luma > 0.55) {
       const denseNeighborCount = countDenseOpaqueNeighbors(i, 2);
-      const wideNeighborCount = countDenseOpaqueNeighbors(i, 5);
       const isSoftGlowOrSparkle = alpha < 0.78;
 
-      // Detect sparkle-like elements: bright, relatively isolated pixel clusters
-      // Sparkles have few neighbors in a wider radius compared to text/solid areas
-      const maxWideNeighbors = (11 * 11) - 1; // 5-radius box
-      const density = wideNeighborCount / maxWideNeighbors;
-      const isSparkleElement = density < 0.35 && luma > 0.7;
+      // Detect sparkle-like elements: bright neutral pixels surrounded mostly
+      // by colored/dark pixels (artwork), NOT by other bright neutral pixels (text).
+      // Text pixels have many bright-neutral neighbors; sparkles over artwork don't.
+      const brightNeutralNearby = countBrightNeutralNeighbors(i, 4);
+      const maxNeighbors = (9 * 9) - 1; // 4-radius box
+      const brightNeutralDensity = brightNeutralNearby / maxNeighbors;
+      // If less than 25% of nearby pixels are also bright+neutral, it's a sparkle
+      const isSparkleElement = brightNeutralDensity < 0.25 && luma > 0.65;
 
       if (isSparkleElement) {
         // Recolor sparkles to the design's accent color (warm gold)
