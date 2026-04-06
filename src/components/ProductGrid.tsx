@@ -77,6 +77,7 @@ export const ProductGrid = ({
   const [sort, setSort] = useState<SortOption>("newest");
   const [_showArchived, _setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
+  const [archivedTypeFilter, setArchivedTypeFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">(() => {
     const saved = sessionStorage.getItem("productGrid_viewMode");
     if (saved === "collections" || saved === "product-types" || saved === "designs") return saved;
@@ -92,7 +93,12 @@ export const ProductGrid = ({
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
       // Archive filtering: if "__archived" filter is active, show only archived; otherwise hide archived
-      if (activeFilter === "__archived") return !!p.archived_at;
+      if (activeFilter === "__archived") {
+        if (!p.archived_at) return false;
+        const matchesSearch = !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesType = !archivedTypeFilter || p.category === archivedTypeFilter;
+        return matchesSearch && matchesType;
+      }
       if (p.archived_at) return false;
 
       const matchesSearch =
@@ -129,12 +135,23 @@ export const ProductGrid = ({
     if (sort === "oldest") list.reverse();
 
     return list;
-  }, [products, searchQuery, activeFilter, sort, collectionData]);
+  }, [products, searchQuery, activeFilter, sort, collectionData, archivedTypeFilter]);
 
   // When viewing archived filter, all filtered are "active" for display purposes
   const isArchiveView = activeFilter === "__archived";
   const activeProducts = useMemo(() => filtered, [filtered]);
   const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
+
+  // Counts per product type for archived products
+  const archivedTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of products) {
+      if (!p.archived_at) continue;
+      const cat = p.category || "";
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [products]);
 
   // Counts per product type (active products only)
   const productTypeCounts = useMemo(() => {
@@ -326,7 +343,7 @@ export const ProductGrid = ({
         {archivedCount > 0 && (
           <button
             type="button"
-            onClick={() => onFilterChange(activeFilter === "__archived" ? null : "__archived")}
+            onClick={() => { onFilterChange(activeFilter === "__archived" ? null : "__archived"); setArchivedTypeFilter(null); }}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               activeFilter === "__archived"
@@ -338,6 +355,23 @@ export const ProductGrid = ({
             Archived ({archivedCount})
           </button>
         )}
+
+        {/* Sub-filter by product type when viewing archived */}
+        {isArchiveView && Object.entries(archivedTypeCounts).map(([cat, count]) => (
+          <button
+            key={`archived-type:${cat}`}
+            type="button"
+            onClick={() => setArchivedTypeFilter(archivedTypeFilter === cat ? null : cat)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              archivedTypeFilter === cat
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {cat} ({count})
+          </button>
+        ))}
         {/* Collection filters (when in collections mode) */}
         {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
           <button
