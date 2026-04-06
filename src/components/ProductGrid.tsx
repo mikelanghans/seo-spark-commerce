@@ -103,8 +103,6 @@ export const ProductGrid = ({
 
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeFilter === "__unsynced")
-        return matchesSearch && !p.shopify_product_id;
       if (activeFilter?.startsWith("collection:")) {
         const colId = activeFilter.slice(11);
         const memberIds = collectionData?.memberships?.[colId] || [];
@@ -259,7 +257,7 @@ export const ProductGrid = ({
     );
   }
 
-  const unsyncedCount = products.filter((p) => !p.shopify_product_id).length;
+  
 
   return (
     <div className="space-y-4">
@@ -326,107 +324,99 @@ export const ProductGrid = ({
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">
-        {unsyncedCount > 0 && (
-          <button
-            type="button"
-            onClick={() => onFilterChange(activeFilter === "__unsynced" ? null : "__unsynced")}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === "__unsynced"
-                ? "bg-destructive text-destructive-foreground"
-                : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-            )}
-          >
-            ⚡ Not on Shopify ({unsyncedCount})
-          </button>
-        )}
-        {archivedCount > 0 && (
-          <button
-            type="button"
-            onClick={() => { onFilterChange(activeFilter === "__archived" ? null : "__archived"); setArchivedTypeFilter(null); }}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === "__archived"
-                ? "bg-muted-foreground text-background"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-          >
-            <Archive className="inline h-3 w-3 mr-1 -mt-0.5" />
-            Archived ({archivedCount})
-          </button>
-        )}
-
-        {/* Sub-filter by product type when viewing archived */}
-        {isArchiveView && Object.entries(archivedTypeCounts).map(([cat, count]) => (
-          <button
-            key={`archived-type:${cat}`}
-            type="button"
-            onClick={() => setArchivedTypeFilter(archivedTypeFilter === cat ? null : cat)}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              archivedTypeFilter === cat
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            )}
-          >
-            {cat} ({count})
-          </button>
-        ))}
-        {/* Collection filters (when in collections mode) */}
-        {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
-          <button
-            key={`col:${col.id}`}
-            type="button"
-            onClick={() => onFilterChange(activeFilter === `collection:${col.id}` ? null : `collection:${col.id}`)}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === `collection:${col.id}`
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            )}
-          >
-            {col.title} ({collectionCounts[col.id] || 0})
-          </button>
-        ))}
-
-        {/* Product type filters (only in product-types mode) */}
-        {viewMode === "product-types" &&
-          Object.values(PRODUCT_TYPES).map((pt) => pt.label).map(
-            (cat) => (
+        {isArchiveView ? (
+          <>
+            <button
+              type="button"
+              onClick={() => { onFilterChange(null); setArchivedTypeFilter(null); }}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+            >
+              <ArchiveRestore className="h-3 w-3" />
+              ← Back to Active
+            </button>
+            <span className="rounded-full px-3 py-1 text-xs font-medium bg-muted-foreground text-background flex items-center">
+              <Archive className="h-3 w-3 mr-1" />
+              Archived ({archivedCount})
+            </span>
+            {Object.entries(archivedTypeCounts).map(([cat, count]) => (
               <button
-                key={cat}
+                key={`archived-type:${cat}`}
                 type="button"
-                onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
+                onClick={() => setArchivedTypeFilter(archivedTypeFilter === cat ? null : cat)}
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  activeFilter === cat
+                  archivedTypeFilter === cat
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 )}
               >
-                {cat} ({productTypeCounts[cat] || 0})
+                {cat} ({count})
               </button>
-            )
-          )
-        }
-
-        {allTags.map((tag) => (
-          <button
-            key={`tag:${tag}`}
-            type="button"
-            onClick={() =>
-              onFilterChange(activeFilter === `tag:${tag}` ? null : `tag:${tag}`)
-            }
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === `tag:${tag}`
-                ? "bg-accent text-accent-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            ))}
+          </>
+        ) : (
+          <>
+            {archivedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => { onFilterChange("__archived"); setArchivedTypeFilter(null); }}
+                className="rounded-full px-3 py-1 text-xs font-medium transition-colors bg-muted text-muted-foreground hover:bg-muted/80 flex items-center"
+              >
+                <Archive className="h-3 w-3 mr-1" />
+                Archived ({archivedCount})
+              </button>
             )}
-          >
-            🏷️ {tag}
-          </button>
-        ))}
+            {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
+              <button
+                key={`col:${col.id}`}
+                type="button"
+                onClick={() => onFilterChange(activeFilter === `collection:${col.id}` ? null : `collection:${col.id}`)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  activeFilter === `collection:${col.id}`
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                )}
+              >
+                {col.title} ({collectionCounts[col.id] || 0})
+              </button>
+            ))}
+            {viewMode === "product-types" &&
+              Object.values(PRODUCT_TYPES).map((pt) => pt.label).map(
+                (cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => onFilterChange(activeFilter === cat ? null : cat)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                      activeFilter === cat
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    )}
+                  >
+                    {cat} ({productTypeCounts[cat] || 0})
+                  </button>
+                )
+              )
+            }
+            {allTags.map((tag) => (
+              <button
+                key={`tag:${tag}`}
+                type="button"
+                onClick={() => onFilterChange(activeFilter === `tag:${tag}` ? null : `tag:${tag}`)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                  activeFilter === `tag:${tag}`
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                🏷️ {tag}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Collection refresh bar */}
@@ -498,7 +488,7 @@ export const ProductGrid = ({
         <div className="flex items-center justify-center py-16">
           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
+      ) : viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:")) ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const isCollapsed = collapsedCollections.has(String(collection.id));
