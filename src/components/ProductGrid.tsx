@@ -77,7 +77,17 @@ export const ProductGrid = ({
   const [sort, setSort] = useState<SortOption>("newest");
   const [_showArchived, _setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">("product-types");
+  const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">(() => {
+    const saved = sessionStorage.getItem("productGrid_viewMode");
+    if (saved === "collections" || saved === "product-types" || saved === "designs") return saved;
+    return "product-types";
+  });
+
+  // Persist viewMode across remounts
+  const updateViewMode = (mode: "collections" | "product-types" | "designs") => {
+    setViewMode(mode);
+    sessionStorage.setItem("productGrid_viewMode", mode);
+  };
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
@@ -254,15 +264,15 @@ export const ProductGrid = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { setViewMode("collections"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("collections"); onFilterChange(null); }}>
                 <FolderOpen className="h-3.5 w-3.5 mr-2" />
                 Group by Collection
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setViewMode("product-types"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("product-types"); onFilterChange(null); }}>
                 <Grid3X3 className="h-3.5 w-3.5 mr-2" />
                 Filter by Product Type
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setViewMode("designs"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("designs"); onFilterChange(null); }}>
                 <Layers className="h-3.5 w-3.5 mr-2" />
                 Group by Design
               </DropdownMenuItem>
