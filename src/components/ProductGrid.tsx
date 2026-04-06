@@ -326,38 +326,22 @@ export const ProductGrid = ({
 
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5">
-        {unsyncedCount > 0 && (
-          <button
-            type="button"
-            onClick={() => onFilterChange(activeFilter === "__unsynced" ? null : "__unsynced")}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === "__unsynced"
-                ? "bg-destructive text-destructive-foreground"
-                : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-            )}
-          >
-            ⚡ Not on Shopify ({unsyncedCount})
-          </button>
-        )}
-        {archivedCount > 0 && (
-          <button
-            type="button"
-            onClick={() => { onFilterChange(activeFilter === "__archived" ? null : "__archived"); setArchivedTypeFilter(null); }}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              activeFilter === "__archived"
-                ? "bg-muted-foreground text-background"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-          >
-            <Archive className="inline h-3 w-3 mr-1 -mt-0.5" />
-            Archived ({archivedCount})
-          </button>
-        )}
-
-        {/* Sub-filter by product type when viewing archived */}
-        {isArchiveView && Object.entries(archivedTypeCounts).map(([cat, count]) => (
+        {isArchiveView ? (
+          <>
+            <button
+              type="button"
+              onClick={() => { onFilterChange(null); setArchivedTypeFilter(null); }}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+            >
+              <ArchiveRestore className="h-3 w-3" />
+              ← Back to Active
+            </button>
+            <span className="rounded-full px-3 py-1 text-xs font-medium bg-muted-foreground text-background">
+              <Archive className="inline h-3 w-3 mr-1 -mt-0.5" />
+              Archived ({archivedCount})
+            </span>
+            {Object.entries(archivedTypeCounts).map(([cat, count]) => (
+        
           <button
             key={`archived-type:${cat}`}
             type="button"
