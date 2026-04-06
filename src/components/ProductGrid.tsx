@@ -259,7 +259,7 @@ export const ProductGrid = ({
     );
   }
 
-  const unsyncedCount = products.filter((p) => !p.shopify_product_id).length;
+  
 
   return (
     <div className="space-y-4">
