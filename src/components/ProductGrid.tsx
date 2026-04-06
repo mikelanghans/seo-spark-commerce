@@ -370,6 +370,20 @@ export const ProductGrid = ({
                 Archived ({archivedCount})
               </button>
             )}
+            {localChangesCount > 0 && (
+              <button
+                type="button"
+                onClick={() => onFilterChange(activeFilter === "__local_changes" ? null : "__local_changes")}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center",
+                  activeFilter === "__local_changes"
+                    ? "bg-amber-500 text-white"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                )}
+              >
+                ⬆ Local Changes ({localChangesCount})
+              </button>
+            )}
             {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
               <button
                 key={`col:${col.id}`}
