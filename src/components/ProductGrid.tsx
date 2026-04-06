@@ -264,15 +264,15 @@ export const ProductGrid = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { setViewMode("collections"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("collections"); onFilterChange(null); }}>
                 <FolderOpen className="h-3.5 w-3.5 mr-2" />
                 Group by Collection
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setViewMode("product-types"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("product-types"); onFilterChange(null); }}>
                 <Grid3X3 className="h-3.5 w-3.5 mr-2" />
                 Filter by Product Type
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setViewMode("designs"); onFilterChange(null); }}>
+              <DropdownMenuItem onClick={() => { updateViewMode("designs"); onFilterChange(null); }}>
                 <Layers className="h-3.5 w-3.5 mr-2" />
                 Group by Design
               </DropdownMenuItem>
