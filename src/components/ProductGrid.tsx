@@ -787,11 +787,27 @@ const ProductCard = ({
       <div className={cn("p-4", compact && "p-3")}>
         <div className="flex items-start justify-between">
           <div className="min-w-0">
-            {product.category && (
-              <span className="inline-block rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-medium mb-1">
-                {product.category}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              {product.category && (
+                <span className="inline-block rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-medium">
+                  {product.category}
+                </span>
+              )}
+              {/* Shopify sync status badge */}
+              {!product.shopify_product_id ? (
+                <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Local only
+                </span>
+              ) : product.shopify_synced_at && new Date(product.shopify_synced_at) >= new Date(product.updated_at || 0) ? (
+                <span className="inline-block rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-medium">
+                  ✓ Synced
+                </span>
+              ) : (
+                <span className="inline-block rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-medium">
+                  ⬆ Local changes
+                </span>
+              )}
+            </div>
             <h3 className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>
               {product.title}
             </h3>
