@@ -488,7 +488,7 @@ export const ProductGrid = ({
         <div className="flex items-center justify-center py-16">
           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:") || activeFilter === "__unsynced") ? (
+      ) : viewMode === "collections" && collectionGroups && (!activeFilter || activeFilter.startsWith("collection:")) ? (
         <div className="space-y-4">
           {collectionGroups.groups.map(({ collection, products: colProds }) => {
             const isCollapsed = collapsedCollections.has(String(collection.id));
