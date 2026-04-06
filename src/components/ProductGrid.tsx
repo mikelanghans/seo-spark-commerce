@@ -142,6 +142,7 @@ export const ProductGrid = ({
   const isArchiveView = activeFilter === "__archived";
   const activeProducts = useMemo(() => filtered, [filtered]);
   const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
+  const localChangesCount = useMemo(() => products.filter((p) => !p.archived_at && !!p.shopify_product_id && (!p.shopify_synced_at || new Date(p.shopify_synced_at) < new Date(p.updated_at || 0))).length, [products]);
 
   // Counts per product type for archived products
   const archivedTypeCounts = useMemo(() => {
