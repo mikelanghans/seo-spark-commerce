@@ -816,7 +816,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               {loadingRecs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               AI Recommend
             </Button>
-            <Button size="sm" onClick={() => setGenStep(null)} variant="ghost">Cancel</Button>
+            <Button size="sm" onClick={() => { recAbortRef.current?.abort(); setLoadingRecs(false); setGenStep(null); }} variant="ghost">Cancel</Button>
           </div>
         </div>
 
