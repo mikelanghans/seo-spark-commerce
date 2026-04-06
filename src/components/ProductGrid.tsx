@@ -77,7 +77,17 @@ export const ProductGrid = ({
   const [sort, setSort] = useState<SortOption>("newest");
   const [_showArchived, _setShowArchived] = useState(false);
   const [collapsedCollections, setCollapsedCollections] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">("product-types");
+  const [viewMode, setViewMode] = useState<"collections" | "product-types" | "designs">(() => {
+    const saved = sessionStorage.getItem("productGrid_viewMode");
+    if (saved === "collections" || saved === "product-types" || saved === "designs") return saved;
+    return "product-types";
+  });
+
+  // Persist viewMode across remounts
+  const updateViewMode = (mode: "collections" | "product-types" | "designs") => {
+    setViewMode(mode);
+    sessionStorage.setItem("productGrid_viewMode", mode);
+  };
 
   const filtered = useMemo(() => {
     let list = products.filter((p) => {
