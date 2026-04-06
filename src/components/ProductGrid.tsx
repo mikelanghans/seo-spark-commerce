@@ -103,6 +103,9 @@ export const ProductGrid = ({
 
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+      if (activeFilter === "__local_changes") {
+        return matchesSearch && !!p.shopify_product_id && (!p.shopify_synced_at || new Date(p.shopify_synced_at) < new Date(p.updated_at || 0));
+      }
       if (activeFilter?.startsWith("collection:")) {
         const colId = activeFilter.slice(11);
         const memberIds = collectionData?.memberships?.[colId] || [];
