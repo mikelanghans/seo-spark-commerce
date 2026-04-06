@@ -228,9 +228,9 @@ serve(async (req) => {
     const createdProduct = shopifyData.product;
     console.log(`Shopify product id: ${createdProduct?.id}, variants: ${createdProduct?.variants?.length || 0}`);
 
-    // Save Shopify product ID back
+    // Save Shopify product ID and sync timestamp back
     if (createdProduct?.id && product.id) {
-      await adminClient.from("products").update({ shopify_product_id: createdProduct.id }).eq("id", product.id);
+      await adminClient.from("products").update({ shopify_product_id: createdProduct.id, shopify_synced_at: new Date().toISOString() }).eq("id", product.id);
     }
 
     // For updates, add any missing color variants before uploading images

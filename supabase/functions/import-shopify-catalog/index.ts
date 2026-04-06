@@ -129,6 +129,7 @@ serve(async (req) => {
         shopify_product_id: sp.id,
         organization_id: organizationId,
         user_id: user.id,
+        shopify_synced_at: new Date().toISOString(),
       };
 
       try {
@@ -138,7 +139,7 @@ serve(async (req) => {
           const { title, description, category, keywords, price, image_url } = productData;
           const { error: updateError } = await supabaseClient
             .from("products")
-            .update({ title, description, category, keywords, price, image_url })
+            .update({ title, description, category, keywords, price, image_url, shopify_synced_at: new Date().toISOString() })
             .eq("id", localId);
 
           if (updateError) throw updateError;
