@@ -118,6 +118,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [feedbackDetails, setFeedbackDetails] = useState("");
   const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
   const placementRef = useRef<DesignPlacement | null>(null);
+  const recAbortRef = useRef<AbortController | null>(null);
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
