@@ -343,7 +343,7 @@ export const ProductGrid = ({
         {archivedCount > 0 && (
           <button
             type="button"
-            onClick={() => onFilterChange(activeFilter === "__archived" ? null : "__archived")}
+            onClick={() => { onFilterChange(activeFilter === "__archived" ? null : "__archived"); setArchivedTypeFilter(null); }}
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               activeFilter === "__archived"
@@ -355,6 +355,23 @@ export const ProductGrid = ({
             Archived ({archivedCount})
           </button>
         )}
+
+        {/* Sub-filter by product type when viewing archived */}
+        {isArchiveView && Object.entries(archivedTypeCounts).map(([cat, count]) => (
+          <button
+            key={`archived-type:${cat}`}
+            type="button"
+            onClick={() => setArchivedTypeFilter(archivedTypeFilter === cat ? null : cat)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              archivedTypeFilter === cat
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
+          >
+            {cat} ({count})
+          </button>
+        ))}
         {/* Collection filters (when in collections mode) */}
         {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
           <button
