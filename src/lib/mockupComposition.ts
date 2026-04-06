@@ -824,8 +824,95 @@ function floodFillBackground(
     if (y < canvas.height - 1) enqueue(pos + canvas.width);
   }
 
+  // Second pass: clear enclosed background regions (letter counters in R, A, O, B, D, P, etc.)
+  // These are interior regions that match the background color but aren't connected to edges.
+  clearEnclosedBackgroundRegions(data, canvas.width, canvas.height, edge, tolerance);
+
   ctx.putImageData(imgData, 0, 0);
   return canvas;
+}
+
+/**
+ * After edge-connected flood fill, find and clear remaining interior regions
+ * that match the background color but are fully enclosed by design pixels
+ * (e.g., the holes/counters inside letters like R, A, O, B, D, P).
+ */
+function clearEnclosedBackgroundRegions(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  edge: { r: number; g: number; b: number },
+  tolerance: number,
+) {
+  const totalPixels = width * height;
+  const visited = new Uint8Array(totalPixels);
+
+  // Mark already-transparent pixels as visited (they were cleared by flood fill)
+  for (let i = 0; i < totalPixels; i++) {
+    if (data[i * 4 + 3] === 0) visited[i] = 1;
+  }
+
+  // Mark non-background pixels (design content) as visited
+  for (let i = 0; i < totalPixels; i++) {
+    if (visited[i]) continue;
+    const p = i * 4;
+    const dr = Math.abs(data[p] - edge.r);
+    const dg = Math.abs(data[p + 1] - edge.g);
+    const db = Math.abs(data[p + 2] - edge.b);
+    if (dr > tolerance || dg > tolerance || db > tolerance) {
+      visited[i] = 1; // design pixel — don't touch
+    }
+  }
+
+  // Find connected components of unvisited (background-colored, non-edge-connected) pixels
+  // These are the enclosed counter regions
+  const queue = new Int32Array(totalPixels);
+
+  for (let i = 0; i < totalPixels; i++) {
+    if (visited[i]) continue;
+
+    // BFS to collect this region
+    let head = 0;
+    let tail = 0;
+    const region: number[] = [];
+    let touchesEdge = false;
+
+    visited[i] = 1;
+    queue[tail++] = i;
+
+    while (head < tail) {
+      const pos = queue[head++];
+      region.push(pos);
+
+      const x = pos % width;
+      const y = Math.floor(pos / width);
+
+      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+        touchesEdge = true;
+      }
+
+      const neighbors = [
+        x > 0 ? pos - 1 : -1,
+        x < width - 1 ? pos + 1 : -1,
+        y > 0 ? pos - width : -1,
+        y < height - 1 ? pos + width : -1,
+      ];
+
+      for (const n of neighbors) {
+        if (n < 0 || visited[n]) continue;
+        visited[n] = 1;
+        queue[tail++] = n;
+      }
+    }
+
+    // Only clear if the region doesn't touch the canvas edge and is reasonably small
+    // (letter counters are small relative to the full image)
+    if (!touchesEdge && region.length < totalPixels * 0.15) {
+      for (const idx of region) {
+        data[idx * 4 + 3] = 0;
+      }
+    }
+  }
 }
 
 function sampleEdgeColor(
