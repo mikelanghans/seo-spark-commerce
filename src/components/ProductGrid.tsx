@@ -103,8 +103,6 @@ export const ProductGrid = ({
 
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeFilter === "__unsynced")
-        return matchesSearch && !p.shopify_product_id;
       if (activeFilter?.startsWith("collection:")) {
         const colId = activeFilter.slice(11);
         const memberIds = collectionData?.memberships?.[colId] || [];
