@@ -136,6 +136,28 @@ export const ProductGrid = ({
   const activeProducts = useMemo(() => filtered, [filtered]);
   const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
 
+  // Counts per product type (active products only)
+  const productTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of products) {
+      if (p.archived_at) continue;
+      const cat = p.category || "";
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [products]);
+
+  // Counts per collection
+  const collectionCounts = useMemo(() => {
+    if (!collectionData) return {} as Record<string, number>;
+    const counts: Record<string, number> = {};
+    const activeShopifyIds = new Set(products.filter(p => !p.archived_at && p.shopify_product_id).map(p => p.shopify_product_id));
+    for (const [colId, memberIds] of Object.entries(collectionData.memberships || {})) {
+      counts[colId] = (memberIds as number[]).filter(id => activeShopifyIds.has(id)).length;
+    }
+    return counts;
+  }, [products, collectionData]);
+
   // Group active products by collection when data is available
   const collectionGroups = useMemo(() => {
     if (!collectionData || !collectionData.collections.length) return null;
@@ -329,7 +351,7 @@ export const ProductGrid = ({
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             )}
           >
-            {col.title}
+            {col.title} ({collectionCounts[col.id] || 0})
           </button>
         ))}
 
@@ -348,7 +370,7 @@ export const ProductGrid = ({
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 )}
               >
-                {cat}
+                {cat} ({productTypeCounts[cat] || 0})
               </button>
             )
           )
