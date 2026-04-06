@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN shopify_synced_at TIMESTAMPTZ DEFAULT NULL;

@@ -38,6 +38,8 @@ export interface Product {
   size_pricing: Record<string, string> | null;
   tags: string[];
   archived_at: string | null;
+  shopify_synced_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Listing {

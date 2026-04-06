@@ -103,6 +103,9 @@ export const ProductGrid = ({
 
       const matchesSearch =
         !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+      if (activeFilter === "__local_changes") {
+        return matchesSearch && !!p.shopify_product_id && (!p.shopify_synced_at || new Date(p.shopify_synced_at) < new Date(p.updated_at || 0));
+      }
       if (activeFilter?.startsWith("collection:")) {
         const colId = activeFilter.slice(11);
         const memberIds = collectionData?.memberships?.[colId] || [];
@@ -139,6 +142,7 @@ export const ProductGrid = ({
   const isArchiveView = activeFilter === "__archived";
   const activeProducts = useMemo(() => filtered, [filtered]);
   const archivedCount = useMemo(() => products.filter((p) => !!p.archived_at).length, [products]);
+  const localChangesCount = useMemo(() => products.filter((p) => !p.archived_at && !!p.shopify_product_id && (!p.shopify_synced_at || new Date(p.shopify_synced_at) < new Date(p.updated_at || 0))).length, [products]);
 
   // Counts per product type for archived products
   const archivedTypeCounts = useMemo(() => {
@@ -364,6 +368,20 @@ export const ProductGrid = ({
               >
                 <Archive className="h-3 w-3 mr-1" />
                 Archived ({archivedCount})
+              </button>
+            )}
+            {localChangesCount > 0 && (
+              <button
+                type="button"
+                onClick={() => onFilterChange(activeFilter === "__local_changes" ? null : "__local_changes")}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors flex items-center",
+                  activeFilter === "__local_changes"
+                    ? "bg-amber-500 text-white"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                )}
+              >
+                ⬆ Local Changes ({localChangesCount})
               </button>
             )}
             {viewMode === "collections" && collectionData && collectionData.collections.map((col) => (
@@ -787,11 +805,27 @@ const ProductCard = ({
       <div className={cn("p-4", compact && "p-3")}>
         <div className="flex items-start justify-between">
           <div className="min-w-0">
-            {product.category && (
-              <span className="inline-block rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-medium mb-1">
-                {product.category}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              {product.category && (
+                <span className="inline-block rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[10px] font-medium">
+                  {product.category}
+                </span>
+              )}
+              {/* Shopify sync status badge */}
+              {!product.shopify_product_id ? (
+                <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Local only
+                </span>
+              ) : product.shopify_synced_at && new Date(product.shopify_synced_at) >= new Date(product.updated_at || 0) ? (
+                <span className="inline-block rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-medium">
+                  ✓ Synced
+                </span>
+              ) : (
+                <span className="inline-block rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-medium">
+                  ⬆ Local changes
+                </span>
+              )}
+            </div>
             <h3 className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>
               {product.title}
             </h3>
