@@ -1151,6 +1151,7 @@ export type Database = {
           print_placement: Json | null
           printify_product_id: string | null
           shopify_product_id: number | null
+          shopify_synced_at: string | null
           size_pricing: Json | null
           tags: string[]
           title: string
@@ -1174,6 +1175,7 @@ export type Database = {
           print_placement?: Json | null
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          shopify_synced_at?: string | null
           size_pricing?: Json | null
           tags?: string[]
           title: string
@@ -1197,6 +1199,7 @@ export type Database = {
           print_placement?: Json | null
           printify_product_id?: string | null
           shopify_product_id?: number | null
+          shopify_synced_at?: string | null
           size_pricing?: Json | null
           tags?: string[]
           title?: string
