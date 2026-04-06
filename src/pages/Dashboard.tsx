@@ -505,8 +505,8 @@ const Dashboard = () => {
                         <DropdownMenuTrigger asChild>
                           <Button disabled={products.length === 0} size="sm" className="gap-1.5 text-xs sm:text-sm">
                             <Rocket className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Publish{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
-                            <span className="sm:hidden">Publish{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
+                            <span className="hidden sm:inline">SEO Actions{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
+                            <span className="sm:hidden">SEO Actions{selectedProductIds.size > 0 ? ` (${selectedProductIds.size})` : ""}</span>
                             <ChevronDown className="h-3 w-3 ml-0.5" />
                           </Button>
                         </DropdownMenuTrigger>
