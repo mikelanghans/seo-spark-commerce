@@ -243,6 +243,11 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
   // ─── AI Color Recommendations ──────────────────────────────────
   const fetchAiRecommendations = async () => {
+    // Abort any previous in-flight request
+    recAbortRef.current?.abort();
+    const controller = new AbortController();
+    recAbortRef.current = controller;
+
     setLoadingRecs(true);
     try {
       const existingColors = images.map(img => img.color_name);
@@ -273,6 +278,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch { /* continue without design */ }
       }
 
+      if (controller.signal.aborted) return;
+
       const { data, error } = await supabase.functions.invoke("recommend-colors", {
         body: {
           productTitle,
@@ -288,6 +295,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         },
       });
 
+      if (controller.signal.aborted) return;
+
       if (error || data?.error) {
         handleAiError(error, data, "Failed to get color recommendations");
         return;
@@ -302,9 +311,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         .filter((c: string) => !existingSet.has(c.toLowerCase()));
       setSelectedColors(newColors);
     } catch (err: any) {
+      if (controller.signal.aborted) return;
       toast.error("Failed to get recommendations: " + (err.message || "Unknown error"));
     } finally {
-      setLoadingRecs(false);
+      if (!controller.signal.aborted) {
+        setLoadingRecs(false);
+      }
     }
   };
 
