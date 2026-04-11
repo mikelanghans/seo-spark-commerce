@@ -475,16 +475,33 @@ async function generateImage(
         }),
       });
 
-      if (response.ok) break;
+      if (response.ok) {
+        // Verify the response actually contains an image (not just text)
+        const cloned = response.clone();
+        const checkData = await cloned.json();
+        const checkMsg = checkData.choices?.[0]?.message;
+        let hasImage = false;
+        if (checkMsg?.images?.length > 0) hasImage = true;
+        if (!hasImage && Array.isArray(checkMsg?.content)) {
+          hasImage = checkMsg.content.some((p: any) => p.type === "image_url" || p.inline_data);
+        }
+        if (!hasImage && typeof checkMsg?.content === "string" && checkMsg.content.startsWith("data:image")) {
+          hasImage = true;
+        }
+        if (hasImage) break;
+        // Text-only response — retry
+        console.warn(`Attempt ${attempt + 1} with ${model}: text-only response, retrying...`);
+        lastError = `${model} returned text instead of image`;
+        response = null;
+        continue;
+      }
 
       const status = response.status;
       if (status === 429) {
         lastError = `${model} rate limited (429)`;
         console.error(`Attempt ${attempt + 1} with ${model}: 429 rate limited, backing off...`);
-        // Consume body to prevent leak
         await response.text();
         response = null;
-        // Extra wait on rate limit
         await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
         continue;
       }
