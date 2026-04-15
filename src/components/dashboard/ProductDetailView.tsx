@@ -349,6 +349,32 @@ export const ProductDetailView = ({
                     <Download className="h-3.5 w-3.5" /> Dark
                   </a>
                 )}
+                {lightDownloadHref && darkDownloadHref && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                    onClick={() => {
+                      // Download light immediately via visible anchor click
+                      const aLight = document.createElement("a");
+                      aLight.href = lightDownloadHref;
+                      aLight.download = sanitizeFilename(product.title, "light");
+                      document.body.appendChild(aLight);
+                      aLight.click();
+                      document.body.removeChild(aLight);
+                      // Download dark after a short delay so browser doesn't swallow it
+                      setTimeout(() => {
+                        const aDark = document.createElement("a");
+                        aDark.href = darkDownloadHref;
+                        aDark.download = sanitizeFilename(product.title, "dark");
+                        document.body.appendChild(aDark);
+                        aDark.click();
+                        document.body.removeChild(aDark);
+                      }, 500);
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5" /> Both
+                  </button>
+                )}
                 {!lightDownloadHref && !darkDownloadHref && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
