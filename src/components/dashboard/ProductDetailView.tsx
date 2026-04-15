@@ -81,7 +81,17 @@ export const ProductDetailView = ({
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
-  const saveBlobToDisk = async (blob: Blob, filename: string) => {
+  const getDownloadUrl = (src: string, filename: string) => {
+    try {
+      const url = new URL(src);
+      url.searchParams.set("download", filename);
+      return url.toString();
+    } catch {
+      return src;
+    }
+  };
+
+  const downloadFile = async (src: string, filename: string): Promise<"saved" | "started" | "cancelled"> => {
     const pickerWindow = window as Window & {
       showSaveFilePicker?: (options?: {
         suggestedName?: string;
@@ -100,46 +110,32 @@ export const ProductDetailView = ({
           suggestedName: filename,
           types: [{
             description: "PNG image",
-            accept: { [blob.type || "image/png"]: [`.${filename.split(".").pop() || "png"}`] },
+            accept: { "image/png": [`.${filename.split(".").pop() || "png"}`] },
           }],
         });
+
+        const res = await fetch(src);
+        if (!res.ok) throw new Error("Download failed");
+        const blob = await res.blob();
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        return true;
+        return "saved";
       } catch (error) {
-        if ((error as DOMException)?.name === "AbortError") return false;
+        if ((error as DOMException)?.name === "AbortError") return "cancelled";
       }
     }
 
-    const blobUrl = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      return true;
-    } finally {
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    }
-  };
-
-  const downloadFile = async (src: string, filename: string) => {
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const saved = await saveBlobToDisk(blob, filename);
-      if (!saved) return false;
-      return true;
-    } catch {
-      window.open(src, "_blank", "noopener,noreferrer");
-      toast.info("Your browser opened the file in a new tab. Use Save As if it was not downloaded automatically.");
-      return false;
-    }
+    const downloadUrl = getDownloadUrl(src, filename);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return "started";
   };
 
   return (
