@@ -272,6 +272,11 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
             if (lightPreservesAccentInk) {
               darkDesignBase64 = lightDesignBase64;
               preserveOriginalDesignAlpha = true;
+              try {
+                sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+              } catch {
+                sharedLightGarmentDesignBase64 = lightDesignBase64;
+              }
             }
           }
           if (!darkDesignBase64 && lightDesignBase64) {
@@ -280,6 +285,9 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
               if (preserveAccentColors) {
                 darkDesignBase64 = await deriveDarkInk(lightDesignBase64);
                 preserveOriginalDesignAlpha = true;
+                if (!sharedLightGarmentDesignBase64) {
+                  sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+                }
               } else {
                 const bgRemoved = await removeBackground(lightDesignBase64, "black");
                 const rawDark = await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 });
