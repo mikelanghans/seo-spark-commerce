@@ -427,12 +427,45 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
             const preserveOriginal = await isMultiColorDesign(designImageUrl) || await hasMeaningfulAccentColors(designImageUrl);
             if (preserveOriginal) {
               lightDesignBase64 = await fetchAsBase64(designImageUrl);
+              lightPreservesAccentInk = true;
             } else {
               const cleaned = await smartRemoveBackground(designImageUrl);
               lightDesignBase64 = ensureImageDataUrl(cleaned);
             }
           } catch {
             lightDesignBase64 = await fetchAsBase64(designImageUrl);
+          }
+
+          // Re-check accent colors on the freshly derived light design
+          if (lightDesignBase64 && !lightHasAccentColors) {
+            try {
+              lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
+            } catch { /* continue */ }
+          }
+          if (lightDesignBase64 && !lightPreservesAccentInk) {
+            try {
+              lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+            } catch {
+              lightPreservesAccentInk = lightHasAccentColors;
+            }
+          }
+
+          // Handle accent ink: shared design for all garments
+          if (lightPreservesAccentInk && lightDesignBase64) {
+            darkDesignBase64 = lightDesignBase64;
+            try {
+              sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+            } catch {
+              sharedLightGarmentDesignBase64 = lightDesignBase64;
+            }
+          }
+
+          // Derive dark variant from newly-created light if still missing
+          if (!darkDesignBase64 && lightDesignBase64) {
+            try {
+              const bgRemoved = await removeBackground(lightDesignBase64, "black");
+              darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
+            } catch { /* continue */ }
           }
         }
 
