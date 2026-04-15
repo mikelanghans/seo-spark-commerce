@@ -664,10 +664,18 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       if (hasSingleSharedFile && lightDesignBase64) {
         darkDesignBase64 = lightDesignBase64;
-      } else if (lightDesignBase64 && lightPreservesAccentInk) {
         try {
-          darkDesignBase64 = lightDesignBase64;
-        } catch { /* continue */ }
+          sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+        } catch {
+          sharedLightGarmentDesignBase64 = lightDesignBase64;
+        }
+      } else if (lightDesignBase64 && lightPreservesAccentInk) {
+        darkDesignBase64 = lightDesignBase64;
+        try {
+          sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+        } catch {
+          sharedLightGarmentDesignBase64 = lightDesignBase64;
+        }
       }
 
       if (!darkDesignBase64 && lightDesignBase64) {
@@ -697,15 +705,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch { /* continue */ }
       }
 
-      if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
-        try {
-          darkDesignBase64 = lightDesignBase64;
-        } catch { /* continue */ }
-      }
-
       const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
-      if (preserveOriginalDesignAlpha && lightDesignBase64) {
+      if (preserveOriginalDesignAlpha && lightDesignBase64 && !sharedLightGarmentDesignBase64) {
         sharedLightGarmentDesignBase64 = lightDesignBase64;
       }
 
