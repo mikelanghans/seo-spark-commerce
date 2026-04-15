@@ -177,8 +177,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
   if (!user || !isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
-
-
+};
 const App = () => {
   useEffect(() => {
     void authRoute.preload();
