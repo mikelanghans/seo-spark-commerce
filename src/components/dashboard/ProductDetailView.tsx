@@ -81,7 +81,17 @@ export const ProductDetailView = ({
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
-  const saveBlobToDisk = async (blob: Blob, filename: string) => {
+  const getDownloadUrl = (src: string, filename: string) => {
+    try {
+      const url = new URL(src);
+      url.searchParams.set("download", filename);
+      return url.toString();
+    } catch {
+      return src;
+    }
+  };
+
+  const downloadFile = async (src: string, filename: string): Promise<"saved" | "started" | "cancelled"> => {
     const pickerWindow = window as Window & {
       showSaveFilePicker?: (options?: {
         suggestedName?: string;
@@ -100,46 +110,32 @@ export const ProductDetailView = ({
           suggestedName: filename,
           types: [{
             description: "PNG image",
-            accept: { [blob.type || "image/png"]: [`.${filename.split(".").pop() || "png"}`] },
+            accept: { "image/png": [`.${filename.split(".").pop() || "png"}`] },
           }],
         });
+
+        const res = await fetch(src);
+        if (!res.ok) throw new Error("Download failed");
+        const blob = await res.blob();
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        return true;
+        return "saved";
       } catch (error) {
-        if ((error as DOMException)?.name === "AbortError") return false;
+        if ((error as DOMException)?.name === "AbortError") return "cancelled";
       }
     }
 
-    const blobUrl = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      return true;
-    } finally {
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    }
-  };
-
-  const downloadFile = async (src: string, filename: string) => {
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const saved = await saveBlobToDisk(blob, filename);
-      if (!saved) return false;
-      return true;
-    } catch {
-      window.open(src, "_blank", "noopener,noreferrer");
-      toast.info("Your browser opened the file in a new tab. Use Save As if it was not downloaded automatically.");
-      return false;
-    }
+    const downloadUrl = getDownloadUrl(src, filename);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return "started";
   };
 
   return (
@@ -201,22 +197,24 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={async () => {
                   if (!product.image_url) { toast.error("No light variant found"); return; }
-                  const success = await downloadFile(
+                  const result = await downloadFile(
                     product.image_url,
                     `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`,
                   );
-                  if (success) toast.success("Light variant saved");
+                  if (result === "saved") toast.success("Light variant saved");
+                  else if (result === "started") toast.info("Download started");
                 }}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   try {
                     const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
                     const darkSrc = imgs?.[0]?.image_url;
                     if (!darkSrc) { toast.error("No dark variant found"); return; }
-                    const success = await downloadFile(
+                    const result = await downloadFile(
                       darkSrc,
                       `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`,
                     );
-                    if (success) toast.success("Dark variant saved");
+                    if (result === "saved") toast.success("Dark variant saved");
+                    else if (result === "started") toast.info("Download started");
                   } catch {
                     toast.error("Failed to download dark variant");
                   }
@@ -224,18 +222,20 @@ export const ProductDetailView = ({
                 <DropdownMenuItem onClick={async () => {
                   const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
                   try {
-                    let savedAny = false;
+                    let completedCount = 0;
                     if (product.image_url) {
-                      savedAny = await downloadFile(product.image_url, `${slug}_light.png`) || savedAny;
+                      const result = await downloadFile(product.image_url, `${slug}_light.png`);
+                      if (result === "saved" || result === "started") completedCount += 1;
                     }
                     const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
                     const darkSrc = imgs?.[0]?.image_url;
                     if (darkSrc) {
-                      savedAny = await downloadFile(darkSrc, `${slug}_dark.png`) || savedAny;
+                      const result = await downloadFile(darkSrc, `${slug}_dark.png`);
+                      if (result === "saved" || result === "started") completedCount += 1;
                     } else {
                       toast("Only light variant available — dark not found");
                     }
-                    if (savedAny) toast.success("Design files saved");
+                    if (completedCount > 0) toast.success(completedCount === 2 ? "Both downloads started" : "Download started");
                   } catch {
                     toast.error("Failed to download");
                   }
