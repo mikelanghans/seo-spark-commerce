@@ -199,7 +199,7 @@ const App = () => {
                 <Route path="/features" element={<Features />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
