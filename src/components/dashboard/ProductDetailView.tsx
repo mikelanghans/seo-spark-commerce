@@ -81,60 +81,41 @@ export const ProductDetailView = ({
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
-  const getDownloadUrl = (src: string, filename: string) => {
-    try {
-      const url = new URL(src);
-      url.searchParams.set("download", filename);
-      return url.toString();
-    } catch {
-      return src;
-    }
-  };
-
   const downloadFile = async (src: string, filename: string): Promise<"saved" | "started" | "cancelled"> => {
-    const pickerWindow = window as Window & {
-      showSaveFilePicker?: (options?: {
-        suggestedName?: string;
-        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
-      }) => Promise<{
-        createWritable: () => Promise<{
-          write: (data: Blob) => Promise<void>;
-          close: () => Promise<void>;
-        }>;
-      }>;
-    };
+    // Always fetch as blob first — cross-origin URLs ignore the download attribute
+    const res = await fetch(src);
+    if (!res.ok) throw new Error("Download failed");
+    const blob = await res.blob();
 
+    // Try native file-save picker (Chrome/Edge on desktop)
+    const pickerWindow = window as Window & {
+      showSaveFilePicker?: (opts?: any) => Promise<any>;
+    };
     if (pickerWindow.showSaveFilePicker) {
       try {
         const handle = await pickerWindow.showSaveFilePicker({
           suggestedName: filename,
-          types: [{
-            description: "PNG image",
-            accept: { "image/png": [`.${filename.split(".").pop() || "png"}`] },
-          }],
+          types: [{ description: "PNG image", accept: { "image/png": [".png"] } }],
         });
-
-        const res = await fetch(src);
-        if (!res.ok) throw new Error("Download failed");
-        const blob = await res.blob();
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
         return "saved";
       } catch (error) {
         if ((error as DOMException)?.name === "AbortError") return "cancelled";
+        // Fall through to anchor download
       }
     }
 
-    const downloadUrl = getDownloadUrl(src, filename);
+    // Blob URL is same-origin, so the download attribute works
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = downloadUrl;
+    a.href = blobUrl;
     a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
     return "started";
   };
 
