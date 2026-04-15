@@ -161,6 +161,24 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as any })
+      .then(({ data }) => setIsAdmin(!!data))
+      .catch(() => setIsAdmin(false));
+  }, [user]);
+
+  if (loading || (user && isAdmin === null)) {
+    return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (!user || !isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+
+
 const App = () => {
   useEffect(() => {
     void authRoute.preload();
