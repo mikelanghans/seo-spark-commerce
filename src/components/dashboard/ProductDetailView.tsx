@@ -14,6 +14,8 @@ import { PushPrintifyThenShopify } from "@/components/PushPrintifyThenShopify";
 import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
+import { insertProductImagesDeduped } from "@/lib/productImageUtils";
+import { hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
@@ -54,7 +56,11 @@ export const ProductDetailView = ({
   uploadImageToStorage,
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
+  const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
+  const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
+  const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
+  const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
@@ -80,30 +86,186 @@ export const ProductDetailView = ({
       .then(({ data }) => setPrintifyConnected(!!data));
   }, [selectedOrg?.id]);
 
+  const isProductStorageUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    return url.includes("/storage/v1/object/public/product-images/");
+  };
+
+  const dataUrlToBlob = async (dataUrl: string) => fetch(dataUrl).then((res) => res.blob());
+
+  const urlToDataUrl = async (url: string) => {
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!res.ok) throw new Error("Failed to load design file");
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read design file"));
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const uploadVariantBase64 = async (base64: string, suffix: "light" | "dark") => {
+    const blob = await dataUrlToBlob(`data:image/png;base64,${base64}`);
+    const path = `${userId}/design-variants/${crypto.randomUUID()}-${suffix}.png`;
+    const { error } = await supabase.storage.from("product-images").upload(path, blob, {
+      contentType: "image/png",
+      upsert: true,
+    });
+    if (error) throw error;
+    return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+  };
+
   useEffect(() => {
     let isActive = true;
 
-    supabase
-      .from("product_images")
-      .select("image_url")
-      .eq("product_id", product.id)
-      .eq("image_type", "design")
-      .eq("color_name", "dark-on-light")
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (!isActive) return;
-        if (error) {
-          console.error("Failed to load dark design variant", error);
-          setDarkDesignUrl(null);
-          return;
+    const ensureDesignFiles = async () => {
+      if (!userId || !product.image_url) {
+        setLightDesignUrl(product.image_url ?? null);
+        setDarkDesignUrl(null);
+        return;
+      }
+
+      setIsPreparingDesignFiles(true);
+
+      try {
+        const { data: rows, error } = await supabase
+          .from("product_images")
+          .select("image_url, color_name")
+          .eq("product_id", product.id)
+          .eq("image_type", "design");
+
+        if (error) throw error;
+
+        const lightRow = rows?.find((row) => row.color_name === "light-on-dark");
+        const darkRow = rows?.find((row) => row.color_name === "dark-on-light");
+
+        let nextLightUrl = lightRow?.image_url ?? product.image_url ?? null;
+        let nextDarkUrl = darkRow?.image_url ?? null;
+
+        const needsLightUpload = !nextLightUrl || !isProductStorageUrl(nextLightUrl);
+        const needsDarkUpload = !nextDarkUrl || !isProductStorageUrl(nextDarkUrl);
+        const sourceUrl = nextLightUrl ?? nextDarkUrl ?? product.image_url;
+
+        let lightBase64: string | null = null;
+        let darkBase64: string | null = null;
+
+        if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
+          const sourceDataUrl = await urlToDataUrl(sourceUrl);
+          const sourceBase64 = sourceDataUrl.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
+          const multiColor = await isMultiColorDesign(sourceBase64);
+          const hasAccents = !multiColor && await hasMeaningfulAccentColors(sourceBase64);
+          const usesSharedDesign = multiColor || hasAccents;
+          const transparentBase64 = usesSharedDesign ? sourceBase64 : await smartRemoveBackground(sourceDataUrl);
+
+          lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
+          darkBase64 = usesSharedDesign
+            ? lightBase64
+            : await upscaleBase64Png(
+                await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true }),
+                4500,
+              );
         }
-        setDarkDesignUrl(data?.image_url ?? null);
-      });
+
+        if (needsLightUpload && lightBase64) {
+          nextLightUrl = await uploadVariantBase64(lightBase64, "light");
+        }
+
+        if (needsDarkUpload && darkBase64) {
+          nextDarkUrl = await uploadVariantBase64(darkBase64, "dark");
+        }
+
+        const rowsToSave = [
+          nextLightUrl ? { product_id: product.id, user_id: userId, image_url: nextLightUrl, image_type: "design", color_name: "light-on-dark", position: 0 } : null,
+          nextDarkUrl ? { product_id: product.id, user_id: userId, image_url: nextDarkUrl, image_type: "design", color_name: "dark-on-light", position: 1 } : null,
+        ].filter(Boolean) as Array<{ product_id: string; user_id: string; image_url: string; image_type: string; color_name: string; position: number }>;
+
+        if (rowsToSave.length > 0) {
+          await insertProductImagesDeduped(rowsToSave);
+        }
+
+        if (nextLightUrl && product.image_url !== nextLightUrl) {
+          const { error: updateError } = await supabase.from("products").update({ image_url: nextLightUrl }).eq("id", product.id);
+          if (!updateError && isActive) {
+            setSelectedProduct({ ...product, image_url: nextLightUrl });
+          }
+        }
+
+        if (!isActive) return;
+        setLightDesignUrl(nextLightUrl);
+        setDarkDesignUrl(nextDarkUrl);
+      } catch (error) {
+        console.error("Failed to ensure design files", error);
+        if (!isActive) return;
+        setLightDesignUrl(product.image_url ?? null);
+        setDarkDesignUrl(null);
+      } finally {
+        if (isActive) setIsPreparingDesignFiles(false);
+      }
+    };
+
+    ensureDesignFiles();
 
     return () => {
       isActive = false;
     };
-  }, [product.id]);
+  }, [product.id, product.image_url, setSelectedProduct, userId]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!lightDesignUrl) {
+        setLightDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(lightDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload light design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setLightDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setLightDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [lightDesignUrl]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!darkDesignUrl) {
+        setDarkDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(darkDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload dark design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setDarkDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setDarkDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [darkDesignUrl]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
@@ -122,15 +284,10 @@ export const ProductDetailView = ({
     }, 0);
   };
 
-  const downloadFile = async (src: string, filename: string): Promise<"started" | "failed"> => {
+  const downloadFile = (src: string | null, filename: string): "started" | "failed" => {
+    if (!src) return "failed";
     try {
-      const res = await fetch(src, { mode: "cors", credentials: "omit" });
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      if (blob.size === 0) throw new Error("Empty download");
-      const blobUrl = URL.createObjectURL(blob);
-      clickDownloadLink(blobUrl, filename);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      clickDownloadLink(src, filename);
       return "started";
     } catch {
       return "failed";
@@ -195,32 +352,34 @@ export const ProductDetailView = ({
               <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" /> Download</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={async () => {
-                  if (!product.image_url) { toast.error("No light variant found"); return; }
-                  const status = await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                  if (!lightDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the light design file" : "Light design file is not ready yet"); return; }
+                  const status = downloadFile(lightDownloadHref, sanitizeFilename(product.title, "light"));
                   if (status === "started") toast.success("Light variant download started");
-                  else toast.error("Browser blocked the download — try the published app");
-                }}>Light variant</DropdownMenuItem>
+                  else toast.error("Light variant download failed");
+                }} disabled={isPreparingDesignFiles || !lightDownloadHref}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
-                  if (!darkDesignUrl) { toast.error("No dark variant found"); return; }
-                  const status = await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                  if (!darkDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the dark design file" : "No dark variant found"); return; }
+                  const status = downloadFile(darkDownloadHref, sanitizeFilename(product.title, "dark"));
                   if (status === "started") toast.success("Dark variant download started");
-                  else toast.error("Browser blocked the download — try the published app");
-                }}>Dark variant</DropdownMenuItem>
+                  else toast.error("Dark variant download failed");
+                }} disabled={isPreparingDesignFiles || !darkDownloadHref}>Dark variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
+                  if (!lightDownloadHref && !darkDownloadHref) {
+                    toast.error(isPreparingDesignFiles ? "Still preparing design files" : "Design files are not ready yet");
+                    return;
+                  }
                   let completedCount = 0;
-                  if (product.image_url) {
-                    const status = await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                  if (lightDownloadHref) {
+                    const status = downloadFile(lightDownloadHref, sanitizeFilename(product.title, "light"));
                     if (status === "started") completedCount += 1;
                   }
-                  if (darkDesignUrl) {
-                    const status = await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                  if (darkDownloadHref) {
+                    const status = downloadFile(darkDownloadHref, sanitizeFilename(product.title, "dark"));
                     if (status === "started") completedCount += 1;
-                  } else {
-                    toast("Only light variant available — dark not found");
                   }
                   if (completedCount > 0) toast.success(completedCount === 2 ? "Both downloads started" : "Download started");
-                  else toast.error("Browser blocked the download — try the published app");
-                }}>Both variants</DropdownMenuItem>
+                  else toast.error("Downloads failed");
+                }} disabled={isPreparingDesignFiles || (!lightDownloadHref && !darkDownloadHref)}>Both variants</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
