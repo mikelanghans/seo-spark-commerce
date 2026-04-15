@@ -54,6 +54,7 @@ export const ProductDetailView = ({
   uploadImageToStorage,
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
+  const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
@@ -79,44 +80,72 @@ export const ProductDetailView = ({
       .then(({ data }) => setPrintifyConnected(!!data));
   }, [selectedOrg?.id]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    supabase
+      .from("product_images")
+      .select("image_url")
+      .eq("product_id", product.id)
+      .eq("image_type", "design")
+      .eq("color_name", "dark-on-light")
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!isActive) return;
+        if (error) {
+          console.error("Failed to load dark design variant", error);
+          setDarkDesignUrl(null);
+          return;
+        }
+        setDarkDesignUrl(data?.image_url ?? null);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [product.id]);
+
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
-  const downloadFile = async (src: string, filename: string): Promise<"saved" | "started" | "cancelled"> => {
-    // Always fetch as blob first — cross-origin URLs ignore the download attribute
+  const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
+
+  const clickDownloadLink = (href: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    a.rel = "noopener noreferrer";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    requestAnimationFrame(() => {
+      document.body.removeChild(a);
+    });
+  };
+
+  const getAttachmentDownloadUrl = (src: string, filename: string) => {
+    try {
+      const url = new URL(src);
+      if (!url.pathname.includes("/storage/v1/object/public/")) return null;
+      url.searchParams.set("download", filename);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  };
+
+  const downloadFile = async (src: string, filename: string) => {
+    const attachmentUrl = getAttachmentDownloadUrl(src, filename);
+    if (attachmentUrl) {
+      clickDownloadLink(attachmentUrl, filename);
+      return;
+    }
+
     const res = await fetch(src);
     if (!res.ok) throw new Error("Download failed");
     const blob = await res.blob();
-
-    // Try native file-save picker (Chrome/Edge on desktop)
-    const pickerWindow = window as Window & {
-      showSaveFilePicker?: (opts?: any) => Promise<any>;
-    };
-    if (pickerWindow.showSaveFilePicker) {
-      try {
-        const handle = await pickerWindow.showSaveFilePicker({
-          suggestedName: filename,
-          types: [{ description: "PNG image", accept: { "image/png": [".png"] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        return "saved";
-      } catch (error) {
-        if ((error as DOMException)?.name === "AbortError") return "cancelled";
-        // Fall through to anchor download
-      }
-    }
-
-    // Blob URL is same-origin, so the download attribute works
     const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    clickDownloadLink(blobUrl, filename);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-    return "started";
   };
 
   return (
@@ -178,41 +207,28 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={async () => {
                   if (!product.image_url) { toast.error("No light variant found"); return; }
-                  const result = await downloadFile(
-                    product.image_url,
-                    `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`,
-                  );
-                  if (result === "saved") toast.success("Light variant saved");
-                  else if (result === "started") toast.info("Download started");
+                  await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                  toast.success("Light variant download started");
                 }}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   try {
-                    const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
-                    const darkSrc = imgs?.[0]?.image_url;
-                    if (!darkSrc) { toast.error("No dark variant found"); return; }
-                    const result = await downloadFile(
-                      darkSrc,
-                      `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`,
-                    );
-                    if (result === "saved") toast.success("Dark variant saved");
-                    else if (result === "started") toast.info("Download started");
+                    if (!darkDesignUrl) { toast.error("No dark variant found"); return; }
+                    await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                    toast.success("Dark variant download started");
                   } catch {
                     toast.error("Failed to download dark variant");
                   }
                 }}>Dark variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
-                  const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
                   try {
                     let completedCount = 0;
                     if (product.image_url) {
-                      const result = await downloadFile(product.image_url, `${slug}_light.png`);
-                      if (result === "saved" || result === "started") completedCount += 1;
+                      await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                      completedCount += 1;
                     }
-                    const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
-                    const darkSrc = imgs?.[0]?.image_url;
-                    if (darkSrc) {
-                      const result = await downloadFile(darkSrc, `${slug}_dark.png`);
-                      if (result === "saved" || result === "started") completedCount += 1;
+                    if (darkDesignUrl) {
+                      await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                      completedCount += 1;
                     } else {
                       toast("Only light variant available — dark not found");
                     }
