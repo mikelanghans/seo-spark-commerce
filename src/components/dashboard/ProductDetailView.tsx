@@ -201,71 +201,44 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={async () => {
                   if (!product.image_url) { toast.error("No light variant found"); return; }
-                  try {
-                    const res = await fetch(product.image_url);
-                    if (!res.ok) throw new Error("fetch failed");
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                  } catch {
-                    window.open(product.image_url, "_blank");
-                  }
+                  const success = await downloadFile(
+                    product.image_url,
+                    `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_light.png`,
+                  );
+                  if (success) toast.success("Light variant saved");
                 }}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   try {
                     const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
                     const darkSrc = imgs?.[0]?.image_url;
                     if (!darkSrc) { toast.error("No dark variant found"); return; }
-                    try {
-                      const res = await fetch(darkSrc);
-                      if (!res.ok) throw new Error("fetch failed");
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    } catch {
-                      window.open(darkSrc, "_blank");
-                    }
-                  } catch { toast.error("Failed to download dark variant"); }
+                    const success = await downloadFile(
+                      darkSrc,
+                      `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_dark.png`,
+                    );
+                    if (success) toast.success("Dark variant saved");
+                  } catch {
+                    toast.error("Failed to download dark variant");
+                  }
                 }}>Dark variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   const slug = product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-                  const downloadFile = async (src: string, filename: string) => {
-                    try {
-                      const res = await fetch(src);
-                      if (!res.ok) throw new Error("fetch failed");
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = filename;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      setTimeout(() => URL.revokeObjectURL(url), 1000);
-                    } catch {
-                      window.open(src, "_blank");
-                    }
-                  };
                   try {
-                    if (product.image_url) await downloadFile(product.image_url, `${slug}_light.png`);
+                    let savedAny = false;
+                    if (product.image_url) {
+                      savedAny = await downloadFile(product.image_url, `${slug}_light.png`) || savedAny;
+                    }
                     const { data: imgs } = await supabase.from("product_images").select("image_url").eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light").limit(1);
                     const darkSrc = imgs?.[0]?.image_url;
-                    if (darkSrc) { await new Promise(r => setTimeout(r, 300)); await downloadFile(darkSrc, `${slug}_dark.png`); }
-                    else { toast("Only light variant available — dark not found"); }
-                    toast.success("Downloads started!");
-                  } catch { toast.error("Failed to download"); }
+                    if (darkSrc) {
+                      savedAny = await downloadFile(darkSrc, `${slug}_dark.png`) || savedAny;
+                    } else {
+                      toast("Only light variant available — dark not found");
+                    }
+                    if (savedAny) toast.success("Design files saved");
+                  } catch {
+                    toast.error("Failed to download");
+                  }
                 }}>Both variants</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
