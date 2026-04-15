@@ -201,15 +201,29 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
         }
         let preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
-        if (preserveOriginalDesignAlpha && lightDesignBase64) {
-          sharedLightGarmentDesignBase64 = lightDesignBase64;
-        }
-
         if (hasSingleSharedFile && lightDesignBase64) {
           darkDesignBase64 = lightDesignBase64;
+          // Darken bright pixels for light garment visibility
+          try {
+            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          } catch {
+            sharedLightGarmentDesignBase64 = lightDesignBase64;
+          }
         } else if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
           darkDesignBase64 = lightDesignBase64;
           preserveOriginalDesignAlpha = true;
+          // Darken bright pixels for light garment visibility
+          try {
+            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          } catch {
+            sharedLightGarmentDesignBase64 = lightDesignBase64;
+          }
+        } else if (preserveOriginalDesignAlpha && lightDesignBase64) {
+          try {
+            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+          } catch {
+            sharedLightGarmentDesignBase64 = lightDesignBase64;
+          }
         }
 
         // Derive dark variant if missing
