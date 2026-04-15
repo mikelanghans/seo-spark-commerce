@@ -351,19 +351,19 @@ export const ProductDetailView = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" /> Download</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={async () => {
+                <DropdownMenuItem onClick={() => {
                   if (!lightDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the light design file" : "Light design file is not ready yet"); return; }
                   const status = downloadFile(lightDownloadHref, sanitizeFilename(product.title, "light"));
                   if (status === "started") toast.success("Light variant download started");
                   else toast.error("Light variant download failed");
                 }} disabled={isPreparingDesignFiles || !lightDownloadHref}>Light variant</DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => {
+                <DropdownMenuItem onClick={() => {
                   if (!darkDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the dark design file" : "No dark variant found"); return; }
                   const status = downloadFile(darkDownloadHref, sanitizeFilename(product.title, "dark"));
                   if (status === "started") toast.success("Dark variant download started");
                   else toast.error("Dark variant download failed");
                 }} disabled={isPreparingDesignFiles || !darkDownloadHref}>Dark variant</DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => {
+                <DropdownMenuItem onClick={() => {
                   if (!lightDownloadHref && !darkDownloadHref) {
                     toast.error(isPreparingDesignFiles ? "Still preparing design files" : "Design files are not ready yet");
                     return;
