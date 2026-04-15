@@ -2,11 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Component, lazy, Suspense, useEffect } from "react";
+import { Component, lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import Dashboard from "./pages/Dashboard";
 
@@ -160,6 +161,23 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as any })
+      .then(({ data }) => setIsAdmin(!!data))
+      .then(undefined, () => setIsAdmin(false));
+  }, [user]);
+
+  if (loading || (user && isAdmin === null)) {
+    return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (!user || !isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
 const App = () => {
   useEffect(() => {
     void authRoute.preload();
@@ -181,7 +199,7 @@ const App = () => {
                 <Route path="/features" element={<Features />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
