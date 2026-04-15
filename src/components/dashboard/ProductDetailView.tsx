@@ -271,29 +271,6 @@ export const ProductDetailView = ({
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
 
-  const clickDownloadLink = (href: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = filename;
-    a.rel = "noopener noreferrer";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-    }, 0);
-  };
-
-  const downloadFile = (src: string | null, filename: string): "started" | "failed" => {
-    if (!src) return "failed";
-    try {
-      clickDownloadLink(src, filename);
-      return "started";
-    } catch {
-      return "failed";
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
@@ -348,40 +325,35 @@ export const ProductDetailView = ({
                 <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" /> Download</Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => {
-                  if (!lightDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the light design file" : "Light design file is not ready yet"); return; }
-                  const status = downloadFile(lightDownloadHref, sanitizeFilename(product.title, "light"));
-                  if (status === "started") toast.success("Light variant download started");
-                  else toast.error("Light variant download failed");
-                }} disabled={isPreparingDesignFiles || !lightDownloadHref}>Light variant</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (!darkDownloadHref) { toast.error(isPreparingDesignFiles ? "Still preparing the dark design file" : "No dark variant found"); return; }
-                  const status = downloadFile(darkDownloadHref, sanitizeFilename(product.title, "dark"));
-                  if (status === "started") toast.success("Dark variant download started");
-                  else toast.error("Dark variant download failed");
-                }} disabled={isPreparingDesignFiles || !darkDownloadHref}>Dark variant</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (!lightDownloadHref && !darkDownloadHref) {
-                    toast.error(isPreparingDesignFiles ? "Still preparing design files" : "Design files are not ready yet");
-                    return;
-                  }
-                  let completedCount = 0;
-                  if (lightDownloadHref) {
-                    const status = downloadFile(lightDownloadHref, sanitizeFilename(product.title, "light"));
-                    if (status === "started") completedCount += 1;
-                  }
-                  if (darkDownloadHref) {
-                    const status = downloadFile(darkDownloadHref, sanitizeFilename(product.title, "dark"));
-                    if (status === "started") completedCount += 1;
-                  }
-                  if (completedCount > 0) toast.success(completedCount === 2 ? "Both downloads started" : "Download started");
-                  else toast.error("Downloads failed");
-                }} disabled={isPreparingDesignFiles || (!lightDownloadHref && !darkDownloadHref)}>Both variants</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isPreparingDesignFiles ? (
+              <Button variant="outline" size="sm" className="gap-2" disabled>
+                <Loader2 className="h-4 w-4 animate-spin" /> Preparing…
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {lightDownloadHref && (
+                  <a
+                    href={lightDownloadHref}
+                    download={sanitizeFilename(product.title, "light")}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Light
+                  </a>
+                )}
+                {darkDownloadHref && (
+                  <a
+                    href={darkDownloadHref}
+                    download={sanitizeFilename(product.title, "dark")}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Dark
+                  </a>
+                )}
+                {!lightDownloadHref && !darkDownloadHref && (
+                  <span className="text-xs text-muted-foreground">No design files available</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
