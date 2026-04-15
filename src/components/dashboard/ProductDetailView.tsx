@@ -109,53 +109,30 @@ export const ProductDetailView = ({
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
 
-  const clickDownloadLink = (href: string, filename: string, target: "_self" | "_blank" = "_self") => {
+  const clickDownloadLink = (href: string, filename: string) => {
     const a = document.createElement("a");
     a.href = href;
     a.download = filename;
-    a.target = target;
     a.rel = "noopener noreferrer";
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       document.body.removeChild(a);
-    });
-  };
-
-  const getAttachmentDownloadUrl = (src: string, filename: string) => {
-    try {
-      const url = new URL(src);
-      if (!url.pathname.includes("/storage/v1/object/public/")) return null;
-      url.searchParams.set("download", filename);
-      return url.toString();
-    } catch {
-      return null;
-    }
+    }, 0);
   };
 
   const downloadFile = async (src: string, filename: string): Promise<"started" | "failed"> => {
-    const attachmentUrl = getAttachmentDownloadUrl(src, filename);
-    if (attachmentUrl) {
-      try {
-        clickDownloadLink(attachmentUrl, filename, "_blank");
-        return "started";
-      } catch {
-        window.open(attachmentUrl, "_blank", "noopener,noreferrer");
-        return "started";
-      }
-    }
-
     try {
       const res = await fetch(src, { mode: "cors", credentials: "omit" });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
+      if (blob.size === 0) throw new Error("Empty download");
       const blobUrl = URL.createObjectURL(blob);
-      clickDownloadLink(blobUrl, filename, "_blank");
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      clickDownloadLink(blobUrl, filename);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       return "started";
     } catch {
-      window.open(src, "_blank", "noopener,noreferrer");
       return "failed";
     }
   };
