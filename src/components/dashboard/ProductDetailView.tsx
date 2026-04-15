@@ -81,6 +81,67 @@ export const ProductDetailView = ({
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
+  const saveBlobToDisk = async (blob: Blob, filename: string) => {
+    const pickerWindow = window as Window & {
+      showSaveFilePicker?: (options?: {
+        suggestedName?: string;
+        types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+      }) => Promise<{
+        createWritable: () => Promise<{
+          write: (data: Blob) => Promise<void>;
+          close: () => Promise<void>;
+        }>;
+      }>;
+    };
+
+    if (pickerWindow.showSaveFilePicker) {
+      try {
+        const handle = await pickerWindow.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: "PNG image",
+            accept: { [blob.type || "image/png"]: [`.${filename.split(".").pop() || "png"}`] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return true;
+      } catch (error) {
+        if ((error as DOMException)?.name === "AbortError") return false;
+      }
+    }
+
+    const blobUrl = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return true;
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+  };
+
+  const downloadFile = async (src: string, filename: string) => {
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const saved = await saveBlobToDisk(blob, filename);
+      if (!saved) return false;
+      return true;
+    } catch {
+      window.open(src, "_blank", "noopener,noreferrer");
+      toast.info("Your browser opened the file in a new tab. Use Save As if it was not downloaded automatically.");
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
