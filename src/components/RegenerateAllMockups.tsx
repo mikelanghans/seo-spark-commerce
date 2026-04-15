@@ -299,6 +299,42 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           }
         }
 
+        // Persist dark-on-light design variant if derived but not yet in DB
+        const darkVariantToSave = sharedLightGarmentDesignBase64 || darkDesignBase64;
+        if (darkVariantToSave && darkVariantToSave !== lightDesignBase64) {
+          try {
+            const { data: existingDark } = await supabase
+              .from("product_images")
+              .select("id")
+              .eq("product_id", product.id)
+              .eq("image_type", "design")
+              .eq("color_name", "dark-on-light")
+              .limit(1);
+
+            if (!existingDark || existingDark.length === 0) {
+              const darkBlob = await fetch(darkVariantToSave).then(r => r.blob());
+              const darkPath = `${userId}/${crypto.randomUUID()}-dark.png`;
+              const { error: darkUpErr } = await supabase.storage
+                .from("product-images")
+                .upload(darkPath, darkBlob, { contentType: "image/png", upsert: true });
+              if (!darkUpErr) {
+                const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
+                await insertProductImageIfNotExists({
+                  product_id: product.id,
+                  user_id: userId,
+                  image_url: darkUrlData.publicUrl,
+                  image_type: "design",
+                  color_name: "dark-on-light",
+                  position: 1,
+                });
+                console.log("[regen] Saved derived dark-on-light design variant:", darkUrlData.publicUrl);
+              }
+            }
+          } catch (e) {
+            console.warn("[regen] Failed to persist dark design variant:", e);
+          }
+        }
+
         let referenceDesignSize: { width: number; height: number } | undefined;
         try {
           referenceDesignSize = await getUnifiedDesignSize(

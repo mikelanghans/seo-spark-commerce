@@ -456,6 +456,42 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           sharedLightGarmentDesignBase64 = lightDesignBase64;
         }
 
+        // Persist dark-on-light design variant if it was derived but doesn't exist in DB
+        const darkVariantToSave = sharedLightGarmentDesignBase64 || darkDesignBase64;
+        if (darkVariantToSave && darkVariantToSave !== lightDesignBase64) {
+          try {
+            const { data: existingDark } = await supabase
+              .from("product_images")
+              .select("id")
+              .eq("product_id", productId)
+              .eq("image_type", "design")
+              .eq("color_name", "dark-on-light")
+              .limit(1);
+
+            if (!existingDark || existingDark.length === 0) {
+              const darkBlob = await fetch(darkVariantToSave).then(r => r.blob());
+              const darkPath = `${userId}/design-variants/${crypto.randomUUID()}-dark.png`;
+              const { error: darkUpErr } = await supabase.storage
+                .from("product-images")
+                .upload(darkPath, darkBlob, { contentType: "image/png", upsert: true });
+              if (!darkUpErr) {
+                const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
+                await insertProductImageIfNotExists({
+                  product_id: productId,
+                  user_id: userId,
+                  image_url: darkUrlData.publicUrl,
+                  image_type: "design",
+                  color_name: "dark-on-light",
+                  position: 1,
+                });
+                console.log("[mockup] Saved derived dark-on-light design variant:", darkUrlData.publicUrl);
+              }
+            }
+          } catch (e) {
+            console.warn("[mockup] Failed to persist dark design variant:", e);
+          }
+        }
+
         let referenceDesignSize: { width: number; height: number } | undefined;
         try {
           referenceDesignSize = await getUnifiedDesignSize(
