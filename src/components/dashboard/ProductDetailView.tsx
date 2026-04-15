@@ -109,10 +109,11 @@ export const ProductDetailView = ({
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
 
-  const clickDownloadLink = (href: string, filename: string) => {
+  const clickDownloadLink = (href: string, filename: string, target: "_self" | "_blank" = "_self") => {
     const a = document.createElement("a");
     a.href = href;
     a.download = filename;
+    a.target = target;
     a.rel = "noopener noreferrer";
     a.style.display = "none";
     document.body.appendChild(a);
@@ -133,19 +134,30 @@ export const ProductDetailView = ({
     }
   };
 
-  const downloadFile = async (src: string, filename: string) => {
+  const downloadFile = async (src: string, filename: string): Promise<"started" | "failed"> => {
     const attachmentUrl = getAttachmentDownloadUrl(src, filename);
     if (attachmentUrl) {
-      clickDownloadLink(attachmentUrl, filename);
-      return;
+      try {
+        clickDownloadLink(attachmentUrl, filename, "_blank");
+        return "started";
+      } catch {
+        window.open(attachmentUrl, "_blank", "noopener,noreferrer");
+        return "started";
+      }
     }
 
-    const res = await fetch(src);
-    if (!res.ok) throw new Error("Download failed");
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    clickDownloadLink(blobUrl, filename);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    try {
+      const res = await fetch(src, { mode: "cors", credentials: "omit" });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      clickDownloadLink(blobUrl, filename, "_blank");
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      return "started";
+    } catch {
+      window.open(src, "_blank", "noopener,noreferrer");
+      return "failed";
+    }
   };
 
   return (
@@ -207,35 +219,30 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={async () => {
                   if (!product.image_url) { toast.error("No light variant found"); return; }
-                  await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
-                  toast.success("Light variant download started");
+                  const status = await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                  if (status === "started") toast.success("Light variant download started");
+                  else toast.error("Browser blocked the download — try the published app");
                 }}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
-                  try {
-                    if (!darkDesignUrl) { toast.error("No dark variant found"); return; }
-                    await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
-                    toast.success("Dark variant download started");
-                  } catch {
-                    toast.error("Failed to download dark variant");
-                  }
+                  if (!darkDesignUrl) { toast.error("No dark variant found"); return; }
+                  const status = await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                  if (status === "started") toast.success("Dark variant download started");
+                  else toast.error("Browser blocked the download — try the published app");
                 }}>Dark variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
-                  try {
-                    let completedCount = 0;
-                    if (product.image_url) {
-                      await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
-                      completedCount += 1;
-                    }
-                    if (darkDesignUrl) {
-                      await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
-                      completedCount += 1;
-                    } else {
-                      toast("Only light variant available — dark not found");
-                    }
-                    if (completedCount > 0) toast.success(completedCount === 2 ? "Both downloads started" : "Download started");
-                  } catch {
-                    toast.error("Failed to download");
+                  let completedCount = 0;
+                  if (product.image_url) {
+                    const status = await downloadFile(product.image_url, sanitizeFilename(product.title, "light"));
+                    if (status === "started") completedCount += 1;
                   }
+                  if (darkDesignUrl) {
+                    const status = await downloadFile(darkDesignUrl, sanitizeFilename(product.title, "dark"));
+                    if (status === "started") completedCount += 1;
+                  } else {
+                    toast("Only light variant available — dark not found");
+                  }
+                  if (completedCount > 0) toast.success(completedCount === 2 ? "Both downloads started" : "Download started");
+                  else toast.error("Browser blocked the download — try the published app");
                 }}>Both variants</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
