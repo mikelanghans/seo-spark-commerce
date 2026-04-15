@@ -299,6 +299,41 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           }
         }
 
+        // Persist light-on-dark design variant if derived but not yet in DB
+        if (lightDesignBase64) {
+          try {
+            const { data: existingLight } = await supabase
+              .from("product_images")
+              .select("id")
+              .eq("product_id", product.id)
+              .eq("image_type", "design")
+              .eq("color_name", "light-on-dark")
+              .limit(1);
+
+            if (!existingLight || existingLight.length === 0) {
+              const lightBlob = await fetch(lightDesignBase64).then(r => r.blob());
+              const lightPath = `${userId}/design-variants/${crypto.randomUUID()}-light.png`;
+              const { error: lightUpErr } = await supabase.storage
+                .from("product-images")
+                .upload(lightPath, lightBlob, { contentType: "image/png", upsert: true });
+              if (!lightUpErr) {
+                const { data: lightUrlData } = supabase.storage.from("product-images").getPublicUrl(lightPath);
+                await insertProductImageIfNotExists({
+                  product_id: product.id,
+                  user_id: userId,
+                  image_url: lightUrlData.publicUrl,
+                  image_type: "design",
+                  color_name: "light-on-dark",
+                  position: 0,
+                });
+                console.log("[regen] Saved derived light-on-dark design variant:", lightUrlData.publicUrl);
+              }
+            }
+          } catch (e) {
+            console.warn("[regen] Failed to persist light design variant:", e);
+          }
+        }
+
         // Persist dark-on-light design variant if derived but not yet in DB
         const darkVariantToSave = sharedLightGarmentDesignBase64 || darkDesignBase64;
         if (darkVariantToSave && darkVariantToSave !== lightDesignBase64) {
