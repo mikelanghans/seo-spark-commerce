@@ -169,7 +169,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as any })
       .then(({ data }) => setIsAdmin(!!data))
-      .catch(() => setIsAdmin(false));
+      .then(undefined, () => setIsAdmin(false));
   }, [user]);
 
   if (loading || (user && isAdmin === null)) {
