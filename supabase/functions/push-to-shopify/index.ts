@@ -24,19 +24,6 @@ const updateShopifyProduct = (
   },
 );
 
-const createShopifyProduct = (
-  domain: string,
-  accessToken: string,
-  shopifyProduct: Record<string, unknown>,
-) => fetch(
-  `https://${domain}/admin/api/2024-01/products.json`,
-  {
-    method: "POST",
-    headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
-    body: JSON.stringify({ product: shopifyProduct }),
-  },
-);
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -56,10 +43,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    // Default: do NOT create a replacement Shopify product when the linked one is missing.
-    // Creation should flow through Printify so products stay connected to a Printify source.
-    // Callers can opt in to create-on-missing by explicitly passing allowCreateOnMissingProduct: true.
-    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, allowCreateOnMissingProduct = false, replaceAllImages = false } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, replaceAllImages = false } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -85,25 +69,45 @@ serve(async (req) => {
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    const existingShopifyId = product.shopify_product_id;
-    const isUpdate = !!existingShopifyId;
-    const effectiveUpdateFields = isUpdate && Array.isArray(updateFields) ? updateFields : undefined;
+    let existingShopifyId: number | null = product.shopify_product_id ?? null;
 
-    if (isUpdate) {
-      console.log("Updating existing Shopify product while preserving current variant/options matrix");
+    if (!existingShopifyId && product.id) {
+      const { data: latestProductLink } = await adminClient
+        .from("products")
+        .select("shopify_product_id")
+        .eq("id", product.id)
+        .maybeSingle();
+
+      const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
+      if (latestShopifyId) {
+        existingShopifyId = latestShopifyId;
+        console.log(`Recovered linked Shopify product ID ${latestShopifyId} from product row`);
+      }
     }
 
+    if (!existingShopifyId) {
+      return new Response(JSON.stringify({
+        success: false,
+        missingShopifyLink: true,
+        message: "No linked Shopify product found. Use 'Printify → Shopify' first so the Shopify product is created and stays connected.",
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const isUpdate = true;
+    const effectiveUpdateFields = Array.isArray(updateFields) ? updateFields : undefined;
+    console.log(`Updating existing Shopify product ${existingShopifyId} while preserving current variant/options matrix`);
+
     const bodyHtml = buildBodyHtml(rawDesc, bulletPoints);
-    // Resolve size pricing: product-level overrides keyed by product type
     const rawSizePricing = product.size_pricing;
     let flatSizePricing: Record<string, string> | null = null;
     if (rawSizePricing && typeof rawSizePricing === "object") {
-      // size_pricing can be { "t-shirt": { "S": "24.99", ... } } or flat { "S": "24.99" }
       const category = (product.category || "").toLowerCase().replace(/\s+/g, "-");
       if (rawSizePricing[category] && typeof rawSizePricing[category] === "object") {
         flatSizePricing = rawSizePricing[category];
       } else {
-        // Assume flat format
         flatSizePricing = rawSizePricing;
       }
     }
@@ -114,21 +118,15 @@ serve(async (req) => {
     const { imageEntries } = categorizeImages(colorVariants, product, shopifyListing, imageUrl);
     console.log(`Images to upload: ${imageEntries.length}, color variants: ${actualColorVariants.length}, updateFields: ${effectiveUpdateFields || "all"}`);
 
-    // For updates, delete images before re-uploading.
-    // replaceAllImages = true → wipe everything (used after Printify sync to replace Printify mockups with local ones)
     const pushedColorNames = actualColorVariants.map((v) => v.colorName);
     const deleteColorFilter = replaceAllImages ? undefined : (pushedColorNames.length > 0 ? pushedColorNames : undefined);
-    if (isUpdate && shouldUpdateImages && imageEntries.length > 0) {
+    if (shouldUpdateImages && imageEntries.length > 0) {
       await deleteExistingImages(domain, connection.access_token, existingShopifyId, deleteColorFilter);
     }
 
-    // Create or update product
-    let shopifyResponse = isUpdate
-      ? await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct)
-      : await createShopifyProduct(domain, connection.access_token, shopifyProduct);
+    let shopifyResponse = await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct);
 
-    // If update returns 404, give Shopify a few seconds to finish native sync before deciding it's missing.
-    if (isUpdate && shopifyResponse.status === 404) {
+    if (shopifyResponse.status === 404) {
       console.log("Existing Shopify product not found (404)");
 
       for (const delayMs of missingProductRetryDelays) {
@@ -146,12 +144,9 @@ serve(async (req) => {
         console.log("Shopify product still not found after retry");
       }
 
-      // If it is still missing after retries, check whether Printify saved a newer linked Shopify product ID.
       if (shopifyResponse.status === 404) {
-        // Drain the consumed-once body so we can safely re-fetch
         await shopifyResponse.text().catch(() => "");
 
-        let switched = false;
         if (product.id) {
           const { data: latestProductLink } = await adminClient
             .from("products")
@@ -163,6 +158,7 @@ serve(async (req) => {
 
           if (latestShopifyId && latestShopifyId !== existingShopifyId) {
             console.log(`Switching Shopify update target from ${existingShopifyId} to refreshed linked product ${latestShopifyId}`);
+            existingShopifyId = latestShopifyId;
             shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
 
             if (shouldUpdateImages && imageEntries.length > 0) {
@@ -170,7 +166,6 @@ serve(async (req) => {
             }
 
             shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
-            switched = true;
 
             if (shopifyResponse.status === 404) {
               for (const delayMs of missingProductRetryDelays) {
@@ -184,7 +179,6 @@ serve(async (req) => {
           }
         }
 
-        // If still 404 (no switch happened, or switch also 404'd), clear stale link and either bail or create new
         if (shopifyResponse.status === 404) {
           await shopifyResponse.text().catch(() => "");
 
@@ -195,31 +189,13 @@ serve(async (req) => {
               .eq("id", product.id);
           }
 
-          if (!allowCreateOnMissingProduct) {
-            return new Response(JSON.stringify({
-              success: false,
-              staleShopifyIdCleared: true,
-              message: "Linked Shopify product no longer exists. The stale link was cleared. Wait for the latest Printify sync, then retry, or intentionally create a new Shopify product.",
-            }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-
-          console.log("Existing Shopify product not found (404), creating new product instead");
-          shopifyProduct = buildShopifyProduct(
-            product,
-            shopifyListing,
-            bodyHtml,
-            shopifyStatus,
-            colorVariants,
-            price,
-            false,
-            undefined,
-            true,
-            flatSizePricing,
-            sizes,
-          );
-          shopifyResponse = await createShopifyProduct(domain, connection.access_token, shopifyProduct);
+          return new Response(JSON.stringify({
+            success: false,
+            staleShopifyIdCleared: true,
+            message: "Linked Shopify product no longer exists. The stale link was cleared. Use 'Printify → Shopify' to recreate and relink it.",
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
       }
     }

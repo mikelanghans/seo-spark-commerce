@@ -55,6 +55,12 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
     setPushing(true);
     setResult(null);
     try {
+      const linkedShopifyId = product.shopify_product_id ?? null;
+      if (!linkedShopifyId) {
+        toast.warning("No linked Shopify product found. Use 'Printify → Shopify' first so it stays connected.");
+        return;
+      }
+
       const rawVariants = selectedMockups.map((m) => ({
         colorName: m.color_name,
         imageUrl: m.image_url,
@@ -62,17 +68,10 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
 
       const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, product.id);
 
-      // Append size chart as the last image if the product type has one
       const typeConfig = getProductType(product.category || "");
       if (typeConfig.sizeChartUrl) {
         optimizedVariants.push({ colorName: "Size Chart", imageUrl: typeConfig.sizeChartUrl });
       }
-
-      const isUpdate = !!product.shopify_product_id;
-      // Don't force-replace variants on update — preserves Printify's Color×Size matrix
-
-      // Resolve sizes for this product type so Shopify creates a Color×Size matrix
-      const sizes = typeConfig.sizes || [];
 
       const { data, error } = await supabase.functions.invoke("push-to-shopify", {
         body: {
@@ -84,14 +83,13 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
             category: product.category,
             price: product.price,
             keywords: product.keywords,
-            shopify_product_id: product.shopify_product_id,
+            shopify_product_id: linkedShopifyId,
             size_pricing: product.size_pricing || undefined,
           },
           listings,
           imageUrl: product.image_url,
           variants: optimizedVariants,
-          sizes: !isUpdate ? sizes : undefined,
-          forceVariants: !isUpdate,
+          forceVariants: false,
           ...(updateFields ? { updateFields } : {}),
         },
       });
