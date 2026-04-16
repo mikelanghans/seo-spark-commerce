@@ -473,6 +473,81 @@ export async function hasMeaningfulAccentColors(base64: string): Promise<boolean
   return analysis.accentPixelCount >= 36 && accentRatio > 0.003;
 }
 
+/**
+ * Detect whether a design's non-accent (neutral) ink is predominantly dark.
+ * Used to decide whether a separate light-ink variant should be created so
+ * the design stays visible on dark garments.
+ */
+export async function hasPredominantlyDarkInk(input: string): Promise<boolean> {
+  const src = input.startsWith("data:image/")
+    ? input
+    : input.startsWith("http://") || input.startsWith("https://")
+      ? input
+      : `data:image/png;base64,${input}`;
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  let neutralOpaque = 0;
+  let darkNeutral = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 90) continue;
+    const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    // Only consider near-neutral (non-accent) pixels
+    if (sat > 0.35) continue;
+    neutralOpaque++;
+    if (luma < 0.35) darkNeutral++;
+  }
+  if (neutralOpaque < 200) return false;
+  return darkNeutral / neutralOpaque > 0.55;
+}
+
+/**
+ * Lighten dark/near-black ink in a design while preserving chromatic accent
+ * colors. Produces a "light-ink" variant suited for dark garments.
+ */
+export async function lightenDarkPixels(
+  sourceImage: string,
+  targetLuma = 240,
+): Promise<string> {
+  const normalizedSource = sourceImage.startsWith("data:image/")
+    ? sourceImage
+    : `data:image/png;base64,${sourceImage.replace(/^data:image\/[^;]+;base64,/, "")}`;
+  const img = await loadImage(normalizedSource);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+  ctx.drawImage(img, 0, 0);
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 30) continue;
+    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    // Only lighten near-neutral dark pixels; preserve chromatic accents
+    if (sat > 0.35) continue;
+    if (luma > 0.55) continue;
+    d[i] = targetLuma;
+    d[i + 1] = targetLuma;
+    d[i + 2] = targetLuma;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvasToPngBase64(canvas);
+}
+
 async function analyzeDesignColors(input: string) {
   const src = input.startsWith("data:image/")
     ? input
