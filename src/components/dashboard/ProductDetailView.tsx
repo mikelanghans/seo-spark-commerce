@@ -64,6 +64,22 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+  const [editingCategory, setEditingCategory] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState(product.category || "");
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const canEditCategory = effectiveTier === "pro" || effectiveTier === "starter" || effectiveTier === "free";
+  const saveCategory = async () => {
+    const next = categoryDraft.trim();
+    if (next === (product.category || "")) { setEditingCategory(false); return; }
+    setSavingCategory(true);
+    const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
+    setSavingCategory(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Category updated");
+    setEditingCategory(false);
+    if (selectedOrg?.id) loadProducts(selectedOrg.id);
+  };
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
   const mockupTemplates = (selectedOrg?.mockup_templates || {}) as Partial<Record<ProductTypeKey, string>>;
@@ -258,9 +274,30 @@ export const ProductDetailView = ({
         <div className="flex-1 min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
           <div className="flex items-center gap-2 mt-1">
-            <span className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25">
-              {product.category || "Uncategorized"}
-            </span>
+            {editingCategory ? (
+              <input
+                autoFocus
+                value={categoryDraft}
+                disabled={savingCategory}
+                onChange={(e) => setCategoryDraft(e.target.value)}
+                onBlur={saveCategory}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                  if (e.key === "Escape") { setCategoryDraft(product.category || ""); setEditingCategory(false); }
+                }}
+                placeholder="e.g. Apparel & Accessories > Clothing > Shirts"
+                className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/40 outline-none focus:ring-2 focus:ring-primary min-w-[260px]"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setCategoryDraft(product.category || ""); setEditingCategory(true); }}
+                title="Click to edit category"
+                className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 hover:bg-primary/25 hover:ring-primary/40 transition-colors cursor-text"
+              >
+                {product.category || "Uncategorized"}
+              </button>
+            )}
             {product.price && <span className="text-xs text-muted-foreground">{product.price}</span>}
           </div>
         </div>
