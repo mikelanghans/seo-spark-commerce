@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
+import { resolveSingleDesignVariant, selectDesignForComposite } from "@/lib/productImageUtils";
 
 describe("resolveSingleDesignVariant", () => {
   it("treats duplicate light/dark rows with the same file as a shared design", () => {
@@ -31,5 +31,29 @@ describe("resolveSingleDesignVariant", () => {
       darkUrl: sharedUrl,
       hasSingleSharedFile: true,
     });
+  });
+});
+
+describe("selectDesignForComposite", () => {
+  it("uses the explicit dark-on-light asset for light garments when both variants exist", () => {
+    expect(
+      selectDesignForComposite({
+        isLightGarment: true,
+        preserveOriginalDesignAlpha: true,
+        lightDesign: "light-on-dark.png",
+        darkDesign: "dark-on-light.png",
+      }),
+    ).toBe("dark-on-light.png");
+  });
+
+  it("uses the explicit light-on-dark asset for dark garments when both variants exist", () => {
+    expect(
+      selectDesignForComposite({
+        isLightGarment: false,
+        preserveOriginalDesignAlpha: true,
+        lightDesign: "light-on-dark.png",
+        darkDesign: "dark-on-light.png",
+      }),
+    ).toBe("light-on-dark.png");
   });
 });
