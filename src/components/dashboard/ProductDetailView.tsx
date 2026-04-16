@@ -159,13 +159,22 @@ export const ProductDetailView = ({
           const usesSharedDesign = multiColor || hasAccents;
           const transparentBase64 = usesSharedDesign ? sourceBase64 : await smartRemoveBackground(sourceDataUrl);
 
-          lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
-          darkBase64 = usesSharedDesign
-            ? lightBase64
-            : await upscaleBase64Png(
-                await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true }),
-                4500,
-              );
+          if (!usesSharedDesign) {
+            lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
+            darkBase64 = await upscaleBase64Png(
+              await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true }),
+              4500,
+            );
+          } else {
+            lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
+            darkBase64 = lightBase64;
+
+            const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);
+            if (inkIsDark) {
+              lightBase64 = await upscaleBase64Png(await lightenDarkPixels(transparentBase64), 4500);
+              darkBase64 = await upscaleBase64Png(transparentBase64, 4500);
+            }
+          }
         }
 
         if (needsLightUpload && lightBase64) {
