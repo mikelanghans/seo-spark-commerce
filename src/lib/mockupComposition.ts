@@ -127,10 +127,10 @@ function drawCover(
   targetHeight: number,
 ) {
   const scale = Math.max(targetWidth / image.width, targetHeight / image.height);
-  const drawWidth = image.width * scale;
-  const drawHeight = image.height * scale;
-  const dx = (targetWidth - drawWidth) / 2;
-  const dy = (targetHeight - drawHeight) / 2;
+  const drawWidth = Math.round(image.width * scale);
+  const drawHeight = Math.round(image.height * scale);
+  const dx = Math.round((targetWidth - drawWidth) / 2);
+  const dy = Math.round((targetHeight - drawHeight) / 2);
 
   ctx.clearRect(0, 0, targetWidth, targetHeight);
   ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
@@ -157,10 +157,10 @@ function drawDesignWithUnderbase(
 
   // Use custom placement if provided, otherwise use defaults
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.28 : 0.36);
-  const drawWidth = targetWidth * designScale;
-  const drawHeight = drawWidth * (designHeight / designWidth);
-  const dx = (targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0);
-  const dy = targetHeight * (placement?.offsetY ?? 0.20);
+  const drawWidth = Math.round(targetWidth * designScale);
+  const drawHeight = Math.round(drawWidth * (designHeight / designWidth));
+  const dx = Math.round((targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0));
+  const dy = Math.round(targetHeight * (placement?.offsetY ?? 0.20));
 
   // For dark garments, add a subtle white underbase behind the design
   // so dark outlines / shadows in the artwork remain visible on dark fabric.
