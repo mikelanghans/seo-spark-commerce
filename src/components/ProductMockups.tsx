@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors } from "@/lib/removeBackground";
+import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -388,6 +388,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
         let lightPreservesAccentInk = false;
 
+        if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
+          try {
+            const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
+              hasPredominantlyDarkInk(lightDesignBase64),
+              hasPredominantlyDarkInk(darkDesignBase64),
+            ]);
+            if (lightIsDarkInk && !darkIsDarkInk) {
+              [lightDesignBase64, darkDesignBase64] = [darkDesignBase64, lightDesignBase64];
+              console.log("[mockup] Auto-corrected swapped design variants");
+            }
+          } catch {
+            // keep original ordering if analysis fails
+          }
+        }
+
         if (lightDesignBase64) {
           try {
             lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
@@ -757,6 +772,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let sharedLightGarmentDesignBase64: string | undefined;
       let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
       let lightPreservesAccentInk = false;
+
+      if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
+        try {
+          const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
+            hasPredominantlyDarkInk(lightDesignBase64),
+            hasPredominantlyDarkInk(darkDesignBase64),
+          ]);
+          if (lightIsDarkInk && !darkIsDarkInk) {
+            [lightDesignBase64, darkDesignBase64] = [darkDesignBase64, lightDesignBase64];
+            console.log("[mockup] Auto-corrected swapped design variants (regenerate)");
+          }
+        } catch {
+          // keep original ordering if analysis fails
+        }
+      }
 
       if (lightDesignBase64) {
         try {
