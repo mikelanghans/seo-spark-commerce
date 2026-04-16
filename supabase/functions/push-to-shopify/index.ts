@@ -24,6 +24,70 @@ const updateShopifyProduct = (
   },
 );
 
+const getPrintifyToken = async (
+  adminClient: ReturnType<typeof createClient>,
+  organizationId?: string,
+) => {
+  let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN") ?? null;
+
+  if (organizationId) {
+    const { data: secrets } = await adminClient
+      .from("organization_secrets")
+      .select("printify_api_token")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+
+    if (secrets?.printify_api_token) {
+      printifyToken = secrets.printify_api_token;
+    }
+  }
+
+  return printifyToken;
+};
+
+const recoverShopifyIdFromPrintify = async (
+  adminClient: ReturnType<typeof createClient>,
+  organizationId: string | undefined,
+  printifyProductId: string | null,
+) => {
+  if (!organizationId || !printifyProductId) return null;
+
+  const { data: org } = await adminClient
+    .from("organizations")
+    .select("printify_shop_id")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  const printifyShopId = org?.printify_shop_id;
+  if (!printifyShopId) return null;
+
+  const printifyToken = await getPrintifyToken(adminClient, organizationId);
+  if (!printifyToken) return null;
+
+  try {
+    const printifyRes = await fetch(
+      `https://api.printify.com/v1/shops/${printifyShopId}/products/${printifyProductId}.json`,
+      {
+        headers: { Authorization: `Bearer ${printifyToken}` },
+      },
+    );
+
+    if (!printifyRes.ok) {
+      console.warn(`Failed to resolve Shopify ID from Printify (${printifyRes.status}) for ${printifyProductId}`);
+      return null;
+    }
+
+    const printifyData = await printifyRes.json();
+    const externalId = printifyData?.external?.id;
+    const numericId = typeof externalId === "string" ? parseInt(externalId, 10) : externalId;
+
+    return Number.isFinite(numericId) ? Number(numericId) : null;
+  } catch (error) {
+    console.warn(`Failed to recover Shopify ID from Printify for ${printifyProductId}:`, error);
+    return null;
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -70,18 +134,43 @@ serve(async (req) => {
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     let existingShopifyId: number | null = product.shopify_product_id ?? null;
+    let existingPrintifyId: string | null = product.printify_product_id ?? null;
 
     if (!existingShopifyId && product.id) {
       const { data: latestProductLink } = await adminClient
         .from("products")
-        .select("shopify_product_id")
+        .select("shopify_product_id, printify_product_id")
         .eq("id", product.id)
         .maybeSingle();
 
       const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
+      const latestPrintifyId = latestProductLink?.printify_product_id ?? null;
       if (latestShopifyId) {
         existingShopifyId = latestShopifyId;
         console.log(`Recovered linked Shopify product ID ${latestShopifyId} from product row`);
+      }
+      if (latestPrintifyId) {
+        existingPrintifyId = latestPrintifyId;
+      }
+    }
+
+    if (!existingShopifyId && existingPrintifyId) {
+      const recoveredShopifyId = await recoverShopifyIdFromPrintify(
+        adminClient,
+        organizationId,
+        existingPrintifyId,
+      );
+
+      if (recoveredShopifyId) {
+        existingShopifyId = recoveredShopifyId;
+        console.log(`Recovered linked Shopify product ID ${recoveredShopifyId} from Printify external mapping`);
+
+        if (product.id) {
+          await adminClient
+            .from("products")
+            .update({ shopify_product_id: recoveredShopifyId })
+            .eq("id", product.id);
+        }
       }
     }
 
