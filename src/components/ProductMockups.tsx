@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw, Download } from "lucide-react";
+import { ImageIcon, Plus, Trash2, Upload, Loader2, Edit2, Check, ZoomIn, Sparkles, ThumbsDown, ChevronLeft, RotateCw, Download, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureValidSession } from "@/lib/sessionRefresh";
@@ -162,14 +162,28 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
   const loadImages = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("product_images")
-      .select("*")
-      .eq("product_id", productId)
-      .eq("image_type", "mockup")
-      .order("position", { ascending: true });
+    const [{ data }, { data: prod }] = await Promise.all([
+      supabase
+        .from("product_images")
+        .select("*")
+        .eq("product_id", productId)
+        .eq("image_type", "mockup")
+        .order("position", { ascending: true }),
+      supabase.from("products").select("image_url").eq("id", productId).maybeSingle(),
+    ]);
     setImages((data as ProductImage[]) || []);
+    setThumbnailUrl(prod?.image_url ?? null);
     setLoading(false);
+  };
+
+  const handleSetThumbnail = async (img: ProductImage) => {
+    const { error } = await supabase.from("products").update({ image_url: img.image_url }).eq("id", productId);
+    if (error) {
+      toast.error("Failed to set thumbnail");
+      return;
+    }
+    setThumbnailUrl(img.image_url);
+    toast.success(`"${img.color_name || "Mockup"}" set as thumbnail`);
   };
 
   const loadSavedPlacement = async () => {
