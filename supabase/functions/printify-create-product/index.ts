@@ -60,6 +60,33 @@ const getSavedPlacement = async (
   return parsePlacement((data as { print_placement?: unknown } | null)?.print_placement);
 };
 
+const getPrintifyExternalShopifyId = async (
+  printifyToken: string,
+  shopId: number,
+  printifyProductId: string,
+): Promise<number | null> => {
+  try {
+    const productRes = await fetch(
+      `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+      { headers: { Authorization: `Bearer ${printifyToken}` } },
+    );
+
+    if (!productRes.ok) {
+      console.warn(`Failed to fetch Printify external ID (${productRes.status}) for ${printifyProductId}`);
+      return null;
+    }
+
+    const productData = await productRes.json();
+    const externalId = productData?.external?.id;
+    const numericId = typeof externalId === "string" ? parseInt(externalId, 10) : externalId;
+
+    return Number.isFinite(numericId) ? Number(numericId) : null;
+  } catch (error) {
+    console.warn(`Failed to resolve Printify external Shopify ID for ${printifyProductId}:`, error);
+    return null;
+  }
+};
+
 const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   if (!placement) {
     return {
@@ -224,7 +251,21 @@ serve(async (req) => {
         throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
       }
 
-      return new Response(JSON.stringify({ success: true, updatedFields: fields }), {
+      const resolvedShopifyProductId = await getPrintifyExternalShopifyId(printifyToken, pShopId, pPrintifyProductId);
+
+      if (resolvedShopifyProductId && body.productId) {
+        await adminClient
+          .from("products")
+          .update({ shopify_product_id: resolvedShopifyProductId })
+          .eq("id", body.productId);
+        console.log(`Recovered Printify-linked Shopify product ID on update: ${resolvedShopifyProductId}`);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        updatedFields: fields,
+        shopifyProductId: resolvedShopifyProductId,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
