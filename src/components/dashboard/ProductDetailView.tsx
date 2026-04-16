@@ -15,7 +15,7 @@ import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
 import { insertProductImagesDeduped, normalizeDesignColorName } from "@/lib/productImageUtils";
-import { hasMeaningfulAccentColors, hasPredominantlyDarkInk, isMultiColorDesign, lightenDarkPixels, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType, PRODUCT_TYPES } from "@/lib/productTypes";
@@ -101,8 +101,6 @@ export const ProductDetailView = ({
     return url.includes("/storage/v1/object/public/product-images/");
   };
 
-  const dataUrlToBlob = async (dataUrl: string) => fetch(dataUrl).then((res) => res.blob());
-
   const urlToDataUrl = async (url: string) => {
     const res = await fetch(url, { mode: "cors", credentials: "omit" });
     if (!res.ok) throw new Error("Failed to load design file");
@@ -113,17 +111,6 @@ export const ProductDetailView = ({
       reader.onerror = () => reject(new Error("Failed to read design file"));
       reader.readAsDataURL(blob);
     });
-  };
-
-  const uploadVariantBase64 = async (base64: string, suffix: "light" | "dark") => {
-    const blob = await dataUrlToBlob(`data:image/png;base64,${base64}`);
-    const path = `${userId}/design-variants/${crypto.randomUUID()}-${suffix}.png`;
-    const { error } = await supabase.storage.from("product-images").upload(path, blob, {
-      contentType: "image/png",
-      upsert: true,
-    });
-    if (error) throw error;
-    return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
   };
 
   useEffect(() => {
@@ -157,41 +144,15 @@ export const ProductDetailView = ({
         const needsDarkUpload = !nextDarkUrl || !isProductStorageUrl(nextDarkUrl);
         const sourceUrl = nextLightUrl ?? nextDarkUrl ?? product.image_url;
 
-        let lightBase64: string | null = null;
-        let darkBase64: string | null = null;
-
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
           const sourceDataUrl = await urlToDataUrl(sourceUrl);
-          const sourceBase64 = sourceDataUrl.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
-          const multiColor = await isMultiColorDesign(sourceBase64);
-          const hasAccents = !multiColor && await hasMeaningfulAccentColors(sourceBase64);
-          const usesSharedDesign = multiColor || hasAccents;
-          const transparentBase64 = usesSharedDesign ? sourceBase64 : await smartRemoveBackground(sourceDataUrl);
-
-          if (!usesSharedDesign) {
-            lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
-            darkBase64 = await upscaleBase64Png(
-              await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true }),
-              4500,
-            );
-          } else {
-            lightBase64 = await upscaleBase64Png(transparentBase64, 4500);
-            darkBase64 = lightBase64;
-
-            const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);
-            if (inkIsDark) {
-              lightBase64 = await upscaleBase64Png(await lightenDarkPixels(transparentBase64), 4500);
-              darkBase64 = await upscaleBase64Png(transparentBase64, 4500);
-            }
-          }
-        }
-
-        if (needsLightUpload && lightBase64) {
-          nextLightUrl = await uploadVariantBase64(lightBase64, "light");
-        }
-
-        if (needsDarkUpload && darkBase64) {
-          nextDarkUrl = await uploadVariantBase64(darkBase64, "dark");
+          const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+            sourceDataUrl,
+            userId,
+            targetSize: 4500,
+          });
+          nextLightUrl = lightUrl;
+          nextDarkUrl = darkUrl;
         }
 
         const rowsToSave = [
