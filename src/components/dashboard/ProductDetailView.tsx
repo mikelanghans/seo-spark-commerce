@@ -61,6 +61,7 @@ export const ProductDetailView = ({
   const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
   const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
+  const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
