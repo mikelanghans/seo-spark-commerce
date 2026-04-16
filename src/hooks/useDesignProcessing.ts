@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { smartRemoveBackground, isMultiColorDesign, hasMeaningfulAccentColors, recolorOpaquePixels, upscaleBase64Png } from "@/lib/removeBackground";
+import { smartRemoveBackground, isMultiColorDesign, hasMeaningfulAccentColors, recolorOpaquePixels, upscaleBase64Png, hasPredominantlyDarkInk, lightenDarkPixels } from "@/lib/removeBackground";
 
 export function useDesignProcessing(userId: string | undefined) {
   const [isProcessingDesign, setIsProcessingDesign] = useState(false);
@@ -25,6 +25,20 @@ export function useDesignProcessing(userId: string | undefined) {
         const darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
         setDesignProcessingStep("Upscaling to print quality…");
         darkUpscaled = await upscaleBase64Png(darkBase64, 4500);
+      } else {
+        // Shared/accent design: if its non-accent ink is mostly dark, also create a
+        // light-ink variant so it stays visible on dark garments (Black, Navy, etc.)
+        try {
+          const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);
+          if (inkIsDark) {
+            setDesignProcessingStep("Creating light variant for dark garments…");
+            const lightInkBase64 = await lightenDarkPixels(transparentBase64);
+            setDesignProcessingStep("Upscaling to print quality…");
+            darkUpscaled = await upscaleBase64Png(lightInkBase64, 4500);
+          }
+        } catch (e) {
+          console.warn("Light-ink variant generation skipped:", e);
+        }
       }
 
       setDesignProcessingStep("Upscaling to print quality…");
@@ -53,7 +67,7 @@ export function useDesignProcessing(userId: string | undefined) {
         : null;
       setPendingLightDesignUrl(lightUrl);
       setPendingDarkDesignUrl(darkUrl);
-      toast.success(usesSharedDesign ? "Single design ready for all garments!" : "Light & dark design variants ready!");
+      toast.success(darkUrl ? "Light & dark design variants ready!" : "Design ready for all garments!");
     } catch (err: any) {
       console.error("Design processing error:", err);
       toast.error("Design variant processing failed: " + (err.message || "Unknown error"));
