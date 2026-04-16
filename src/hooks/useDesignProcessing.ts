@@ -18,39 +18,45 @@ export function useDesignProcessing(userId: string | undefined) {
       const hasAccents = !multiColor && await hasMeaningfulAccentColors(base64);
       const usesSharedDesign = multiColor || hasAccents;
       const transparentBase64 = usesSharedDesign ? base64 : await smartRemoveBackground(base64);
-      let darkUpscaled: string | null = null;
+      let lightOnDarkUpscaled: string | null = null;
+      let darkOnLightUpscaled: string | null = null;
 
       if (!usesSharedDesign) {
         setDesignProcessingStep("Creating dark variant…");
         const darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
         setDesignProcessingStep("Upscaling to print quality…");
-        darkUpscaled = await upscaleBase64Png(darkBase64, 4500);
+        darkOnLightUpscaled = await upscaleBase64Png(darkBase64, 4500);
       } else {
-        // Shared/accent design: if its non-accent ink is mostly dark, also create a
-        // light-ink variant so it stays visible on dark garments (Black, Navy, etc.)
+        setDesignProcessingStep("Upscaling to print quality…");
+        lightOnDarkUpscaled = await upscaleBase64Png(transparentBase64, 4500);
+
         try {
           const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);
           if (inkIsDark) {
             setDesignProcessingStep("Creating light variant for dark garments…");
             const lightInkBase64 = await lightenDarkPixels(transparentBase64);
             setDesignProcessingStep("Upscaling to print quality…");
-            darkUpscaled = await upscaleBase64Png(lightInkBase64, 4500);
+            lightOnDarkUpscaled = await upscaleBase64Png(lightInkBase64, 4500);
+            darkOnLightUpscaled = await upscaleBase64Png(transparentBase64, 4500);
           }
         } catch (e) {
           console.warn("Light-ink variant generation skipped:", e);
         }
       }
 
-      setDesignProcessingStep("Upscaling to print quality…");
-      const lightUpscaled = await upscaleBase64Png(transparentBase64, 4500);
+      if (!lightOnDarkUpscaled) {
+        setDesignProcessingStep("Upscaling to print quality…");
+        lightOnDarkUpscaled = await upscaleBase64Png(transparentBase64, 4500);
+      }
+
       setDesignProcessingStep("Uploading variants…");
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session) await supabase.auth.refreshSession();
       const lightPath = `${userId}/design-variants/${crypto.randomUUID()}-light.png`;
-      const darkPath = darkUpscaled ? `${userId}/design-variants/${crypto.randomUUID()}-dark.png` : null;
-      const lightBlob = await fetch(`data:image/png;base64,${lightUpscaled}`).then(r => r.blob());
-      const darkBlob = darkUpscaled
-        ? await fetch(`data:image/png;base64,${darkUpscaled}`).then(r => r.blob())
+      const darkPath = darkOnLightUpscaled ? `${userId}/design-variants/${crypto.randomUUID()}-dark.png` : null;
+      const lightBlob = await fetch(`data:image/png;base64,${lightOnDarkUpscaled}`).then(r => r.blob());
+      const darkBlob = darkOnLightUpscaled
+        ? await fetch(`data:image/png;base64,${darkOnLightUpscaled}`).then(r => r.blob())
         : null;
       const uploads = await Promise.all([
         supabase.storage.from("product-images").upload(lightPath, lightBlob, { contentType: "image/png", upsert: true }),
