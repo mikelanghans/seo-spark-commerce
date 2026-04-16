@@ -19,7 +19,7 @@ interface Props {
   isProcessingDesign: boolean;
   designProcessingStep: string;
   onDesignReset: () => void;
-  processDesignVariants: (base64: string) => Promise<void>;
+  processDesignVariants: (base64: string, options?: { forceShared?: boolean }) => Promise<void>;
   uploadImageToStorage: (file: File) => Promise<string | null>;
   onProductCreated: (product: Product) => void;
   onBack: () => void;
