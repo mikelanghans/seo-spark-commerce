@@ -64,6 +64,22 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+  const [editingCategory, setEditingCategory] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState(product.category || "");
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const canEditCategory = effectiveTier === "pro" || effectiveTier === "starter" || effectiveTier === "free";
+  const saveCategory = async () => {
+    const next = categoryDraft.trim();
+    if (next === (product.category || "")) { setEditingCategory(false); return; }
+    setSavingCategory(true);
+    const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
+    setSavingCategory(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Category updated");
+    setEditingCategory(false);
+    if (selectedOrg?.id) loadProducts(selectedOrg.id);
+  };
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
   const mockupTemplates = (selectedOrg?.mockup_templates || {}) as Partial<Record<ProductTypeKey, string>>;
