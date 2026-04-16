@@ -18,7 +18,7 @@ import { insertProductImagesDeduped, normalizeDesignColorName } from "@/lib/prod
 import { hasMeaningfulAccentColors, hasPredominantlyDarkInk, isMultiColorDesign, lightenDarkPixels, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
-import { getProductType } from "@/lib/productTypes";
+import { getProductType, PRODUCT_TYPES } from "@/lib/productTypes";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
@@ -65,8 +65,17 @@ export const ProductDetailView = ({
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
-  const productTypeKey = getProductType(product.category || "").key;
-  const sourceTemplateUrl = selectedOrg?.mockup_templates?.[productTypeKey] || null;
+  const detectedProductType = getProductType(product.category || "");
+  const mockupTemplates = (selectedOrg?.mockup_templates || {}) as Partial<Record<ProductTypeKey, string>>;
+  const enabledProductTypeKeys = (selectedOrg?.enabled_product_types || []) as ProductTypeKey[];
+  const fallbackProductTypeKey = mockupTemplates[detectedProductType.key]
+    ? detectedProductType.key
+    : enabledProductTypeKeys.find((key) => !!mockupTemplates[key])
+      || (mockupTemplates["t-shirt"] ? "t-shirt" : undefined)
+      || (Object.keys(mockupTemplates)[0] as ProductTypeKey | undefined)
+      || detectedProductType.key;
+  const mockupProductType = PRODUCT_TYPES[fallbackProductTypeKey] || detectedProductType;
+  const sourceTemplateUrl = mockupTemplates[mockupProductType.key] || null;
 
   // Check connection status for Printify & Shopify via row existence (sensitive columns are not readable)
   useEffect(() => {
@@ -463,7 +472,7 @@ export const ProductDetailView = ({
 
         <TabsContent value="mockups">
           <div className="rounded-xl border border-border bg-card p-5">
-            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={sourceTemplateUrl} designImageUrl={product.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={product.category} aiUsage={aiUsage} />
+            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={sourceTemplateUrl} designImageUrl={product.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={mockupProductType.category} aiUsage={aiUsage} />
           </div>
         </TabsContent>
 
