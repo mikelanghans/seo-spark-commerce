@@ -15,6 +15,7 @@ interface Product {
   price: string;
   keywords: string;
   image_url: string | null;
+  printify_product_id?: string | null;
   shopify_product_id: number | null;
   size_pricing?: any;
 }
@@ -55,8 +56,25 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
     setPushing(true);
     setResult(null);
     try {
-      const linkedShopifyId = product.shopify_product_id ?? null;
-      if (!linkedShopifyId) {
+      let linkedShopifyId = product.shopify_product_id ?? null;
+      let linkedPrintifyId = product.printify_product_id ?? null;
+
+      if ((!linkedShopifyId || !linkedPrintifyId) && product.id) {
+        const { data: latestProductLink } = await supabase
+          .from("products")
+          .select("shopify_product_id, printify_product_id")
+          .eq("id", product.id)
+          .maybeSingle();
+
+        linkedShopifyId = latestProductLink?.shopify_product_id ?? linkedShopifyId;
+        linkedPrintifyId = latestProductLink?.printify_product_id ?? linkedPrintifyId;
+
+        if (linkedShopifyId && linkedShopifyId !== product.shopify_product_id) {
+          onProductUpdate?.({ shopify_product_id: linkedShopifyId });
+        }
+      }
+
+      if (!linkedShopifyId && !linkedPrintifyId) {
         toast.warning("No linked Shopify product found. Use 'Printify → Shopify' first so it stays connected.");
         return;
       }
@@ -83,6 +101,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
             category: product.category,
             price: product.price,
             keywords: product.keywords,
+            printify_product_id: linkedPrintifyId,
             shopify_product_id: linkedShopifyId,
             size_pricing: product.size_pricing || undefined,
           },
