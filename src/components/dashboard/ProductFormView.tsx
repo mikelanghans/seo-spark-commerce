@@ -37,6 +37,7 @@ export const ProductFormView = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [forceSharedDesign, setForceSharedDesign] = useState(false);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +49,7 @@ export const ProductFormView = ({
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setImagePreview(base64);
-      if (!aiAutoFill) { processDesignVariants(base64); return; }
+      if (!aiAutoFill) { processDesignVariants(base64, { forceShared: forceSharedDesign }); return; }
       setIsAnalyzing(true);
       try {
         if (aiUsage) {
@@ -70,7 +71,7 @@ export const ProductFormView = ({
       } finally {
         setIsAnalyzing(false);
       }
-      processDesignVariants(base64);
+      processDesignVariants(base64, { forceShared: forceSharedDesign });
     };
     reader.readAsDataURL(file);
   };
