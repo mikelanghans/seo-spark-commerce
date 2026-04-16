@@ -99,6 +99,13 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      if (data?.staleShopifyIdCleared) {
+        onProductUpdate?.({ shopify_product_id: null });
+        toast.warning("The linked Shopify product no longer exists. Use 'Printify → Shopify' to recreate it so both stay connected.");
+        setResult(null);
+        return;
+      }
+
       setResult({ success: true });
       setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
