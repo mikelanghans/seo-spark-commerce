@@ -1148,6 +1148,15 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 <Button
                   size="icon"
                   variant="ghost"
+                  className={`h-7 w-7 shrink-0 ${thumbnailUrl === img.image_url ? "text-primary opacity-100" : "opacity-0 group-hover:opacity-100 hover:text-primary"}`}
+                  onClick={() => handleSetThumbnail(img)}
+                  title={thumbnailUrl === img.image_url ? "Current thumbnail" : "Set as thumbnail"}
+                >
+                  <Star className={`h-3 w-3 ${thumbnailUrl === img.image_url ? "fill-current" : ""}`} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
                   className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
                   onClick={() => {
                     const colorSlug = (img.color_name || "mockup").replace(/\s+/g, "-").toLowerCase();
