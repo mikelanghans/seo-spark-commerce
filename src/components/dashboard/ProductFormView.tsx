@@ -19,7 +19,7 @@ interface Props {
   isProcessingDesign: boolean;
   designProcessingStep: string;
   onDesignReset: () => void;
-  processDesignVariants: (base64: string) => Promise<void>;
+  processDesignVariants: (base64: string, options?: { forceShared?: boolean }) => Promise<void>;
   uploadImageToStorage: (file: File) => Promise<string | null>;
   onProductCreated: (product: Product) => void;
   onBack: () => void;
@@ -37,6 +37,7 @@ export const ProductFormView = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAutoFill, setAiAutoFill] = useState(true);
+  const [forceSharedDesign, setForceSharedDesign] = useState(false);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +49,7 @@ export const ProductFormView = ({
     reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setImagePreview(base64);
-      if (!aiAutoFill) { processDesignVariants(base64); return; }
+      if (!aiAutoFill) { processDesignVariants(base64, { forceShared: forceSharedDesign }); return; }
       setIsAnalyzing(true);
       try {
         if (aiUsage) {
@@ -70,7 +71,7 @@ export const ProductFormView = ({
       } finally {
         setIsAnalyzing(false);
       }
-      processDesignVariants(base64);
+      processDesignVariants(base64, { forceShared: forceSharedDesign });
     };
     reader.readAsDataURL(file);
   };
@@ -100,10 +101,19 @@ export const ProductFormView = ({
         <div><h2 className="text-2xl font-bold">Add New Product</h2><p className="text-sm text-muted-foreground">Upload a product image for AI analysis, or fill in details manually</p></div>
       </div>
 
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-        <input type="checkbox" id="ai-auto-fill" checked={aiAutoFill} onChange={(e) => setAiAutoFill(e.target.checked)} className="h-4 w-4 rounded border-border text-primary" />
-        <Sparkles className="h-4 w-4 text-primary" />
-        <label htmlFor="ai-auto-fill" className="text-sm">AI auto-fill — analyze uploaded image and fill in product details automatically</label>
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center gap-3">
+          <input type="checkbox" id="ai-auto-fill" checked={aiAutoFill} onChange={(e) => setAiAutoFill(e.target.checked)} className="h-4 w-4 rounded border-border text-primary" />
+          <Sparkles className="h-4 w-4 text-primary" />
+          <label htmlFor="ai-auto-fill" className="text-sm">AI auto-fill — analyze uploaded image and fill in product details automatically</label>
+        </div>
+        <div className="flex items-start gap-3 border-t border-border pt-3">
+          <input type="checkbox" id="force-shared" checked={forceSharedDesign} onChange={(e) => setForceSharedDesign(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-border text-primary" />
+          <label htmlFor="force-shared" className="text-sm">
+            <span className="font-medium">Use as single shared file</span>
+            <span className="block text-xs text-muted-foreground">Skip background removal & light/dark variants. Best for multicolor illustrations (e.g. detailed art, photos) where automatic processing causes artifacts.</span>
+          </label>
+        </div>
       </div>
 
       <div>

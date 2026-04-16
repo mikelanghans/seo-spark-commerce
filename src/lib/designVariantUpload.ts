@@ -29,12 +29,23 @@ export async function createAndUploadDesignVariants({
   sourceDataUrl,
   userId,
   targetSize = 4500,
+  forceShared = false,
 }: {
   sourceDataUrl: string;
   userId: string;
   targetSize?: number;
+  forceShared?: boolean;
 }) {
   const sourceBase64 = sourceDataUrl.replace(DATA_URL_BASE64_PREFIX, "");
+
+  // When the user explicitly wants a single shared file, skip ALL processing
+  // (no bg removal, no recoloring, no light/dark split). Just upscale once.
+  if (forceShared) {
+    const sharedBase64 = await upscaleBase64Png(sourceBase64, targetSize);
+    const sharedUrl = await uploadVariantBase64(userId, sharedBase64, "light");
+    return { lightUrl: sharedUrl, darkUrl: sharedUrl, hasDistinctDarkVariant: false };
+  }
+
   const multiColor = await isMultiColorDesign(sourceBase64);
   const hasAccents = !multiColor && await hasMeaningfulAccentColors(sourceBase64);
   const usesSharedDesign = multiColor || hasAccents;

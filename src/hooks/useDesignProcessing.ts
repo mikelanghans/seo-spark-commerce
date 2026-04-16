@@ -9,22 +9,27 @@ export function useDesignProcessing(userId: string | undefined) {
   const [pendingLightDesignUrl, setPendingLightDesignUrl] = useState<string | null>(null);
   const [pendingDarkDesignUrl, setPendingDarkDesignUrl] = useState<string | null>(null);
 
-  const processDesignVariants = async (base64: string) => {
+  const processDesignVariants = async (base64: string, options?: { forceShared?: boolean }) => {
     if (!userId) return;
     setIsProcessingDesign(true);
     try {
-      setDesignProcessingStep("Uploading variants…");
+      setDesignProcessingStep(options?.forceShared ? "Uploading single shared file…" : "Uploading variants…");
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session) await supabase.auth.refreshSession();
       const { lightUrl, darkUrl, hasDistinctDarkVariant } = await createAndUploadDesignVariants({
         sourceDataUrl: base64,
         userId,
         targetSize: 4500,
+        forceShared: options?.forceShared,
       });
 
       setPendingLightDesignUrl(lightUrl);
       setPendingDarkDesignUrl(darkUrl);
-      toast.success(hasDistinctDarkVariant ? "Light & dark design variants ready!" : "Design ready for all garments!");
+      toast.success(
+        options?.forceShared
+          ? "Single shared design ready (no processing)."
+          : hasDistinctDarkVariant ? "Light & dark design variants ready!" : "Design ready for all garments!",
+      );
     } catch (err: any) {
       console.error("Design processing error:", err);
       toast.error("Design variant processing failed: " + (err.message || "Unknown error"));
