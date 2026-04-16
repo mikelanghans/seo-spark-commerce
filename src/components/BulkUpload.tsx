@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Upload, ImageIcon, FileSpreadsheet, Loader2, CheckCircle2, XCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { insertProductImagesDeduped } from "@/lib/productImageUtils";
+import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
 
 interface ProductData {
   title: string;
@@ -106,29 +108,44 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
         if (error) throw error;
         if (data.error) throw new Error(data.error);
 
-        // Upload image to storage
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
-        let imageUrl: string | null = null;
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-          imageUrl = urlData.publicUrl;
-        }
+        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+          sourceDataUrl: base64,
+          userId,
+          targetSize: 4500,
+        });
 
         // Save product
-        const { error: insertError } = await supabase.from("products").insert({
+        const { data: product, error: insertError } = await supabase.from("products").insert({
           title: data.title || file.name,
           description: data.description || "",
           features: (data.features || []).join("\n"),
           category: data.category || "",
           keywords: (data.keywords || []).join(", "),
           price: data.suggestedPrice || "",
-          image_url: imageUrl,
+          image_url: lightUrl,
           organization_id: organizationId,
           user_id: userId,
-        });
+        }).select("id").single();
         if (insertError) throw insertError;
+
+        await insertProductImagesDeduped([
+          {
+            product_id: product.id,
+            user_id: userId,
+            image_url: lightUrl,
+            image_type: "design",
+            color_name: "light-on-dark",
+            position: 0,
+          },
+          ...(darkUrl ? [{
+            product_id: product.id,
+            user_id: userId,
+            image_url: darkUrl,
+            image_type: "design",
+            color_name: "dark-on-light",
+            position: 1,
+          }] : []),
+        ]);
 
         if (aiUsage) await aiUsage.logUsage("analyze-product", userId);
         setResults((prev) => [...prev, { name: file.name, status: "success" }]);
