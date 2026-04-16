@@ -73,6 +73,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
   const fileRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
   const [aiEnhance, setAiEnhance] = useState(false);
+  const [forceSharedDesign, setForceSharedDesign] = useState(false);
 
   const handleMultiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -112,6 +113,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
           sourceDataUrl: base64,
           userId,
           targetSize: 4500,
+          forceShared: forceSharedDesign,
         });
 
         // Save product
@@ -277,7 +279,7 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="images" className="mt-6">
+        <TabsContent value="images" className="mt-6 space-y-4">
           <input
             ref={fileRef}
             type="file"
@@ -287,6 +289,23 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
             className="hidden"
             disabled={uploading}
           />
+          {!uploading && results.length === 0 && (
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
+              <input
+                type="checkbox"
+                id="force-shared-bulk"
+                checked={forceSharedDesign}
+                onChange={(e) => setForceSharedDesign(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border text-primary"
+              />
+              <label htmlFor="force-shared-bulk" className="text-sm">
+                <span className="font-medium">Use as single shared file</span>
+                <span className="block text-xs text-muted-foreground">
+                  Skip background removal & light/dark variants. Best for multicolor illustrations or photos where automatic processing causes artifacts.
+                </span>
+              </label>
+            </div>
+          )}
           {!uploading && results.length === 0 && (
             <button
               type="button"
