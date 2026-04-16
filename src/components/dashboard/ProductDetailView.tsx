@@ -15,7 +15,7 @@ import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
 import { insertProductImagesDeduped } from "@/lib/productImageUtils";
-import { hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { hasMeaningfulAccentColors, hasPredominantlyDarkInk, isMultiColorDesign, lightenDarkPixels, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType } from "@/lib/productTypes";
