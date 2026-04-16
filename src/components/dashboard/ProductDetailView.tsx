@@ -14,7 +14,7 @@ import { PushPrintifyThenShopify } from "@/components/PushPrintifyThenShopify";
 import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
-import { insertProductImagesDeduped } from "@/lib/productImageUtils";
+import { insertProductImagesDeduped, normalizeDesignColorName } from "@/lib/productImageUtils";
 import { hasMeaningfulAccentColors, hasPredominantlyDarkInk, isMultiColorDesign, lightenDarkPixels, recolorOpaquePixels, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
@@ -138,10 +138,10 @@ export const ProductDetailView = ({
 
         if (error) throw error;
 
-        const lightRow = rows?.find((row) => row.color_name === "light-on-dark");
-        const darkRow = rows?.find((row) => row.color_name === "dark-on-light");
+        const lightRow = rows?.find((row) => normalizeDesignColorName(row.color_name || "") === "light-on-dark");
+        const darkRow = rows?.find((row) => normalizeDesignColorName(row.color_name || "") === "dark-on-light");
 
-        let nextLightUrl = lightRow?.image_url ?? product.image_url ?? null;
+        let nextLightUrl = lightRow?.image_url ?? null;
         let nextDarkUrl = darkRow?.image_url ?? null;
 
         const needsLightUpload = !nextLightUrl || !isProductStorageUrl(nextLightUrl);

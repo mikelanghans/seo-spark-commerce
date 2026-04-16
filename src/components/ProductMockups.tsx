@@ -15,7 +15,7 @@ import {
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk } from "@/lib/removeBackground";
-import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
+import { insertProductImageIfNotExists, resolveSingleDesignVariant, selectDesignForComposite } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
 import { parsePrintPlacement } from "@/lib/printPlacement";
@@ -419,7 +419,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           } catch {
             sharedLightGarmentDesignBase64 = lightDesignBase64;
           }
-        } else if (lightDesignBase64 && lightPreservesAccentInk) {
+        } else if (lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
           darkDesignBase64 = lightDesignBase64;
           // Create a darkened variant for light garments so bright/white design elements
           // (e.g. cream text meant for dark shirts) remain visible on white fabric
@@ -491,11 +491,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
 
         if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk && !sharedLightGarmentDesignBase64) {
-          try {
-            sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
-          } catch {
-            sharedLightGarmentDesignBase64 = lightDesignBase64;
-          }
+          sharedLightGarmentDesignBase64 = darkDesignBase64;
         }
 
         const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
@@ -654,11 +650,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           if (!generatedBase64) throw new Error("No image returned");
 
           const { lightDesignBase64, darkDesignBase64, sharedLightGarmentDesignBase64, referenceDesignSize, preserveOriginalDesignAlpha } = await getPreparedDesigns();
-          const designForComposite = preserveOriginalDesignAlpha
-            ? (isLight
-              ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
-              : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
-            : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
+          const designForComposite = selectDesignForComposite({
+            isLightGarment: isLight,
+            preserveOriginalDesignAlpha,
+            lightDesign: lightDesignBase64,
+            darkDesign: darkDesignBase64,
+            sharedLightGarmentDesign: sharedLightGarmentDesignBase64,
+          });
           const generatedDataUrl = ensureImageDataUrl(generatedBase64);
           const blob = await normalizeAndLockToTemplateBlob({
             templateDataUrl: plainTemplate,
@@ -803,7 +801,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         } catch {
           sharedLightGarmentDesignBase64 = lightDesignBase64;
         }
-      } else if (lightDesignBase64 && lightPreservesAccentInk) {
+      } else if (lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
         darkDesignBase64 = lightDesignBase64;
         try {
           sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
@@ -841,16 +839,22 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
 
+      if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk && !sharedLightGarmentDesignBase64) {
+        sharedLightGarmentDesignBase64 = darkDesignBase64;
+      }
+
       if (preserveOriginalDesignAlpha && lightDesignBase64 && !sharedLightGarmentDesignBase64) {
         sharedLightGarmentDesignBase64 = lightDesignBase64;
       }
 
       const isLight = isLightColor(typeConfig, colorName);
-      const designForComposite = preserveOriginalDesignAlpha
-        ? (isLight
-          ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
-          : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
-        : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
+      const designForComposite = selectDesignForComposite({
+        isLightGarment: isLight,
+        preserveOriginalDesignAlpha,
+        lightDesign: lightDesignBase64,
+        darkDesign: darkDesignBase64,
+        sharedLightGarmentDesign: sharedLightGarmentDesignBase64,
+      });
       const activePlacement = placementRef.current || placementOverride || undefined;
 
       let plainTemplate = templateBase64;

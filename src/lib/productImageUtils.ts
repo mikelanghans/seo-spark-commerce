@@ -114,3 +114,25 @@ export function resolveSingleDesignVariant<T extends { image_url: string; color_
 
   return { lightUrl: light, darkUrl: dark, hasSingleSharedFile: false };
 }
+
+export function selectDesignForComposite({
+  isLightGarment,
+  preserveOriginalDesignAlpha,
+  lightDesign,
+  darkDesign,
+  sharedLightGarmentDesign,
+}: {
+  isLightGarment: boolean;
+  preserveOriginalDesignAlpha?: boolean;
+  lightDesign?: string;
+  darkDesign?: string;
+  sharedLightGarmentDesign?: string;
+}) {
+  if (preserveOriginalDesignAlpha) {
+    return isLightGarment
+      ? (sharedLightGarmentDesign || darkDesign || lightDesign)
+      : (lightDesign || darkDesign || sharedLightGarmentDesign);
+  }
+
+  return isLightGarment ? (darkDesign || lightDesign) : lightDesign;
+}

@@ -13,7 +13,7 @@ import {
   compressForEdgeFunction,
 } from "@/lib/mockupComposition";
 import { darkenBrightPixels, hasMeaningfulAccentColors, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground } from "@/lib/removeBackground";
-import { insertProductImageIfNotExists, resolveSingleDesignVariant } from "@/lib/productImageUtils";
+import { insertProductImageIfNotExists, resolveSingleDesignVariant, selectDesignForComposite } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 
 interface Props {
@@ -209,7 +209,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           } catch {
             sharedLightGarmentDesignBase64 = lightDesignBase64;
           }
-        } else if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk) {
+        } else if (lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
           darkDesignBase64 = lightDesignBase64;
           preserveOriginalDesignAlpha = true;
           // Darken bright pixels for light garment visibility
@@ -224,6 +224,10 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
           } catch {
             sharedLightGarmentDesignBase64 = lightDesignBase64;
           }
+        }
+
+        if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk && !sharedLightGarmentDesignBase64) {
+          sharedLightGarmentDesignBase64 = darkDesignBase64;
         }
 
         // Derive dark variant if missing
@@ -397,11 +401,13 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
 
           try {
             const isLight = LIGHT_COLORS.has(colorName.toLowerCase().trim());
-            const designForRecomposite = preserveOriginalDesignAlpha
-              ? (isLight
-                ? (sharedLightGarmentDesignBase64 || lightDesignBase64 || darkDesignBase64)
-                : (lightDesignBase64 || darkDesignBase64 || sharedLightGarmentDesignBase64))
-              : (isLight ? (darkDesignBase64 || lightDesignBase64) : lightDesignBase64);
+            const designForRecomposite = selectDesignForComposite({
+              isLightGarment: isLight,
+              preserveOriginalDesignAlpha,
+              lightDesign: lightDesignBase64,
+              darkDesign: darkDesignBase64,
+              sharedLightGarmentDesign: sharedLightGarmentDesignBase64,
+            });
 
             const { data, error } = await supabase.functions.invoke("generate-color-variants", {
               body: {
