@@ -662,7 +662,83 @@ function prepareDesignForCompositing(source: HTMLCanvasElement, options: Prepare
   tctx.putImageData(srcImage, 0, 0);
 
   cctx.drawImage(temp, minX, minY, cw, ch, 0, 0, cw, ch);
+  removeThinBorderArtifacts(cropped);
   return downscaleCanvasIfNeeded(cropped);
+}
+
+function removeThinBorderArtifacts(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = image.data;
+  const width = canvas.width;
+  const height = canvas.height;
+  const totalPixels = width * height;
+  const visited = new Uint8Array(totalPixels);
+  const queue = new Int32Array(totalPixels);
+
+  const alphaAt = (index: number) => pixels[index * 4 + 3];
+
+  for (let start = 0; start < totalPixels; start++) {
+    if (visited[start] || alphaAt(start) === 0) continue;
+
+    let head = 0;
+    let tail = 0;
+    let touchesBorder = false;
+    let area = 0;
+    let minX = width;
+    let maxX = -1;
+    let minY = height;
+    let maxY = -1;
+    const region: number[] = [];
+
+    visited[start] = 1;
+    queue[tail++] = start;
+
+    while (head < tail) {
+      const pos = queue[head++];
+      const x = pos % width;
+      const y = Math.floor(pos / width);
+
+      region.push(pos);
+      area++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) touchesBorder = true;
+
+      const neighbors = [
+        x > 0 ? pos - 1 : -1,
+        x < width - 1 ? pos + 1 : -1,
+        y > 0 ? pos - width : -1,
+        y < height - 1 ? pos + width : -1,
+      ];
+
+      for (const next of neighbors) {
+        if (next < 0 || visited[next] || alphaAt(next) === 0) continue;
+        visited[next] = 1;
+        queue[tail++] = next;
+      }
+    }
+
+    if (!touchesBorder) continue;
+
+    const componentWidth = maxX - minX + 1;
+    const componentHeight = maxY - minY + 1;
+    const isVeryThinVertical = componentWidth <= Math.max(2, Math.round(width * 0.01)) && componentHeight >= Math.round(height * 0.18);
+    const isVeryThinHorizontal = componentHeight <= Math.max(2, Math.round(height * 0.01)) && componentWidth >= Math.round(width * 0.18);
+    const isTinyBorderSpeck = area <= Math.max(24, Math.round(totalPixels * 0.0025));
+
+    if (isVeryThinVertical || isVeryThinHorizontal || isTinyBorderSpeck) {
+      for (const index of region) {
+        pixels[index * 4 + 3] = 0;
+      }
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
 }
 
 /**
