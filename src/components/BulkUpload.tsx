@@ -260,9 +260,9 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold">Import Products</h2>
+          <h2 className="text-2xl font-bold">Import Designs</h2>
           <p className="text-sm text-muted-foreground">
-            Import multiple products at once via images or CSV
+            Import multiple designs at once via images or CSV
           </p>
         </div>
       </div>
