@@ -144,61 +144,64 @@ serve(async (req) => {
       }
 
       // If it is still missing after retries, check whether Printify saved a newer linked Shopify product ID.
-      if (shopifyResponse.status !== 404) {
-        // proceed with the successful retry response
-      } else if (product.id) {
+      if (shopifyResponse.status === 404) {
+        // Drain the consumed-once body so we can safely re-fetch
         await shopifyResponse.text().catch(() => "");
 
-        const { data: latestProductLink } = await adminClient
-          .from("products")
-          .select("shopify_product_id")
-          .eq("id", product.id)
-          .maybeSingle();
+        let switched = false;
+        if (product.id) {
+          const { data: latestProductLink } = await adminClient
+            .from("products")
+            .select("shopify_product_id")
+            .eq("id", product.id)
+            .maybeSingle();
 
-        const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
+          const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
 
-        if (latestShopifyId && latestShopifyId !== existingShopifyId) {
-          console.log(`Switching Shopify update target from ${existingShopifyId} to refreshed linked product ${latestShopifyId}`);
-          shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
+          if (latestShopifyId && latestShopifyId !== existingShopifyId) {
+            console.log(`Switching Shopify update target from ${existingShopifyId} to refreshed linked product ${latestShopifyId}`);
+            shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
 
-          if (shouldUpdateImages && imageEntries.length > 0) {
-            await deleteExistingImages(domain, connection.access_token, latestShopifyId, deleteColorFilter);
-          }
+            if (shouldUpdateImages && imageEntries.length > 0) {
+              await deleteExistingImages(domain, connection.access_token, latestShopifyId, deleteColorFilter);
+            }
 
-          shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
+            shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
+            switched = true;
 
-          if (shopifyResponse.status === 404) {
-            for (const delayMs of missingProductRetryDelays) {
-              await shopifyResponse.text().catch(() => "");
-              console.log(`Retrying refreshed Shopify product update in ${delayMs}ms...`);
-              await wait(delayMs);
-              shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
-              if (shopifyResponse.status !== 404) break;
+            if (shopifyResponse.status === 404) {
+              for (const delayMs of missingProductRetryDelays) {
+                await shopifyResponse.text().catch(() => "");
+                console.log(`Retrying refreshed Shopify product update in ${delayMs}ms...`);
+                await wait(delayMs);
+                shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
+                if (shopifyResponse.status !== 404) break;
+              }
             }
           }
         }
-      } else {
-        if (product.id) {
-          await adminClient
-            .from("products")
-            .update({ shopify_product_id: null })
-            .eq("id", product.id);
-        }
 
-        // If it is still missing after retries, either tell the client to retry
-        // after Printify sync completes or create a replacement immediately.
-        if (shopifyResponse.status !== 404) {
-          // proceed with the successful retry response
-        } else if (!allowCreateOnMissingProduct) {
+        // If still 404 (no switch happened, or switch also 404'd), clear stale link and either bail or create new
+        if (shopifyResponse.status === 404) {
           await shopifyResponse.text().catch(() => "");
-          return new Response(JSON.stringify({
-            success: false,
-            staleShopifyIdCleared: true,
-            message: "Linked Shopify product no longer exists. The stale link was cleared. Wait for the latest Printify sync, then retry, or intentionally create a new Shopify product.",
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } else {
+
+          if (product.id) {
+            await adminClient
+              .from("products")
+              .update({ shopify_product_id: null })
+              .eq("id", product.id);
+          }
+
+          if (!allowCreateOnMissingProduct) {
+            return new Response(JSON.stringify({
+              success: false,
+              staleShopifyIdCleared: true,
+              message: "Linked Shopify product no longer exists. The stale link was cleared. Wait for the latest Printify sync, then retry, or intentionally create a new Shopify product.",
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
           console.log("Existing Shopify product not found (404), creating new product instead");
           shopifyProduct = buildShopifyProduct(
             product,
