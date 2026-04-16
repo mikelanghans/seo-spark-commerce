@@ -473,8 +473,12 @@ export async function hasMeaningfulAccentColors(base64: string): Promise<boolean
   return analysis.accentPixelCount >= 36 && accentRatio > 0.003;
 }
 
-async function analyzeDesignColors(base64: string) {
-  const src = base64.startsWith("data:image/") ? base64 : `data:image/png;base64,${base64}`;
+async function analyzeDesignColors(input: string) {
+  const src = input.startsWith("data:image/")
+    ? input
+    : input.startsWith("http://") || input.startsWith("https://")
+      ? input
+      : `data:image/png;base64,${input}`;
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
