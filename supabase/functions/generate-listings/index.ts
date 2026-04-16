@@ -120,6 +120,21 @@ For EACH marketplace listing, also generate:
 - urlHandle: A clean URL slug (lowercase, hyphens, no special chars, e.g. "lavender-soy-candle-8oz")
 - altText: Descriptive alt text for the product image (for accessibility and SEO)`;
 
+    const listingSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        bulletPoints: { type: "array", items: { type: "string" } },
+        tags: { type: "array", items: { type: "string" } },
+        seoTitle: { type: "string", description: "SEO meta title under 60 chars" },
+        seoDescription: { type: "string", description: "SEO meta description under 160 chars" },
+        urlHandle: { type: "string", description: "URL-safe slug like lavender-soy-candle" },
+        altText: { type: "string", description: "Image alt text for accessibility" },
+      },
+      required: ["title", "description", "bulletPoints", "tags", "seoTitle", "seoDescription", "urlHandle", "altText"],
+    };
+
     const responseSchema = enhanceOnly
       ? {
           type: "object",
@@ -148,57 +163,45 @@ For EACH marketplace listing, also generate:
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort("AI gateway timeout"), AI_REQUEST_TIMEOUT_MS);
 
-    const listingSchema = {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        description: { type: "string" },
-        bulletPoints: { type: "array", items: { type: "string" } },
-        tags: { type: "array", items: { type: "string" } },
-        seoTitle: { type: "string", description: "SEO meta title under 60 chars" },
-        seoDescription: { type: "string", description: "SEO meta description under 160 chars" },
-        urlHandle: { type: "string", description: "URL-safe slug like lavender-soy-candle" },
-        altText: { type: "string", description: "Image alt text for accessibility" },
-      },
-      required: ["title", "description", "bulletPoints", "tags", "seoTitle", "seoDescription", "urlHandle", "altText"],
-    };
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        temperature: 0.4,
-        messages: [
-          {
-            role: "system",
-            content: enhanceOnly
-              ? "You improve product fields for e-commerce. You MUST call the enhance_product function with concise plain-text output."
-              : "You are an expert e-commerce SEO copywriter. You MUST call the generate_listings function with your output.",
-          },
-          { role: "user", content: prompt }
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: enhanceOnly ? "enhance_product" : "generate_listings",
-              description: enhanceOnly
-                ? "Improve missing product fields with concise plain-text output"
-                : "Generate marketplace-optimized product listings with SEO metadata",
-              parameters: responseSchema,
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          temperature: 0.4,
+          messages: [
+            {
+              role: "system",
+              content: enhanceOnly
+                ? "You improve product fields for e-commerce. You MUST call the enhance_product function with concise plain-text output."
+                : "You are an expert e-commerce SEO copywriter. You MUST call the generate_listings function with your output.",
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: enhanceOnly ? "enhance_product" : "generate_listings" } },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+            { role: "user", content: prompt }
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: enhanceOnly ? "enhance_product" : "generate_listings",
+                description: enhanceOnly
+                  ? "Improve missing product fields with concise plain-text output"
+                  : "Generate marketplace-optimized product listings with SEO metadata",
+                parameters: responseSchema,
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: enhanceOnly ? "enhance_product" : "generate_listings" } },
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const status = response.status;
