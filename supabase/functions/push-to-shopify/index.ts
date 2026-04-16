@@ -56,7 +56,10 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, allowCreateOnMissingProduct = true, replaceAllImages = false } = body;
+    // Default: do NOT create a replacement Shopify product when the linked one is missing.
+    // Creation should flow through Printify so products stay connected to a Printify source.
+    // Callers can opt in to create-on-missing by explicitly passing allowCreateOnMissingProduct: true.
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, allowCreateOnMissingProduct = false, replaceAllImages = false } = body;
 
     // Resolve Shopify connection
     let connection = null;
