@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { smartRemoveBackground, isMultiColorDesign, hasMeaningfulAccentColors, recolorOpaquePixels, upscaleBase64Png, hasPredominantlyDarkInk, lightenDarkPixels } from "@/lib/removeBackground";
+import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
 
 export function useDesignProcessing(userId: string | undefined) {
   const [isProcessingDesign, setIsProcessingDesign] = useState(false);
@@ -13,67 +13,18 @@ export function useDesignProcessing(userId: string | undefined) {
     if (!userId) return;
     setIsProcessingDesign(true);
     try {
-      setDesignProcessingStep("Analyzing design colors…");
-      const multiColor = await isMultiColorDesign(base64);
-      const hasAccents = !multiColor && await hasMeaningfulAccentColors(base64);
-      const usesSharedDesign = multiColor || hasAccents;
-      const transparentBase64 = usesSharedDesign ? base64 : await smartRemoveBackground(base64);
-      let lightOnDarkUpscaled: string | null = null;
-      let darkOnLightUpscaled: string | null = null;
-
-      if (!usesSharedDesign) {
-        setDesignProcessingStep("Creating dark variant…");
-        const darkBase64 = await recolorOpaquePixels(transparentBase64, { r: 24, g: 24, b: 24 }, { preserveAll: true });
-        setDesignProcessingStep("Upscaling to print quality…");
-        darkOnLightUpscaled = await upscaleBase64Png(darkBase64, 4500);
-      } else {
-        setDesignProcessingStep("Upscaling to print quality…");
-        lightOnDarkUpscaled = await upscaleBase64Png(transparentBase64, 4500);
-
-        try {
-          const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);
-          if (inkIsDark) {
-            setDesignProcessingStep("Creating light variant for dark garments…");
-            const lightInkBase64 = await lightenDarkPixels(transparentBase64);
-            setDesignProcessingStep("Upscaling to print quality…");
-            lightOnDarkUpscaled = await upscaleBase64Png(lightInkBase64, 4500);
-            darkOnLightUpscaled = await upscaleBase64Png(transparentBase64, 4500);
-          }
-        } catch (e) {
-          console.warn("Light-ink variant generation skipped:", e);
-        }
-      }
-
-      if (!lightOnDarkUpscaled) {
-        setDesignProcessingStep("Upscaling to print quality…");
-        lightOnDarkUpscaled = await upscaleBase64Png(transparentBase64, 4500);
-      }
-
       setDesignProcessingStep("Uploading variants…");
       const { data: sess } = await supabase.auth.getSession();
       if (!sess.session) await supabase.auth.refreshSession();
-      const lightPath = `${userId}/design-variants/${crypto.randomUUID()}-light.png`;
-      const darkPath = darkOnLightUpscaled ? `${userId}/design-variants/${crypto.randomUUID()}-dark.png` : null;
-      const lightBlob = await fetch(`data:image/png;base64,${lightOnDarkUpscaled}`).then(r => r.blob());
-      const darkBlob = darkOnLightUpscaled
-        ? await fetch(`data:image/png;base64,${darkOnLightUpscaled}`).then(r => r.blob())
-        : null;
-      const uploads = await Promise.all([
-        supabase.storage.from("product-images").upload(lightPath, lightBlob, { contentType: "image/png", upsert: true }),
-        darkPath && darkBlob
-          ? supabase.storage.from("product-images").upload(darkPath, darkBlob, { contentType: "image/png", upsert: true })
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-      const [lightUpload, darkUpload] = uploads;
-      if (lightUpload.error) throw lightUpload.error;
-      if (darkUpload.error) throw darkUpload.error;
-      const lightUrl = supabase.storage.from("product-images").getPublicUrl(lightPath).data.publicUrl;
-      const darkUrl = darkPath
-        ? supabase.storage.from("product-images").getPublicUrl(darkPath).data.publicUrl
-        : null;
+      const { lightUrl, darkUrl, hasDistinctDarkVariant } = await createAndUploadDesignVariants({
+        sourceDataUrl: base64,
+        userId,
+        targetSize: 4500,
+      });
+
       setPendingLightDesignUrl(lightUrl);
       setPendingDarkDesignUrl(darkUrl);
-      toast.success(darkUrl ? "Light & dark design variants ready!" : "Design ready for all garments!");
+      toast.success(hasDistinctDarkVariant ? "Light & dark design variants ready!" : "Design ready for all garments!");
     } catch (err: any) {
       console.error("Design processing error:", err);
       toast.error("Design variant processing failed: " + (err.message || "Unknown error"));
