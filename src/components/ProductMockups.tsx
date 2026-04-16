@@ -95,6 +95,7 @@ const FEEDBACK_OPTIONS = [
 
 export const ProductMockups = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
