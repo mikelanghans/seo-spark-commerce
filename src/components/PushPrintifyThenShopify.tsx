@@ -257,6 +257,11 @@ export const PushPrintifyThenShopify = ({
           return;
         }
 
+        if (printifyData?.shopifyProductId) {
+          currentShopifyId = printifyData.shopifyProductId;
+          onProductUpdate?.({ shopify_product_id: currentShopifyId });
+        }
+
         toast.success("✓ Printify: Existing product updated");
       } else {
         const colorsToUse = colorsForPush;
