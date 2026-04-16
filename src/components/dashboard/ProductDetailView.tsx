@@ -61,6 +61,7 @@ export const ProductDetailView = ({
   const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
   const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
+  const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const selectedOrg = organization;
@@ -289,10 +290,33 @@ export const ProductDetailView = ({
       {product.image_url && (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center shrink-0">
-              <img src={product.image_url} alt="Design file" className="h-full w-full object-contain" />
+            <div className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden flex items-center justify-center shrink-0 ${thumbVariant === "light" ? "bg-neutral-900" : "bg-neutral-100"}`}>
+              <img
+                src={(thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url}
+                alt="Design file"
+                className="h-full w-full object-contain"
+              />
             </div>
-            <div><p className="text-sm font-medium">Design File</p><p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p></div>
+            <div>
+              <p className="text-sm font-medium">Design File</p>
+              <p className="text-xs text-muted-foreground">Transparent PNG — print-ready</p>
+              <div className="mt-1.5 inline-flex rounded-md border border-border bg-muted/40 p-0.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setThumbVariant("light")}
+                  className={`px-2 py-0.5 rounded ${thumbVariant === "light" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  On dark
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThumbVariant("dark")}
+                  className={`px-2 py-0.5 rounded ${thumbVariant === "dark" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  On light
+                </button>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)}><Eye className="h-4 w-4" /> Preview</Button>
