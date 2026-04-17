@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_REQUEST_TIMEOUT_MS = 55000;
+const AI_REQUEST_TIMEOUT_MS = 45000;
+const AI_MODEL = "google/gemini-2.5-flash-lite";
 
 const cleanText = (value: unknown, fallback = ""): string =>
   typeof value === "string" ? value.trim() : fallback;
@@ -145,98 +146,77 @@ For EACH marketplace listing, also generate:
       required: ["title", "description", "bulletPoints", "tags", "seoTitle", "seoDescription", "urlHandle", "altText"],
     };
 
-    const responseSchema = enhanceOnly
-      ? {
-          type: "object",
-          properties: {
-            enhanced: {
-              type: "object",
-              properties: {
-                description: { type: "string" },
-                keywords: { type: "string" },
-                category: { type: "string" },
-                features: { type: "string" },
-              },
-              required: ["description", "keywords", "category", "features"],
+    // ---------- Enhance-only branch (single AI call) ----------
+    if (enhanceOnly) {
+      const responseSchema = {
+        type: "object",
+        properties: {
+          enhanced: {
+            type: "object",
+            properties: {
+              description: { type: "string" },
+              keywords: { type: "string" },
+              category: { type: "string" },
+              features: { type: "string" },
             },
+            required: ["description", "keywords", "category", "features"],
           },
-          required: ["enhanced"],
-          additionalProperties: false,
-        }
-      : {
-          type: "object",
-          properties: Object.fromEntries(marketplaces.map((m: string) => [m, listingSchema])),
-          required: marketplaces,
-          additionalProperties: false,
-        };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort("AI gateway timeout"), AI_REQUEST_TIMEOUT_MS);
-
-    let response: Response;
-    try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-lite",
-          temperature: 0.4,
-          messages: [
-            {
-              role: "system",
-              content: enhanceOnly
-                ? "You improve product fields for e-commerce. You MUST call the enhance_product function with concise plain-text output."
-                : "You are an expert e-commerce SEO copywriter. You MUST call the generate_listings function with your output.",
-            },
-            { role: "user", content: prompt }
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: enhanceOnly ? "enhance_product" : "generate_listings",
-                description: enhanceOnly
-                  ? "Improve missing product fields with concise plain-text output"
-                  : "Generate marketplace-optimized product listings with SEO metadata",
-                parameters: responseSchema,
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: enhanceOnly ? "enhance_product" : "generate_listings" } },
-        }),
-        signal: controller.signal,
+        required: ["enhanced"],
+        additionalProperties: false,
+      };
+      const result = await callAi({
+        systemPrompt: "You improve product fields for e-commerce. You MUST call the enhance_product function with concise plain-text output.",
+        userPrompt: prompt,
+        toolName: "enhance_product",
+        toolDescription: "Improve missing product fields with concise plain-text output",
+        schema: responseSchema,
       });
-    } finally {
-      clearTimeout(timeoutId);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ---------- Listings branch: ONE AI call per marketplace, in parallel ----------
+    const marketplaceStyle: Record<string, string> = {
+      etsy: "Etsy: creative title with tags, storytelling description with emojis, handmade feel.",
+      ebay: "eBay: clear factual title, structured description, trust signals.",
+      shopify: "Shopify: clean brand-forward copy, lifestyle-oriented.",
+    };
+
+    const settled = await Promise.allSettled(
+      marketplaces.map(async (m: string) => {
+        const perMarketplacePrompt = `${prompt}\n\nGenerate the listing ONLY for: ${m}.\nMarketplace style: ${marketplaceStyle[m] || ""}`;
+        const result = await callAi({
+          systemPrompt: "You are an expert e-commerce SEO copywriter. You MUST call the generate_listing function with your output.",
+          userPrompt: perMarketplacePrompt,
+          toolName: "generate_listing",
+          toolDescription: `Generate one ${m} listing with SEO metadata`,
+          schema: listingSchema,
         });
+        return [m, result] as const;
+      })
+    );
+
+    const merged: Record<string, unknown> = {};
+    const errors: string[] = [];
+    for (const r of settled) {
+      if (r.status === "fulfilled") {
+        const [m, listing] = r.value;
+        merged[m] = listing;
+      } else {
+        errors.push(String(r.reason?.message || r.reason));
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", status, t);
-      throw new Error(`AI gateway error: ${status}`);
     }
-
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
-
-    const listings = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify(listings), {
+    if (Object.keys(merged).length === 0) {
+      const msg = errors[0] || "All marketplace generations failed";
+      const isTimeout = msg.toLowerCase().includes("timeout") || msg.toLowerCase().includes("abort");
+      return new Response(JSON.stringify({ error: isTimeout ? "Listing generation timed out. Please retry." : msg }), {
+        status: isTimeout ? 504 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify(merged), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
@@ -252,3 +232,63 @@ For EACH marketplace listing, also generate:
     });
   }
 });
+
+// ---------- Helper: single AI call with tool-forced JSON ----------
+async function callAi(opts: {
+  systemPrompt: string;
+  userPrompt: string;
+  toolName: string;
+  toolDescription: string;
+  schema: Record<string, unknown>;
+}): Promise<any> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort("AI gateway timeout"), AI_REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        temperature: 0.4,
+        messages: [
+          { role: "system", content: opts.systemPrompt },
+          { role: "user", content: opts.userPrompt },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: opts.toolName,
+            description: opts.toolDescription,
+            parameters: opts.schema,
+          },
+        }],
+        tool_choice: { type: "function", function: { name: opts.toolName } },
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const status = response.status;
+    if (status === 429) throw new Error("Rate limit exceeded. Please try again in a moment.");
+    if (status === 402) throw new Error("AI credits exhausted. Please add credits to continue.");
+    const t = await response.text();
+    console.error("AI gateway error:", status, t);
+    throw new Error(`AI gateway error: ${status}`);
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("No tool call in response");
+  return JSON.parse(toolCall.function.arguments);
+}
