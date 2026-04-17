@@ -797,27 +797,6 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         .eq("product_id", productId)
         .eq("image_type", "design");
 
-      // Force-original mode (regenerate path): use original file as-is for both variants.
-      if (forceOriginalDesign) {
-        const originalUrl = designImageUrl || designImages?.[0]?.image_url || null;
-        const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
-        if (originalBase64) {
-          const isLight = isLightColor(typeConfig, colorName);
-          const designForComposite = selectDesignForComposite({
-            isLightGarment: isLight,
-            preserveOriginalDesignAlpha: true,
-            lightDesign: originalBase64,
-            darkDesign: originalBase64,
-            sharedLightGarmentDesign: originalBase64,
-          });
-          // Stash these for the rest of regenerate flow via a closure-friendly assignment
-          // by falling through with controlled state below.
-          var __forceOriginalLight: string | undefined = originalBase64;
-          var __forceOriginalDark: string | undefined = originalBase64;
-          var __forceOriginalShared: string | undefined = originalBase64;
-        }
-      }
-
       const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
       let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
@@ -826,7 +805,20 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
       let lightPreservesAccentInk = false;
 
-      if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
+      // Force-original mode (regenerate path): use original file as-is for both variants,
+      // bypassing accent detection, dark-ink swap, and darken/recolor steps.
+      if (forceOriginalDesign) {
+        const originalUrl = designImageUrl || designImages?.[0]?.image_url || lightDesignUrl || darkDesignUrl || null;
+        const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
+        if (originalBase64) {
+          lightDesignBase64 = originalBase64;
+          darkDesignBase64 = originalBase64;
+          sharedLightGarmentDesignBase64 = originalBase64;
+          lightPreservesAccentInk = true;
+        }
+      }
+
+      if (!forceOriginalDesign && lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
         try {
           const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
             hasPredominantlyDarkInk(lightDesignBase64),
@@ -841,7 +833,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (lightDesignBase64) {
+      if (!forceOriginalDesign && lightDesignBase64) {
         try {
           lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
         } catch {
@@ -849,14 +841,14 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (hasSingleSharedFile && lightDesignBase64) {
+      if (!forceOriginalDesign && hasSingleSharedFile && lightDesignBase64) {
         darkDesignBase64 = lightDesignBase64;
         try {
           sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
         } catch {
           sharedLightGarmentDesignBase64 = lightDesignBase64;
         }
-      } else if (lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
+      } else if (!forceOriginalDesign && lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
         darkDesignBase64 = lightDesignBase64;
         try {
           sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
@@ -865,14 +857,14 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (!darkDesignBase64 && lightDesignBase64) {
+      if (!forceOriginalDesign && !darkDesignBase64 && lightDesignBase64) {
         try {
           const bgRemoved = await removeBackground(lightDesignBase64, "black");
           darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
         } catch { /* continue */ }
       }
 
-      if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+      if (!forceOriginalDesign && !lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
         try {
           const preserveOriginal = await isMultiColorDesign(designImageUrl) || await hasMeaningfulAccentColors(designImageUrl);
           if (preserveOriginal) {
@@ -886,13 +878,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (lightDesignBase64 && !lightHasAccentColors) {
+      if (!forceOriginalDesign && lightDesignBase64 && !lightHasAccentColors) {
         try {
           lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
         } catch { /* continue */ }
       }
 
-      const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
+      const preserveOriginalDesignAlpha = forceOriginalDesign || hasSingleSharedFile || lightPreservesAccentInk;
 
       if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk && !sharedLightGarmentDesignBase64) {
         sharedLightGarmentDesignBase64 = darkDesignBase64;
