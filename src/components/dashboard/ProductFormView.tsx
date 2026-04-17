@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 import { toast } from "sonner";
 import type { Organization, Product, ProductFormState } from "@/types/dashboard";
 import { EMPTY_PRODUCT_FORM } from "@/types/dashboard";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { ArrowLeft, Sparkles, Loader2, ImageIcon } from "lucide-react";
 
 interface Props {
@@ -40,6 +42,19 @@ export const ProductFormView = ({
   const [forceSharedDesign, setForceSharedDesign] = useState(false);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
 
+  // Category options come from the org's enabled product types so they always
+  // mirror what the user configured in Settings.
+  const categoryOptions = useMemo(() => {
+    const enabled = (organization.enabled_product_types || []) as ProductTypeKey[];
+    const list = enabled
+      .map((key) => PRODUCT_TYPES[key])
+      .filter(Boolean)
+      .map((cfg) => cfg.category);
+    // Always include "Other" as a fallback
+    if (!list.includes("Other")) list.push("Other");
+    return Array.from(new Set(list));
+  }, [organization.enabled_product_types]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
@@ -59,9 +74,16 @@ export const ProductFormView = ({
         const { data, error } = await supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } });
         if (error) throw error;
         if (data.error) throw new Error(data.error);
+        // Coerce AI's free-text category to one of the org's enabled options
+        // (case-insensitive substring match), falling back to the first option / "Other".
+        const aiCat: string = data.category || "";
+        const matched = categoryOptions.find(
+          (opt) => opt.toLowerCase() === aiCat.toLowerCase() || aiCat.toLowerCase().includes(opt.toLowerCase()),
+        );
         setProductForm({
           title: data.title || "", description: data.description || "",
-          features: (data.features || []).join("\n"), category: data.category || "",
+          features: (data.features || []).join("\n"),
+          category: matched || categoryOptions[0] || "Other",
           keywords: (data.keywords || []).join(", "), price: data.suggestedPrice || "",
         });
         if (aiUsage) await aiUsage.logUsage("analyze-product", userId);
@@ -148,7 +170,22 @@ export const ProductFormView = ({
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2"><Label>Product Title</Label><Input value={productForm.title} onChange={(e) => setProductForm({ ...productForm, title: e.target.value })} required disabled={isAnalyzing} placeholder="e.g. Lavender Soy Candle" /></div>
-        <div className="space-y-2"><Label>Category</Label><Input value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })} required disabled={isAnalyzing} placeholder="e.g. Home & Garden > Candles" /></div>
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select
+            value={productForm.category}
+            onValueChange={(value) => setProductForm({ ...productForm, category: value })}
+            disabled={isAnalyzing}
+          >
+            <SelectTrigger><SelectValue placeholder="Choose a category" /></SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground">From your enabled product types in Settings</p>
+        </div>
         <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} rows={4} required disabled={isAnalyzing} placeholder="Describe your product…" /></div>
         <div className="space-y-2 sm:col-span-2"><Label>Key Features (one per line)</Label><Textarea value={productForm.features} onChange={(e) => setProductForm({ ...productForm, features: e.target.value })} rows={3} disabled={isAnalyzing} placeholder="Hand-poured with 100% soy wax" /></div>
         <div className="space-y-2"><Label>Keywords (comma separated)</Label><Input value={productForm.keywords} onChange={(e) => setProductForm({ ...productForm, keywords: e.target.value })} disabled={isAnalyzing} placeholder="soy candle, lavender" /></div>

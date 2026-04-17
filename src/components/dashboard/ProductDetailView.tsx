@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ListingOutput } from "@/components/ListingOutput";
 import { ProductMockups } from "@/components/ProductMockups";
 import { PushToShopify } from "@/components/PushToShopify";
@@ -64,26 +65,35 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
-  const [editingCategory, setEditingCategory] = useState(false);
-  const [categoryDraft, setCategoryDraft] = useState(product.category || "");
   const [savingCategory, setSavingCategory] = useState(false);
 
   const canEditCategory = effectiveTier === "pro" || effectiveTier === "starter" || effectiveTier === "free";
-  const saveCategory = async () => {
-    const next = categoryDraft.trim();
-    if (next === (product.category || "")) { setEditingCategory(false); return; }
+
+  const handleCategoryChange = async (next: string) => {
+    if (!next || next === (product.category || "")) return;
     setSavingCategory(true);
     const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
     setSavingCategory(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Category updated");
-    setEditingCategory(false);
     if (selectedOrg?.id) loadProducts(selectedOrg.id);
   };
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
   const mockupTemplates = (selectedOrg?.mockup_templates || {}) as Partial<Record<ProductTypeKey, string>>;
   const enabledProductTypeKeys = (selectedOrg?.enabled_product_types || []) as ProductTypeKey[];
+  // Category dropdown options come from the org's enabled product types so they
+  // always match what the user configured in Settings. If the product currently
+  // holds a category outside that list (e.g. legacy free-text), include it too
+  // so the Select can render the existing value.
+  const categoryOptions = (() => {
+    const list = enabledProductTypeKeys
+      .map((k) => PRODUCT_TYPES[k]?.category)
+      .filter(Boolean) as string[];
+    if (!list.includes("Other")) list.push("Other");
+    if (product.category && !list.includes(product.category)) list.unshift(product.category);
+    return Array.from(new Set(list));
+  })();
   const fallbackProductTypeKey = mockupTemplates[detectedProductType.key]
     ? detectedProductType.key
     : enabledProductTypeKeys.find((key) => !!mockupTemplates[key])
@@ -274,30 +284,26 @@ export const ProductDetailView = ({
         <div className="flex-1 min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
           <div className="flex items-center gap-2 mt-1">
-            {editingCategory ? (
-              <input
-                autoFocus
-                value={categoryDraft}
-                disabled={savingCategory}
-                onChange={(e) => setCategoryDraft(e.target.value)}
-                onBlur={saveCategory}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
-                  if (e.key === "Escape") { setCategoryDraft(product.category || ""); setEditingCategory(false); }
-                }}
-                placeholder="e.g. Apparel & Accessories > Clothing > Shirts"
-                className="rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/40 outline-none focus:ring-2 focus:ring-primary min-w-[260px]"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => { setCategoryDraft(product.category || ""); setEditingCategory(true); }}
-                title="Click to edit category"
-                className="inline-flex items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 hover:bg-primary/25 hover:ring-primary/40 transition-colors cursor-text"
+            <Select
+              value={product.category || ""}
+              onValueChange={handleCategoryChange}
+              disabled={savingCategory || !canEditCategory}
+            >
+              <SelectTrigger
+                className="h-7 w-auto min-w-[160px] rounded-md border-0 bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 hover:bg-primary/25 hover:ring-primary/40 focus:ring-2 focus:ring-primary"
+                title="Change category"
               >
-                {product.category || "Uncategorized"}
-              </button>
-            )}
+                <SelectValue placeholder="Uncategorized">
+                  {product.category || "Uncategorized"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {savingCategory && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             {product.price && <span className="text-xs text-muted-foreground">{product.price}</span>}
           </div>
         </div>
