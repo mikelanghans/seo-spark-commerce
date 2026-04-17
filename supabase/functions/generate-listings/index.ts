@@ -102,6 +102,13 @@ Product:
 Generate SEO-optimized listings for: ${marketplaces.join(", ")}. Only generate for these marketplaces.
 Each listing must be tailored to that marketplace's style and SEO best practices.
 
+CRITICAL — PRODUCT CATEGORY RULES:
+- The product's actual category is "${normalizedProduct.category}". This is the ONLY product type. Treat it as the source of truth.
+- Tags, titles, bullet points, and descriptions MUST describe a "${normalizedProduct.category}" — NOT any other format, object, or product type.
+- If the description, features, or keywords reference a different physical product (e.g. a jar, mug, sticker, poster, candle), IGNORE those references. Re-interpret the design/theme as it would apply to a "${normalizedProduct.category}".
+- Tags must include the product category itself (e.g. "t-shirt", "tee", "shirt" if the category is T-Shirt) and other tags relevant ONLY to that category. Never tag with unrelated product formats.
+- Example: if category is "T-Shirt" but old description mentioned "jar", generate t-shirt tags like "graphic tee", "cotton shirt", "unisex t-shirt" — NEVER "jar", "home decor", "collectible".
+
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
 - Shopify: clean brand-forward copy, lifestyle-oriented
