@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { ListingOutput } from "@/components/ListingOutput";
 import { ProductMockups } from "@/components/ProductMockups";
@@ -65,6 +66,34 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const enabled = (organization?.enabled_product_types || []) as ProductTypeKey[];
+    const list = enabled
+      .map((key) => PRODUCT_TYPES[key])
+      .filter(Boolean)
+      .map((cfg) => cfg.category);
+    if (!list.includes("Other")) list.push("Other");
+    if (product.category && !list.includes(product.category)) list.unshift(product.category);
+    return Array.from(new Set(list));
+  }, [organization?.enabled_product_types, product.category]);
+
+  const handleCategoryChange = async (next: string) => {
+    if (!next || next === product.category) return;
+    setSavingCategory(true);
+    try {
+      const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
+      if (error) throw error;
+      setSelectedProduct({ ...product, category: next });
+      if (organization?.id) await loadProducts(organization.id);
+      toast.success("Category updated");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update category");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
 
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
@@ -260,12 +289,17 @@ export const ProductDetailView = ({
         <div className="flex-1 min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
           <div className="flex items-center gap-2 mt-1">
-            <span
-              className="inline-flex h-7 items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25"
-              title="Category (set during product creation)"
-            >
-              {product.category || "Uncategorized"}
-            </span>
+            <Select value={product.category || ""} onValueChange={handleCategoryChange} disabled={savingCategory}>
+              <SelectTrigger className="h-7 w-auto min-w-[180px] gap-2 rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 border-0 hover:bg-primary/20">
+                <SelectValue placeholder="Choose a category" />
+                {savingCategory && <Loader2 className="h-3 w-3 animate-spin" />}
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {product.price && <span className="text-xs text-muted-foreground">{product.price}</span>}
           </div>
         </div>
