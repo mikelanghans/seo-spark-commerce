@@ -65,35 +65,11 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
-  const [savingCategory, setSavingCategory] = useState(false);
 
-  const canEditCategory = effectiveTier === "pro" || effectiveTier === "starter" || effectiveTier === "free";
-
-  const handleCategoryChange = async (next: string) => {
-    if (!next || next === (product.category || "")) return;
-    setSavingCategory(true);
-    const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
-    setSavingCategory(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Category updated");
-    if (selectedOrg?.id) loadProducts(selectedOrg.id);
-  };
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
   const mockupTemplates = (selectedOrg?.mockup_templates || {}) as Partial<Record<ProductTypeKey, string>>;
   const enabledProductTypeKeys = (selectedOrg?.enabled_product_types || []) as ProductTypeKey[];
-  // Category dropdown options come from the org's enabled product types so they
-  // always match what the user configured in Settings. If the product currently
-  // holds a category outside that list (e.g. legacy free-text), include it too
-  // so the Select can render the existing value.
-  const categoryOptions = (() => {
-    const list = enabledProductTypeKeys
-      .map((k) => PRODUCT_TYPES[k]?.category)
-      .filter(Boolean) as string[];
-    if (!list.includes("Other")) list.push("Other");
-    if (product.category && !list.includes(product.category)) list.unshift(product.category);
-    return Array.from(new Set(list));
-  })();
   const fallbackProductTypeKey = mockupTemplates[detectedProductType.key]
     ? detectedProductType.key
     : enabledProductTypeKeys.find((key) => !!mockupTemplates[key])
