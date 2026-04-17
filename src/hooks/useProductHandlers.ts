@@ -66,10 +66,32 @@ export function useProductHandlers(
         const allowed = await aiUsage.checkAndLog("generate-listings", userId!);
         if (!allowed) { setGenerating(false); return; }
       }
+
+      // CRITICAL: re-fetch the latest product row so any unsaved-in-state edits
+      // (title, category, description, features, keywords) are picked up. The
+      // in-memory `product` arg can lag behind the DB after inline edits.
+      const { data: freshProduct, error: fetchError } = await supabase
+        .from("products")
+        .select("id, title, description, keywords, category, price, features")
+        .eq("id", product.id)
+        .single();
+      if (fetchError) throw fetchError;
+      const src = freshProduct ?? product;
+
+      const trim = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+      const productPayload = {
+        title: trim(src.title),
+        description: trim(src.description),
+        keywords: trim(src.keywords),
+        category: trim(src.category),
+        price: trim(src.price),
+        features: trim(src.features),
+      };
+
       const { data: result, error } = await supabase.functions.invoke("generate-listings", {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
-          product: { title: product.title, description: product.description, keywords: product.keywords, category: product.category, price: product.price, features: product.features },
+          product: productPayload,
           marketplaces: targets,
           excludedSections: selectedOrg.listing_excluded_sections || [],
         },
@@ -89,6 +111,8 @@ export function useProductHandlers(
       const { error: insertError } = await supabase.from("listings").insert(listingRows);
       if (insertError) throw insertError;
       await loadListings(product.id);
+      // Refresh local product state too so the UI reflects whatever the DB now holds.
+      if (selectedOrg) await loadProducts(selectedOrg.id);
       if (aiUsage) await aiUsage.logUsage("generate-listings", userId!);
       toast.success(`Listings generated for ${targets.join(", ")}!`);
     } catch (err: any) {
