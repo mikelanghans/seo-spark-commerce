@@ -43,6 +43,8 @@ export function useProductHandlers(
   };
 
   const loadListings = async (productId: string) => {
+    // Clear stale listings first so a previous product's tags can't briefly leak into the UI
+    setListings([]);
     const { data } = await supabase.from("listings").select("*").eq("product_id", productId);
     setListings((data as Listing[]) || []);
   };
