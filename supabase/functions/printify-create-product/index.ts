@@ -105,7 +105,7 @@ const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   return {
     imageX: clamp(DEFAULT_IMAGE_X + placement.offsetX, 0.15, 0.85),
     imageY: clamp(DEFAULT_IMAGE_Y + (placement.offsetY - DEFAULT_EDITOR_OFFSET_Y), 0.12, 0.65),
-    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), 0.22, 0.78),
+    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), MIN_PRINTIFY_SCALE, MAX_PRINTIFY_SCALE),
   };
 };
 
