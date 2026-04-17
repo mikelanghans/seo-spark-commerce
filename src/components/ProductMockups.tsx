@@ -1084,6 +1084,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           </div>
         </div>
 
+        {/* Force original design toggle */}
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+          <input
+            type="checkbox"
+            id="force-original-design"
+            checked={forceOriginalDesign}
+            onChange={(e) => setForceOriginalDesign(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary"
+          />
+          <label htmlFor="force-original-design" className="text-xs">
+            <span className="font-medium text-foreground">Use original uploaded design file</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Skip light/dark variant processing and use the original design as-is for every garment color. Best for multicolor artwork or photos.
+            </span>
+          </label>
+        </div>
+
         {/* Custom Instructions */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Custom instructions (optional)</label>
