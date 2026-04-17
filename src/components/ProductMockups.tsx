@@ -120,6 +120,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
   const placementRef = useRef<DesignPlacement | null>(null);
   const recAbortRef = useRef<AbortController | null>(null);
+  const [forceOriginalDesign, setForceOriginalDesign] = useState(false);
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
@@ -395,6 +396,24 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           .eq("product_id", productId)
           .eq("image_type", "design");
 
+        // Force-original mode: skip ALL light/dark resolution & processing.
+        // Use the original uploaded file as-is for every garment color.
+        if (forceOriginalDesign) {
+          const originalUrl = designImageUrl
+            || designImages?.[0]?.image_url
+            || null;
+          const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
+          if (originalBase64) {
+            return {
+              lightDesignBase64: originalBase64,
+              darkDesignBase64: originalBase64,
+              sharedLightGarmentDesignBase64: originalBase64,
+              referenceDesignSize: undefined,
+              preserveOriginalDesignAlpha: true,
+            };
+          }
+        }
+
         const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
@@ -404,26 +423,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         let lightPreservesAccentInk = false;
 
         if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
-          try {
-            const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
-              hasPredominantlyDarkInk(lightDesignBase64),
-              hasPredominantlyDarkInk(darkDesignBase64),
-            ]);
-            if (lightIsDarkInk && !darkIsDarkInk) {
-              [lightDesignBase64, darkDesignBase64] = [darkDesignBase64, lightDesignBase64];
-              console.log("[mockup] Auto-corrected swapped design variants");
-            }
-          } catch {
-            // keep original ordering if analysis fails
-          }
-        }
-
-        if (lightDesignBase64) {
-          try {
-            lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
-          } catch {
-            lightPreservesAccentInk = lightHasAccentColors;
-          }
+...
         }
 
         if (hasSingleSharedFile && lightDesignBase64) {
@@ -777,6 +777,27 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         .select("image_url, color_name")
         .eq("product_id", productId)
         .eq("image_type", "design");
+
+      // Force-original mode (regenerate path): use original file as-is for both variants.
+      if (forceOriginalDesign) {
+        const originalUrl = designImageUrl || designImages?.[0]?.image_url || null;
+        const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
+        if (originalBase64) {
+          const isLight = isLightColor(typeConfig, colorName);
+          const designForComposite = selectDesignForComposite({
+            isLightGarment: isLight,
+            preserveOriginalDesignAlpha: true,
+            lightDesign: originalBase64,
+            darkDesign: originalBase64,
+            sharedLightGarmentDesign: originalBase64,
+          });
+          // Stash these for the rest of regenerate flow via a closure-friendly assignment
+          // by falling through with controlled state below.
+          var __forceOriginalLight: string | undefined = originalBase64;
+          var __forceOriginalDark: string | undefined = originalBase64;
+          var __forceOriginalShared: string | undefined = originalBase64;
+        }
+      }
 
       const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
