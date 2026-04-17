@@ -299,9 +299,9 @@ export const BulkUpload = ({ organizationId, userId, onComplete, onBack, aiUsage
                 className="mt-0.5 h-4 w-4 rounded border-border text-primary"
               />
               <label htmlFor="force-shared-bulk" className="text-sm">
-                <span className="font-medium">Use as single shared file</span>
+                <span className="font-medium">Use as single shared file (applies to all images in this batch)</span>
                 <span className="block text-xs text-muted-foreground">
-                  Skip background removal & light/dark variants. Best for multicolor illustrations or photos where automatic processing causes artifacts.
+                  Every image you select below will skip background removal & light/dark variant generation. Best for multicolor illustrations or photos where automatic processing causes artifacts.
                 </span>
               </label>
             </div>
