@@ -532,6 +532,7 @@ serve(async (req) => {
 
     // Publish if requested
     let syncedShopifyProductId: number | null = null;
+    let publishError: string | null = null;
     if (publish && createdProduct.id) {
       console.log(`Publishing product ${createdProduct.id} on Printify...`);
       const publishRes = await fetch(
@@ -543,7 +544,9 @@ serve(async (req) => {
         }
       );
       if (!publishRes.ok) {
-        console.error(`Publish failed: ${publishRes.status} ${await publishRes.text()}`);
+        const errText = await publishRes.text();
+        publishError = `Printify publish returned ${publishRes.status}: ${errText.slice(0, 400)}`;
+        console.error(publishError);
       } else {
         // Poll Printify for the external (Shopify) product ID that native sync creates
         console.log("Polling Printify for external Shopify product ID...");
@@ -572,7 +575,8 @@ serve(async (req) => {
           }
         }
         if (!syncedShopifyProductId) {
-          console.warn("Could not retrieve Shopify product ID from Printify after polling");
+          publishError = "Printify accepted the publish request but no Shopify product ID was returned within 90s. The product may still finish syncing in your Printify dashboard.";
+          console.warn(publishError);
         }
       }
     }
@@ -584,6 +588,7 @@ serve(async (req) => {
       shopifyProductId: syncedShopifyProductId,
       mockupsUploaded: 0,
       matchedColors,
+      publishError,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
