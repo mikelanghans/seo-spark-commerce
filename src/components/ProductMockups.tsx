@@ -120,6 +120,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
   const placementRef = useRef<DesignPlacement | null>(null);
   const recAbortRef = useRef<AbortController | null>(null);
+  const [forceOriginalDesign, setForceOriginalDesign] = useState(false);
 
   const typeConfig = getProductType(productCategory || "");
   const availableColors = typeConfig.colors;
@@ -394,6 +395,24 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           .select("image_url, color_name")
           .eq("product_id", productId)
           .eq("image_type", "design");
+
+        // Force-original mode: skip ALL light/dark resolution & processing.
+        // Use the original uploaded file as-is for every garment color.
+        if (forceOriginalDesign) {
+          const originalUrl = designImageUrl
+            || designImages?.[0]?.image_url
+            || null;
+          const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
+          if (originalBase64) {
+            return {
+              lightDesignBase64: originalBase64,
+              darkDesignBase64: originalBase64,
+              sharedLightGarmentDesignBase64: originalBase64,
+              referenceDesignSize: undefined,
+              preserveOriginalDesignAlpha: true,
+            };
+          }
+        }
 
         const { lightUrl: lightDesignUrl, darkUrl: darkDesignUrl, hasSingleSharedFile } = resolveSingleDesignVariant(designImages, designImageUrl);
 
@@ -786,7 +805,20 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
       let lightPreservesAccentInk = false;
 
-      if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
+      // Force-original mode (regenerate path): use original file as-is for both variants,
+      // bypassing accent detection, dark-ink swap, and darken/recolor steps.
+      if (forceOriginalDesign) {
+        const originalUrl = designImageUrl || designImages?.[0]?.image_url || lightDesignUrl || darkDesignUrl || null;
+        const originalBase64 = originalUrl ? await fetchAsBase64(originalUrl) : undefined;
+        if (originalBase64) {
+          lightDesignBase64 = originalBase64;
+          darkDesignBase64 = originalBase64;
+          sharedLightGarmentDesignBase64 = originalBase64;
+          lightPreservesAccentInk = true;
+        }
+      }
+
+      if (!forceOriginalDesign && lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
         try {
           const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
             hasPredominantlyDarkInk(lightDesignBase64),
@@ -801,7 +833,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (lightDesignBase64) {
+      if (!forceOriginalDesign && lightDesignBase64) {
         try {
           lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
         } catch {
@@ -809,14 +841,14 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (hasSingleSharedFile && lightDesignBase64) {
+      if (!forceOriginalDesign && hasSingleSharedFile && lightDesignBase64) {
         darkDesignBase64 = lightDesignBase64;
         try {
           sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
         } catch {
           sharedLightGarmentDesignBase64 = lightDesignBase64;
         }
-      } else if (lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
+      } else if (!forceOriginalDesign && lightDesignBase64 && !darkDesignBase64 && lightPreservesAccentInk) {
         darkDesignBase64 = lightDesignBase64;
         try {
           sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
@@ -825,14 +857,14 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (!darkDesignBase64 && lightDesignBase64) {
+      if (!forceOriginalDesign && !darkDesignBase64 && lightDesignBase64) {
         try {
           const bgRemoved = await removeBackground(lightDesignBase64, "black");
           darkDesignBase64 = ensureImageDataUrl(await recolorOpaquePixels(bgRemoved, { r: 24, g: 24, b: 24 }));
         } catch { /* continue */ }
       }
 
-      if (!lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
+      if (!forceOriginalDesign && !lightDesignBase64 && !darkDesignBase64 && designImageUrl) {
         try {
           const preserveOriginal = await isMultiColorDesign(designImageUrl) || await hasMeaningfulAccentColors(designImageUrl);
           if (preserveOriginal) {
@@ -846,13 +878,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         }
       }
 
-      if (lightDesignBase64 && !lightHasAccentColors) {
+      if (!forceOriginalDesign && lightDesignBase64 && !lightHasAccentColors) {
         try {
           lightHasAccentColors = await hasMeaningfulAccentColors(lightDesignBase64);
         } catch { /* continue */ }
       }
 
-      const preserveOriginalDesignAlpha = hasSingleSharedFile || lightPreservesAccentInk;
+      const preserveOriginalDesignAlpha = forceOriginalDesign || hasSingleSharedFile || lightPreservesAccentInk;
 
       if (lightDesignBase64 && darkDesignBase64 && lightPreservesAccentInk && !sharedLightGarmentDesignBase64) {
         sharedLightGarmentDesignBase64 = darkDesignBase64;
@@ -1050,6 +1082,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
               );
             })}
           </div>
+        </div>
+
+        {/* Force original design toggle */}
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-secondary/30 p-3">
+          <input
+            type="checkbox"
+            id="force-original-design"
+            checked={forceOriginalDesign}
+            onChange={(e) => setForceOriginalDesign(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-border text-primary"
+          />
+          <label htmlFor="force-original-design" className="text-xs">
+            <span className="font-medium text-foreground">Use original uploaded design file</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Skip light/dark variant processing and use the original design as-is for every garment color. Best for multicolor artwork or photos.
+            </span>
+          </label>
         </div>
 
         {/* Custom Instructions */}
