@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 import { toast } from "sonner";
 import type { Organization, Product, ProductFormState } from "@/types/dashboard";
 import { EMPTY_PRODUCT_FORM } from "@/types/dashboard";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 import { ArrowLeft, Sparkles, Loader2, ImageIcon } from "lucide-react";
 
 interface Props {
