@@ -74,9 +74,16 @@ export const ProductFormView = ({
         const { data, error } = await supabase.functions.invoke("analyze-product", { body: { imageBase64: base64 } });
         if (error) throw error;
         if (data.error) throw new Error(data.error);
+        // Coerce AI's free-text category to one of the org's enabled options
+        // (case-insensitive substring match), falling back to the first option / "Other".
+        const aiCat: string = data.category || "";
+        const matched = categoryOptions.find(
+          (opt) => opt.toLowerCase() === aiCat.toLowerCase() || aiCat.toLowerCase().includes(opt.toLowerCase()),
+        );
         setProductForm({
           title: data.title || "", description: data.description || "",
-          features: (data.features || []).join("\n"), category: data.category || "",
+          features: (data.features || []).join("\n"),
+          category: matched || categoryOptions[0] || "Other",
           keywords: (data.keywords || []).join(", "), price: data.suggestedPrice || "",
         });
         if (aiUsage) await aiUsage.logUsage("analyze-product", userId);
