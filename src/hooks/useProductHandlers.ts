@@ -38,6 +38,13 @@ export function useProductHandlers(
     const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
     const prods = (data as Product[]) || [];
     setProducts(prods);
+    // Keep the currently-viewed product in sync with the latest DB row so inline edits
+    // (e.g. category, price, tags) re-render immediately in the detail view.
+    setSelectedProduct((current) => {
+      if (!current) return current;
+      const fresh = prods.find((p) => p.id === current.id);
+      return fresh ?? current;
+    });
     setLoading(false);
     return prods;
   };
