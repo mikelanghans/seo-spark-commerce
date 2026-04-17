@@ -423,7 +423,26 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         let lightPreservesAccentInk = false;
 
         if (lightDesignBase64 && darkDesignBase64 && !hasSingleSharedFile) {
-...
+          try {
+            const [lightIsDarkInk, darkIsDarkInk] = await Promise.all([
+              hasPredominantlyDarkInk(lightDesignBase64),
+              hasPredominantlyDarkInk(darkDesignBase64),
+            ]);
+            if (lightIsDarkInk && !darkIsDarkInk) {
+              [lightDesignBase64, darkDesignBase64] = [darkDesignBase64, lightDesignBase64];
+              console.log("[mockup] Auto-corrected swapped design variants");
+            }
+          } catch {
+            // keep original ordering if analysis fails
+          }
+        }
+
+        if (lightDesignBase64) {
+          try {
+            lightPreservesAccentInk = lightHasAccentColors || await isMultiColorDesign(lightDesignBase64);
+          } catch {
+            lightPreservesAccentInk = lightHasAccentColors;
+          }
         }
 
         if (hasSingleSharedFile && lightDesignBase64) {
