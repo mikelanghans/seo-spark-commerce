@@ -289,12 +289,17 @@ export const ProductDetailView = ({
         <div className="flex-1 min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
           <div className="flex items-center gap-2 mt-1">
-            <span
-              className="inline-flex h-7 items-center rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25"
-              title="Category (set during product creation)"
-            >
-              {product.category || "Uncategorized"}
-            </span>
+            <Select value={product.category || ""} onValueChange={handleCategoryChange} disabled={savingCategory}>
+              <SelectTrigger className="h-7 w-auto min-w-[180px] gap-2 rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 border-0 hover:bg-primary/20">
+                <SelectValue placeholder="Choose a category" />
+                {savingCategory && <Loader2 className="h-3 w-3 animate-spin" />}
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {product.price && <span className="text-xs text-muted-foreground">{product.price}</span>}
           </div>
         </div>
