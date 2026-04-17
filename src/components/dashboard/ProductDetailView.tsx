@@ -66,6 +66,34 @@ export const ProductDetailView = ({
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const categoryOptions = useMemo(() => {
+    const enabled = (organization?.enabled_product_types || []) as ProductTypeKey[];
+    const list = enabled
+      .map((key) => PRODUCT_TYPES[key])
+      .filter(Boolean)
+      .map((cfg) => cfg.category);
+    if (!list.includes("Other")) list.push("Other");
+    if (product.category && !list.includes(product.category)) list.unshift(product.category);
+    return Array.from(new Set(list));
+  }, [organization?.enabled_product_types, product.category]);
+
+  const handleCategoryChange = async (next: string) => {
+    if (!next || next === product.category) return;
+    setSavingCategory(true);
+    try {
+      const { error } = await supabase.from("products").update({ category: next }).eq("id", product.id);
+      if (error) throw error;
+      setSelectedProduct({ ...product, category: next });
+      if (organization?.id) await loadProducts(organization.id);
+      toast.success("Category updated");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update category");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
 
   const selectedOrg = organization;
   const detectedProductType = getProductType(product.category || "");
