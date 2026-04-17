@@ -7,11 +7,17 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 0.58;
+// Printify scale = image_dimension / print_area_dimension. Uploaded designs are
+// typically 5000x5000 with substantial transparent padding around the visible
+// artwork, so we boost the default to ensure the printed design reads as
+// "chest-sized" rather than a small icon.
+const DEFAULT_IMAGE_SCALE = 0.95;
 const DEFAULT_IMAGE_X = 0.5;
 const DEFAULT_IMAGE_Y = 0.34;
 const DEFAULT_EDITOR_SCALE = 0.36;
 const DEFAULT_EDITOR_OFFSET_Y = 0.20;
+const MAX_PRINTIFY_SCALE = 1.0;
+const MIN_PRINTIFY_SCALE = 0.30;
 
 type PlacementInput = {
   scale: number;
