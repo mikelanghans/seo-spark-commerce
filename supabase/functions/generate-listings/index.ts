@@ -91,24 +91,26 @@ Business Context:
 - Tone: ${normalizedBusiness.tone}
 - Target Audience: ${normalizedBusiness.audience}
 
-Product:
-- Title: ${normalizedProduct.title}
-- Description: ${normalizedProduct.description}
-- Features: ${normalizedProduct.features}
-- Category: ${normalizedProduct.category}
-- Keywords: ${normalizedProduct.keywords}
+THE PRODUCT YOU ARE WRITING FOR:
+>>> This product IS A "${normalizedProduct.category}". Nothing else. <<<
+- Working title: ${normalizedProduct.title}
 - Price: ${normalizedProduct.price}
 
-Generate SEO-optimized listings for: ${marketplaces.join(", ")}. Only generate for these marketplaces.
-Each listing must be tailored to that marketplace's style and SEO best practices.
+DESIGN THEME / ARTWORK INSPIRATION (use ONLY for visual theme — NOT for product format):
+- Theme description: ${normalizedProduct.description}
+- Theme features: ${normalizedProduct.features}
+- Theme keywords: ${normalizedProduct.keywords}
 
-CRITICAL — PRODUCT CATEGORY RULES:
-- The product's actual category is "${normalizedProduct.category}". This is the ONLY product type. Treat it as the source of truth.
-- Tags, titles, bullet points, and descriptions MUST describe a "${normalizedProduct.category}" — NOT any other format, object, or product type.
-- If the description, features, or keywords reference a different physical product (e.g. a jar, mug, sticker, poster, candle), IGNORE those references. Re-interpret the design/theme as it would apply to a "${normalizedProduct.category}".
-- Tags must include the product category itself (e.g. "t-shirt", "tee", "shirt" if the category is T-Shirt) and other tags relevant ONLY to that category. Never tag with unrelated product formats.
-- Example: if category is "T-Shirt" but old description mentioned "jar", generate t-shirt tags like "graphic tee", "cotton shirt", "unisex t-shirt" — NEVER "jar", "home decor", "collectible".
+CRITICAL CATEGORY OVERRIDE RULES — READ CAREFULLY:
+The "Theme description" and "Theme features" above may have been written for a DIFFERENT product format (e.g. a jar, mug, sticker, poster, candle, print). You MUST IGNORE the physical-format language and treat that text purely as artwork/design inspiration.
 
+- The actual product is a "${normalizedProduct.category}". Every sentence you write must describe a "${normalizedProduct.category}" featuring that design theme.
+- DO NOT use the words "jar", "mug", "candle", "sticker", "poster", "print", "decor", "home decor", "desk", "shelf", "collectible", "conversation starter", "glass", "cork stopper", or any other non-"${normalizedProduct.category}" format references — UNLESS the category itself IS that format.
+- Rewrite the description from scratch as if you've never seen the old text. Translate the design theme into language appropriate for a "${normalizedProduct.category}" (e.g. for a T-Shirt: "graphic tee featuring a smiling Earth amongst cosmic swirls", "soft cotton shirt with celestial artwork").
+- Bullet points must describe attributes of a "${normalizedProduct.category}" (fit, fabric, print quality, sizing for apparel; capacity, material for drinkware; etc.) — NOT attributes of the original source format.
+- Tags MUST include the category as a primary tag and combine it with theme tags. NEVER emit tags that imply a different product format.
+
+Marketplace style:
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
 - Shopify: clean brand-forward copy, lifestyle-oriented
@@ -122,10 +124,11 @@ CONTENT EXCLUSIONS — DO NOT include any of the following topics in the descrip
 ${(excludedSections as string[]).includes("materials") ? "- Materials, fabric composition, garment specs, fit details, sizing info (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("care") ? "- Care instructions, washing/drying/ironing guidance (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("shipping") ? "- Shipping times, delivery info, return policy, refund details (the storefront displays these separately)\n" : ""}Focus ONLY on the product story, lifestyle benefits, and brand voice.
 ` : ""}
 For EACH marketplace listing, also generate:
-- seoTitle: An SEO meta title (under 60 chars, with primary keyword)
-- seoDescription: An SEO meta description (under 160 chars, compelling with CTA)
-- urlHandle: A clean URL slug (lowercase, hyphens, no special chars, e.g. "lavender-soy-candle-8oz")
-- altText: Descriptive alt text for the product image (for accessibility and SEO)`;
+- title: REWRITE the title so it clearly names the "${normalizedProduct.category}" (e.g. "Cosmic Earth Graphic T-Shirt" — not "The Universe Jar")
+- seoTitle: An SEO meta title (under 60 chars, with primary keyword + category word)
+- seoDescription: An SEO meta description (under 160 chars, mentions the category, with CTA)
+- urlHandle: A clean URL slug (lowercase, hyphens, includes the category, e.g. "cosmic-earth-t-shirt")
+- altText: Descriptive alt text mentioning the "${normalizedProduct.category}" and the design theme`;
 
     const listingSchema = {
       type: "object",
