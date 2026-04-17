@@ -7,11 +7,17 @@ const corsHeaders = {
 };
 
 const DEFAULT_BLUEPRINT_ID = 706;
-const DEFAULT_IMAGE_SCALE = 0.58;
+// Printify scale = image_dimension / print_area_dimension. Uploaded designs are
+// typically 5000x5000 with substantial transparent padding around the visible
+// artwork, so we boost the default to ensure the printed design reads as
+// "chest-sized" rather than a small icon.
+const DEFAULT_IMAGE_SCALE = 0.95;
 const DEFAULT_IMAGE_X = 0.5;
 const DEFAULT_IMAGE_Y = 0.34;
 const DEFAULT_EDITOR_SCALE = 0.36;
 const DEFAULT_EDITOR_OFFSET_Y = 0.20;
+const MAX_PRINTIFY_SCALE = 1.0;
+const MIN_PRINTIFY_SCALE = 0.30;
 
 type PlacementInput = {
   scale: number;
@@ -99,7 +105,7 @@ const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   return {
     imageX: clamp(DEFAULT_IMAGE_X + placement.offsetX, 0.15, 0.85),
     imageY: clamp(DEFAULT_IMAGE_Y + (placement.offsetY - DEFAULT_EDITOR_OFFSET_Y), 0.12, 0.65),
-    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), 0.22, 0.78),
+    desiredScale: clamp(DEFAULT_IMAGE_SCALE * (placement.scale / DEFAULT_EDITOR_SCALE), MIN_PRINTIFY_SCALE, MAX_PRINTIFY_SCALE),
   };
 };
 
@@ -399,7 +405,7 @@ serve(async (req) => {
           const fullyVisibleScale = Math.min(widthFillScale, heightFitScale);
           const targetChestScale = Math.min(fullyVisibleScale, desiredScale);
 
-          imageScale = clamp(targetChestScale, 0.22, 0.78);
+          imageScale = clamp(targetChestScale, MIN_PRINTIFY_SCALE, MAX_PRINTIFY_SCALE);
           console.log(
             `Calculated scale: ${imageScale.toFixed(4)} (fullyVisible=${fullyVisibleScale.toFixed(4)}, widthFit=${widthFillScale.toFixed(4)}, heightFit=${heightFitScale.toFixed(4)}, desired=${desiredScale.toFixed(4)})`
           );
@@ -526,6 +532,7 @@ serve(async (req) => {
 
     // Publish if requested
     let syncedShopifyProductId: number | null = null;
+    let publishError: string | null = null;
     if (publish && createdProduct.id) {
       console.log(`Publishing product ${createdProduct.id} on Printify...`);
       const publishRes = await fetch(
@@ -537,7 +544,9 @@ serve(async (req) => {
         }
       );
       if (!publishRes.ok) {
-        console.error(`Publish failed: ${publishRes.status} ${await publishRes.text()}`);
+        const errText = await publishRes.text();
+        publishError = `Printify publish returned ${publishRes.status}: ${errText.slice(0, 400)}`;
+        console.error(publishError);
       } else {
         // Poll Printify for the external (Shopify) product ID that native sync creates
         console.log("Polling Printify for external Shopify product ID...");
@@ -566,7 +575,8 @@ serve(async (req) => {
           }
         }
         if (!syncedShopifyProductId) {
-          console.warn("Could not retrieve Shopify product ID from Printify after polling");
+          publishError = "Printify accepted the publish request but no Shopify product ID was returned within 90s. The product may still finish syncing in your Printify dashboard.";
+          console.warn(publishError);
         }
       }
     }
@@ -578,6 +588,7 @@ serve(async (req) => {
       shopifyProductId: syncedShopifyProductId,
       mockupsUploaded: 0,
       matchedColors,
+      publishError,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

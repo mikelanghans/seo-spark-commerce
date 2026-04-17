@@ -377,7 +377,11 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
         onProductUpdate?.({ printify_product_id: data.printifyProductId });
       }
 
-      toast.success(`Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`);
+      if (data.publishError) {
+        toast.warning(`Created on Printify (${data.variantCount} variants), but publish had an issue: ${data.publishError}`);
+      } else {
+        toast.success(`Created on Printify with ${data.variantCount} variants!${darkPrintifyImageId ? " Dark design applied to light colors." : ""}`);
+      }
 
       setResult({ success: true });
       setOpen(false);
