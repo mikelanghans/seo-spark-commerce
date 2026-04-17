@@ -163,7 +163,22 @@ export const ProductFormView = ({
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2"><Label>Product Title</Label><Input value={productForm.title} onChange={(e) => setProductForm({ ...productForm, title: e.target.value })} required disabled={isAnalyzing} placeholder="e.g. Lavender Soy Candle" /></div>
-        <div className="space-y-2"><Label>Category</Label><Input value={productForm.category} onChange={(e) => setProductForm({ ...productForm, category: e.target.value })} required disabled={isAnalyzing} placeholder="e.g. Home & Garden > Candles" /></div>
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select
+            value={productForm.category}
+            onValueChange={(value) => setProductForm({ ...productForm, category: value })}
+            disabled={isAnalyzing}
+          >
+            <SelectTrigger><SelectValue placeholder="Choose a category" /></SelectTrigger>
+            <SelectContent>
+              {categoryOptions.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground">From your enabled product types in Settings</p>
+        </div>
         <div className="space-y-2 sm:col-span-2"><Label>Description</Label><Textarea value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} rows={4} required disabled={isAnalyzing} placeholder="Describe your product…" /></div>
         <div className="space-y-2 sm:col-span-2"><Label>Key Features (one per line)</Label><Textarea value={productForm.features} onChange={(e) => setProductForm({ ...productForm, features: e.target.value })} rows={3} disabled={isAnalyzing} placeholder="Hand-poured with 100% soy wax" /></div>
         <div className="space-y-2"><Label>Keywords (comma separated)</Label><Input value={productForm.keywords} onChange={(e) => setProductForm({ ...productForm, keywords: e.target.value })} disabled={isAnalyzing} placeholder="soy candle, lavender" /></div>
