@@ -42,6 +42,19 @@ export const ProductFormView = ({
   const [forceSharedDesign, setForceSharedDesign] = useState(false);
   const [pendingDesignUrl, setPendingDesignUrl] = useState<string | null>(null);
 
+  // Category options come from the org's enabled product types so they always
+  // mirror what the user configured in Settings.
+  const categoryOptions = useMemo(() => {
+    const enabled = (organization.enabled_product_types || []) as ProductTypeKey[];
+    const list = enabled
+      .map((key) => PRODUCT_TYPES[key])
+      .filter(Boolean)
+      .map((cfg) => cfg.category);
+    // Always include "Other" as a fallback
+    if (!list.includes("Other")) list.push("Other");
+    return Array.from(new Set(list));
+  }, [organization.enabled_product_types]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
