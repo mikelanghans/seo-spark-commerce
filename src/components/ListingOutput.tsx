@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Globe, Search, Pencil, Save, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,13 @@ export const ListingOutput = ({ marketplace, listing, onSave }: Props) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ListingData>(listing);
+
+  // Re-sync draft whenever the underlying listing prop changes (e.g. after regeneration
+  // or switching products). Prevents stale tags / SEO from leaking into edit mode.
+  useEffect(() => {
+    setDraft(listing);
+    setEditing(false);
+  }, [listing]);
 
   const startEdit = () => {
     setDraft({ ...listing });

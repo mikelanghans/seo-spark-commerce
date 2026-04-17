@@ -43,6 +43,8 @@ export function useProductHandlers(
   };
 
   const loadListings = async (productId: string) => {
+    // Clear stale listings first so a previous product's tags can't briefly leak into the UI
+    setListings([]);
     const { data } = await supabase.from("listings").select("*").eq("product_id", productId);
     setListings((data as Listing[]) || []);
   };
@@ -67,6 +69,9 @@ export function useProductHandlers(
       });
       if (error) throw error;
       if (result.error) throw new Error(result.error);
+      // Hard-reset stale listings (tags/SEO from a previous product or pre-regeneration state)
+      // before deleting the targeted marketplace rows and inserting the fresh ones.
+      setListings([]);
       for (const m of targets) await supabase.from("listings").delete().eq("product_id", product.id).eq("marketplace", m);
       const listingRows = targets.filter((m) => result[m]).map((m) => ({
         product_id: product.id, user_id: userId!, marketplace: m, title: result[m].title,
