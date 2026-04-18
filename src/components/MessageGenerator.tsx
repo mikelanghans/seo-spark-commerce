@@ -228,7 +228,8 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
       toast.success("Message added!");
       await loadMessages();
     } catch (err: any) {
-      toast.error("Failed to add message");
+      console.error("Add custom message failed:", err);
+      toast.error(err?.message || "Failed to add message");
     } finally {
       setAddingCustom(false);
     }
