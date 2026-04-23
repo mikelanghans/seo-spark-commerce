@@ -511,6 +511,40 @@ export async function hasPredominantlyDarkInk(input: string): Promise<boolean> {
 }
 
 /**
+ * Quickly check whether an image asset has meaningful alpha transparency.
+ * Used to detect corrupted "design" assets that are actually opaque mockup photos
+ * (e.g. an entire t-shirt scene saved as the dark-on-light design variant).
+ *
+ * Returns true if at least `minTransparentRatio` (default 5%) of sampled pixels
+ * have alpha < 50.
+ */
+export async function hasMeaningfulTransparency(
+  input: string,
+  minTransparentRatio = 0.05,
+): Promise<boolean> {
+  const src = input.startsWith("data:image/") || input.startsWith("http://") || input.startsWith("https://")
+    ? input
+    : `data:image/png;base64,${input}`;
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  // Downsample to keep this cheap — we only need a representative alpha sample.
+  const maxDim = 256;
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let transparent = 0;
+  const total = canvas.width * canvas.height;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 50) transparent++;
+  }
+  return total > 0 && transparent / total >= minTransparentRatio;
+}
+
+/**
  * Lighten dark/near-black ink in a design while preserving chromatic accent
  * colors. Produces a "light-ink" variant suited for dark garments.
  */

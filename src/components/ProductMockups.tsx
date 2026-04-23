@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk } from "@/lib/removeBackground";
+import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk, hasMeaningfulTransparency } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists, resolveSingleDesignVariant, selectDesignForComposite } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
@@ -418,6 +418,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+
+        // Guard against corrupted persisted variants. A "dark-on-light" design
+        // MUST have transparent background — if it's fully opaque, it's actually
+        // a baked-in mockup photo and would render as a solid box on light shirts.
+        // Discard it so it's re-derived from the light variant below.
+        if (darkDesignBase64) {
+          try {
+            const ok = await hasMeaningfulTransparency(darkDesignBase64);
+            if (!ok) {
+              console.warn("[mockup] Discarding opaque dark-on-light variant (no transparency) — will re-derive");
+              darkDesignBase64 = undefined;
+            }
+          } catch { /* keep as-is on detection failure */ }
+        }
+
         let sharedLightGarmentDesignBase64: string | undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
         let lightPreservesAccentInk = false;
@@ -569,35 +584,46 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
           }
         }
 
-        // Persist dark-on-light design variant if derived but not yet in DB
+        // Persist dark-on-light design variant if derived but not yet in DB.
+        // Only save if it has meaningful transparency — never persist an opaque
+        // image as a "design" variant (would render as a solid box on light shirts).
         const darkVariantToSave = sharedLightGarmentDesignBase64 || darkDesignBase64;
         if (darkVariantToSave && darkVariantToSave !== lightDesignBase64) {
           try {
-            const { data: existingDark } = await supabase
-              .from("product_images")
-              .select("id")
-              .eq("product_id", productId)
-              .eq("image_type", "design")
-              .eq("color_name", "dark-on-light")
-              .limit(1);
+            let safeToSave = true;
+            try {
+              safeToSave = await hasMeaningfulTransparency(darkVariantToSave);
+            } catch { safeToSave = true; /* don't block on detection errors */ }
 
-            if (!existingDark || existingDark.length === 0) {
-              const darkBlob = await fetch(darkVariantToSave).then(r => r.blob());
-              const darkPath = `${userId}/design-variants/${crypto.randomUUID()}-dark.png`;
-              const { error: darkUpErr } = await supabase.storage
-                .from("product-images")
-                .upload(darkPath, darkBlob, { contentType: "image/png", upsert: true });
-              if (!darkUpErr) {
-                const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
-                await insertProductImageIfNotExists({
-                  product_id: productId,
-                  user_id: userId,
-                  image_url: darkUrlData.publicUrl,
-                  image_type: "design",
-                  color_name: "dark-on-light",
-                  position: 1,
-                });
-                console.log("[mockup] Saved derived dark-on-light design variant:", darkUrlData.publicUrl);
+            if (!safeToSave) {
+              console.warn("[mockup] Skipping persist of dark-on-light variant — image is fully opaque (would render as a solid box on light shirts)");
+            } else {
+              const { data: existingDark } = await supabase
+                .from("product_images")
+                .select("id")
+                .eq("product_id", productId)
+                .eq("image_type", "design")
+                .eq("color_name", "dark-on-light")
+                .limit(1);
+
+              if (!existingDark || existingDark.length === 0) {
+                const darkBlob = await fetch(darkVariantToSave).then(r => r.blob());
+                const darkPath = `${userId}/design-variants/${crypto.randomUUID()}-dark.png`;
+                const { error: darkUpErr } = await supabase.storage
+                  .from("product-images")
+                  .upload(darkPath, darkBlob, { contentType: "image/png", upsert: true });
+                if (!darkUpErr) {
+                  const { data: darkUrlData } = supabase.storage.from("product-images").getPublicUrl(darkPath);
+                  await insertProductImageIfNotExists({
+                    product_id: productId,
+                    user_id: userId,
+                    image_url: darkUrlData.publicUrl,
+                    image_type: "design",
+                    color_name: "dark-on-light",
+                    position: 1,
+                  });
+                  console.log("[mockup] Saved derived dark-on-light design variant:", darkUrlData.publicUrl);
+                }
               }
             }
           } catch (e) {
