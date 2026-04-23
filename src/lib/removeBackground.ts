@@ -649,20 +649,28 @@ export async function upscaleBase64Png(
   targetWidth = 4500,
 ): Promise<string> {
   const img = await loadImage(`data:image/png;base64,${base64Png}`);
-  if (img.width >= targetWidth) return base64Png; // already large enough
 
-  const scale = targetWidth / img.width;
-  const targetHeight = Math.round(img.height * scale);
+  // Always pass through canvas — even when the source is already large enough.
+  // This normalizes palette-mode (mode P) PNGs into true RGBA, which is critical
+  // because some export pipelines (Preview "Save As", etc.) write transparent
+  // PNGs as palette-mode with no alpha channel; uploading those raw bytes would
+  // bake-in whatever the palette's background index resolved to (often black).
+  const finalWidth = img.width >= targetWidth ? img.width : targetWidth;
+  const scale = finalWidth / img.width;
+  const finalHeight = Math.round(img.height * scale);
 
   const canvas = document.createElement("canvas");
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext("2d");
+  canvas.width = finalWidth;
+  canvas.height = finalHeight;
+  const ctx = canvas.getContext("2d", { alpha: true });
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
+  // Explicitly clear to fully transparent before drawing — some browsers
+  // initialize canvas with opaque black on certain GPU paths.
+  ctx.clearRect(0, 0, finalWidth, finalHeight);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+  ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
 
   return canvasToPngBase64(canvas);
 }
