@@ -14,7 +14,7 @@ import {
   compressForEdgeFunction,
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
-import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk } from "@/lib/removeBackground";
+import { darkenBrightPixels, removeBackground, recolorOpaquePixels, isMultiColorDesign, smartRemoveBackground, hasMeaningfulAccentColors, hasPredominantlyDarkInk, hasMeaningfulTransparency } from "@/lib/removeBackground";
 import { insertProductImageIfNotExists, resolveSingleDesignVariant, selectDesignForComposite } from "@/lib/productImageUtils";
 import { handleAiError } from "@/lib/aiErrors";
 import { getProductType, isLightColor } from "@/lib/productTypes";
