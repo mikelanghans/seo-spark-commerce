@@ -418,6 +418,21 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
         let lightDesignBase64 = lightDesignUrl ? await fetchAsBase64(lightDesignUrl) : undefined;
         let darkDesignBase64 = darkDesignUrl ? await fetchAsBase64(darkDesignUrl) : undefined;
+
+        // Guard against corrupted persisted variants. A "dark-on-light" design
+        // MUST have transparent background — if it's fully opaque, it's actually
+        // a baked-in mockup photo and would render as a solid box on light shirts.
+        // Discard it so it's re-derived from the light variant below.
+        if (darkDesignBase64) {
+          try {
+            const ok = await hasMeaningfulTransparency(darkDesignBase64);
+            if (!ok) {
+              console.warn("[mockup] Discarding opaque dark-on-light variant (no transparency) — will re-derive");
+              darkDesignBase64 = undefined;
+            }
+          } catch { /* keep as-is on detection failure */ }
+        }
+
         let sharedLightGarmentDesignBase64: string | undefined;
         let lightHasAccentColors = lightDesignBase64 ? await hasMeaningfulAccentColors(lightDesignBase64) : false;
         let lightPreservesAccentInk = false;
