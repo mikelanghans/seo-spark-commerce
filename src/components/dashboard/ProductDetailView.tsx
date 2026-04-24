@@ -395,23 +395,48 @@ export const ProductDetailView = ({
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
-                    onClick={() => {
-                      // Download light immediately via visible anchor click
-                      const aLight = document.createElement("a");
-                      aLight.href = lightDownloadHref;
-                      aLight.download = sanitizeFilename(product.title, "light");
-                      document.body.appendChild(aLight);
-                      aLight.click();
-                      document.body.removeChild(aLight);
-                      // Download dark after a short delay so browser doesn't swallow it
-                      setTimeout(() => {
-                        const aDark = document.createElement("a");
-                        aDark.href = darkDownloadHref;
-                        aDark.download = sanitizeFilename(product.title, "dark");
-                        document.body.appendChild(aDark);
-                        aDark.click();
-                        document.body.removeChild(aDark);
-                      }, 500);
+                    onClick={async () => {
+                      const triggerDownload = async (sourceUrl: string, filename: string) => {
+                        // Re-fetch a fresh blob each click — preloaded object URLs can
+                        // be revoked or rejected by the browser on the 2nd anchor click.
+                        let href = sourceUrl;
+                        let createdBlobUrl: string | null = null;
+                        try {
+                          const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            createdBlobUrl = URL.createObjectURL(blob);
+                            href = createdBlobUrl;
+                          }
+                        } catch {
+                          // fall back to original href
+                        }
+                        const a = document.createElement("a");
+                        a.href = href;
+                        a.download = filename;
+                        a.rel = "noopener";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        if (createdBlobUrl) {
+                          setTimeout(() => URL.revokeObjectURL(createdBlobUrl!), 4000);
+                        }
+                      };
+
+                      try {
+                        await triggerDownload(
+                          lightDesignUrl ?? lightDownloadHref,
+                          sanitizeFilename(product.title, "light")
+                        );
+                        // Stagger so browsers don't dedupe/block the second download.
+                        await new Promise((r) => setTimeout(r, 800));
+                        await triggerDownload(
+                          darkDesignUrl ?? darkDownloadHref,
+                          sanitizeFilename(product.title, "dark")
+                        );
+                      } catch {
+                        toast.error("Failed to download both files");
+                      }
                     }}
                   >
                     <Download className="h-3.5 w-3.5" /> Both
