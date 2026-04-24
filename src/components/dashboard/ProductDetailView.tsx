@@ -61,6 +61,9 @@ export const ProductDetailView = ({
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
+  const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
+  const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
+  const [zipDownloadHref, setZipDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
@@ -224,23 +227,100 @@ export const ProductDetailView = ({
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
-  const getDownloadUrl = (sourceUrl: string, filename: string) => {
-    if (sourceUrl.startsWith("blob:")) return sourceUrl;
-    const url = new URL(sourceUrl);
-    url.searchParams.set("download", filename);
-    return url.toString();
-  };
-  const triggerBrowserDownload = (sourceUrl: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = getDownloadUrl(sourceUrl, filename);
-    a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  const zipFilename = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!lightDesignUrl) {
+        setLightDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(lightDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload light design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setLightDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setLightDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [lightDesignUrl]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!darkDesignUrl) {
+        setDarkDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(darkDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload dark design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setDarkDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setDarkDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [darkDesignUrl]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadZip = async () => {
+      if (!lightDesignUrl || !darkDesignUrl) {
+        setZipDownloadHref(null);
+        return;
+      }
+
+      try {
+        const zip = new JSZip();
+        const [lightResponse, darkResponse] = await Promise.all([
+          fetch(lightDesignUrl, { mode: "cors", credentials: "omit" }),
+          fetch(darkDesignUrl, { mode: "cors", credentials: "omit" }),
+        ]);
+
+        if (!lightResponse.ok || !darkResponse.ok) throw new Error("Failed to prepare ZIP");
+
+        zip.file(sanitizeFilename(product.title, "light"), await lightResponse.blob());
+        zip.file(sanitizeFilename(product.title, "dark"), await darkResponse.blob());
+
+        objectUrl = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+        if (isActive) setZipDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setZipDownloadHref(null);
+      }
+    };
+
+    preloadZip();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [darkDesignUrl, lightDesignUrl, product.title]);
 
   return (
     <div className="space-y-6">
