@@ -61,10 +61,8 @@ export const ProductDetailView = ({
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
-  const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
-  const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
-  const [zipDownloadHref, setZipDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
+  const [activeDesignDownload, setActiveDesignDownload] = useState<"light" | "dark" | "both" | null>(null);
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
@@ -229,98 +227,115 @@ export const ProductDetailView = ({
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
   const zipFilename = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
 
-  useEffect(() => {
-    let isActive = true;
-    let objectUrl: string | null = null;
+  const downloadBlobFallback = (blob: Blob, filename: string) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  };
 
-    const preloadDownload = async () => {
-      if (!lightDesignUrl) {
-        setLightDownloadHref(null);
-        return;
-      }
+  const saveBlobToDisk = async (blob: Blob, filename: string, mimeType: string) => {
+    const picker = (window as Window & {
+      showSaveFilePicker?: (options?: {
+        suggestedName?: string;
+        startIn?: string;
+        types?: Array<{
+          description?: string;
+          accept: Record<string, string[]>;
+        }>;
+      }) => Promise<{
+        createWritable: () => Promise<{
+          write: (data: Blob) => Promise<void>;
+          close: () => Promise<void>;
+        }>;
+      }>;
+    }).showSaveFilePicker;
 
-      try {
-        const res = await fetch(lightDesignUrl, { mode: "cors", credentials: "omit" });
-        if (!res.ok) throw new Error("Failed to preload light design");
-        objectUrl = URL.createObjectURL(await res.blob());
-        if (isActive) setLightDownloadHref(objectUrl);
-      } catch {
-        if (isActive) setLightDownloadHref(null);
-      }
-    };
+    if (!picker) {
+      downloadBlobFallback(blob, filename);
+      return;
+    }
 
-    preloadDownload();
+    const extension = filename.toLowerCase().endsWith(".zip") ? ".zip" : ".png";
+    const description = extension === ".zip" ? "ZIP archive" : "PNG image";
+    const handle = await picker({
+      suggestedName: filename,
+      startIn: "downloads",
+      types: [{
+        description,
+        accept: {
+          [mimeType]: [extension],
+        },
+      }],
+    });
 
-    return () => {
-      isActive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [lightDesignUrl]);
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  };
 
-  useEffect(() => {
-    let isActive = true;
-    let objectUrl: string | null = null;
+  const fetchDownloadBlob = async (sourceUrl: string) => {
+    const response = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+    if (!response.ok) {
+      throw new Error("Failed to load design file");
+    }
+    return response.blob();
+  };
 
-    const preloadDownload = async () => {
-      if (!darkDesignUrl) {
-        setDarkDownloadHref(null);
-        return;
-      }
+  const handleSingleDesignDownload = async (variant: "light" | "dark") => {
+    const sourceUrl = variant === "light" ? lightDesignUrl : darkDesignUrl;
+    if (!sourceUrl) {
+      toast.error("Design file is not ready yet");
+      return;
+    }
 
-      try {
-        const res = await fetch(darkDesignUrl, { mode: "cors", credentials: "omit" });
-        if (!res.ok) throw new Error("Failed to preload dark design");
-        objectUrl = URL.createObjectURL(await res.blob());
-        if (isActive) setDarkDownloadHref(objectUrl);
-      } catch {
-        if (isActive) setDarkDownloadHref(null);
-      }
-    };
+    setActiveDesignDownload(variant);
 
-    preloadDownload();
+    try {
+      const blob = await fetchDownloadBlob(sourceUrl);
+      await saveBlobToDisk(blob, sanitizeFilename(product.title, variant), blob.type || "image/png");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error(`Failed to download ${variant} design`, error);
+      toast.error("Failed to download design file");
+    } finally {
+      setActiveDesignDownload(null);
+    }
+  };
 
-    return () => {
-      isActive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [darkDesignUrl]);
+  const handleBothDesignsDownload = async () => {
+    if (!lightDesignUrl || !darkDesignUrl) {
+      toast.error("Both design files are not ready yet");
+      return;
+    }
 
-  useEffect(() => {
-    let isActive = true;
-    let objectUrl: string | null = null;
+    setActiveDesignDownload("both");
 
-    const preloadZip = async () => {
-      if (!lightDesignUrl || !darkDesignUrl) {
-        setZipDownloadHref(null);
-        return;
-      }
+    try {
+      const [lightBlob, darkBlob] = await Promise.all([
+        fetchDownloadBlob(lightDesignUrl),
+        fetchDownloadBlob(darkDesignUrl),
+      ]);
 
-      try {
-        const zip = new JSZip();
-        const [lightResponse, darkResponse] = await Promise.all([
-          fetch(lightDesignUrl, { mode: "cors", credentials: "omit" }),
-          fetch(darkDesignUrl, { mode: "cors", credentials: "omit" }),
-        ]);
+      const zip = new JSZip();
+      zip.file(sanitizeFilename(product.title, "light"), lightBlob);
+      zip.file(sanitizeFilename(product.title, "dark"), darkBlob);
 
-        if (!lightResponse.ok || !darkResponse.ok) throw new Error("Failed to prepare ZIP");
-
-        zip.file(sanitizeFilename(product.title, "light"), await lightResponse.blob());
-        zip.file(sanitizeFilename(product.title, "dark"), await darkResponse.blob());
-
-        objectUrl = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
-        if (isActive) setZipDownloadHref(objectUrl);
-      } catch {
-        if (isActive) setZipDownloadHref(null);
-      }
-    };
-
-    preloadZip();
-
-    return () => {
-      isActive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [darkDesignUrl, lightDesignUrl, product.title]);
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      await saveBlobToDisk(zipBlob, zipFilename, "application/zip");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("Failed to download both designs", error);
+      toast.error("Failed to download design files");
+    } finally {
+      setActiveDesignDownload(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -413,34 +428,40 @@ export const ProductDetailView = ({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                {lightDownloadHref && (
-                  <a
-                    href={lightDownloadHref}
-                    download={sanitizeFilename(product.title, "light")}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {lightDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleSingleDesignDownload("light")}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Light
-                  </a>
+                    {activeDesignDownload === "light" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Light
+                  </Button>
                 )}
-                {darkDownloadHref && (
-                  <a
-                    href={darkDownloadHref}
-                    download={sanitizeFilename(product.title, "dark")}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {darkDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleSingleDesignDownload("dark")}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Dark
-                  </a>
+                    {activeDesignDownload === "dark" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Dark
+                  </Button>
                 )}
-                {zipDownloadHref && (
-                  <a
-                    href={zipDownloadHref}
-                    download={zipFilename}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {lightDesignUrl && darkDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleBothDesignsDownload()}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Both
-                  </a>
+                    {activeDesignDownload === "both" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Both
+                  </Button>
                 )}
-                {!lightDownloadHref && !darkDownloadHref && !zipDownloadHref && (
+                {!lightDesignUrl && !darkDesignUrl && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
               </div>
