@@ -240,11 +240,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     const clearStuckPointerEvents = () => {
-      const hasOpenDialog = Boolean(document.querySelector('[role="dialog"][data-state="open"]'));
-      const hasOpenPopover = Boolean(document.querySelector('[data-radix-popper-content-wrapper]'));
-
-      if (!hasOpenDialog && !hasOpenPopover && document.body.style.pointerEvents === "none") {
+      if (document.body.style.pointerEvents === "none") {
         document.body.style.pointerEvents = "";
+      }
+
+      if (document.documentElement.style.pointerEvents === "none") {
+        document.documentElement.style.pointerEvents = "";
       }
     };
 
@@ -254,17 +255,29 @@ const Dashboard = () => {
       clearStuckPointerEvents();
     });
 
-    observer.observe(document.body, {
+    observer.observe(document.documentElement, {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ["style", "data-state"],
+      attributeFilter: ["style", "data-state", "aria-hidden"],
     });
+
+    const intervalId = window.setInterval(clearStuckPointerEvents, 250);
+    window.addEventListener("focus", clearStuckPointerEvents, true);
+    document.addEventListener("pointerdown", clearStuckPointerEvents, true);
+    document.addEventListener("keydown", clearStuckPointerEvents, true);
 
     return () => {
       observer.disconnect();
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", clearStuckPointerEvents, true);
+      document.removeEventListener("pointerdown", clearStuckPointerEvents, true);
+      document.removeEventListener("keydown", clearStuckPointerEvents, true);
       if (document.body.style.pointerEvents === "none") {
         document.body.style.pointerEvents = "";
+      }
+      if (document.documentElement.style.pointerEvents === "none") {
+        document.documentElement.style.pointerEvents = "";
       }
     };
   }, [view]);
