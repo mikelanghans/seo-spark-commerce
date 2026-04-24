@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -396,46 +397,36 @@ export const ProductDetailView = ({
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                     onClick={async () => {
-                      const triggerDownload = async (sourceUrl: string, filename: string) => {
-                        // Re-fetch a fresh blob each click — preloaded object URLs can
-                        // be revoked or rejected by the browser on the 2nd anchor click.
-                        let href = sourceUrl;
-                        let createdBlobUrl: string | null = null;
-                        try {
-                          const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
-                          if (res.ok) {
-                            const blob = await res.blob();
-                            createdBlobUrl = URL.createObjectURL(blob);
-                            href = createdBlobUrl;
-                          }
-                        } catch {
-                          // fall back to original href
-                        }
-                        const a = document.createElement("a");
-                        a.href = href;
-                        a.download = filename;
-                        a.rel = "noopener";
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        if (createdBlobUrl) {
-                          setTimeout(() => URL.revokeObjectURL(createdBlobUrl!), 4000);
-                        }
-                      };
-
                       try {
-                        await triggerDownload(
+                        const zip = new JSZip();
+
+                        const addFileToZip = async (sourceUrl: string, filename: string) => {
+                          const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
+                          if (!res.ok) throw new Error(`Failed to fetch ${filename}`);
+                          const blob = await res.blob();
+                          zip.file(filename, blob);
+                        };
+
+                        await addFileToZip(
                           lightDesignUrl ?? lightDownloadHref,
                           sanitizeFilename(product.title, "light")
                         );
-                        // Stagger so browsers don't dedupe/block the second download.
-                        await new Promise((r) => setTimeout(r, 800));
-                        await triggerDownload(
+                        await addFileToZip(
                           darkDesignUrl ?? darkDownloadHref,
                           sanitizeFilename(product.title, "dark")
                         );
+
+                        const zipBlob = await zip.generateAsync({ type: "blob" });
+                        const zipUrl = URL.createObjectURL(zipBlob);
+                        const a = document.createElement("a");
+                        a.href = zipUrl;
+                        a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(zipUrl), 4000);
                       } catch {
-                        toast.error("Failed to download both files");
+                        toast.error("Failed to download ZIP");
                       }
                     }}
                   >
