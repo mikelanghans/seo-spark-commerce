@@ -428,34 +428,40 @@ export const ProductDetailView = ({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                {lightDownloadHref && (
-                  <a
-                    href={lightDownloadHref}
-                    download={sanitizeFilename(product.title, "light")}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {lightDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleSingleDesignDownload("light")}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Light
-                  </a>
+                    {activeDesignDownload === "light" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Light
+                  </Button>
                 )}
-                {darkDownloadHref && (
-                  <a
-                    href={darkDownloadHref}
-                    download={sanitizeFilename(product.title, "dark")}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {darkDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleSingleDesignDownload("dark")}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Dark
-                  </a>
+                    {activeDesignDownload === "dark" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Dark
+                  </Button>
                 )}
-                {zipDownloadHref && (
-                  <a
-                    href={zipDownloadHref}
-                    download={zipFilename}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
+                {lightDesignUrl && darkDesignUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void handleBothDesignsDownload()}
+                    disabled={activeDesignDownload !== null}
                   >
-                    <Download className="h-3.5 w-3.5" /> Both
-                  </a>
+                    {activeDesignDownload === "both" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Both
+                  </Button>
                 )}
-                {!lightDownloadHref && !darkDownloadHref && !zipDownloadHref && (
+                {!lightDesignUrl && !darkDesignUrl && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
               </div>
