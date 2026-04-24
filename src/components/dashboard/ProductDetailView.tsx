@@ -361,7 +361,7 @@ export const ProductDetailView = ({
               toast.success("Dark design replaced!");
               e.target.value = "";
             }} />
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="gap-2"><Upload className="h-4 w-4" /> Replace</Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>

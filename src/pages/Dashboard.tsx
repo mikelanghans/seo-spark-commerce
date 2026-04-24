@@ -239,6 +239,37 @@ const Dashboard = () => {
   }, [user, authLoading]);
 
   useEffect(() => {
+    const clearStuckPointerEvents = () => {
+      const hasOpenDialog = Boolean(document.querySelector('[role="dialog"][data-state="open"]'));
+      const hasOpenPopover = Boolean(document.querySelector('[data-radix-popper-content-wrapper]'));
+
+      if (!hasOpenDialog && !hasOpenPopover && document.body.style.pointerEvents === "none") {
+        document.body.style.pointerEvents = "";
+      }
+    };
+
+    clearStuckPointerEvents();
+
+    const observer = new MutationObserver(() => {
+      clearStuckPointerEvents();
+    });
+
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["style", "data-state"],
+    });
+
+    return () => {
+      observer.disconnect();
+      if (document.body.style.pointerEvents === "none") {
+        document.body.style.pointerEvents = "";
+      }
+    };
+  }, [view]);
+
+  useEffect(() => {
     if (_restoredNav || !orgsLoaded) return;
     if (orgs.length === 0) { setRestoredNav(true); setView("orgs"); return; }
     setRestoredNav(true);
