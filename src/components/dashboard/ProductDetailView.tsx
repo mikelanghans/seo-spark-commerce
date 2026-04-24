@@ -225,6 +225,7 @@ export const ProductDetailView = ({
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
   const getDownloadUrl = (sourceUrl: string, filename: string) => {
+    if (sourceUrl.startsWith("blob:")) return sourceUrl;
     const url = new URL(sourceUrl);
     url.searchParams.set("download", filename);
     return url.toString();
