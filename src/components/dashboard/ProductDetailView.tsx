@@ -227,6 +227,8 @@ export const ProductDetailView = ({
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
   const zipFilename = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
 
+  const isEmbeddedPreview = window.self !== window.top;
+
   const downloadBlobFallback = (blob: Blob, filename: string) => {
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -239,7 +241,11 @@ export const ProductDetailView = ({
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
   };
 
-  const saveBlobToDisk = async (blob: Blob, filename: string, mimeType: string) => {
+  type SaveTarget =
+    | { kind: "picker"; handle: { createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> } }
+    | { kind: "download" };
+
+  const requestSaveTarget = async (filename: string, mimeType: string): Promise<SaveTarget> => {
     const picker = (window as Window & {
       showSaveFilePicker?: (options?: {
         suggestedName?: string;
@@ -257,8 +263,7 @@ export const ProductDetailView = ({
     }).showSaveFilePicker;
 
     if (!picker) {
-      downloadBlobFallback(blob, filename);
-      return;
+      return { kind: "download" };
     }
 
     const extension = filename.toLowerCase().endsWith(".zip") ? ".zip" : ".png";
@@ -274,7 +279,19 @@ export const ProductDetailView = ({
       }],
     });
 
-    const writable = await handle.createWritable();
+    return { kind: "picker", handle };
+  };
+
+  const saveBlobToDisk = async (target: SaveTarget, blob: Blob, filename: string) => {
+    if (target.kind === "download") {
+      if (isEmbeddedPreview) {
+        throw new Error("PREVIEW_DOWNLOAD_BLOCKED");
+      }
+      downloadBlobFallback(blob, filename);
+      return;
+    }
+
+    const writable = await target.handle.createWritable();
     await writable.write(blob);
     await writable.close();
   };
@@ -297,10 +314,16 @@ export const ProductDetailView = ({
     setActiveDesignDownload(variant);
 
     try {
+      const filename = sanitizeFilename(product.title, variant);
+      const target = await requestSaveTarget(filename, "image/png");
       const blob = await fetchDownloadBlob(sourceUrl);
-      await saveBlobToDisk(blob, sanitizeFilename(product.title, variant), blob.type || "image/png");
+      await saveBlobToDisk(target, blob, filename);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+      if (error instanceof Error && error.message === "PREVIEW_DOWNLOAD_BLOCKED") {
+        toast.error("This browser blocks Downloads from the embedded preview. Use the published app or a browser with a save dialog.");
+        return;
+      }
       console.error(`Failed to download ${variant} design`, error);
       toast.error("Failed to download design file");
     } finally {
@@ -317,6 +340,7 @@ export const ProductDetailView = ({
     setActiveDesignDownload("both");
 
     try {
+      const target = await requestSaveTarget(zipFilename, "application/zip");
       const [lightBlob, darkBlob] = await Promise.all([
         fetchDownloadBlob(lightDesignUrl),
         fetchDownloadBlob(darkDesignUrl),
@@ -327,9 +351,13 @@ export const ProductDetailView = ({
       zip.file(sanitizeFilename(product.title, "dark"), darkBlob);
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      await saveBlobToDisk(zipBlob, zipFilename, "application/zip");
+      await saveBlobToDisk(target, zipBlob, zipFilename);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+      if (error instanceof Error && error.message === "PREVIEW_DOWNLOAD_BLOCKED") {
+        toast.error("This browser blocks Downloads from the embedded preview. Use the published app or a browser with a save dialog.");
+        return;
+      }
       console.error("Failed to download both designs", error);
       toast.error("Failed to download design files");
     } finally {
