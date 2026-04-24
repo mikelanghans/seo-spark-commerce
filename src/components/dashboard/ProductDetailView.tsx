@@ -61,8 +61,6 @@ export const ProductDetailView = ({
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
-  const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
-  const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
@@ -223,65 +221,26 @@ export const ProductDetailView = ({
     };
   }, [product.id, product.image_url, setSelectedProduct, userId]);
 
-  useEffect(() => {
-    let isActive = true;
-    let objectUrl: string | null = null;
-
-    const preloadDownload = async () => {
-      if (!lightDesignUrl) {
-        setLightDownloadHref(null);
-        return;
-      }
-
-      try {
-        const res = await fetch(lightDesignUrl, { mode: "cors", credentials: "omit" });
-        if (!res.ok) throw new Error("Failed to preload light design");
-        objectUrl = URL.createObjectURL(await res.blob());
-        if (isActive) setLightDownloadHref(objectUrl);
-      } catch {
-        if (isActive) setLightDownloadHref(null);
-      }
-    };
-
-    preloadDownload();
-
-    return () => {
-      isActive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [lightDesignUrl]);
-
-  useEffect(() => {
-    let isActive = true;
-    let objectUrl: string | null = null;
-
-    const preloadDownload = async () => {
-      if (!darkDesignUrl) {
-        setDarkDownloadHref(null);
-        return;
-      }
-
-      try {
-        const res = await fetch(darkDesignUrl, { mode: "cors", credentials: "omit" });
-        if (!res.ok) throw new Error("Failed to preload dark design");
-        objectUrl = URL.createObjectURL(await res.blob());
-        if (isActive) setDarkDownloadHref(objectUrl);
-      } catch {
-        if (isActive) setDarkDownloadHref(null);
-      }
-    };
-
-    preloadDownload();
-
-    return () => {
-      isActive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [darkDesignUrl]);
-
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
+  const getDownloadUrl = (sourceUrl: string, filename: string) => {
+    if (sourceUrl.startsWith("blob:")) return sourceUrl;
+    const url = new URL(sourceUrl);
+    url.searchParams.set("download", filename);
+    return url.toString();
+  };
+  const triggerBrowserDownload = (sourceUrl: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = getDownloadUrl(sourceUrl, filename);
+    a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
     <div className="space-y-6">
@@ -374,74 +333,76 @@ export const ProductDetailView = ({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                {lightDownloadHref && (
+                {lightDesignUrl && (
                   <a
-                    href={lightDownloadHref}
+                    href={getDownloadUrl(lightDesignUrl, sanitizeFilename(product.title, "light"))}
                     download={sanitizeFilename(product.title, "light")}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Light
                   </a>
                 )}
-                {darkDownloadHref && (
+                {darkDesignUrl && (
                   <a
-                    href={darkDownloadHref}
+                    href={getDownloadUrl(darkDesignUrl, sanitizeFilename(product.title, "dark"))}
                     download={sanitizeFilename(product.title, "dark")}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Dark
                   </a>
                 )}
-                {lightDownloadHref && darkDownloadHref && (
+                {lightDesignUrl && darkDesignUrl && (
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                     onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log("[Download Both] click", { lightDesignUrl, darkDesignUrl });
                       const loadingToast = toast.loading("Preparing ZIP…");
                       try {
                         const zip = new JSZip();
 
                         const addFileToZip = async (sourceUrl: string, filename: string) => {
-                          console.log("[Download Both] fetching", filename, sourceUrl);
                           const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
                           if (!res.ok) throw new Error(`Failed to fetch ${filename}: ${res.status}`);
-                          const blob = await res.blob();
-                          console.log("[Download Both] got blob", filename, blob.size, "bytes");
-                          zip.file(filename, blob);
+                          zip.file(filename, await res.blob());
                         };
 
-                        await addFileToZip(
-                          lightDesignUrl ?? lightDownloadHref,
-                          sanitizeFilename(product.title, "light")
-                        );
-                        await addFileToZip(
-                          darkDesignUrl ?? darkDownloadHref,
-                          sanitizeFilename(product.title, "dark")
-                        );
+                        await addFileToZip(lightDesignUrl, sanitizeFilename(product.title, "light"));
+                        await addFileToZip(darkDesignUrl, sanitizeFilename(product.title, "dark"));
 
-                        console.log("[Download Both] generating zip");
                         const zipBlob = await zip.generateAsync({ type: "blob" });
-                        console.log("[Download Both] zip ready", zipBlob.size, "bytes");
+                        const zipFile = new File([zipBlob], `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`, {
+                          type: "application/zip",
+                        });
 
-                        const zipUrl = URL.createObjectURL(zipBlob);
-                        const a = document.createElement("a");
-                        a.href = zipUrl;
-                        a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
-                        a.style.display = "none";
-                        document.body.appendChild(a);
-                        a.click();
-                        setTimeout(() => {
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(zipUrl);
-                        }, 4000);
+                        if ("showSaveFilePicker" in window) {
+                          const handle = await (window as Window & {
+                            showSaveFilePicker?: (options?: {
+                              suggestedName?: string;
+                              types?: Array<{ description: string; accept: Record<string, string[]> }>;
+                            }) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }>;
+                          }).showSaveFilePicker?.({
+                            suggestedName: zipFile.name,
+                            types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }],
+                          });
+
+                          if (handle) {
+                            const writable = await handle.createWritable();
+                            await writable.write(zipFile);
+                            await writable.close();
+                          }
+                        } else {
+                          triggerBrowserDownload(URL.createObjectURL(zipFile), zipFile.name);
+                        }
 
                         toast.dismiss(loadingToast);
-                        toast.success("ZIP downloaded");
+                        toast.success("ZIP saved");
                       } catch (err) {
-                        console.error("[Download Both] failed", err);
                         toast.dismiss(loadingToast);
                         toast.error(err instanceof Error ? err.message : "Failed to download ZIP");
                       }
@@ -450,7 +411,7 @@ export const ProductDetailView = ({
                     <Download className="h-3.5 w-3.5" /> Both
                   </button>
                 )}
-                {!lightDownloadHref && !darkDownloadHref && (
+                {!lightDesignUrl && !darkDesignUrl && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
               </div>
