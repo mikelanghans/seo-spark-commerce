@@ -61,6 +61,9 @@ export const ProductDetailView = ({
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
   const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
+  const [lightDownloadHref, setLightDownloadHref] = useState<string | null>(null);
+  const [darkDownloadHref, setDarkDownloadHref] = useState<string | null>(null);
+  const [zipDownloadHref, setZipDownloadHref] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
@@ -224,23 +227,100 @@ export const ProductDetailView = ({
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
   const sanitizeFilename = (value: string, suffix: "light" | "dark") => `${value.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${suffix}.png`;
-  const getDownloadUrl = (sourceUrl: string, filename: string) => {
-    if (sourceUrl.startsWith("blob:")) return sourceUrl;
-    const url = new URL(sourceUrl);
-    url.searchParams.set("download", filename);
-    return url.toString();
-  };
-  const triggerBrowserDownload = (sourceUrl: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = getDownloadUrl(sourceUrl, filename);
-    a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  const zipFilename = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!lightDesignUrl) {
+        setLightDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(lightDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload light design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setLightDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setLightDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [lightDesignUrl]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadDownload = async () => {
+      if (!darkDesignUrl) {
+        setDarkDownloadHref(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(darkDesignUrl, { mode: "cors", credentials: "omit" });
+        if (!res.ok) throw new Error("Failed to preload dark design");
+        objectUrl = URL.createObjectURL(await res.blob());
+        if (isActive) setDarkDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setDarkDownloadHref(null);
+      }
+    };
+
+    preloadDownload();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [darkDesignUrl]);
+
+  useEffect(() => {
+    let isActive = true;
+    let objectUrl: string | null = null;
+
+    const preloadZip = async () => {
+      if (!lightDesignUrl || !darkDesignUrl) {
+        setZipDownloadHref(null);
+        return;
+      }
+
+      try {
+        const zip = new JSZip();
+        const [lightResponse, darkResponse] = await Promise.all([
+          fetch(lightDesignUrl, { mode: "cors", credentials: "omit" }),
+          fetch(darkDesignUrl, { mode: "cors", credentials: "omit" }),
+        ]);
+
+        if (!lightResponse.ok || !darkResponse.ok) throw new Error("Failed to prepare ZIP");
+
+        zip.file(sanitizeFilename(product.title, "light"), await lightResponse.blob());
+        zip.file(sanitizeFilename(product.title, "dark"), await darkResponse.blob());
+
+        objectUrl = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+        if (isActive) setZipDownloadHref(objectUrl);
+      } catch {
+        if (isActive) setZipDownloadHref(null);
+      }
+    };
+
+    preloadZip();
+
+    return () => {
+      isActive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [darkDesignUrl, lightDesignUrl, product.title]);
 
   return (
     <div className="space-y-6">
@@ -333,85 +413,34 @@ export const ProductDetailView = ({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                {lightDesignUrl && (
+                {lightDownloadHref && (
                   <a
-                    href={getDownloadUrl(lightDesignUrl, sanitizeFilename(product.title, "light"))}
+                    href={lightDownloadHref}
                     download={sanitizeFilename(product.title, "light")}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Light
                   </a>
                 )}
-                {darkDesignUrl && (
+                {darkDownloadHref && (
                   <a
-                    href={getDownloadUrl(darkDesignUrl, sanitizeFilename(product.title, "dark"))}
+                    href={darkDownloadHref}
                     download={sanitizeFilename(product.title, "dark")}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Dark
                   </a>
                 )}
-                {lightDesignUrl && darkDesignUrl && (
-                  <button
-                    type="button"
+                {zipDownloadHref && (
+                  <a
+                    href={zipDownloadHref}
+                    download={zipFilename}
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const loadingToast = toast.loading("Preparing ZIP…");
-                      try {
-                        const zip = new JSZip();
-
-                        const addFileToZip = async (sourceUrl: string, filename: string) => {
-                          const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
-                          if (!res.ok) throw new Error(`Failed to fetch ${filename}: ${res.status}`);
-                          zip.file(filename, await res.blob());
-                        };
-
-                        await addFileToZip(lightDesignUrl, sanitizeFilename(product.title, "light"));
-                        await addFileToZip(darkDesignUrl, sanitizeFilename(product.title, "dark"));
-
-                        const zipBlob = await zip.generateAsync({ type: "blob" });
-                        const zipFile = new File([zipBlob], `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`, {
-                          type: "application/zip",
-                        });
-
-                        if ("showSaveFilePicker" in window) {
-                          const handle = await (window as Window & {
-                            showSaveFilePicker?: (options?: {
-                              suggestedName?: string;
-                              types?: Array<{ description: string; accept: Record<string, string[]> }>;
-                            }) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }>;
-                          }).showSaveFilePicker?.({
-                            suggestedName: zipFile.name,
-                            types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }],
-                          });
-
-                          if (handle) {
-                            const writable = await handle.createWritable();
-                            await writable.write(zipFile);
-                            await writable.close();
-                          }
-                        } else {
-                          triggerBrowserDownload(URL.createObjectURL(zipFile), zipFile.name);
-                        }
-
-                        toast.dismiss(loadingToast);
-                        toast.success("ZIP saved");
-                      } catch (err) {
-                        toast.dismiss(loadingToast);
-                        toast.error(err instanceof Error ? err.message : "Failed to download ZIP");
-                      }
-                    }}
                   >
                     <Download className="h-3.5 w-3.5" /> Both
-                  </button>
+                  </a>
                 )}
-                {!lightDesignUrl && !darkDesignUrl && (
+                {!lightDownloadHref && !darkDownloadHref && !zipDownloadHref && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
               </div>
