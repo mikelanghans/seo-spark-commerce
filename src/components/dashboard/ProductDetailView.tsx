@@ -396,14 +396,20 @@ export const ProductDetailView = ({
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log("[Download Both] click", { lightDesignUrl, darkDesignUrl });
+                      const loadingToast = toast.loading("Preparing ZIP…");
                       try {
                         const zip = new JSZip();
 
                         const addFileToZip = async (sourceUrl: string, filename: string) => {
+                          console.log("[Download Both] fetching", filename, sourceUrl);
                           const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
-                          if (!res.ok) throw new Error(`Failed to fetch ${filename}`);
+                          if (!res.ok) throw new Error(`Failed to fetch ${filename}: ${res.status}`);
                           const blob = await res.blob();
+                          console.log("[Download Both] got blob", filename, blob.size, "bytes");
                           zip.file(filename, blob);
                         };
 
@@ -416,17 +422,28 @@ export const ProductDetailView = ({
                           sanitizeFilename(product.title, "dark")
                         );
 
+                        console.log("[Download Both] generating zip");
                         const zipBlob = await zip.generateAsync({ type: "blob" });
+                        console.log("[Download Both] zip ready", zipBlob.size, "bytes");
+
                         const zipUrl = URL.createObjectURL(zipBlob);
                         const a = document.createElement("a");
                         a.href = zipUrl;
                         a.download = `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`;
+                        a.style.display = "none";
                         document.body.appendChild(a);
                         a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(zipUrl), 4000);
-                      } catch {
-                        toast.error("Failed to download ZIP");
+                        setTimeout(() => {
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(zipUrl);
+                        }, 4000);
+
+                        toast.dismiss(loadingToast);
+                        toast.success("ZIP downloaded");
+                      } catch (err) {
+                        console.error("[Download Both] failed", err);
+                        toast.dismiss(loadingToast);
+                        toast.error(err instanceof Error ? err.message : "Failed to download ZIP");
                       }
                     }}
                   >
