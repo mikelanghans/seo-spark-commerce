@@ -413,85 +413,34 @@ export const ProductDetailView = ({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                {lightDesignUrl && (
+                {lightDownloadHref && (
                   <a
-                    href={getDownloadUrl(lightDesignUrl, sanitizeFilename(product.title, "light"))}
+                    href={lightDownloadHref}
                     download={sanitizeFilename(product.title, "light")}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Light
                   </a>
                 )}
-                {darkDesignUrl && (
+                {darkDownloadHref && (
                   <a
-                    href={getDownloadUrl(darkDesignUrl, sanitizeFilename(product.title, "dark"))}
+                    href={darkDownloadHref}
                     download={sanitizeFilename(product.title, "dark")}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" /> Dark
                   </a>
                 )}
-                {lightDesignUrl && darkDesignUrl && (
-                  <button
-                    type="button"
+                {zipDownloadHref && (
+                  <a
+                    href={zipDownloadHref}
+                    download={zipFilename}
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent transition-colors"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const loadingToast = toast.loading("Preparing ZIP…");
-                      try {
-                        const zip = new JSZip();
-
-                        const addFileToZip = async (sourceUrl: string, filename: string) => {
-                          const res = await fetch(sourceUrl, { mode: "cors", credentials: "omit" });
-                          if (!res.ok) throw new Error(`Failed to fetch ${filename}: ${res.status}`);
-                          zip.file(filename, await res.blob());
-                        };
-
-                        await addFileToZip(lightDesignUrl, sanitizeFilename(product.title, "light"));
-                        await addFileToZip(darkDesignUrl, sanitizeFilename(product.title, "dark"));
-
-                        const zipBlob = await zip.generateAsync({ type: "blob" });
-                        const zipFile = new File([zipBlob], `${product.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_designs.zip`, {
-                          type: "application/zip",
-                        });
-
-                        if ("showSaveFilePicker" in window) {
-                          const handle = await (window as Window & {
-                            showSaveFilePicker?: (options?: {
-                              suggestedName?: string;
-                              types?: Array<{ description: string; accept: Record<string, string[]> }>;
-                            }) => Promise<{ createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }> }>;
-                          }).showSaveFilePicker?.({
-                            suggestedName: zipFile.name,
-                            types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }],
-                          });
-
-                          if (handle) {
-                            const writable = await handle.createWritable();
-                            await writable.write(zipFile);
-                            await writable.close();
-                          }
-                        } else {
-                          triggerBrowserDownload(URL.createObjectURL(zipFile), zipFile.name);
-                        }
-
-                        toast.dismiss(loadingToast);
-                        toast.success("ZIP saved");
-                      } catch (err) {
-                        toast.dismiss(loadingToast);
-                        toast.error(err instanceof Error ? err.message : "Failed to download ZIP");
-                      }
-                    }}
                   >
                     <Download className="h-3.5 w-3.5" /> Both
-                  </button>
+                  </a>
                 )}
-                {!lightDesignUrl && !darkDesignUrl && (
+                {!lightDownloadHref && !darkDownloadHref && !zipDownloadHref && (
                   <span className="text-xs text-muted-foreground">No design files available</span>
                 )}
               </div>
