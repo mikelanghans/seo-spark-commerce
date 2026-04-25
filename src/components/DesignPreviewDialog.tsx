@@ -112,6 +112,7 @@ export const DesignPreviewDialog = ({
   const hasDistinctDarkVariant = !!(designUrl && darkDesignUrl && normalizeUrl(designUrl) !== normalizeUrl(darkDesignUrl));
   const effectiveDarkDesignUrl = hasDistinctDarkVariant ? darkDesignUrl : designUrl;
   const activeUrl = viewingUrl || (activeVariant === "dark" && effectiveDarkDesignUrl ? effectiveDarkDesignUrl : designUrl);
+  const activeDownloadLabel = hasDistinctDarkVariant ? (activeVariant === "dark" ? "light" : "dark") : "";
 
   const generateDarkVariantLocally = async (): Promise<string | null> => {
     if (!designUrl || !messageId) throw new Error("Missing design");
@@ -163,7 +164,7 @@ export const DesignPreviewDialog = ({
   const handleDownload = async () => {
     if (!activeUrl) return;
     try {
-      const variantLabel = hasDistinctDarkVariant ? (activeVariant === "dark" ? "dark" : "light") : "";
+      const variantLabel = activeDownloadLabel;
       // Cache-bust to force fresh fetch of the current variant
       const bust = `${activeUrl}${activeUrl.includes("?") ? "&" : "?"}dl=${Date.now()}`;
       const response = await fetch(bust, { cache: "no-store" });
@@ -320,7 +321,7 @@ export const DesignPreviewDialog = ({
           {activeUrl && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload}>
               <Download className="h-4 w-4" />
-              Download {hasDistinctDarkVariant ? (activeVariant === "light" ? "light" : "dark") : ""}
+              Download {activeDownloadLabel ? `${activeDownloadLabel} design` : ""}
             </Button>
           )}
           {hasDistinctDarkVariant && !viewingUrl && (
@@ -331,8 +332,8 @@ export const DesignPreviewDialog = ({
               onClick={async () => {
                 try {
                   const targets: Array<{ url: string; label: string }> = [
-                    { url: designUrl!, label: "light" },
-                    { url: darkDesignUrl!, label: "dark" },
+                    { url: darkDesignUrl!, label: "light" },
+                    { url: designUrl!, label: "dark" },
                   ];
                   for (let i = 0; i < targets.length; i++) {
                     const { url, label } = targets[i];

@@ -712,24 +712,27 @@ const ProductCard = ({
     };
 
     try {
+      const { data: imgs } = await supabase
+        .from("product_images")
+        .select("image_url, color_name")
+        .eq("product_id", product.id)
+        .eq("image_type", "design");
+      const { lightUrl: darkGarmentDesignUrl, darkUrl: lightGarmentDesignUrl } = resolveSingleDesignVariant(
+        imgs as Array<{ image_url: string; color_name?: string | null }> | null,
+        product.image_url,
+      );
+
       if (variant === "light" || variant === "both") {
-        if (!product.image_url) return;
-        await downloadBlob(product.image_url, `${slug}_light.png`);
+        if (!lightGarmentDesignUrl) return;
+        await downloadBlob(lightGarmentDesignUrl, `${slug}_light.png`);
       }
       if (variant === "dark" || variant === "both") {
-        const { data: imgs } = await supabase
-          .from("product_images")
-          .select("image_url, color_name")
-          .eq("product_id", product.id)
-          .eq("image_type", "design")
-          .limit(1);
-        const { darkUrl } = resolveSingleDesignVariant(imgs as Array<{ image_url: string; color_name?: string | null }> | null, product.image_url);
-        if (!darkUrl) {
-          toast(variant === "both" ? "Only light variant available" : "No dark variant found");
+        if (!darkGarmentDesignUrl) {
+          toast(variant === "both" ? "Only light design available" : "No dark design found");
           return;
         }
         if (variant === "both") await new Promise((r) => setTimeout(r, 300));
-        await downloadBlob(darkUrl, `${slug}_dark.png`);
+        await downloadBlob(darkGarmentDesignUrl, `${slug}_dark.png`);
       }
     } catch {
       toast.error("Failed to download");
