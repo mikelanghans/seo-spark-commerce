@@ -108,7 +108,9 @@ export const DesignPreviewDialog = ({
     setHistory(data || []);
   };
 
-  const effectiveDarkDesignUrl = darkDesignUrl || designUrl;
+  const normalizeUrl = (u?: string | null) => (u ? u.split("?")[0].split("#")[0].trim() : "");
+  const hasDistinctDarkVariant = !!(designUrl && darkDesignUrl && normalizeUrl(designUrl) !== normalizeUrl(darkDesignUrl));
+  const effectiveDarkDesignUrl = hasDistinctDarkVariant ? darkDesignUrl : designUrl;
   const activeUrl = viewingUrl || (activeVariant === "dark" && effectiveDarkDesignUrl ? effectiveDarkDesignUrl : designUrl);
 
   const generateDarkVariantLocally = async (): Promise<string | null> => {
