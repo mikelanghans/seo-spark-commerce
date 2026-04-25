@@ -32,7 +32,7 @@ interface Props {
   onRegenerate?: (messageId: string, feedback: string, referenceImageUrl?: string, baseDesignUrl?: string) => Promise<void>;
   onDiscardDesign?: (messageId: string) => void;
   onCreateProduct?: (messageId: string) => void;
-  onReplaceDesign?: (messageId: string, file: File) => Promise<void>;
+  onReplaceDesign?: (messageId: string, file: File, variant: "light" | "dark") => Promise<void>;
   onDarkDesignGenerated?: (messageId: string, darkUrl: string) => void;
   designVariantMode?: string;
   hasProduct?: boolean;
