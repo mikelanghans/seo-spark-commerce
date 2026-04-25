@@ -108,7 +108,9 @@ export const DesignPreviewDialog = ({
     setHistory(data || []);
   };
 
-  const effectiveDarkDesignUrl = darkDesignUrl || designUrl;
+  const normalizeUrl = (u?: string | null) => (u ? u.split("?")[0].split("#")[0].trim() : "");
+  const hasDistinctDarkVariant = !!(designUrl && darkDesignUrl && normalizeUrl(designUrl) !== normalizeUrl(darkDesignUrl));
+  const effectiveDarkDesignUrl = hasDistinctDarkVariant ? darkDesignUrl : designUrl;
   const activeUrl = viewingUrl || (activeVariant === "dark" && effectiveDarkDesignUrl ? effectiveDarkDesignUrl : designUrl);
 
   const generateDarkVariantLocally = async (): Promise<string | null> => {
@@ -312,10 +314,10 @@ export const DesignPreviewDialog = ({
           {activeUrl && (
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload}>
               <Download className="h-4 w-4" />
-              Download {designUrl && darkDesignUrl ? (activeVariant === "light" ? "light" : "dark") : ""}
+              Download {hasDistinctDarkVariant ? (activeVariant === "light" ? "light" : "dark") : ""}
             </Button>
           )}
-          {designUrl && darkDesignUrl && !viewingUrl && (
+          {hasDistinctDarkVariant && !viewingUrl && (
             <Button
               variant="outline"
               size="sm"
@@ -353,7 +355,7 @@ export const DesignPreviewDialog = ({
                 className="hidden"
                 onChange={handleReplaceFileSelect}
               />
-              {designUrl && darkDesignUrl && designVariantMode === "both" ? (
+              {hasDistinctDarkVariant && designVariantMode === "both" ? (
                 <>
                   <Button
                     variant="outline"
