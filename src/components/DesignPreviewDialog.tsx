@@ -353,16 +353,58 @@ export const DesignPreviewDialog = ({
                 className="hidden"
                 onChange={handleReplaceFileSelect}
               />
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={uploading}
-                onClick={() => replaceInputRef.current?.click()}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploading ? "Uploading…" : "Replace design"}
-              </Button>
+              {designUrl && darkDesignUrl && designVariantMode === "both" ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={uploading}
+                    onClick={() => {
+                      setReplaceVariant("light");
+                      replaceInputRef.current?.click();
+                    }}
+                  >
+                    {uploading && replaceVariant === "light" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Replace light
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={uploading}
+                    onClick={() => {
+                      setReplaceVariant("dark");
+                      replaceInputRef.current?.click();
+                    }}
+                  >
+                    {uploading && replaceVariant === "dark" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Replace dark
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={uploading}
+                  onClick={() => {
+                    setReplaceVariant(activeVariant);
+                    replaceInputRef.current?.click();
+                  }}
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? "Uploading…" : "Replace design"}
+                </Button>
+              )}
             </>
           )}
         </div>
