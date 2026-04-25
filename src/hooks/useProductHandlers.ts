@@ -114,7 +114,13 @@ export function useProductHandlers(
       // Refresh local product state too so the UI reflects whatever the DB now holds.
       if (selectedOrg) await loadProducts(selectedOrg.id);
       if (aiUsage) await aiUsage.logUsage("generate-listings", userId!);
-      toast.success(`Listings generated for ${targets.join(", ")}!`);
+      const succeeded = targets.filter((m) => result[m]);
+      const failed = targets.filter((m) => !result[m]);
+      if (failed.length > 0 && succeeded.length > 0) {
+        toast.warning(`Generated ${succeeded.join(", ")}. Failed: ${failed.join(", ")} — try again to fill in.`);
+      } else {
+        toast.success(`Listings generated for ${succeeded.join(", ")}!`);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to generate listings");
     } finally {
