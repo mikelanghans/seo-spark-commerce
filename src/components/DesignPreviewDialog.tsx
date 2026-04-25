@@ -317,7 +317,7 @@ export const DesignPreviewDialog = ({
               Download {hasDistinctDarkVariant ? (activeVariant === "light" ? "light" : "dark") : ""}
             </Button>
           )}
-          {designUrl && darkDesignUrl && !viewingUrl && (
+          {hasDistinctDarkVariant && !viewingUrl && (
             <Button
               variant="outline"
               size="sm"
