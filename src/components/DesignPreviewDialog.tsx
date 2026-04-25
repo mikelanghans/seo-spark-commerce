@@ -355,7 +355,7 @@ export const DesignPreviewDialog = ({
                 className="hidden"
                 onChange={handleReplaceFileSelect}
               />
-              {designUrl && darkDesignUrl && designVariantMode === "both" ? (
+              {hasDistinctDarkVariant && designVariantMode === "both" ? (
                 <>
                   <Button
                     variant="outline"
