@@ -324,20 +324,32 @@ export const DesignPreviewDialog = ({
               className="gap-1.5"
               onClick={async () => {
                 try {
-                  for (const [url, label] of [[designUrl, "light"], [darkDesignUrl, "dark"]] as const) {
-                    const response = await fetch(url);
+                  const targets: Array<{ url: string; label: string }> = [
+                    { url: designUrl!, label: "light" },
+                    { url: darkDesignUrl!, label: "dark" },
+                  ];
+                  for (let i = 0; i < targets.length; i++) {
+                    const { url, label } = targets[i];
+                    // Cache-bust to force fresh fetch per variant
+                    const bust = `${url}${url.includes("?") ? "&" : "?"}dl=${Date.now()}-${i}`;
+                    const response = await fetch(bust, { cache: "no-store" });
+                    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
                     const blob = await response.blob();
                     const blobUrl = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = blobUrl;
                     a.download = `design-${messageId || "image"}-${label}.png`;
+                    a.rel = "noopener";
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+                    // Delay between downloads so browser doesn't dedupe/cancel
+                    await new Promise((r) => setTimeout(r, 600));
                     URL.revokeObjectURL(blobUrl);
                   }
                   toast.success("Both variants downloaded");
-                } catch {
+                } catch (err) {
+                  console.error("Download both failed:", err);
                   toast.error("Failed to download images");
                 }
               }}
