@@ -163,17 +163,23 @@ export const DesignPreviewDialog = ({
   const handleDownload = async () => {
     if (!activeUrl) return;
     try {
-      const response = await fetch(activeUrl);
+      const variantLabel = hasDistinctDarkVariant ? (activeVariant === "dark" ? "dark" : "light") : "";
+      // Cache-bust to force fresh fetch of the current variant
+      const bust = `${activeUrl}${activeUrl.includes("?") ? "&" : "?"}dl=${Date.now()}`;
+      const response = await fetch(bust, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `design-${messageId || "image"}.png`;
+      a.download = `design-${messageId || "image"}${variantLabel ? `-${variantLabel}` : ""}.png`;
+      a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (err) {
+      console.error("Download failed:", err);
       toast.error("Failed to download image");
     }
   };
