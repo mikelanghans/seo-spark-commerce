@@ -6,8 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_REQUEST_TIMEOUT_MS = 45000;
+const AI_REQUEST_TIMEOUT_MS = 35000;
 const AI_MODEL = "google/gemini-2.5-flash-lite";
+const AI_RETRY_ATTEMPTS = 2;
 
 const cleanText = (value: unknown, fallback = ""): string =>
   typeof value === "string" ? value.trim() : fallback;
@@ -187,14 +188,25 @@ For EACH marketplace listing, also generate:
     const settled = await Promise.allSettled(
       marketplaces.map(async (m: string) => {
         const perMarketplacePrompt = `${prompt}\n\nGenerate the listing ONLY for: ${m}.\nMarketplace style: ${marketplaceStyle[m] || ""}`;
-        const result = await callAi({
-          systemPrompt: "You are an expert e-commerce SEO copywriter. You MUST call the generate_listing function with your output.",
-          userPrompt: perMarketplacePrompt,
-          toolName: "generate_listing",
-          toolDescription: `Generate one ${m} listing with SEO metadata`,
-          schema: listingSchema,
-        });
-        return [m, result] as const;
+        let lastErr: unknown;
+        for (let attempt = 0; attempt < AI_RETRY_ATTEMPTS; attempt++) {
+          try {
+            const result = await callAi({
+              systemPrompt: "You are an expert e-commerce SEO copywriter. You MUST call the generate_listing function with your output.",
+              userPrompt: perMarketplacePrompt,
+              toolName: "generate_listing",
+              toolDescription: `Generate one ${m} listing with SEO metadata`,
+              schema: listingSchema,
+            });
+            return [m, result] as const;
+          } catch (err) {
+            lastErr = err;
+            const msg = err instanceof Error ? err.message : String(err);
+            // Don't retry on 429/402/non-transient errors
+            if (msg.includes("Rate limit") || msg.includes("credits exhausted")) break;
+          }
+        }
+        throw lastErr;
       })
     );
 
