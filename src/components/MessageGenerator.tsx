@@ -979,14 +979,17 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
           // Dark variant is now generated on-demand via the preview toggle
         }}
-        onReplaceDesign={async (msgId, file) => {
+        onReplaceDesign={async (msgId, file, variant) => {
           const msg = messages.find((m) => m.id === msgId);
+          const isDark = variant === "dark";
+          const currentUrl = isDark ? msg?.dark_design_url : msg?.design_url;
+
           // Archive current design to history before replacing
-          if (msg?.design_url) {
+          if (currentUrl) {
             await supabase.from("design_history" as any).insert({
               message_id: msgId,
-              design_url: msg.design_url,
-              feedback_notes: "Replaced with uploaded file",
+              design_url: currentUrl,
+              feedback_notes: `Replaced ${variant} variant with uploaded file`,
               organization_id: organization.id,
               user_id: userId,
             });
@@ -994,7 +997,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
           // Upload file to storage
           const ext = file.name.split(".").pop() || "png";
-          const path = `${userId}/designs/${Date.now()}.${ext}`;
+          const path = `${userId}/designs/${Date.now()}-${variant}.${ext}`;
           const { error: uploadErr } = await supabase.storage
             .from("product-images")
             .upload(path, file, { contentType: file.type });
@@ -1005,20 +1008,29 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
           const newDesignUrl = urlData.publicUrl;
 
-          // Update the message record (dark variant deferred to on-demand toggle)
+          // Update only the targeted variant column
+          const updatePayload: Record<string, string> = isDark
+            ? { dark_design_url: newDesignUrl }
+            : { design_url: newDesignUrl };
+
           await supabase
             .from("generated_messages")
-            .update({ design_url: newDesignUrl, dark_design_url: null })
+            .update(updatePayload)
             .eq("id", msgId);
 
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === msgId ? { ...m, design_url: newDesignUrl, dark_design_url: null } : m
+              m.id === msgId
+                ? { ...m, ...(isDark ? { dark_design_url: newDesignUrl } : { design_url: newDesignUrl }) }
+                : m
             )
           );
-          setPreviewUrl(newDesignUrl);
-          setPreviewDarkUrl(null);
-          toast.success("Design replaced!");
+          if (isDark) {
+            setPreviewDarkUrl(newDesignUrl);
+          } else {
+            setPreviewUrl(newDesignUrl);
+          }
+          toast.success(`${isDark ? "Dark" : "Light"} design replaced!`);
         }}
       />
     </div>
