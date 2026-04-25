@@ -191,6 +191,8 @@ export const DesignPreviewDialog = ({
     setReferencePreview(URL.createObjectURL(file));
   };
 
+  const [replaceVariant, setReplaceVariant] = useState<"light" | "dark">("light");
+
   const handleReplaceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !messageId || !onReplaceDesign) return;
@@ -204,7 +206,7 @@ export const DesignPreviewDialog = ({
     }
     setUploading(true);
     try {
-      await onReplaceDesign(messageId, file);
+      await onReplaceDesign(messageId, file, replaceVariant);
       await refreshHistory();
     } finally {
       setUploading(false);
