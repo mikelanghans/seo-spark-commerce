@@ -80,7 +80,8 @@ serve(async (req) => {
     if (printifyProductId && shopId) {
       const productRes = await fetchWithRetry(
         `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
-        { Authorization: `Bearer ${printifyToken}` }
+        { Authorization: `Bearer ${printifyToken}` },
+        `get-product-${printifyProductId}`
       );
       if (productRes.ok) {
         const product = await productRes.json();
