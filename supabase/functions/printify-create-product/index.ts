@@ -549,10 +549,14 @@ serve(async (req) => {
         publishError = `Printify publish returned ${publishRes.status}: ${errText.slice(0, 400)}`;
         console.error(publishError);
       } else {
-        // Poll Printify for the external (Shopify) product ID that native sync creates
-        console.log("Polling Printify for external Shopify product ID...");
-        for (let attempt = 0; attempt < 18; attempt++) {
-          await new Promise((r) => setTimeout(r, 5000));
+        // Poll Printify briefly for the external (Shopify) product ID. Keep this short
+        // so we don't blow past the edge function/gateway timeout — if Printify hasn't
+        // synced yet, hand off to a background task and let the client recover the link
+        // later (push-to-shopify can resolve it via recoverShopifyIdFromPrintify).
+        console.log("Polling Printify for external Shopify product ID (short window)...");
+        const delays = [2000, 3000, 4000, 5000]; // ~14s total — well within timeouts
+        for (const delay of delays) {
+          await new Promise((r) => setTimeout(r, delay));
           try {
             const extRes = await fetch(
               `https://api.printify.com/v1/shops/${effectiveShopId}/products/${createdProduct.id}.json`,
@@ -572,12 +576,46 @@ serve(async (req) => {
               }
             }
           } catch (pollErr) {
-            console.error(`Poll attempt ${attempt + 1} failed:`, pollErr);
+            console.error(`Short poll attempt failed:`, pollErr);
           }
         }
-        if (!syncedShopifyProductId) {
-          publishError = "Printify accepted the publish request but no Shopify product ID was returned within 90s. The product may still finish syncing in your Printify dashboard.";
-          console.warn(publishError);
+
+        // If sync didn't land in our short window, finish the response immediately and
+        // keep polling in the background so the DB link still gets saved.
+        if (!syncedShopifyProductId && productId) {
+          console.log("External Shopify ID not ready yet — continuing in background.");
+          const bgPoll = (async () => {
+            const bgDelays = [5000, 8000, 10000, 15000, 20000, 30000];
+            for (const delay of bgDelays) {
+              await new Promise((r) => setTimeout(r, delay));
+              try {
+                const extRes = await fetch(
+                  `https://api.printify.com/v1/shops/${effectiveShopId}/products/${createdProduct.id}.json`,
+                  { headers: { Authorization: `Bearer ${printifyToken}` } },
+                );
+                if (!extRes.ok) continue;
+                const extData = await extRes.json();
+                const externalId = extData?.external?.id;
+                const numericId = typeof externalId === "string" ? parseInt(externalId, 10) : externalId;
+                if (numericId) {
+                  await adminClient
+                    .from("products")
+                    .update({ shopify_product_id: numericId })
+                    .eq("id", productId);
+                  console.log(`(bg) Saved Printify-synced Shopify product ID: ${numericId}`);
+                  return;
+                }
+              } catch (bgErr) {
+                console.error("(bg) poll attempt failed:", bgErr);
+              }
+            }
+            console.warn("(bg) Printify never returned external Shopify ID within background window.");
+          })();
+          // @ts-ignore EdgeRuntime is provided by Deno Deploy
+          if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any).waitUntil) {
+            // @ts-ignore
+            EdgeRuntime.waitUntil(bgPoll);
+          }
         }
       }
     }
