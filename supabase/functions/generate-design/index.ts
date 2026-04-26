@@ -235,7 +235,7 @@ STYLE: MINIMALIST ILLUSTRATION WITH SUBTLE COLOR
 TYPOGRAPHY:
 - Font style: ${fontDirection}
 - Text should be ${sizeDirection.toLowerCase()} but balanced with the illustration
-- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be perfectly sharp, crisp, and readable. Use thick stroke weights — no thin or wispy fonts.
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every letter must be perfectly sharp, crisp, and readable. Use medium-to-semibold stroke weights — refined and confident, NOT chunky or overly heavy. Avoid ultra-thin/wispy fonts AND avoid extra-bold/black weights that look thick or blocky.
 - The illustration should be the primary visual, text secondary but always clearly readable
 - If the message has a sub-attribution, set it small and elegant
 - TEXT must remain monochrome (${isLightOnDark ? "white" : "dark"}) — do NOT color the text
@@ -402,7 +402,7 @@ TYPOGRAPHY:
 - Use ONE typeface maximum — create hierarchy through weight, size, and spacing only
 - Generous letter-spacing and line-height for a premium feel
 - If the message has a sub-attribution (like "— the universe"), set it small, elegant, and understated
-- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every single letter must be perfectly sharp, crisp, and fully readable at arm's length. Use thick stroke weights. Do NOT use thin, wispy, or decorative fonts that sacrifice readability. If in doubt, go BOLDER.
+- ⚠️ TEXT LEGIBILITY IS CRITICAL: Every single letter must be perfectly sharp, crisp, and fully readable at arm's length. Use medium-to-semibold stroke weights — refined and confident, NOT chunky, blocky, or overly heavy. Avoid thin/wispy fonts AND avoid extra-bold/black weights that feel thick. Aim for a balanced, premium weight.
 
 COLOR: Use ${colorDirection} as the primary ink color on ${bgColor} background. No gradients in the text.
 ${isLightOnDark ? "IMPORTANT: This design is for DARK-colored garments. Use white or very light ink colors only." : "IMPORTANT: This design is for LIGHT-colored garments. Use dark ink colors."}
