@@ -76,7 +76,7 @@ serve(async (req) => {
         });
       }
       if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+        return new Response(JSON.stringify({ error: "AI service is temporarily unavailable. Please try again shortly or contact support." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
