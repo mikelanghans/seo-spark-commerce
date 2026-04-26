@@ -25,7 +25,8 @@ const updateShopifyProduct = (
 );
 
 const getPrintifyToken = async (
-  adminClient: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminClient: any,
   organizationId?: string,
 ) => {
   let printifyToken = Deno.env.get("PRINTIFY_API_TOKEN") ?? null;
@@ -46,7 +47,8 @@ const getPrintifyToken = async (
 };
 
 const recoverShopifyIdFromPrintify = async (
-  adminClient: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminClient: any,
   organizationId: string | undefined,
   printifyProductId: string | null,
 ) => {
