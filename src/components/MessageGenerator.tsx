@@ -374,6 +374,12 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
         await supabase.from("generated_messages").update({ is_selected: true }).eq("id", msg.id);
       }
       await loadMessages();
+      // Move the freshly-designed message to the top of the list
+      setMessages((prev) => {
+        const target = prev.find((m) => m.id === msg.id);
+        if (!target) return prev;
+        return [target, ...prev.filter((m) => m.id !== msg.id)];
+      });
     } catch (err: any) {
       handleAiError(err, null, "Failed to generate design");
     } finally {
