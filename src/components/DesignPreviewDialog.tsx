@@ -112,7 +112,7 @@ export const DesignPreviewDialog = ({
   const hasDistinctDarkVariant = !!(designUrl && darkDesignUrl && normalizeUrl(designUrl) !== normalizeUrl(darkDesignUrl));
   const effectiveDarkDesignUrl = hasDistinctDarkVariant ? darkDesignUrl : designUrl;
   const activeUrl = viewingUrl || (activeVariant === "dark" && effectiveDarkDesignUrl ? effectiveDarkDesignUrl : designUrl);
-  const activeDownloadLabel = hasDistinctDarkVariant ? (activeVariant === "dark" ? "light" : "dark") : "";
+  const activeDownloadLabel = hasDistinctDarkVariant ? activeVariant : "";
 
   const generateDarkVariantLocally = async (): Promise<string | null> => {
     if (!designUrl || !messageId) throw new Error("Missing design");
