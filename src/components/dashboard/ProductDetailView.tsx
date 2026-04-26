@@ -107,6 +107,10 @@ export const ProductDetailView = ({
       || detectedProductType.key;
   const mockupProductType = PRODUCT_TYPES[fallbackProductTypeKey] || detectedProductType;
   const sourceTemplateUrl = mockupTemplates[mockupProductType.key] || null;
+  const primaryDesignUrl = lightDesignUrl ?? darkDesignUrl ?? product.image_url ?? null;
+  const activePreviewDesignUrl = (thumbVariant === "dark"
+    ? (darkDesignUrl ?? lightDesignUrl)
+    : (lightDesignUrl ?? darkDesignUrl)) ?? primaryDesignUrl;
 
   // Check connection status for Printify & Shopify via row existence (sensitive columns are not readable)
   useEffect(() => {
@@ -495,8 +499,8 @@ export const ProductDetailView = ({
       </div>
 
       {(() => {
-        const hasAnyDesign = !!(product.image_url || lightDesignUrl || darkDesignUrl);
-        const thumbSrc = (thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url;
+        const hasAnyDesign = !!primaryDesignUrl;
+        const thumbSrc = (thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? primaryDesignUrl;
         return (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -632,10 +636,10 @@ export const ProductDetailView = ({
         );
       })()}
 
-      {product.image_url && (
+      {activePreviewDesignUrl && (
         <Dialog open={designPreviewOpen} onOpenChange={setDesignPreviewOpen}>
           <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Design Preview</DialogTitle></DialogHeader>
-            <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4"><img src={product.image_url} alt={product.title} className="max-h-[70vh] object-contain" /></div>
+            <div className={`flex items-center justify-center rounded-lg p-4 ${thumbVariant === "light" ? "bg-secondary" : "bg-muted/30"}`}><img src={activePreviewDesignUrl} alt={product.title} className="max-h-[70vh] object-contain" /></div>
           </DialogContent>
         </Dialog>
       )}
@@ -650,7 +654,7 @@ export const ProductDetailView = ({
 
         <TabsContent value="mockups">
           <div className="rounded-xl border border-border bg-card p-5">
-            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={sourceTemplateUrl} designImageUrl={product.image_url || null} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={mockupProductType.category} aiUsage={aiUsage} />
+            <ProductMockups productId={product.id} userId={userId} productTitle={product.title} organizationId={selectedOrg?.id} sourceImageUrl={sourceTemplateUrl} designImageUrl={primaryDesignUrl} brandName={selectedOrg?.name} brandNiche={selectedOrg?.niche} brandAudience={selectedOrg?.audience} brandTone={selectedOrg?.tone} productCategory={mockupProductType.category} aiUsage={aiUsage} />
           </div>
         </TabsContent>
 

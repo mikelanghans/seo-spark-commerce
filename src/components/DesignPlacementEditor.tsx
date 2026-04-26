@@ -18,6 +18,45 @@ interface Props {
 const DEFAULT_SCALE = 0.36;
 const TEXT_ONLY_SCALE = 0.28;
 
+const useOriginalDesignForPreview = async (url: string) => {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to load design"));
+    image.src = url;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+  let transparent = 0;
+  let opaque = 0;
+  let accent = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha < 50) transparent++;
+    if (alpha < 90) continue;
+    opaque++;
+    const r = data[i] / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const sat = max === 0 ? 0 : (max - min) / max;
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (sat > 0.22 && max - min > 0.18 && luma > 0.12 && luma < 0.95) accent++;
+  }
+
+  return transparent / Math.max(1, canvas.width * canvas.height) > 0.2
+    && accent / Math.max(1, opaque) > 0.003;
+};
+
 export const DesignPlacementEditor = ({
   templateUrl,
   designUrl,
@@ -46,8 +85,10 @@ export const DesignPlacementEditor = ({
   useEffect(() => {
     let cancelled = false;
     setProcessingDesign(true);
-    smartRemoveBackground(designUrl)
-      .then((base64) => getPreparedDesignDataUrl(ensureImageDataUrl(base64)))
+    useOriginalDesignForPreview(designUrl)
+      .then((useOriginal) => useOriginal
+        ? designUrl
+        : smartRemoveBackground(designUrl).then((base64) => getPreparedDesignDataUrl(ensureImageDataUrl(base64))))
       .then((preparedUrl) => {
         if (!cancelled) setProcessedDesignUrl(preparedUrl);
       })
