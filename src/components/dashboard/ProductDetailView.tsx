@@ -438,7 +438,7 @@ export const ProductDetailView = ({
         </div>
       </div>
 
-      {product.image_url && (
+      {(product.image_url || lightDesignUrl || darkDesignUrl) && (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden flex items-center justify-center shrink-0 ${thumbVariant === "light" ? "bg-neutral-900" : "bg-neutral-100"}`}>
@@ -473,24 +473,14 @@ export const ProductDetailView = ({
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)}><Eye className="h-4 w-4" /> Preview</Button>
             <input type="file" accept="image/*" className="hidden" id="replace-light-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (!file || !file.type.startsWith("image/")) return;
-              const newUrl = await uploadImageToStorage(file);
-              if (!newUrl) return;
-              const { error } = await supabase.from("products").update({ image_url: newUrl }).eq("id", product.id);
-              if (error) { toast.error("Failed to update design file"); return; }
-              await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "light-on-dark");
-              setSelectedProduct({ ...product, image_url: newUrl });
-              toast.success("Light design replaced!");
+              if (!file) return;
+              await handleReplaceDesign("light", file);
               e.target.value = "";
             }} />
             <input type="file" accept="image/*" className="hidden" id="replace-dark-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (!file || !file.type.startsWith("image/")) return;
-              const newUrl = await uploadImageToStorage(file);
-              if (!newUrl) return;
-              const { error } = await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light");
-              if (error) { toast.error("Failed to update dark design"); return; }
-              toast.success("Dark design replaced!");
+              if (!file) return;
+              await handleReplaceDesign("dark", file);
               e.target.value = "";
             }} />
             <DropdownMenu modal={false}>
@@ -498,6 +488,8 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {isPreparingDesignFiles ? (
