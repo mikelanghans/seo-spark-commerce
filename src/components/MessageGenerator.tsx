@@ -12,6 +12,7 @@ import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
 import { getStyleLabel } from "@/lib/designStyles";
 import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
+import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
@@ -546,6 +547,27 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
     await loadMessages();
   };
 
+  const urlToDataUrl = async (url: string) => {
+    const response = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!response.ok) throw new Error("Failed to load design file");
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read design file"));
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const prepareDesignVariantsForProduct = async (sourceUrl: string) => {
+    const sourceDataUrl = await urlToDataUrl(sourceUrl);
+    return createAndUploadDesignVariants({
+      sourceDataUrl,
+      userId,
+      targetSize: 4500,
+    });
+  };
+
   const handleCreateProducts = async () => {
     const ready = messages.filter(
       (m) => keptIds.has(m.id) && !m.product_id && m.design_url
@@ -560,6 +582,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
     try {
       for (const msg of ready) {
+        const { lightUrl, darkUrl } = await prepareDesignVariantsForProduct(msg.design_url!);
         const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
         const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
         const autoKeywords = msg.message_text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
@@ -575,7 +598,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             features: autoFeatures,
             organization_id: organization.id,
             user_id: userId,
-            image_url: msg.design_url,
+            image_url: lightUrl,
           })
           .select("id")
           .single();
@@ -591,23 +614,22 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           .update({ product_id: product.id })
           .eq("id", msg.id);
 
-        // Insert both design variants into product_images (deduplicated)
         const designEntries = [];
-        if (msg.design_url) {
+        if (lightUrl) {
           designEntries.push({
             product_id: product.id,
             user_id: userId,
-            image_url: msg.design_url,
+            image_url: lightUrl,
             image_type: "design",
             color_name: "light-on-dark",
             position: 0,
           });
         }
-        if (msg.dark_design_url) {
+        if (darkUrl) {
           designEntries.push({
             product_id: product.id,
             user_id: userId,
-            image_url: msg.dark_design_url,
+            image_url: darkUrl,
             image_type: "design",
             color_name: "dark-on-light",
             position: 1,
@@ -940,6 +962,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           if (!msg || !msg.design_url) return;
 
           const variantMode = (organization as any).design_variant_mode || "both";
+          const { lightUrl, darkUrl } = await prepareDesignVariantsForProduct(msg.design_url);
 
           const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
           const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
@@ -956,7 +979,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               features: autoFeatures,
               organization_id: organization.id,
               user_id: userId,
-              image_url: msg.design_url,
+              image_url: lightUrl,
             })
             .select("id")
             .single();
@@ -969,11 +992,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           await supabase.from("generated_messages").update({ product_id: product.id }).eq("id", msgId);
 
           const designEntries: any[] = [];
-          if (msg.design_url) {
-            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.design_url, image_type: "design", color_name: "light-on-dark", position: 0 });
+          if (lightUrl) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: lightUrl, image_type: "design", color_name: "light-on-dark", position: 0 });
           }
-          if (msg.dark_design_url) {
-            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
+          if (darkUrl) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: darkUrl, image_type: "design", color_name: "dark-on-light", position: 1 });
           }
           if (designEntries.length > 0) {
             await insertProductImagesDeduped(designEntries);
