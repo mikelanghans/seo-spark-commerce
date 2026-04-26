@@ -451,15 +451,22 @@ export const ProductDetailView = ({
         </div>
       </div>
 
-      {(product.image_url || lightDesignUrl || darkDesignUrl) && (
+      {(() => {
+        const hasAnyDesign = !!(product.image_url || lightDesignUrl || darkDesignUrl);
+        const thumbSrc = (thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url;
+        return (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden flex items-center justify-center shrink-0 ${thumbVariant === "light" ? "bg-neutral-900" : "bg-neutral-100"}`}>
-              <img
-                src={(thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url}
-                alt="Design file"
-                className="h-full w-full object-contain"
-              />
+              {thumbSrc ? (
+                <img
+                  src={thumbSrc}
+                  alt="Design file"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              )}
             </div>
             <div>
               <p className="text-sm font-medium">Design File</p>
