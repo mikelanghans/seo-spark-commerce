@@ -136,6 +136,16 @@ export const ProductDetailView = ({
     return url.includes("/storage/v1/object/public/product-images/");
   };
 
+  const normalizeDesignAssetUrl = (url: string | null | undefined) => {
+    if (!url) return "";
+    try {
+      const parsed = new URL(url, window.location.origin);
+      return `${parsed.origin}${parsed.pathname}`;
+    } catch {
+      return url.split("?")[0].split("#")[0].trim();
+    }
+  };
+
   const urlToDataUrl = async (url: string) => {
     const res = await fetch(url, { mode: "cors", credentials: "omit" });
     if (!res.ok) throw new Error("Failed to load design file");
@@ -175,8 +185,9 @@ export const ProductDetailView = ({
         let nextLightUrl = lightRow?.image_url ?? null;
         let nextDarkUrl = darkRow?.image_url ?? null;
 
+        const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
         const needsLightUpload = !nextLightUrl || !isProductStorageUrl(nextLightUrl);
-        const needsDarkUpload = !nextDarkUrl || !isProductStorageUrl(nextDarkUrl);
+        const needsDarkUpload = !nextDarkUrl || !isProductStorageUrl(nextDarkUrl) || variantsShareSameFile;
         const sourceUrl = nextLightUrl ?? nextDarkUrl ?? product.image_url;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
