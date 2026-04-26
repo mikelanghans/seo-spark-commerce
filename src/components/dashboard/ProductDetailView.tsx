@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { ListingOutput } from "@/components/ListingOutput";
@@ -27,7 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
-  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign,
+  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign, X,
 } from "lucide-react";
 
 interface Props {
