@@ -384,19 +384,52 @@ export const ProductDetailView = ({
       if (error) { toast.error("Failed to update design file"); return; }
     }
 
-    await insertProductImagesDeduped([{
-      product_id: product.id,
-      user_id: userId,
-      image_url: newUrl,
-      image_type: "design",
-      color_name: colorName,
-      position,
-    }]);
+    // Check whether the *other* variant already exists in storage. If not,
+    // seed it with the newly uploaded file so the auto-variant generator does
+    // not regenerate (and overwrite) the file the user just uploaded.
+    const otherColor = variant === "light" ? "dark-on-light" : "light-on-dark";
+    const otherPosition = variant === "light" ? 1 : 0;
+    const { data: existingOther } = await supabase
+      .from("product_images")
+      .select("id, image_url")
+      .eq("product_id", product.id)
+      .eq("image_type", "design")
+      .eq("color_name", otherColor)
+      .limit(1);
+
+    const rowsToInsert = [
+      {
+        product_id: product.id,
+        user_id: userId,
+        image_url: newUrl,
+        image_type: "design",
+        color_name: colorName,
+        position,
+      },
+    ];
+
+    const otherIsValid = existingOther && existingOther.length > 0
+      && isProductStorageUrl(existingOther[0].image_url);
+
+    if (!otherIsValid) {
+      rowsToInsert.push({
+        product_id: product.id,
+        user_id: userId,
+        image_url: newUrl,
+        image_type: "design",
+        color_name: otherColor,
+        position: otherPosition,
+      });
+    }
+
+    await insertProductImagesDeduped(rowsToInsert);
 
     if (variant === "light") {
       setLightDesignUrl(newUrl);
+      if (!otherIsValid) setDarkDesignUrl(newUrl);
     } else {
       setDarkDesignUrl(newUrl);
+      if (!otherIsValid) setLightDesignUrl(newUrl);
     }
 
     if (shouldSetProductImage) {
