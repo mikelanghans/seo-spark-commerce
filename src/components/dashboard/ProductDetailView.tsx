@@ -366,14 +366,20 @@ export const ProductDetailView = ({
   };
 
   const handleReplaceDesign = async (variant: "light" | "dark", file: File) => {
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
     const newUrl = await uploadImageToStorage(file);
     if (!newUrl) return;
 
     const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
     const position = variant === "light" ? 0 : 1;
 
-    if (variant === "light") {
+    // Always ensure the product row has an image_url so downstream features
+    // (placement editor, mockup generation, push) work after a clear+replace.
+    const shouldSetProductImage = variant === "light" || !product.image_url;
+    if (shouldSetProductImage) {
       const { error } = await supabase.from("products").update({ image_url: newUrl }).eq("id", product.id);
       if (error) { toast.error("Failed to update design file"); return; }
     }
@@ -389,12 +395,16 @@ export const ProductDetailView = ({
 
     if (variant === "light") {
       setLightDesignUrl(newUrl);
-      setSelectedProduct({ ...product, image_url: newUrl });
-      toast.success("Light design replaced!");
     } else {
       setDarkDesignUrl(newUrl);
-      toast.success("Dark design replaced!");
     }
+
+    if (shouldSetProductImage) {
+      setSelectedProduct({ ...product, image_url: newUrl });
+      if (organization?.id) loadProducts(organization.id);
+    }
+
+    toast.success(`${variant === "light" ? "Light" : "Dark"} design replaced!`);
   };
 
   const handleClearDesigns = async () => {
