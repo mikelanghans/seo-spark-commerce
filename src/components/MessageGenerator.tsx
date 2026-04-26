@@ -12,6 +12,7 @@ import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
 import { getStyleLabel } from "@/lib/designStyles";
 import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
+import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
