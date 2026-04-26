@@ -558,7 +558,8 @@ export const ProductDetailView = ({
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Design Group — sibling products sharing this design */}
       {product.image_url && (() => {
