@@ -409,9 +409,22 @@ export const ProductDetailView = ({
 
     if (imagesError) { toast.error("Failed to clear design variants"); return; }
 
+    // Also clear the design URLs on the originating message so it doesn't get re-derived
+    const { error: messageError } = await supabase
+      .from("generated_messages")
+      .update({ design_url: null, dark_design_url: null })
+      .eq("product_id", product.id);
+    if (messageError) {
+      console.error("Failed to clear message design refs", messageError);
+    }
+
     setLightDesignUrl(null);
     setDarkDesignUrl(null);
     setSelectedProduct({ ...product, image_url: null });
+    // Refresh the parent product list so navigating away/back doesn't restore stale image_url
+    if (organization?.id) {
+      loadProducts(organization.id);
+    }
     toast.success("Design cleared");
   };
 
