@@ -151,14 +151,18 @@ function drawDesignWithUnderbase(
   referenceDesignSize?: { width: number; height: number },
   preserveOriginalAppearance?: boolean,
 ) {
-  // Use reference dimensions if provided for cross-variant consistency
+  // For width-based sizing consistency across variants, use the unified reference width.
+  // For aspect ratio (drawHeight), ALWAYS use the actual design's own dimensions —
+  // mixing a max-width with a max-height from different variants produces a wrong
+  // aspect ratio that makes the design render shorter than the preview, causing
+  // it to "drift up" relative to where the user placed it.
   const designWidth = referenceDesignSize?.width ?? cleanedDesign.width;
-  const designHeight = referenceDesignSize?.height ?? cleanedDesign.height;
+  const actualAspect = cleanedDesign.height / cleanedDesign.width;
 
   // Use custom placement if provided, otherwise use defaults
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.28 : 0.36);
-  const drawWidth = Math.round(targetWidth * designScale);
-  const drawHeight = Math.round(drawWidth * (designHeight / designWidth));
+  const drawWidth = Math.round(targetWidth * designScale * (cleanedDesign.width / designWidth));
+  const drawHeight = Math.round(drawWidth * actualAspect);
   const dx = Math.round((targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0));
   const dy = Math.round(targetHeight * (placement?.offsetY ?? 0.20));
 
