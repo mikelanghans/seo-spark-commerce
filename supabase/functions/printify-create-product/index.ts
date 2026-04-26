@@ -47,7 +47,8 @@ const parsePlacement = (value: unknown): PlacementInput | null => {
 };
 
 const getSavedPlacement = async (
-  adminClient: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  adminClient: any,
   productId: string | null | undefined,
 ): Promise<PlacementInput | null> => {
   if (!productId) return null;
