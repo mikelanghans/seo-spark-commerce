@@ -962,6 +962,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           if (!msg || !msg.design_url) return;
 
           const variantMode = (organization as any).design_variant_mode || "both";
+          const { lightUrl, darkUrl } = await prepareDesignVariantsForProduct(msg.design_url);
 
           const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
           const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
@@ -978,7 +979,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               features: autoFeatures,
               organization_id: organization.id,
               user_id: userId,
-              image_url: msg.design_url,
+              image_url: lightUrl,
             })
             .select("id")
             .single();
@@ -991,11 +992,11 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           await supabase.from("generated_messages").update({ product_id: product.id }).eq("id", msgId);
 
           const designEntries: any[] = [];
-          if (msg.design_url) {
-            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.design_url, image_type: "design", color_name: "light-on-dark", position: 0 });
+          if (lightUrl) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: lightUrl, image_type: "design", color_name: "light-on-dark", position: 0 });
           }
-          if (msg.dark_design_url) {
-            designEntries.push({ product_id: product.id, user_id: userId, image_url: msg.dark_design_url, image_type: "design", color_name: "dark-on-light", position: 1 });
+          if (darkUrl) {
+            designEntries.push({ product_id: product.id, user_id: userId, image_url: darkUrl, image_type: "design", color_name: "dark-on-light", position: 1 });
           }
           if (designEntries.length > 0) {
             await insertProductImagesDeduped(designEntries);
