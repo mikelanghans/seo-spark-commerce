@@ -201,7 +201,7 @@ export default function Admin() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="spend" onClick={() => { if (!spendData) fetchSpendData(); }}>
-              AI Spend
+              Lovable Cloud Spend
             </TabsTrigger>
             <TabsTrigger value="errors" onClick={() => { if (errorLogs.length === 0) fetchErrorLogs(); }}>
               Error Logs
@@ -286,6 +286,12 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="spend" className="space-y-6 mt-6">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-1">
+              <p className="text-sm font-semibold text-foreground">Lovable Cloud & AI balance (platform billing)</p>
+              <p className="text-xs text-muted-foreground">
+                This is the platform-level dollar balance that powers your edge functions (image generation, AI calls). It is <strong>separate</strong> from the in-app "Brand Aura Credits" your end-users see. Top up in Lovable → Settings → Cloud & AI balance. Figures below are estimates based on usage logs.
+              </p>
+            </div>
             {spendLoading && !spendData ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
