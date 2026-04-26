@@ -508,8 +508,8 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>
+                {hasAnyDesign && <DropdownMenuSeparator />}
+                {hasAnyDesign && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>}
               </DropdownMenuContent>
             </DropdownMenu>
             {isPreparingDesignFiles ? (
