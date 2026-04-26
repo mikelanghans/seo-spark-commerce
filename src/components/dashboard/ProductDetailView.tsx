@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { ListingOutput } from "@/components/ListingOutput";
@@ -27,7 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
-  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign,
+  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign, X,
 } from "lucide-react";
 
 interface Props {
@@ -365,6 +365,56 @@ export const ProductDetailView = ({
     }
   };
 
+  const handleReplaceDesign = async (variant: "light" | "dark", file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const newUrl = await uploadImageToStorage(file);
+    if (!newUrl) return;
+
+    const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
+    const position = variant === "light" ? 0 : 1;
+
+    if (variant === "light") {
+      const { error } = await supabase.from("products").update({ image_url: newUrl }).eq("id", product.id);
+      if (error) { toast.error("Failed to update design file"); return; }
+    }
+
+    await insertProductImagesDeduped([{
+      product_id: product.id,
+      user_id: userId,
+      image_url: newUrl,
+      image_type: "design",
+      color_name: colorName,
+      position,
+    }]);
+
+    if (variant === "light") {
+      setLightDesignUrl(newUrl);
+      setSelectedProduct({ ...product, image_url: newUrl });
+      toast.success("Light design replaced!");
+    } else {
+      setDarkDesignUrl(newUrl);
+      toast.success("Dark design replaced!");
+    }
+  };
+
+  const handleClearDesigns = async () => {
+    const { error: productError } = await supabase.from("products").update({ image_url: null }).eq("id", product.id);
+    if (productError) { toast.error("Failed to clear design file"); return; }
+
+    const { error: imagesError } = await supabase
+      .from("product_images")
+      .delete()
+      .eq("product_id", product.id)
+      .eq("image_type", "design");
+
+    if (imagesError) { toast.error("Failed to clear design variants"); return; }
+
+    setLightDesignUrl(null);
+    setDarkDesignUrl(null);
+    setSelectedProduct({ ...product, image_url: null });
+    toast.success("Design cleared");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
@@ -388,7 +438,7 @@ export const ProductDetailView = ({
         </div>
       </div>
 
-      {product.image_url && (
+      {(product.image_url || lightDesignUrl || darkDesignUrl) && (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden flex items-center justify-center shrink-0 ${thumbVariant === "light" ? "bg-neutral-900" : "bg-neutral-100"}`}>
@@ -423,24 +473,14 @@ export const ProductDetailView = ({
             <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)}><Eye className="h-4 w-4" /> Preview</Button>
             <input type="file" accept="image/*" className="hidden" id="replace-light-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (!file || !file.type.startsWith("image/")) return;
-              const newUrl = await uploadImageToStorage(file);
-              if (!newUrl) return;
-              const { error } = await supabase.from("products").update({ image_url: newUrl }).eq("id", product.id);
-              if (error) { toast.error("Failed to update design file"); return; }
-              await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "light-on-dark");
-              setSelectedProduct({ ...product, image_url: newUrl });
-              toast.success("Light design replaced!");
+              if (!file) return;
+              await handleReplaceDesign("light", file);
               e.target.value = "";
             }} />
             <input type="file" accept="image/*" className="hidden" id="replace-dark-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (!file || !file.type.startsWith("image/")) return;
-              const newUrl = await uploadImageToStorage(file);
-              if (!newUrl) return;
-              const { error } = await supabase.from("product_images").update({ image_url: newUrl }).eq("product_id", product.id).eq("image_type", "design").eq("color_name", "dark-on-light");
-              if (error) { toast.error("Failed to update dark design"); return; }
-              toast.success("Dark design replaced!");
+              if (!file) return;
+              await handleReplaceDesign("dark", file);
               e.target.value = "";
             }} />
             <DropdownMenu modal={false}>
@@ -448,6 +488,8 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {isPreparingDesignFiles ? (
