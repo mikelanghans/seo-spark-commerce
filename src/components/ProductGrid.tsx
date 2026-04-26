@@ -717,7 +717,7 @@ const ProductCard = ({
         .select("image_url, color_name")
         .eq("product_id", product.id)
         .eq("image_type", "design");
-      const { lightUrl: darkGarmentDesignUrl, darkUrl: lightGarmentDesignUrl } = resolveSingleDesignVariant(
+      const { lightUrl: lightGarmentDesignUrl, darkUrl: darkGarmentDesignUrl } = resolveSingleDesignVariant(
         imgs as Array<{ image_url: string; color_name?: string | null }> | null,
         product.image_url,
       );
