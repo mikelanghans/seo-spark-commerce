@@ -365,6 +365,56 @@ export const ProductDetailView = ({
     }
   };
 
+  const handleReplaceDesign = async (variant: "light" | "dark", file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const newUrl = await uploadImageToStorage(file);
+    if (!newUrl) return;
+
+    const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
+    const position = variant === "light" ? 0 : 1;
+
+    if (variant === "light") {
+      const { error } = await supabase.from("products").update({ image_url: newUrl }).eq("id", product.id);
+      if (error) { toast.error("Failed to update design file"); return; }
+    }
+
+    await insertProductImagesDeduped([{
+      product_id: product.id,
+      user_id: userId,
+      image_url: newUrl,
+      image_type: "design",
+      color_name: colorName,
+      position,
+    }]);
+
+    if (variant === "light") {
+      setLightDesignUrl(newUrl);
+      setSelectedProduct({ ...product, image_url: newUrl });
+      toast.success("Light design replaced!");
+    } else {
+      setDarkDesignUrl(newUrl);
+      toast.success("Dark design replaced!");
+    }
+  };
+
+  const handleClearDesigns = async () => {
+    const { error: productError } = await supabase.from("products").update({ image_url: null }).eq("id", product.id);
+    if (productError) { toast.error("Failed to clear design file"); return; }
+
+    const { error: imagesError } = await supabase
+      .from("product_images")
+      .delete()
+      .eq("product_id", product.id)
+      .eq("image_type", "design");
+
+    if (imagesError) { toast.error("Failed to clear design variants"); return; }
+
+    setLightDesignUrl(null);
+    setDarkDesignUrl(null);
+    setSelectedProduct({ ...product, image_url: null });
+    toast.success("Design cleared");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
