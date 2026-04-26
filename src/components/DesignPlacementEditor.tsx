@@ -85,9 +85,14 @@ export const DesignPlacementEditor = ({
   useEffect(() => {
     let cancelled = false;
     setProcessingDesign(true);
+    // IMPORTANT: Always run the design through getPreparedDesignDataUrl so the
+    // preview uses the SAME tight-cropped canvas the final composition uses.
+    // Otherwise extra transparent padding around the artwork shifts the visual
+    // top of the design downward in the editor while the real composite anchors
+    // the cropped art at offsetY → design appears "higher" than placed.
     useOriginalDesignForPreview(designUrl)
       .then((useOriginal) => useOriginal
-        ? designUrl
+        ? getPreparedDesignDataUrl(designUrl)
         : smartRemoveBackground(designUrl).then((base64) => getPreparedDesignDataUrl(ensureImageDataUrl(base64))))
       .then((preparedUrl) => {
         if (!cancelled) setProcessedDesignUrl(preparedUrl);
