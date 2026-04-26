@@ -151,14 +151,19 @@ function drawDesignWithUnderbase(
   referenceDesignSize?: { width: number; height: number },
   preserveOriginalAppearance?: boolean,
 ) {
-  // Use reference dimensions if provided for cross-variant consistency
-  const designWidth = referenceDesignSize?.width ?? cleanedDesign.width;
-  const designHeight = referenceDesignSize?.height ?? cleanedDesign.height;
+  // Width is driven by the user's placement scale so all variants render at the
+  // same visual width on the garment. Height MUST be derived from the design's
+  // own aspect ratio — using a "reference" height taken from a different variant
+  // produces a wrong aspect that makes the design appear shorter and drift up
+  // from where the user placed it. (referenceDesignSize is intentionally unused
+  // here for that reason.)
+  void referenceDesignSize;
+  const actualAspect = cleanedDesign.height / cleanedDesign.width;
 
   // Use custom placement if provided, otherwise use defaults
   const designScale = placement?.scale ?? (designStyle === "text-only" ? 0.28 : 0.36);
   const drawWidth = Math.round(targetWidth * designScale);
-  const drawHeight = Math.round(drawWidth * (designHeight / designWidth));
+  const drawHeight = Math.round(drawWidth * actualAspect);
   const dx = Math.round((targetWidth - drawWidth) / 2 + targetWidth * (placement?.offsetX ?? 0));
   const dy = Math.round(targetHeight * (placement?.offsetY ?? 0.20));
 
