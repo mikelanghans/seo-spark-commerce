@@ -309,7 +309,7 @@ Requirements:
           }
 
           if (status === 402) {
-            return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+            return new Response(JSON.stringify({ error: "AI service is temporarily unavailable. Please try again shortly." }), {
               status: 402,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
             });

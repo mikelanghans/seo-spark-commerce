@@ -520,7 +520,7 @@ async function generateImage(
   if (!response || !response.ok) {
     const status = response?.status;
     if (status === 429) throw new Error("Rate limit exceeded. Please try again in a moment.");
-    if (status === 402) throw new Error("AI credits exhausted.");
+    if (status === 402) throw new Error("AI service is temporarily unavailable. Please try again shortly.");
     const t = response ? await response.text() : lastError;
     console.error("AI gateway error:", status, t);
     throw new Error(`AI gateway error: ${status || "all models unavailable"}`);
