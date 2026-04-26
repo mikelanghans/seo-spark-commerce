@@ -451,15 +451,22 @@ export const ProductDetailView = ({
         </div>
       </div>
 
-      {(product.image_url || lightDesignUrl || darkDesignUrl) && (
+      {(() => {
+        const hasAnyDesign = !!(product.image_url || lightDesignUrl || darkDesignUrl);
+        const thumbSrc = (thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url;
+        return (
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 sm:h-16 sm:w-16 rounded-lg border border-border overflow-hidden flex items-center justify-center shrink-0 ${thumbVariant === "light" ? "bg-neutral-900" : "bg-neutral-100"}`}>
-              <img
-                src={(thumbVariant === "dark" ? (darkDesignUrl ?? lightDesignUrl) : (lightDesignUrl ?? darkDesignUrl)) ?? product.image_url}
-                alt="Design file"
-                className="h-full w-full object-contain"
-              />
+              {thumbSrc ? (
+                <img
+                  src={thumbSrc}
+                  alt="Design file"
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              )}
             </div>
             <div>
               <p className="text-sm font-medium">Design File</p>
@@ -483,7 +490,7 @@ export const ProductDetailView = ({
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)}><Eye className="h-4 w-4" /> Preview</Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setDesignPreviewOpen(true)} disabled={!hasAnyDesign}><Eye className="h-4 w-4" /> Preview</Button>
             <input type="file" accept="image/*" className="hidden" id="replace-light-design-input" onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -501,8 +508,8 @@ export const ProductDetailView = ({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => document.getElementById("replace-light-design-input")?.click()}>Light variant</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => document.getElementById("replace-dark-design-input")?.click()}>Dark variant</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>
+                {hasAnyDesign && <DropdownMenuSeparator />}
+                {hasAnyDesign && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => void handleClearDesigns()}><X className="mr-2 h-4 w-4" /> Clear design</DropdownMenuItem>}
               </DropdownMenuContent>
             </DropdownMenu>
             {isPreparingDesignFiles ? (
@@ -551,7 +558,8 @@ export const ProductDetailView = ({
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Design Group — sibling products sharing this design */}
       {product.image_url && (() => {
