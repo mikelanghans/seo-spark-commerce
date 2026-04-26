@@ -100,7 +100,8 @@ serve(async (req) => {
     // Get print providers
     const providersRes = await fetchWithRetry(
       `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers.json`,
-      { Authorization: `Bearer ${printifyToken}` }
+      { Authorization: `Bearer ${printifyToken}` },
+      `get-providers-${bpId}`
     );
     if (!providersRes.ok) throw new Error(`Failed to get providers (${providersRes.status})`);
     const providers = await providersRes.json();
@@ -111,11 +112,13 @@ serve(async (req) => {
     const [variantsRes, printingRes] = await Promise.all([
       fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/variants.json`,
-        { Authorization: `Bearer ${printifyToken}` }
+        { Authorization: `Bearer ${printifyToken}` },
+        `get-variants-${bpId}-${ppId}`
       ),
       fetchWithRetry(
         `https://api.printify.com/v1/catalog/blueprints/${bpId}/print_providers/${ppId}/printing.json`,
-        { Authorization: `Bearer ${printifyToken}` }
+        { Authorization: `Bearer ${printifyToken}` },
+        `get-printing-${bpId}-${ppId}`
       ),
     ]);
 
