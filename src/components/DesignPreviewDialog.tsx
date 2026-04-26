@@ -332,8 +332,8 @@ export const DesignPreviewDialog = ({
               onClick={async () => {
                 try {
                   const targets: Array<{ url: string; label: string }> = [
-                    { url: darkDesignUrl!, label: "light" },
-                    { url: designUrl!, label: "dark" },
+                    { url: designUrl!, label: "light" },
+                    { url: darkDesignUrl!, label: "dark" },
                   ];
                   for (let i = 0; i < targets.length; i++) {
                     const { url, label } = targets[i];
