@@ -42,7 +42,8 @@ serve(async (req) => {
     });
 
     const validSession = sessions.data.find(
-      (s) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (s: any) =>
         s.payment_status === "paid" &&
         s.metadata?.user_id === user.id &&
         s.metadata?.credits === String(credits)
