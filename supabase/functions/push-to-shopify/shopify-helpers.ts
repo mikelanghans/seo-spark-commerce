@@ -259,7 +259,7 @@ export async function addMissingColorVariants(
         if (res.ok) {
           const data = await res.json();
           newVariants.push(data.variant);
-          console.log(`Created variant: ${color}${sizes.length > 0 ? ` / ${variant.option2}` : ""}`);
+          console.log(`Created variant: ${color}${sizes.length > 0 ? ` / ${(variant as { option2?: string }).option2 ?? ""}` : ""}`);
         } else {
           const errText = await res.text();
           console.error(`Failed to create variant ${color}: ${errText}`);
