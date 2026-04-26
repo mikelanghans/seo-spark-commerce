@@ -34,11 +34,12 @@ export function AiUsageMeter({ used, limit, loading }: AiUsageMeterProps) {
       <button
         onClick={() => setShowPacks(!showPacks)}
         className="flex w-full items-center gap-3 px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted/80 transition-colors text-left"
+        title="Your monthly Brand Aura generation credits — separate from any Lovable platform billing"
       >
         <Sparkles className="w-4 h-4 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground">AI Credits</span>
+            <span className="text-muted-foreground">Brand Aura Credits</span>
             <span className="font-medium text-foreground">
               {remaining} left
             </span>
@@ -54,7 +55,7 @@ export function AiUsageMeter({ used, limit, loading }: AiUsageMeterProps) {
         className="flex w-full items-center gap-1.5 px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <Info className="w-3 h-3" />
-        <span>What costs credits?</span>
+        <span>What costs Brand Aura credits?</span>
         {showBreakdown ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
       </button>
 
