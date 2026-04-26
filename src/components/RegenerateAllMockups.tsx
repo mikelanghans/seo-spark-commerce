@@ -424,7 +424,7 @@ export const RegenerateAllMockups = ({ organizationId, userId, templateImageUrl,
             if (error || data?.error) {
               const errorMsg = data?.error || error?.message || "";
               if (errorMsg.includes("credits") || errorMsg.includes("402")) {
-                toast.error("AI credits exhausted. Stopping regeneration.");
+                toast.error("AI service unavailable. Stopping regeneration.");
                 setRunning(false);
                 return;
               }
