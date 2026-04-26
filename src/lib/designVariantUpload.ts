@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
+  darkenBrightPixels,
   hasMeaningfulAccentColors,
   hasPredominantlyDarkInk,
   isMultiColorDesign,
@@ -69,7 +70,7 @@ export async function createAndUploadDesignVariants({
     }
   } else {
     lightBase64 = await upscaleBase64Png(transparentBase64, targetSize);
-    darkBase64 = lightBase64;
+    darkBase64 = await upscaleBase64Png(await darkenBrightPixels(transparentBase64), targetSize);
 
     try {
       const inkIsDark = await hasPredominantlyDarkInk(transparentBase64);

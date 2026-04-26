@@ -11,7 +11,7 @@ import {
 import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
+import { darkenBrightPixels, hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
 
 interface HistoryEntry {
   id: string;
@@ -132,12 +132,12 @@ export const DesignPreviewDialog = ({
           }),
       );
 
-    const preserveAccentColors = await hasMeaningfulAccentColors(lightDesignBase64) || await isMultiColorDesign(lightDesignBase64);
-    if (preserveAccentColors) {
-      return null;
-    }
-
-    const darkVariantBase64 = `data:image/png;base64,${await recolorOpaquePixels(await removeBackground(lightDesignBase64, "black"), { r: 24, g: 24, b: 24 })}`;
+    const cleanedBase64 = await removeBackground(lightDesignBase64, "black");
+    const preserveAccentColors = await hasMeaningfulAccentColors(cleanedBase64) || await isMultiColorDesign(cleanedBase64);
+    const darkContents = preserveAccentColors
+      ? await darkenBrightPixels(cleanedBase64)
+      : await recolorOpaquePixels(cleanedBase64, { r: 24, g: 24, b: 24 });
+    const darkVariantBase64 = `data:image/png;base64,${darkContents}`;
 
     const darkBlob = await fetch(darkVariantBase64).then((response) => response.blob());
     const path = `${userId}/designs/${messageId}-dark-${Date.now()}.png`;
@@ -265,7 +265,7 @@ export const DesignPreviewDialog = ({
               onClick={async () => {
                 setActiveVariant("dark");
                 // Generate dark variant on-demand if not yet available
-                if (!darkDesignUrl && !generatingDark && designUrl && messageId) {
+                if (!hasDistinctDarkVariant && !generatingDark && designUrl && messageId) {
                   setGeneratingDark(true);
                   try {
                     const savedDarkUrl = await generateDarkVariantLocally();
@@ -296,14 +296,14 @@ export const DesignPreviewDialog = ({
                   Generating…
                 </span>
               ) : (
-                <>🌙 Dark ink (light shirts){!darkDesignUrl && " ✦"}</>
+                <>🌙 Dark ink (light shirts){!hasDistinctDarkVariant && " ✦"}</>
               )}
             </button>
           </div>
         )}
 
         {/* Design image */}
-        {activeVariant === "dark" && generatingDark && !darkDesignUrl ? (
+        {activeVariant === "dark" && generatingDark && !hasDistinctDarkVariant ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-lg border border-border bg-card/50">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Generating dark ink variant…</p>
