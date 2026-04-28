@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { NotificationBell } from "@/components/NotificationBell";
 import { OnboardingTrigger } from "@/components/OnboardingTour";
-import { Sun, Moon, Settings, BookOpen, Shield, LogOut, Search } from "lucide-react";
+import { Sun, Moon, Settings, BookOpen, Shield, LogOut, Gauge } from "lucide-react";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 import type { Organization } from "@/types/dashboard";
 
