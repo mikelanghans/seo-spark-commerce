@@ -46,6 +46,39 @@ const SeoScan = () => {
     return () => { cancelled = true; if (timer) window.clearTimeout(timer); };
   }, [id, user, authLoading, navigate]);
 
+  const handleExtend = async () => {
+    if (!id) return;
+    setExtending(true);
+    try {
+      await extendScan(id);
+      toast({ title: "Scanning more pages", description: "Discovering and grading additional URLs…" });
+      // Poll until the scan returns to a complete/error state
+      const poll = async () => {
+        try {
+          const s = await getScan(id);
+          setScan(s);
+          if (s.status === "running" || s.status === "pending") {
+            window.setTimeout(poll, 2000);
+          } else {
+            setExtending(false);
+            if (s.status === "complete") {
+              toast({ title: "Scan extended", description: `Now covers ${s.report?.pages.length ?? s.pages_scanned} pages.` });
+            } else if (s.status === "error") {
+              toast({ title: "Extend failed", description: s.error_message || "Unknown error", variant: "destructive" });
+            }
+          }
+        } catch (e) {
+          setExtending(false);
+          toast({ title: "Extend failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+        }
+      };
+      poll();
+    } catch (e) {
+      setExtending(false);
+      toast({ title: "Extend failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+  };
+
   if (authLoading || (!scan && !loadError)) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
@@ -82,7 +115,20 @@ const SeoScan = () => {
                 )}
               </div>
 
-              {scan.status === "complete" && scan.report && <ScanReport report={scan.report} />}
+              {scan.status === "complete" && scan.report && (
+                <>
+                  <ScanReport report={scan.report} />
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+                    <div className="text-sm text-muted-foreground">
+                      Want broader coverage? Discover and grade additional pages from this site (up to 25 more per run).
+                    </div>
+                    <Button onClick={handleExtend} disabled={extending}>
+                      {extending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                      {extending ? "Scanning…" : "Scan more pages"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           )}
 
