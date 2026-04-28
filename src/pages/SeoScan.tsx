@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, AlertCircle, Plus } from "lucide-react";
+import { Loader2, ArrowLeft, AlertCircle, Plus, Link as LinkIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { extendScan, getScan } from "@/integrations/seo-backend/client";
 import type { SavedScan } from "@/integrations/seo-backend/types";
@@ -20,6 +21,7 @@ const SeoScan = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [extending, setExtending] = useState(false);
+  const [singleUrl, setSingleUrl] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -46,11 +48,12 @@ const SeoScan = () => {
     return () => { cancelled = true; if (timer) window.clearTimeout(timer); };
   }, [id, user, authLoading, navigate]);
 
-  const handleExtend = async () => {
+  const handleExtend = async (url?: string) => {
     if (!id) return;
     setExtending(true);
     try {
-      await extendScan(id);
+      await extendScan(id, url);
+      if (url) setSingleUrl("");
       toast({ title: "Scanning more pages", description: "Discovering and grading additional URLs…" });
       // Poll until the scan returns to a complete/error state
       const poll = async () => {
@@ -118,14 +121,41 @@ const SeoScan = () => {
               {scan.status === "complete" && scan.report && (
                 <>
                   <ScanReport report={scan.report} />
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
-                    <div className="text-sm text-muted-foreground">
-                      Want broader coverage? Discover and grade additional pages from this site (up to 25 more per run).
+                  <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm text-muted-foreground">
+                        Discover and grade additional pages from this site (up to 25 more per run).
+                      </div>
+                      <Button onClick={() => handleExtend()} disabled={extending}>
+                        {extending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                        {extending ? "Scanning…" : "Scan more pages"}
+                      </Button>
                     </div>
-                    <Button onClick={handleExtend} disabled={extending}>
-                      {extending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                      {extending ? "Scanning…" : "Scan more pages"}
-                    </Button>
+                    <div className="border-t border-border pt-3">
+                      <div className="mb-2 text-sm text-muted-foreground">
+                        Or scan one specific URL on this site:
+                      </div>
+                      <form
+                        className="flex flex-wrap items-center gap-2"
+                        onSubmit={(e) => { e.preventDefault(); if (singleUrl.trim()) handleExtend(singleUrl.trim()); }}
+                      >
+                        <div className="relative flex-1 min-w-[240px]">
+                          <LinkIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            type="url"
+                            placeholder={scan.root_url ? `${scan.root_url.replace(/\/$/, "")}/some-page` : "https://example.com/page"}
+                            value={singleUrl}
+                            onChange={(e) => setSingleUrl(e.target.value)}
+                            disabled={extending}
+                            className="pl-8"
+                          />
+                        </div>
+                        <Button type="submit" variant="outline" disabled={extending || !singleUrl.trim()}>
+                          {extending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                          Scan this URL
+                        </Button>
+                      </form>
+                    </div>
                   </div>
                 </>
               )}

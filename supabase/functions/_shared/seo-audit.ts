@@ -415,7 +415,7 @@ export async function runAudit(scan: ScanRow): Promise<void> {
 }
 
 /** Extend an existing complete scan: discover more URLs, scrape only new ones, merge + regrade. */
-export async function extendAudit(scanId: string): Promise<void> {
+export async function extendAudit(scanId: string, opts?: { url?: string }): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
@@ -445,10 +445,27 @@ export async function extendAudit(scanId: string): Promise<void> {
 
     await patchScan(adminClient, scanId, { status: "running", phase: "mapping", error_message: null });
 
-    // Discover a wider URL set, then filter out what we already scanned.
-    const discoverCap = Math.min(EXTEND_MAX_TOTAL, existingUrls.size + EXTEND_BATCH_SIZE * 4);
-    const discovered = await firecrawlMap(row.root_url, discoverCap, firecrawlKey);
-    const newUrls = discovered.filter((u) => !existingUrls.has(u)).slice(0, EXTEND_BATCH_SIZE);
+    let newUrls: string[] = [];
+    if (opts?.url) {
+      // Single-URL mode: validate and ensure it's on the same host as the root.
+      let target: URL;
+      try { target = new URL(opts.url); } catch { throw new Error("Invalid URL"); }
+      if (target.protocol !== "http:" && target.protocol !== "https:") throw new Error("Only http(s) URLs are allowed");
+      try {
+        const rootHost = new URL(row.root_url).host;
+        if (target.host !== rootHost) throw new Error(`URL must be on ${rootHost}`);
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith("URL must be on")) throw e;
+      }
+      const normalized = target.toString();
+      if (existingUrls.has(normalized)) throw new Error("This page is already in the report");
+      newUrls = [normalized];
+    } else {
+      // Discover a wider URL set, then filter out what we already scanned.
+      const discoverCap = Math.min(EXTEND_MAX_TOTAL, existingUrls.size + EXTEND_BATCH_SIZE * 4);
+      const discovered = await firecrawlMap(row.root_url, discoverCap, firecrawlKey);
+      newUrls = discovered.filter((u) => !existingUrls.has(u)).slice(0, EXTEND_BATCH_SIZE);
+    }
 
     if (newUrls.length === 0) {
       // Nothing new to scan; leave the existing report intact and mark complete.

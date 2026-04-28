@@ -25,9 +25,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { scanId } = await req.json().catch(() => ({}));
+    const { scanId, url } = await req.json().catch(() => ({}));
     if (typeof scanId !== "string" || !/^[0-9a-f-]{36}$/i.test(scanId)) {
       return new Response(JSON.stringify({ error: "Invalid scanId" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    let targetUrl: string | undefined;
+    if (typeof url === "string" && url.length > 0) {
+      if (url.length > 2048) {
+        return new Response(JSON.stringify({ error: "URL too long" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      try {
+        const u = new URL(url);
+        if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("bad");
+        targetUrl = u.toString();
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid URL" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // RLS check via user-scoped client: must be able to see the scan (org member).
@@ -43,7 +56,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Scan is still running" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const task = extendAudit(scanId);
+    const task = extendAudit(scanId, targetUrl ? { url: targetUrl } : undefined);
     if (typeof (globalThis as any).EdgeRuntime !== "undefined" && (globalThis as any).EdgeRuntime.waitUntil) {
       (globalThis as any).EdgeRuntime.waitUntil(task);
     } else {
