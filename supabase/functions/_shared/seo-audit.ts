@@ -10,6 +10,11 @@ export const SCOPE_LIMITS: Record<string, { pages: number; maxDepth: number }> =
   deep: { pages: 200, maxDepth: 5 },
 };
 
+// How many additional pages each "Scan more" run will add (cap)
+export const EXTEND_BATCH_SIZE = 25;
+// Hard ceiling so a scan can't grow forever
+export const EXTEND_MAX_TOTAL = 500;
+
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
 type IssueSeverity = "error" | "warning" | "info";
