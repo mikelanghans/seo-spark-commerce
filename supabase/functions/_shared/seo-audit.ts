@@ -31,7 +31,11 @@ async function firecrawlMap(rootUrl: string, limit: number, apiKey: string): Pro
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`Firecrawl map failed [${res.status}]: ${JSON.stringify(data)}`);
-  const links: string[] = data.links || data.data?.links || [];
+  const rawLinks: any[] = data.links || data.data?.links || [];
+  // Firecrawl v2 returns links as objects ({url, title, description}); v1 returned strings.
+  const links: string[] = rawLinks
+    .map((l) => (typeof l === "string" ? l : l?.url))
+    .filter((u): u is string => typeof u === "string" && u.length > 0);
   // Always include rootUrl first
   const set = new Set<string>([rootUrl, ...links]);
   return Array.from(set).slice(0, limit);
