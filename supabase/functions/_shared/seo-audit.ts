@@ -10,6 +10,11 @@ export const SCOPE_LIMITS: Record<string, { pages: number; maxDepth: number }> =
   deep: { pages: 200, maxDepth: 5 },
 };
 
+// How many additional pages each "Scan more" run will add (cap)
+export const EXTEND_BATCH_SIZE = 25;
+// Hard ceiling so a scan can't grow forever
+export const EXTEND_MAX_TOTAL = 500;
+
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
 type IssueSeverity = "error" | "warning" | "info";
@@ -389,129 +394,16 @@ export async function runAudit(scan: ScanRow): Promise<void> {
       discovered_url_count: urls.length,
     });
 
-    const pages: ScrapedPage[] = [];
-    // Concurrency 3 to keep memory + rate limits in check
-    const concurrency = 3;
-    let cursor = 0;
-    let scanned = 0;
-
-    async function worker() {
-      while (true) {
-        const idx = cursor++;
-        if (idx >= urls.length) return;
-        const page = await firecrawlScrape(urls[idx], firecrawlKey!);
-        pages.push(page);
-        scanned++;
-        // Patch progress every page (cheap)
-        await patchScan(adminClient, scan.id, { pages_scanned: scanned });
-      }
-    }
-    await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker));
+    const pages = await scrapeManyWithProgress(adminClient, scan.id, urls, firecrawlKey, 0);
 
     await patchScan(adminClient, scan.id, { phase: "grading" });
 
-    // Match scanned URLs to Brand Aura products by URL handle (Shopify-style /products/<handle>).
-    const handles = new Set<string>();
-    for (const p of pages) {
-      const h = extractHandleFromUrl(p.url);
-      if (h) handles.add(h);
-    }
-    const handleToProduct: Record<string, { productId: string; listingId: string | null; marketplace: string | null }> = {};
-    if (handles.size > 0) {
-      const { data: listingMatches } = await adminClient
-        .from("listings")
-        .select("id, product_id, url_handle, marketplace, products!inner(organization_id)")
-        .in("url_handle", Array.from(handles))
-        .eq("products.organization_id", scan.organization_id);
-      for (const row of listingMatches || []) {
-        const h = String((row as any).url_handle || "").toLowerCase();
-        if (h && !handleToProduct[h]) {
-          handleToProduct[h] = { productId: (row as any).product_id, listingId: (row as any).id, marketplace: (row as any).marketplace };
-        }
-      }
-    }
-
-    const gradedPages = pages.map((p) => {
-      const { scores, issues } = gradePage(p);
-      const handle = extractHandleFromUrl(p.url);
-      const productMatch = handle ? handleToProduct[handle] || null : null;
-      return { ...p, score: scores.overall, scores, issues, productMatch };
-    });
-
-    const overallScore = gradedPages.length
-      ? Math.round(gradedPages.reduce((s, p) => s + p.score, 0) / gradedPages.length)
-      : 0;
-
-    // Site-level category averages
-    const avg = (key: "onPage" | "structuredData" | "aeo") =>
-      gradedPages.length
-        ? Math.round(gradedPages.reduce((s, p) => s + p.scores[key], 0) / gradedPages.length)
-        : 0;
-    const categoryScores = {
-      onPage: avg("onPage"),
-      structuredData: avg("structuredData"),
-      aeo: avg("aeo"),
-      performance: 0, // not implemented; reserved
-    };
-
-    const issueCounts = { error: 0, warning: 0, info: 0 };
-    for (const p of gradedPages) for (const i of p.issues) issueCounts[i.severity]++;
-
-    // Group issues by code so the report can show "fix once, improve every page"
-    const grouped: Record<string, { code: string; severity: IssueSeverity; category: IssueCategory; message: string; pages: { url: string; title: string }[] }> = {};
-    for (const p of gradedPages) {
-      for (const i of p.issues) {
-        if (!grouped[i.code]) {
-          grouped[i.code] = { code: i.code, severity: i.severity, category: i.category, message: i.message, pages: [] };
-        }
-        grouped[i.code].pages.push({ url: p.url, title: p.title });
-      }
-    }
-    const groupedIssues = Object.values(grouped).sort((a, b) => {
-      const sevRank = { error: 0, warning: 1, info: 2 };
-      if (sevRank[a.severity] !== sevRank[b.severity]) return sevRank[a.severity] - sevRank[b.severity];
-      return b.pages.length - a.pages.length;
-    });
-
-    const ai = lovableKey ? await aiSummary(pages, scan.root_url, lovableKey) : { summary: `Scanned ${pages.length} page(s).`, topRecommendations: [] };
-
-    const report = {
-      rootUrl: scan.root_url,
-      scope: scan.scope,
-      overallScore,
-      categoryScores,
-      issueCounts,
-      summary: ai.summary,
-      topRecommendations: ai.topRecommendations,
-      groupedIssues,
-      pages: gradedPages.map((p) => ({
-        url: p.url,
-        status: p.status,
-        title: p.title,
-        description: p.description,
-        h1: p.h1,
-        headingCounts: p.headingCounts,
-        wordCount: p.wordCount,
-        internalLinks: p.internalLinks,
-        externalLinks: p.externalLinks,
-        imagesTotal: p.imagesTotal,
-        imagesMissingAlt: p.imagesMissingAlt,
-        hasCanonical: p.hasCanonical,
-        hasViewport: p.hasViewport,
-        hasHtmlLang: p.hasHtmlLang,
-        jsonLdTypes: p.jsonLdTypes,
-        score: p.score,
-        scores: p.scores,
-        issues: p.issues,
-        productMatch: p.productMatch,
-      })),
-      generatedAt: new Date().toISOString(),
-    };
+    const report = await assembleReport(adminClient, scan, pages, lovableKey);
 
     await patchScan(adminClient, scan.id, {
       status: "complete",
       phase: "complete",
-      pages_scanned: scanned,
+      pages_scanned: pages.length,
       report,
       error_message: null,
     });
@@ -520,4 +412,251 @@ export async function runAudit(scan: ScanRow): Promise<void> {
     const msg = e instanceof Error ? e.message : "Unknown error";
     await patchScan(adminClient, scan.id, { status: "error", phase: "error", error_message: msg });
   }
+}
+
+/** Extend an existing complete scan: discover more URLs, scrape only new ones, merge + regrade. */
+export async function extendAudit(scanId: string): Promise<void> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+
+  const adminClient = createClient(supabaseUrl, serviceKey);
+
+  if (!firecrawlKey) {
+    await patchScan(adminClient, scanId, { status: "error", phase: "error", error_message: "FIRECRAWL_API_KEY is not configured" });
+    return;
+  }
+
+  try {
+    const { data: row, error } = await adminClient
+      .from("seo_scans")
+      .select("id, root_url, scope, organization_id, report, pages_scanned, pages_total")
+      .eq("id", scanId)
+      .maybeSingle();
+    if (error || !row) throw new Error(error?.message || "Scan not found");
+
+    const existingPages = (row.report?.pages || []) as ScanReportPage[];
+    const existingUrls = new Set(existingPages.map((p) => p.url));
+
+    if (existingUrls.size >= EXTEND_MAX_TOTAL) {
+      throw new Error(`Scan already at the ${EXTEND_MAX_TOTAL}-page ceiling`);
+    }
+
+    await patchScan(adminClient, scanId, { status: "running", phase: "mapping", error_message: null });
+
+    // Discover a wider URL set, then filter out what we already scanned.
+    const discoverCap = Math.min(EXTEND_MAX_TOTAL, existingUrls.size + EXTEND_BATCH_SIZE * 4);
+    const discovered = await firecrawlMap(row.root_url, discoverCap, firecrawlKey);
+    const newUrls = discovered.filter((u) => !existingUrls.has(u)).slice(0, EXTEND_BATCH_SIZE);
+
+    if (newUrls.length === 0) {
+      // Nothing new to scan; leave the existing report intact and mark complete.
+      await patchScan(adminClient, scanId, {
+        status: "complete",
+        phase: "complete",
+        error_message: "No new pages discovered to add.",
+      });
+      return;
+    }
+
+    const newTotal = existingUrls.size + newUrls.length;
+    await patchScan(adminClient, scanId, {
+      phase: "scanning",
+      pages_total: newTotal,
+      discovered_url_count: Math.max(row.pages_total || 0, newTotal),
+    });
+
+    const newPages = await scrapeManyWithProgress(adminClient, scanId, newUrls, firecrawlKey, existingUrls.size);
+
+    await patchScan(adminClient, scanId, { phase: "grading" });
+
+    // Merge: rebuild ScrapedPage-shaped objects from existingPages so we can re-grade everything.
+    const mergedScraped: ScrapedPage[] = [
+      ...existingPages.map(rehydrateScraped),
+      ...newPages,
+    ];
+
+    const scanRow: ScanRow = {
+      id: row.id,
+      root_url: row.root_url,
+      scope: row.scope as keyof typeof SCOPE_LIMITS,
+      organization_id: row.organization_id,
+    };
+    const report = await assembleReport(adminClient, scanRow, mergedScraped, lovableKey);
+
+    await patchScan(adminClient, scanId, {
+      status: "complete",
+      phase: "complete",
+      pages_scanned: mergedScraped.length,
+      pages_total: mergedScraped.length,
+      report,
+      error_message: null,
+    });
+  } catch (e) {
+    console.error("extendAudit error:", e);
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    await patchScan(adminClient, scanId, { status: "error", phase: "error", error_message: msg });
+  }
+}
+
+/** Type used for already-stored report pages (subset we read back from JSON). */
+type ScanReportPage = {
+  url: string; status: number; title: string; description: string;
+  h1?: string[]; headingCounts?: { h1: number; h2: number; h3: number; h4: number };
+  wordCount?: number; internalLinks?: number; externalLinks?: number;
+  imagesTotal?: number; imagesMissingAlt?: number;
+  hasCanonical?: boolean; hasViewport?: boolean; hasHtmlLang?: boolean;
+  jsonLdTypes?: string[];
+};
+
+/** Rebuild a ScrapedPage from a stored report page so we can re-grade it without re-scraping. */
+function rehydrateScraped(p: ScanReportPage): ScrapedPage {
+  return {
+    url: p.url,
+    status: p.status ?? 200,
+    title: p.title || "",
+    description: p.description || "",
+    h1: p.h1 || [],
+    headingCounts: p.headingCounts || { h1: (p.h1?.length || 0), h2: 0, h3: 0, h4: 0 },
+    wordCount: p.wordCount ?? 0,
+    internalLinks: p.internalLinks ?? 0,
+    externalLinks: p.externalLinks ?? 0,
+    imagesTotal: p.imagesTotal ?? 0,
+    imagesMissingAlt: p.imagesMissingAlt ?? 0,
+    hasCanonical: !!p.hasCanonical,
+    hasViewport: !!p.hasViewport,
+    hasHtmlLang: !!p.hasHtmlLang,
+    ogTitle: "",
+    ogDescription: "",
+    jsonLdTypes: p.jsonLdTypes || [],
+    faqCount: 0,
+    markdownPreview: "",
+  };
+}
+
+async function scrapeManyWithProgress(
+  adminClient: any,
+  scanId: string,
+  urls: string[],
+  firecrawlKey: string,
+  startCount: number,
+): Promise<ScrapedPage[]> {
+  const pages: ScrapedPage[] = [];
+  const concurrency = 3;
+  let cursor = 0;
+  let scanned = startCount;
+
+  async function worker() {
+    while (true) {
+      const idx = cursor++;
+      if (idx >= urls.length) return;
+      const page = await firecrawlScrape(urls[idx], firecrawlKey);
+      pages.push(page);
+      scanned++;
+      await patchScan(adminClient, scanId, { pages_scanned: scanned });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker));
+  return pages;
+}
+
+async function assembleReport(adminClient: any, scan: ScanRow, pages: ScrapedPage[], lovableKey: string | undefined) {
+  // Match scanned URLs to Brand Aura products by URL handle (Shopify-style /products/<handle>).
+  const handles = new Set<string>();
+  for (const p of pages) {
+    const h = extractHandleFromUrl(p.url);
+    if (h) handles.add(h);
+  }
+  const handleToProduct: Record<string, { productId: string; listingId: string | null; marketplace: string | null }> = {};
+  if (handles.size > 0) {
+    const { data: listingMatches } = await adminClient
+      .from("listings")
+      .select("id, product_id, url_handle, marketplace, products!inner(organization_id)")
+      .in("url_handle", Array.from(handles))
+      .eq("products.organization_id", scan.organization_id);
+    for (const row of listingMatches || []) {
+      const h = String((row as any).url_handle || "").toLowerCase();
+      if (h && !handleToProduct[h]) {
+        handleToProduct[h] = { productId: (row as any).product_id, listingId: (row as any).id, marketplace: (row as any).marketplace };
+      }
+    }
+  }
+
+  const gradedPages = pages.map((p) => {
+    const { scores, issues } = gradePage(p);
+    const handle = extractHandleFromUrl(p.url);
+    const productMatch = handle ? handleToProduct[handle] || null : null;
+    return { ...p, score: scores.overall, scores, issues, productMatch };
+  });
+
+  const overallScore = gradedPages.length
+    ? Math.round(gradedPages.reduce((s, p) => s + p.score, 0) / gradedPages.length)
+    : 0;
+
+  const avg = (key: "onPage" | "structuredData" | "aeo") =>
+    gradedPages.length
+      ? Math.round(gradedPages.reduce((s, p) => s + p.scores[key], 0) / gradedPages.length)
+      : 0;
+  const categoryScores = {
+    onPage: avg("onPage"),
+    structuredData: avg("structuredData"),
+    aeo: avg("aeo"),
+    performance: 0,
+  };
+
+  const issueCounts = { error: 0, warning: 0, info: 0 };
+  for (const p of gradedPages) for (const i of p.issues) issueCounts[i.severity]++;
+
+  const grouped: Record<string, { code: string; severity: IssueSeverity; category: IssueCategory; message: string; pages: { url: string; title: string }[] }> = {};
+  for (const p of gradedPages) {
+    for (const i of p.issues) {
+      if (!grouped[i.code]) {
+        grouped[i.code] = { code: i.code, severity: i.severity, category: i.category, message: i.message, pages: [] };
+      }
+      grouped[i.code].pages.push({ url: p.url, title: p.title });
+    }
+  }
+  const groupedIssues = Object.values(grouped).sort((a, b) => {
+    const sevRank = { error: 0, warning: 1, info: 2 };
+    if (sevRank[a.severity] !== sevRank[b.severity]) return sevRank[a.severity] - sevRank[b.severity];
+    return b.pages.length - a.pages.length;
+  });
+
+  const ai = lovableKey
+    ? await aiSummary(pages, scan.root_url, lovableKey)
+    : { summary: `Scanned ${pages.length} page(s).`, topRecommendations: [] };
+
+  return {
+    rootUrl: scan.root_url,
+    scope: scan.scope,
+    overallScore,
+    categoryScores,
+    issueCounts,
+    summary: ai.summary,
+    topRecommendations: ai.topRecommendations,
+    groupedIssues,
+    pages: gradedPages.map((p) => ({
+      url: p.url,
+      status: p.status,
+      title: p.title,
+      description: p.description,
+      h1: p.h1,
+      headingCounts: p.headingCounts,
+      wordCount: p.wordCount,
+      internalLinks: p.internalLinks,
+      externalLinks: p.externalLinks,
+      imagesTotal: p.imagesTotal,
+      imagesMissingAlt: p.imagesMissingAlt,
+      hasCanonical: p.hasCanonical,
+      hasViewport: p.hasViewport,
+      hasHtmlLang: p.hasHtmlLang,
+      jsonLdTypes: p.jsonLdTypes,
+      score: p.score,
+      scores: p.scores,
+      issues: p.issues,
+      productMatch: p.productMatch,
+    })),
+    generatedAt: new Date().toISOString(),
+  };
 }
