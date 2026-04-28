@@ -12,6 +12,17 @@ export const SCOPE_LIMITS: Record<string, { pages: number; maxDepth: number }> =
 
 const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
 
+type IssueSeverity = "error" | "warning" | "info";
+type IssueCategory = "onPage" | "structuredData" | "aeo" | "performance";
+
+type GradedIssue = {
+  severity: IssueSeverity;
+  code: string;
+  message: string;
+  category: IssueCategory;
+  field?: string;
+};
+
 type ScanRow = {
   id: string;
   root_url: string;
@@ -47,14 +58,19 @@ type ScrapedPage = {
   title: string;
   description: string;
   h1: string[];
+  headingCounts: { h1: number; h2: number; h3: number; h4: number };
   wordCount: number;
   internalLinks: number;
   externalLinks: number;
+  imagesTotal: number;
   imagesMissingAlt: number;
   hasCanonical: boolean;
   hasViewport: boolean;
+  hasHtmlLang: boolean;
   ogTitle: string;
   ogDescription: string;
+  jsonLdTypes: string[]; // e.g. ["Product", "BreadcrumbList"]
+  faqCount: number;
   markdownPreview: string;
   error?: string;
 };
@@ -92,12 +108,41 @@ async function firecrawlScrape(url: string, apiKey: string): Promise<ScrapedPage
 
     // Cheap regex-based HTML inspection (avoid pulling DOM parser into edge runtime)
     const h1Matches = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) => stripTags(m[1]).trim()).filter(Boolean);
+    const h2Count = (html.match(/<h2[^>]*>/gi) || []).length;
+    const h3Count = (html.match(/<h3[^>]*>/gi) || []).length;
+    const h4Count = (html.match(/<h4[^>]*>/gi) || []).length;
     const imgs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
     const imagesMissingAlt = imgs.filter((tag) => !/\balt\s*=\s*["'][^"']+["']/i.test(tag)).length;
     const hasCanonical = /<link[^>]+rel=["']canonical["']/i.test(html);
     const hasViewport = /<meta[^>]+name=["']viewport["']/i.test(html);
+    const hasHtmlLang = /<html[^>]+\blang\s*=\s*["'][^"']+["']/i.test(html);
     const ogTitle = matchAttr(html, /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']*)["']/i);
     const ogDescription = matchAttr(html, /<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']*)["']/i);
+
+    // Extract JSON-LD blocks and pull @type values
+    const jsonLdTypes: string[] = [];
+    const ldMatches = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+    for (const m of ldMatches) {
+      try {
+        const parsed = JSON.parse(m[1].trim());
+        const collect = (node: any) => {
+          if (!node) return;
+          if (Array.isArray(node)) { node.forEach(collect); return; }
+          if (typeof node === "object") {
+            const t = node["@type"];
+            if (typeof t === "string") jsonLdTypes.push(t);
+            else if (Array.isArray(t)) t.forEach((x) => typeof x === "string" && jsonLdTypes.push(x));
+            if (Array.isArray(node["@graph"])) node["@graph"].forEach(collect);
+          }
+        };
+        collect(parsed);
+      } catch {
+        /* ignore malformed JSON-LD */
+      }
+    }
+
+    // FAQ-style content (good for AEO): count "?" lines in markdown
+    const faqCount = (markdown.match(/\n\s*[#*-]?\s*[^?\n]{8,200}\?/g) || []).length;
 
     return {
       url,
@@ -105,14 +150,19 @@ async function firecrawlScrape(url: string, apiKey: string): Promise<ScrapedPage
       title: String(meta.title || "").slice(0, 300),
       description: String(meta.description || "").slice(0, 500),
       h1: h1Matches.slice(0, 5),
+      headingCounts: { h1: h1Matches.length, h2: h2Count, h3: h3Count, h4: h4Count },
       wordCount: markdown.split(/\s+/).filter(Boolean).length,
       internalLinks: internal,
       externalLinks: external,
+      imagesTotal: imgs.length,
       imagesMissingAlt,
       hasCanonical,
       hasViewport,
+      hasHtmlLang,
       ogTitle,
       ogDescription,
+      jsonLdTypes: Array.from(new Set(jsonLdTypes)),
+      faqCount,
       markdownPreview: markdown.slice(0, 500),
     };
   } catch (e) {
@@ -122,9 +172,14 @@ async function firecrawlScrape(url: string, apiKey: string): Promise<ScrapedPage
 
 function emptyPage(url: string, error: string): ScrapedPage {
   return {
-    url, status: 0, title: "", description: "", h1: [], wordCount: 0,
-    internalLinks: 0, externalLinks: 0, imagesMissingAlt: 0,
-    hasCanonical: false, hasViewport: false, ogTitle: "", ogDescription: "",
+    url, status: 0, title: "", description: "", h1: [],
+    headingCounts: { h1: 0, h2: 0, h3: 0, h4: 0 },
+    wordCount: 0,
+    internalLinks: 0, externalLinks: 0,
+    imagesTotal: 0, imagesMissingAlt: 0,
+    hasCanonical: false, hasViewport: false, hasHtmlLang: false,
+    ogTitle: "", ogDescription: "",
+    jsonLdTypes: [], faqCount: 0,
     markdownPreview: "", error,
   };
 }
@@ -138,38 +193,110 @@ function matchAttr(html: string, re: RegExp): string {
   return m ? m[1] : "";
 }
 
-// Deterministic per-page issues + score (no AI). Uses SEO_RULES so grading
-// matches the constraints we apply during listing generation.
-function gradePage(p: ScrapedPage): { score: number; issues: { severity: "error" | "warning" | "info"; code: string; message: string; field?: string }[] } {
-  const issues: { severity: "error" | "warning" | "info"; code: string; message: string; field?: string }[] = [];
-  let score = 100;
+/**
+ * Deterministic per-page issues + per-category scores.
+ * Categories: onPage, structuredData, aeo. Performance is computed at the site level.
+ * Each category starts at 100 and is reduced by issue weights.
+ */
+function gradePage(p: ScrapedPage): {
+  scores: { onPage: number; structuredData: number; aeo: number; overall: number };
+  issues: GradedIssue[];
+} {
+  const issues: GradedIssue[] = [];
+  const sub = { onPage: 100, structuredData: 100, aeo: 100 };
+  const deduct = (cat: "onPage" | "structuredData" | "aeo", n: number) => {
+    sub[cat] = Math.max(0, sub[cat] - n);
+  };
 
   if (p.error || p.status === 0) {
-    issues.push({ severity: "error", code: "fetch_failed", message: p.error || "Page failed to load" });
-    return { score: 0, issues };
+    issues.push({ severity: "error", code: "fetch_failed", category: "onPage", message: p.error || "Page failed to load" });
+    return { scores: { onPage: 0, structuredData: 0, aeo: 0, overall: 0 }, issues };
   }
   if (p.status >= 400) {
-    issues.push({ severity: "error", code: "http_error", message: `HTTP ${p.status}` });
-    score -= 50;
+    issues.push({ severity: "error", code: "http_error", category: "onPage", message: `HTTP ${p.status}` });
+    deduct("onPage", 50);
   }
-  if (!p.title) { issues.push({ severity: "error", code: "missing_title", message: "Missing <title>", field: "seoTitle" }); score -= 15; }
-  else if (p.title.length < SEO_RULES.title.min) { issues.push({ severity: "warning", code: "short_title", message: `Title is short (${p.title.length} chars, aim ${SEO_RULES.title.min}–${SEO_RULES.title.max})`, field: "seoTitle" }); score -= 5; }
-  else if (p.title.length > SEO_RULES.title.soft_max) { issues.push({ severity: "warning", code: "long_title", message: `Title is long (${p.title.length} chars, max ${SEO_RULES.title.max})`, field: "seoTitle" }); score -= 3; }
 
-  if (!p.description) { issues.push({ severity: "warning", code: "missing_meta_desc", message: "Missing meta description", field: "seoDescription" }); score -= 10; }
-  else if (p.description.length < SEO_RULES.metaDescription.soft_min) { issues.push({ severity: "info", code: "short_desc", message: `Meta description is short (${p.description.length} chars, aim ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); score -= 3; }
-  else if (p.description.length > SEO_RULES.metaDescription.soft_max) { issues.push({ severity: "info", code: "long_desc", message: `Meta description is long (${p.description.length} chars, max ${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); score -= 2; }
+  // ---------- On-Page ----------
+  if (!p.title) { issues.push({ severity: "error", code: "missing_title", category: "onPage", message: "Missing <title> tag", field: "seoTitle" }); deduct("onPage", 20); }
+  else if (p.title.length < SEO_RULES.title.min) { issues.push({ severity: "warning", code: "short_title", category: "onPage", message: `Title is short (${p.title.length} chars, aim ${SEO_RULES.title.min}–${SEO_RULES.title.max})`, field: "seoTitle" }); deduct("onPage", 6); }
+  else if (p.title.length > SEO_RULES.title.soft_max) { issues.push({ severity: "warning", code: "long_title", category: "onPage", message: `Title is long (${p.title.length} chars, max ${SEO_RULES.title.max})`, field: "seoTitle" }); deduct("onPage", 4); }
 
-  if (p.h1.length === 0) { issues.push({ severity: "warning", code: "missing_h1", message: "No H1 tag", field: "h1" }); score -= 8; }
-  else if (p.h1.length > 1) { issues.push({ severity: "info", code: "multiple_h1", message: `${p.h1.length} H1 tags found`, field: "h1" }); score -= 3; }
+  if (!p.description) { issues.push({ severity: "error", code: "missing_meta_desc", category: "onPage", message: "Missing meta description", field: "seoDescription" }); deduct("onPage", 15); }
+  else if (p.description.length < SEO_RULES.metaDescription.soft_min) { issues.push({ severity: "warning", code: "short_desc", category: "onPage", message: `Meta description is short (${p.description.length} chars, aim ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); deduct("onPage", 5); }
+  else if (p.description.length > SEO_RULES.metaDescription.soft_max) { issues.push({ severity: "info", code: "long_desc", category: "onPage", message: `Meta description is long (${p.description.length} chars, max ${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); deduct("onPage", 2); }
 
-  if (p.wordCount < SEO_RULES.bodyContent.minWords) { issues.push({ severity: "warning", code: "thin_content", message: `Only ${p.wordCount} words of content (aim ${SEO_RULES.bodyContent.minWords}+)`, field: "description" }); score -= 8; }
-  if (p.imagesMissingAlt > 0) { issues.push({ severity: "warning", code: "missing_alt", message: `${p.imagesMissingAlt} image(s) missing alt text`, field: "altText" }); score -= Math.min(10, p.imagesMissingAlt); }
-  if (!p.hasCanonical) { issues.push({ severity: "info", code: "no_canonical", message: "No canonical link tag", field: "canonical" }); score -= 2; }
-  if (!p.hasViewport) { issues.push({ severity: "warning", code: "no_viewport", message: "No viewport meta tag (mobile)", field: "viewport" }); score -= 5; }
-  if (!p.ogTitle && !p.ogDescription) { issues.push({ severity: "info", code: "no_og", message: "No Open Graph metadata", field: "og" }); score -= 3; }
+  if (p.headingCounts.h1 === 0) { issues.push({ severity: "error", code: "missing_h1", category: "onPage", message: "No H1 heading on the page", field: "h1" }); deduct("onPage", 12); }
+  else if (p.headingCounts.h1 > 1) { issues.push({ severity: "warning", code: "multiple_h1", category: "onPage", message: `Multiple H1 tags on page (${p.headingCounts.h1})`, field: "h1" }); deduct("onPage", 6); }
 
-  return { score: Math.max(0, score), issues };
+  // Heading hierarchy: h1 should be followed by some h2/h3 if there's content
+  if (p.headingCounts.h1 >= 1 && p.headingCounts.h2 === 0 && p.wordCount > 200) {
+    issues.push({ severity: "warning", code: "weak_heading_hierarchy", category: "onPage", message: "Weak heading hierarchy (no H2 sections)", field: "headings" });
+    deduct("onPage", 4);
+  }
+
+  if (!p.hasViewport) { issues.push({ severity: "error", code: "no_viewport", category: "onPage", message: "Missing viewport meta tag", field: "viewport" }); deduct("onPage", 10); }
+  if (!p.hasHtmlLang) { issues.push({ severity: "warning", code: "no_html_lang", category: "onPage", message: "Missing <html lang> attribute", field: "htmlLang" }); deduct("onPage", 4); }
+  if (!p.hasCanonical) { issues.push({ severity: "warning", code: "no_canonical", category: "onPage", message: "Missing canonical URL", field: "canonical" }); deduct("onPage", 4); }
+
+  if (p.imagesTotal > 0 && p.imagesMissingAlt > 0) {
+    const ratio = p.imagesMissingAlt / Math.max(1, p.imagesTotal);
+    const sev: IssueSeverity = ratio > 0.5 ? "warning" : "info";
+    issues.push({ severity: sev, code: "missing_alt", category: "onPage", message: `${p.imagesMissingAlt} of ${p.imagesTotal} image(s) missing alt text`, field: "altText" });
+    deduct("onPage", Math.min(10, p.imagesMissingAlt));
+  }
+
+  // ---------- Structured Data ----------
+  if (p.jsonLdTypes.length === 0) {
+    issues.push({ severity: "warning", code: "no_structured_data", category: "structuredData", message: "No JSON-LD structured data found", field: "schema" });
+    deduct("structuredData", 40);
+  } else {
+    // Bonus signals: Product, BreadcrumbList, Organization, FAQPage
+    const hasProduct = p.jsonLdTypes.some((t) => /Product/i.test(t));
+    const hasBreadcrumb = p.jsonLdTypes.some((t) => /Breadcrumb/i.test(t));
+    const hasOrg = p.jsonLdTypes.some((t) => /(Organization|WebSite)/i.test(t));
+    const looksLikeProduct = /\/products?\//i.test(p.url);
+    if (looksLikeProduct && !hasProduct) {
+      issues.push({ severity: "warning", code: "missing_product_schema", category: "structuredData", message: "Product page is missing Product schema", field: "schema" });
+      deduct("structuredData", 25);
+    }
+    if (!hasBreadcrumb) {
+      issues.push({ severity: "info", code: "no_breadcrumb_schema", category: "structuredData", message: "No BreadcrumbList schema", field: "schema" });
+      deduct("structuredData", 8);
+    }
+    if (!hasOrg) {
+      issues.push({ severity: "info", code: "no_org_schema", category: "structuredData", message: "No Organization/WebSite schema", field: "schema" });
+      deduct("structuredData", 5);
+    }
+  }
+
+  if (!p.ogTitle && !p.ogDescription) {
+    issues.push({ severity: "info", code: "no_og", category: "structuredData", message: "No Open Graph metadata", field: "og" });
+    deduct("structuredData", 8);
+  }
+
+  // ---------- AEO (Answer Engine Optimization) ----------
+  if (p.wordCount < SEO_RULES.bodyContent.minWords) {
+    issues.push({ severity: "warning", code: "thin_content", category: "aeo", message: `Thin content (${p.wordCount} words, aim ${SEO_RULES.bodyContent.minWords}+)`, field: "content" });
+    deduct("aeo", 25);
+  }
+  if (p.faqCount === 0 && p.wordCount > 300) {
+    issues.push({ severity: "info", code: "no_question_content", category: "aeo", message: "No question-style content (good for AI answer engines)", field: "content" });
+    deduct("aeo", 10);
+  }
+  if (p.headingCounts.h2 === 0 && p.wordCount > 200) {
+    issues.push({ severity: "info", code: "aeo_no_subheadings", category: "aeo", message: "No H2 subheadings — answer engines prefer scannable structure", field: "headings" });
+    deduct("aeo", 8);
+  }
+  if (p.jsonLdTypes.some((t) => /FAQPage/i.test(t))) {
+    // small bonus: don't penalize, but give a hint that this is good
+  } else if (p.faqCount >= 3) {
+    issues.push({ severity: "info", code: "faq_no_schema", category: "aeo", message: "Question content found but no FAQPage schema", field: "schema" });
+    deduct("aeo", 5);
+  }
+
+  const overall = Math.round((sub.onPage + sub.structuredData + sub.aeo) / 3);
+  return { scores: { ...sub, overall }, issues };
 }
 
 /** Extract the last meaningful path segment from a URL (the likely product handle). */
@@ -284,7 +411,6 @@ export async function runAudit(scan: ScanRow): Promise<void> {
     await patchScan(adminClient, scan.id, { phase: "grading" });
 
     // Match scanned URLs to Brand Aura products by URL handle (Shopify-style /products/<handle>).
-    // We fetch the org's listings + products and look up by url_handle / shopify slug.
     const handles = new Set<string>();
     for (const p of pages) {
       const h = extractHandleFromUrl(p.url);
@@ -306,18 +432,46 @@ export async function runAudit(scan: ScanRow): Promise<void> {
     }
 
     const gradedPages = pages.map((p) => {
-      const { score, issues } = gradePage(p);
+      const { scores, issues } = gradePage(p);
       const handle = extractHandleFromUrl(p.url);
       const productMatch = handle ? handleToProduct[handle] || null : null;
-      return { ...p, score, issues, productMatch };
+      return { ...p, score: scores.overall, scores, issues, productMatch };
     });
 
     const overallScore = gradedPages.length
       ? Math.round(gradedPages.reduce((s, p) => s + p.score, 0) / gradedPages.length)
       : 0;
 
+    // Site-level category averages
+    const avg = (key: "onPage" | "structuredData" | "aeo") =>
+      gradedPages.length
+        ? Math.round(gradedPages.reduce((s, p) => s + p.scores[key], 0) / gradedPages.length)
+        : 0;
+    const categoryScores = {
+      onPage: avg("onPage"),
+      structuredData: avg("structuredData"),
+      aeo: avg("aeo"),
+      performance: 0, // not implemented; reserved
+    };
+
     const issueCounts = { error: 0, warning: 0, info: 0 };
     for (const p of gradedPages) for (const i of p.issues) issueCounts[i.severity]++;
+
+    // Group issues by code so the report can show "fix once, improve every page"
+    const grouped: Record<string, { code: string; severity: IssueSeverity; category: IssueCategory; message: string; pages: { url: string; title: string }[] }> = {};
+    for (const p of gradedPages) {
+      for (const i of p.issues) {
+        if (!grouped[i.code]) {
+          grouped[i.code] = { code: i.code, severity: i.severity, category: i.category, message: i.message, pages: [] };
+        }
+        grouped[i.code].pages.push({ url: p.url, title: p.title });
+      }
+    }
+    const groupedIssues = Object.values(grouped).sort((a, b) => {
+      const sevRank = { error: 0, warning: 1, info: 2 };
+      if (sevRank[a.severity] !== sevRank[b.severity]) return sevRank[a.severity] - sevRank[b.severity];
+      return b.pages.length - a.pages.length;
+    });
 
     const ai = lovableKey ? await aiSummary(pages, scan.root_url, lovableKey) : { summary: `Scanned ${pages.length} page(s).`, topRecommendations: [] };
 
@@ -325,22 +479,29 @@ export async function runAudit(scan: ScanRow): Promise<void> {
       rootUrl: scan.root_url,
       scope: scan.scope,
       overallScore,
+      categoryScores,
       issueCounts,
       summary: ai.summary,
       topRecommendations: ai.topRecommendations,
+      groupedIssues,
       pages: gradedPages.map((p) => ({
         url: p.url,
         status: p.status,
         title: p.title,
         description: p.description,
         h1: p.h1,
+        headingCounts: p.headingCounts,
         wordCount: p.wordCount,
         internalLinks: p.internalLinks,
         externalLinks: p.externalLinks,
+        imagesTotal: p.imagesTotal,
         imagesMissingAlt: p.imagesMissingAlt,
         hasCanonical: p.hasCanonical,
         hasViewport: p.hasViewport,
+        hasHtmlLang: p.hasHtmlLang,
+        jsonLdTypes: p.jsonLdTypes,
         score: p.score,
+        scores: p.scores,
         issues: p.issues,
         productMatch: p.productMatch,
       })),
