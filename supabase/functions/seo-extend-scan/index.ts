@@ -56,7 +56,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Scan is still running" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const task = extendAudit(scanId);
+    const task = extendAudit(scanId, targetUrl ? { url: targetUrl } : undefined);
     if (typeof (globalThis as any).EdgeRuntime !== "undefined" && (globalThis as any).EdgeRuntime.waitUntil) {
       (globalThis as any).EdgeRuntime.waitUntil(task);
     } else {

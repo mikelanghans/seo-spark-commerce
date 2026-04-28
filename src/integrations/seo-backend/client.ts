@@ -30,8 +30,8 @@ export async function retryScan(scanId: string): Promise<string> {
   return data.scanId as string;
 }
 
-export async function extendScan(scanId: string): Promise<void> {
-  const { data, error } = await supabase.functions.invoke("seo-extend-scan", { body: { scanId } });
+export async function extendScan(scanId: string, url?: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("seo-extend-scan", { body: { scanId, url } });
   if (error) throw new Error(error.message || "Failed to extend scan");
   if ((data as any)?.error) throw new Error((data as any).error);
 }
