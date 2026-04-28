@@ -24,6 +24,13 @@ export interface ScanIssue {
   severity: "error" | "warning" | "info";
   code: string;
   message: string;
+  field?: string;
+}
+
+export interface ProductMatch {
+  productId: string;
+  listingId: string | null;
+  marketplace: string | null;
 }
 
 export interface ScanReportPage {
@@ -40,6 +47,7 @@ export interface ScanReportPage {
   hasViewport: boolean;
   score: number;
   issues: ScanIssue[];
+  productMatch?: ProductMatch | null;
 }
 
 export interface ScanReport {
