@@ -62,6 +62,8 @@ const adminRoute = createLazyRoute(() => import("./pages/Admin"));
 const notFoundRoute = createLazyRoute(() => import("./pages/NotFound"));
 const termsRoute = createLazyRoute(() => import("./pages/Terms"));
 const ebayOAuthCallbackRoute = createLazyRoute(() => import("./pages/EbayOAuthCallback"));
+const seoIndexRoute = createLazyRoute(() => import("./pages/SeoIndex"));
+const seoScanRoute = createLazyRoute(() => import("./pages/SeoScan"));
 
 const Auth = authRoute.Component;
 const AcceptInvite = acceptInviteRoute.Component;
@@ -70,6 +72,8 @@ const Admin = adminRoute.Component;
 const NotFound = notFoundRoute.Component;
 const Terms = termsRoute.Component;
 const EbayOAuthCallback = ebayOAuthCallbackRoute.Component;
+const SeoIndex = seoIndexRoute.Component;
+const SeoScan = seoScanRoute.Component;
 
 const AppShellLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -199,6 +203,8 @@ const App = () => {
                 <Route path="/features" element={<Features />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/seo" element={<ProtectedRoute><SeoIndex /></ProtectedRoute>} />
+                <Route path="/seo/scan/:id" element={<ProtectedRoute><SeoScan /></ProtectedRoute>} />
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

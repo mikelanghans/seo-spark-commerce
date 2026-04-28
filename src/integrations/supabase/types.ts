@@ -1216,6 +1216,68 @@ export type Database = {
           },
         ]
       }
+      seo_scans: {
+        Row: {
+          brand_aura_user_id: string
+          created_at: string
+          discovered_url_count: number
+          error_message: string | null
+          id: string
+          organization_id: string
+          pages_scanned: number
+          pages_total: number
+          phase: string
+          report: Json | null
+          retry_scan_id: string | null
+          root_url: string
+          scope: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand_aura_user_id: string
+          created_at?: string
+          discovered_url_count?: number
+          error_message?: string | null
+          id?: string
+          organization_id: string
+          pages_scanned?: number
+          pages_total?: number
+          phase?: string
+          report?: Json | null
+          retry_scan_id?: string | null
+          root_url: string
+          scope?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_aura_user_id?: string
+          created_at?: string
+          discovered_url_count?: number
+          error_message?: string | null
+          id?: string
+          organization_id?: string
+          pages_scanned?: number
+          pages_total?: number
+          phase?: string
+          report?: Json | null
+          retry_scan_id?: string | null
+          root_url?: string
+          scope?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_scans_retry_scan_id_fkey"
+            columns: ["retry_scan_id"]
+            isOneToOne: false
+            referencedRelation: "seo_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopify_connections: {
         Row: {
           access_token: string | null
