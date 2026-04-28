@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertCircle, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getScan } from "@/integrations/seo-backend/client";
+import { extendScan, getScan } from "@/integrations/seo-backend/client";
 import type { SavedScan } from "@/integrations/seo-backend/types";
 import { ScanProgress } from "@/components/seo/ScanProgress";
 import { ScanReport } from "@/components/seo/ScanReport";
 import { ScanErrorDrawer } from "@/components/seo/ScanErrorDrawer";
 import { GlobalErrorBoundary } from "@/components/seo/GlobalErrorBoundary";
+import { useToast } from "@/hooks/use-toast";
 
 const SeoScan = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [scan, setScan] = useState<SavedScan | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [extending, setExtending] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
