@@ -201,7 +201,7 @@ For EACH marketplace listing, also generate (these are STRICT SEO requirements â
               toolDescription: `Generate one ${m} listing with SEO metadata`,
               schema: listingSchema,
             });
-            return [m, result] as const;
+            return [m, normalizeListing(result, normalizedProduct.title)] as const;
           } catch (err) {
             lastErr = err;
             const msg = err instanceof Error ? err.message : String(err);
