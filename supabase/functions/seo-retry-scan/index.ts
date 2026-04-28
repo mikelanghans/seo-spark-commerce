@@ -66,7 +66,7 @@ serve(async (req) => {
         status: "pending",
         phase: "queued",
       })
-      .select("id, root_url, scope")
+      .select("id, root_url, scope, organization_id")
       .single();
     if (insErr || !created) {
       return new Response(JSON.stringify({ error: insErr?.message || "Failed to create retry" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -79,7 +79,7 @@ serve(async (req) => {
       .eq("id", tail.id);
     if (linkErr) console.error("Failed to link retry chain:", linkErr);
 
-    const task = runAudit({ id: created.id, root_url: created.root_url, scope: created.scope as keyof typeof SCOPE_LIMITS });
+    const task = runAudit({ id: created.id, root_url: created.root_url, scope: created.scope as keyof typeof SCOPE_LIMITS, organization_id: created.organization_id });
     if (typeof (globalThis as any).EdgeRuntime !== "undefined" && (globalThis as any).EdgeRuntime.waitUntil) {
       (globalThis as any).EdgeRuntime.waitUntil(task);
     } else {

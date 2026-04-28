@@ -76,7 +76,7 @@ serve(async (req) => {
         status: "pending",
         phase: "queued",
       })
-      .select("id, root_url, scope")
+      .select("id, root_url, scope, organization_id")
       .single();
 
     if (insErr || !inserted) {
@@ -85,7 +85,7 @@ serve(async (req) => {
     }
 
     // Background audit
-    const task = runAudit({ id: inserted.id, root_url: inserted.root_url, scope: inserted.scope as keyof typeof SCOPE_LIMITS });
+    const task = runAudit({ id: inserted.id, root_url: inserted.root_url, scope: inserted.scope as keyof typeof SCOPE_LIMITS, organization_id: inserted.organization_id });
     if (typeof (globalThis as any).EdgeRuntime !== "undefined" && (globalThis as any).EdgeRuntime.waitUntil) {
       (globalThis as any).EdgeRuntime.waitUntil(task);
     } else {

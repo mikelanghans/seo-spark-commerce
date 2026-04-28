@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getUserIdFromAuth, deductCredits, insufficientCreditsResponse } from "../_shared/credits.ts";
+import { SEO_RULES, normalizeListing } from "../_shared/seo-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,12 +126,14 @@ ${excludedSections?.length ? `
 CONTENT EXCLUSIONS — DO NOT include any of the following topics in the description or bullet points:
 ${(excludedSections as string[]).includes("materials") ? "- Materials, fabric composition, garment specs, fit details, sizing info (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("care") ? "- Care instructions, washing/drying/ironing guidance (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("shipping") ? "- Shipping times, delivery info, return policy, refund details (the storefront displays these separately)\n" : ""}Focus ONLY on the product story, lifestyle benefits, and brand voice.
 ` : ""}
-For EACH marketplace listing, also generate:
+For EACH marketplace listing, also generate (these are STRICT SEO requirements — your output will be auto-rejected if it violates them):
 - title: REWRITE the title so it clearly names the "${normalizedProduct.category}" (e.g. "Cosmic Earth Graphic T-Shirt" — not "The Universe Jar")
-- seoTitle: An SEO meta title (under 60 chars, with primary keyword + category word)
-- seoDescription: An SEO meta description (under 160 chars, mentions the category, with CTA)
-- urlHandle: A clean URL slug (lowercase, hyphens, includes the category, e.g. "cosmic-earth-t-shirt")
-- altText: Descriptive alt text mentioning the "${normalizedProduct.category}" and the design theme`;
+- seoTitle: SEO meta title — MUST be ${SEO_RULES.title.min}–${SEO_RULES.title.max} characters, includes primary keyword + the category word, no trailing punctuation
+- seoDescription: SEO meta description — MUST be ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max} characters, mentions the category, ends with a clear CTA, single paragraph
+- urlHandle: URL slug — lowercase letters, numbers, single hyphens only, max ${SEO_RULES.urlHandle.max} chars, includes the category (e.g. "cosmic-earth-t-shirt")
+- altText: Descriptive alt text — ${SEO_RULES.altText.min}–${SEO_RULES.altText.max} characters, mentions the "${normalizedProduct.category}" and the design theme
+- description: at least ${SEO_RULES.bodyContent.minWords} words of substantive product copy
+- tags: at least ${SEO_RULES.tags.min} tags`;
 
     const listingSchema = {
       type: "object",
@@ -198,7 +201,7 @@ For EACH marketplace listing, also generate:
               toolDescription: `Generate one ${m} listing with SEO metadata`,
               schema: listingSchema,
             });
-            return [m, result] as const;
+            return [m, normalizeListing(result, normalizedProduct.title)] as const;
           } catch (err) {
             lastErr = err;
             const msg = err instanceof Error ? err.message : String(err);

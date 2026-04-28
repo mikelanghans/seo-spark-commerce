@@ -2,6 +2,7 @@
 // Designed to run inside an EdgeRuntime.waitUntil background task.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SEO_RULES } from "./seo-rules.ts";
 
 export const SCOPE_LIMITS: Record<string, { pages: number; maxDepth: number }> = {
   quick: { pages: 10, maxDepth: 2 },
@@ -15,6 +16,7 @@ type ScanRow = {
   id: string;
   root_url: string;
   scope: keyof typeof SCOPE_LIMITS;
+  organization_id: string;
 };
 
 async function patchScan(adminClient: any, id: string, patch: Record<string, unknown>) {
@@ -132,9 +134,10 @@ function matchAttr(html: string, re: RegExp): string {
   return m ? m[1] : "";
 }
 
-// Deterministic per-page issues + score (no AI). Cheap and predictable.
-function gradePage(p: ScrapedPage): { score: number; issues: { severity: "error" | "warning" | "info"; code: string; message: string }[] } {
-  const issues: { severity: "error" | "warning" | "info"; code: string; message: string }[] = [];
+// Deterministic per-page issues + score (no AI). Uses SEO_RULES so grading
+// matches the constraints we apply during listing generation.
+function gradePage(p: ScrapedPage): { score: number; issues: { severity: "error" | "warning" | "info"; code: string; message: string; field?: string }[] } {
+  const issues: { severity: "error" | "warning" | "info"; code: string; message: string; field?: string }[] = [];
   let score = 100;
 
   if (p.error || p.status === 0) {
@@ -145,24 +148,38 @@ function gradePage(p: ScrapedPage): { score: number; issues: { severity: "error"
     issues.push({ severity: "error", code: "http_error", message: `HTTP ${p.status}` });
     score -= 50;
   }
-  if (!p.title) { issues.push({ severity: "error", code: "missing_title", message: "Missing <title>" }); score -= 15; }
-  else if (p.title.length < 20) { issues.push({ severity: "warning", code: "short_title", message: `Title is short (${p.title.length} chars)` }); score -= 5; }
-  else if (p.title.length > 70) { issues.push({ severity: "warning", code: "long_title", message: `Title is long (${p.title.length} chars)` }); score -= 3; }
+  if (!p.title) { issues.push({ severity: "error", code: "missing_title", message: "Missing <title>", field: "seoTitle" }); score -= 15; }
+  else if (p.title.length < SEO_RULES.title.min) { issues.push({ severity: "warning", code: "short_title", message: `Title is short (${p.title.length} chars, aim ${SEO_RULES.title.min}–${SEO_RULES.title.max})`, field: "seoTitle" }); score -= 5; }
+  else if (p.title.length > SEO_RULES.title.soft_max) { issues.push({ severity: "warning", code: "long_title", message: `Title is long (${p.title.length} chars, max ${SEO_RULES.title.max})`, field: "seoTitle" }); score -= 3; }
 
-  if (!p.description) { issues.push({ severity: "warning", code: "missing_meta_desc", message: "Missing meta description" }); score -= 10; }
-  else if (p.description.length < 70) { issues.push({ severity: "info", code: "short_desc", message: `Meta description is short (${p.description.length} chars)` }); score -= 3; }
-  else if (p.description.length > 170) { issues.push({ severity: "info", code: "long_desc", message: `Meta description is long (${p.description.length} chars)` }); score -= 2; }
+  if (!p.description) { issues.push({ severity: "warning", code: "missing_meta_desc", message: "Missing meta description", field: "seoDescription" }); score -= 10; }
+  else if (p.description.length < SEO_RULES.metaDescription.soft_min) { issues.push({ severity: "info", code: "short_desc", message: `Meta description is short (${p.description.length} chars, aim ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); score -= 3; }
+  else if (p.description.length > SEO_RULES.metaDescription.soft_max) { issues.push({ severity: "info", code: "long_desc", message: `Meta description is long (${p.description.length} chars, max ${SEO_RULES.metaDescription.max})`, field: "seoDescription" }); score -= 2; }
 
-  if (p.h1.length === 0) { issues.push({ severity: "warning", code: "missing_h1", message: "No H1 tag" }); score -= 8; }
-  else if (p.h1.length > 1) { issues.push({ severity: "info", code: "multiple_h1", message: `${p.h1.length} H1 tags found` }); score -= 3; }
+  if (p.h1.length === 0) { issues.push({ severity: "warning", code: "missing_h1", message: "No H1 tag", field: "h1" }); score -= 8; }
+  else if (p.h1.length > 1) { issues.push({ severity: "info", code: "multiple_h1", message: `${p.h1.length} H1 tags found`, field: "h1" }); score -= 3; }
 
-  if (p.wordCount < 200) { issues.push({ severity: "warning", code: "thin_content", message: `Only ${p.wordCount} words of content` }); score -= 8; }
-  if (p.imagesMissingAlt > 0) { issues.push({ severity: "warning", code: "missing_alt", message: `${p.imagesMissingAlt} image(s) missing alt text` }); score -= Math.min(10, p.imagesMissingAlt); }
-  if (!p.hasCanonical) { issues.push({ severity: "info", code: "no_canonical", message: "No canonical link tag" }); score -= 2; }
-  if (!p.hasViewport) { issues.push({ severity: "warning", code: "no_viewport", message: "No viewport meta tag (mobile)" }); score -= 5; }
-  if (!p.ogTitle && !p.ogDescription) { issues.push({ severity: "info", code: "no_og", message: "No Open Graph metadata" }); score -= 3; }
+  if (p.wordCount < SEO_RULES.bodyContent.minWords) { issues.push({ severity: "warning", code: "thin_content", message: `Only ${p.wordCount} words of content (aim ${SEO_RULES.bodyContent.minWords}+)`, field: "description" }); score -= 8; }
+  if (p.imagesMissingAlt > 0) { issues.push({ severity: "warning", code: "missing_alt", message: `${p.imagesMissingAlt} image(s) missing alt text`, field: "altText" }); score -= Math.min(10, p.imagesMissingAlt); }
+  if (!p.hasCanonical) { issues.push({ severity: "info", code: "no_canonical", message: "No canonical link tag", field: "canonical" }); score -= 2; }
+  if (!p.hasViewport) { issues.push({ severity: "warning", code: "no_viewport", message: "No viewport meta tag (mobile)", field: "viewport" }); score -= 5; }
+  if (!p.ogTitle && !p.ogDescription) { issues.push({ severity: "info", code: "no_og", message: "No Open Graph metadata", field: "og" }); score -= 3; }
 
   return { score: Math.max(0, score), issues };
+}
+
+/** Extract the last meaningful path segment from a URL (the likely product handle). */
+function extractHandleFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const segs = u.pathname.split("/").filter(Boolean);
+    if (segs.length === 0) return null;
+    const last = segs[segs.length - 1].toLowerCase();
+    if (!last || last.length > 100) return null;
+    return last;
+  } catch {
+    return null;
+  }
 }
 
 async function aiSummary(pages: ScrapedPage[], rootUrl: string, lovableKey: string): Promise<{ summary: string; topRecommendations: string[] }> {
@@ -262,9 +279,33 @@ export async function runAudit(scan: ScanRow): Promise<void> {
 
     await patchScan(adminClient, scan.id, { phase: "grading" });
 
+    // Match scanned URLs to Brand Aura products by URL handle (Shopify-style /products/<handle>).
+    // We fetch the org's listings + products and look up by url_handle / shopify slug.
+    const handles = new Set<string>();
+    for (const p of pages) {
+      const h = extractHandleFromUrl(p.url);
+      if (h) handles.add(h);
+    }
+    const handleToProduct: Record<string, { productId: string; listingId: string | null; marketplace: string | null }> = {};
+    if (handles.size > 0) {
+      const { data: listingMatches } = await adminClient
+        .from("listings")
+        .select("id, product_id, url_handle, marketplace, products!inner(organization_id)")
+        .in("url_handle", Array.from(handles))
+        .eq("products.organization_id", scan.organization_id);
+      for (const row of listingMatches || []) {
+        const h = String((row as any).url_handle || "").toLowerCase();
+        if (h && !handleToProduct[h]) {
+          handleToProduct[h] = { productId: (row as any).product_id, listingId: (row as any).id, marketplace: (row as any).marketplace };
+        }
+      }
+    }
+
     const gradedPages = pages.map((p) => {
       const { score, issues } = gradePage(p);
-      return { ...p, score, issues };
+      const handle = extractHandleFromUrl(p.url);
+      const productMatch = handle ? handleToProduct[handle] || null : null;
+      return { ...p, score, issues, productMatch };
     });
 
     const overallScore = gradedPages.length
@@ -297,6 +338,7 @@ export async function runAudit(scan: ScanRow): Promise<void> {
         hasViewport: p.hasViewport,
         score: p.score,
         issues: p.issues,
+        productMatch: p.productMatch,
       })),
       generatedAt: new Date().toISOString(),
     };
