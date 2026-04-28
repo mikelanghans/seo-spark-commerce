@@ -16,6 +16,7 @@ type ScanRow = {
   id: string;
   root_url: string;
   scope: keyof typeof SCOPE_LIMITS;
+  organization_id: string;
 };
 
 async function patchScan(adminClient: any, id: string, patch: Record<string, unknown>) {
@@ -278,9 +279,33 @@ export async function runAudit(scan: ScanRow): Promise<void> {
 
     await patchScan(adminClient, scan.id, { phase: "grading" });
 
+    // Match scanned URLs to Brand Aura products by URL handle (Shopify-style /products/<handle>).
+    // We fetch the org's listings + products and look up by url_handle / shopify slug.
+    const handles = new Set<string>();
+    for (const p of pages) {
+      const h = extractHandleFromUrl(p.url);
+      if (h) handles.add(h);
+    }
+    const handleToProduct: Record<string, { productId: string; listingId: string | null; marketplace: string | null }> = {};
+    if (handles.size > 0) {
+      const { data: listingMatches } = await adminClient
+        .from("listings")
+        .select("id, product_id, url_handle, marketplace, products!inner(organization_id)")
+        .in("url_handle", Array.from(handles))
+        .eq("products.organization_id", scan.organization_id);
+      for (const row of listingMatches || []) {
+        const h = String((row as any).url_handle || "").toLowerCase();
+        if (h && !handleToProduct[h]) {
+          handleToProduct[h] = { productId: (row as any).product_id, listingId: (row as any).id, marketplace: (row as any).marketplace };
+        }
+      }
+    }
+
     const gradedPages = pages.map((p) => {
       const { score, issues } = gradePage(p);
-      return { ...p, score, issues };
+      const handle = extractHandleFromUrl(p.url);
+      const productMatch = handle ? handleToProduct[handle] || null : null;
+      return { ...p, score, issues, productMatch };
     });
 
     const overallScore = gradedPages.length
@@ -313,6 +338,7 @@ export async function runAudit(scan: ScanRow): Promise<void> {
         hasViewport: p.hasViewport,
         score: p.score,
         issues: p.issues,
+        productMatch: p.productMatch,
       })),
       generatedAt: new Date().toISOString(),
     };
