@@ -65,19 +65,21 @@ export const ScanReport = ({ report }: { report: ScanReportType }) => {
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="mb-4 text-lg font-semibold">Per-page breakdown</h3>
         <div className="space-y-3">
-          {report.pages.map((p) => {
+          {report.pages.map((p, pageIdx) => {
             const matched = !!p.productMatch?.listingId;
             const fixable = matched && p.issues.some((i) => i.severity !== "info" || i.field);
+            const pageUrl = asUrlString(p.url);
+            const pageTitle = typeof p.title === "string" && p.title ? p.title : (p.url && typeof p.url === "object" ? (p.url as any).title : "") || "";
             return (
-              <details key={p.url} className="rounded-lg border border-border bg-background p-3">
+              <details key={pageUrl || pageIdx} className="rounded-lg border border-border bg-background p-3">
                 <summary className="cursor-pointer">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">{p.title || "(no title)"}</span>
+                        <span className="truncate text-sm font-medium">{pageTitle || "(no title)"}</span>
                         {matched && <Badge variant="outline" className="gap-1 text-[10px]"><Link2 className="h-3 w-3" /> linked</Badge>}
                       </div>
-                      <div className="truncate text-xs text-muted-foreground">{p.url}</div>
+                      <div className="truncate text-xs text-muted-foreground">{pageUrl}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold">{p.score}</span>
