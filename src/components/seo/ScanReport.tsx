@@ -1,4 +1,4 @@
-import type { ScanReport } from "@/integrations/seo-backend/types";
+import type { ScanReport as ScanReportType } from "@/integrations/seo-backend/types";
 import { Badge } from "@/components/ui/badge";
 
 const sevColor: Record<string, string> = {
@@ -7,7 +7,7 @@ const sevColor: Record<string, string> = {
   info: "secondary",
 };
 
-export const ScanReport = ({ report }: { report: ScanReport }) => {
+export const ScanReport = ({ report }: { report: ScanReportType }) => {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
