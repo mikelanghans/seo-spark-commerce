@@ -50,7 +50,7 @@ export const DashboardHeader = ({ selectedOrg, aiUsage, notifications, theme, to
             <Settings className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/seo")} title="SEO Site Audit">
-            <Search className="h-4 w-4" />
+            <Gauge className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
             <BookOpen className="h-4 w-4" />
