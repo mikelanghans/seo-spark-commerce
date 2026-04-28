@@ -16,16 +16,46 @@ export const SEO_RULES = {
   tags: { min: 3, max: 13 },
   canonical: { required: true },
   viewport: { required: true },
+  htmlLang: { required: true },
   openGraph: { required: true },
+  structuredData: { required: true }, // JSON-LD on product/article pages
+  headingHierarchy: { required: true }, // h1 -> h2 -> h3 progression
 } as const;
 
 export type SeoSeverity = "error" | "warning" | "info";
+
+/** Category buckets shown as sub-scores in the report. */
+export type SeoCategory = "onPage" | "structuredData" | "aeo" | "performance";
+
+export const CATEGORY_LABELS: Record<SeoCategory, string> = {
+  onPage: "On-Page SEO",
+  structuredData: "Structured Data",
+  aeo: "AEO (Answer Engine)",
+  performance: "Page Speed",
+};
 
 export interface SeoIssue {
   severity: SeoSeverity;
   code: string;
   message: string;
-  field?: "seoTitle" | "seoDescription" | "urlHandle" | "altText" | "title" | "description" | "tags" | "h1" | "canonical" | "viewport" | "og" | "content" | "images";
+  category?: SeoCategory;
+  field?:
+    | "seoTitle"
+    | "seoDescription"
+    | "urlHandle"
+    | "altText"
+    | "title"
+    | "description"
+    | "tags"
+    | "h1"
+    | "headings"
+    | "canonical"
+    | "viewport"
+    | "htmlLang"
+    | "og"
+    | "schema"
+    | "content"
+    | "images";
   suggestion?: string;
 }
 
@@ -45,56 +75,56 @@ export function validateListing(l: ListingForValidation): SeoIssue[] {
 
   const seoTitle = (l.seoTitle || l.title || "").trim();
   if (!seoTitle) {
-    issues.push({ severity: "error", code: "missing_seo_title", message: "Missing SEO title", field: "seoTitle" });
+    issues.push({ severity: "error", code: "missing_seo_title", message: "Missing SEO title", field: "seoTitle", category: "onPage" });
   } else {
     if (seoTitle.length < SEO_RULES.title.min) {
-      issues.push({ severity: "warning", code: "short_title", message: `SEO title is short (${seoTitle.length} chars, aim ${SEO_RULES.title.min}–${SEO_RULES.title.max})`, field: "seoTitle" });
+      issues.push({ severity: "warning", code: "short_title", message: `SEO title is short (${seoTitle.length} chars, aim ${SEO_RULES.title.min}–${SEO_RULES.title.max})`, field: "seoTitle", category: "onPage" });
     } else if (seoTitle.length > SEO_RULES.title.max) {
-      issues.push({ severity: "warning", code: "long_title", message: `SEO title is long (${seoTitle.length} chars, max ${SEO_RULES.title.max})`, field: "seoTitle" });
+      issues.push({ severity: "warning", code: "long_title", message: `SEO title is long (${seoTitle.length} chars, max ${SEO_RULES.title.max})`, field: "seoTitle", category: "onPage" });
     }
   }
 
   const seoDesc = (l.seoDescription || "").trim();
   if (!seoDesc) {
-    issues.push({ severity: "warning", code: "missing_meta_desc", message: "Missing meta description", field: "seoDescription" });
+    issues.push({ severity: "warning", code: "missing_meta_desc", message: "Missing meta description", field: "seoDescription", category: "onPage" });
   } else {
     if (seoDesc.length < SEO_RULES.metaDescription.min) {
-      issues.push({ severity: "info", code: "short_desc", message: `Meta description is short (${seoDesc.length} chars, aim ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max})`, field: "seoDescription" });
+      issues.push({ severity: "info", code: "short_desc", message: `Meta description is short (${seoDesc.length} chars, aim ${SEO_RULES.metaDescription.min}–${SEO_RULES.metaDescription.max})`, field: "seoDescription", category: "onPage" });
     } else if (seoDesc.length > SEO_RULES.metaDescription.max) {
-      issues.push({ severity: "info", code: "long_desc", message: `Meta description is long (${seoDesc.length} chars, max ${SEO_RULES.metaDescription.max})`, field: "seoDescription" });
+      issues.push({ severity: "info", code: "long_desc", message: `Meta description is long (${seoDesc.length} chars, max ${SEO_RULES.metaDescription.max})`, field: "seoDescription", category: "onPage" });
     }
   }
 
   const handle = (l.urlHandle || "").trim();
   if (!handle) {
-    issues.push({ severity: "warning", code: "missing_handle", message: "Missing URL handle", field: "urlHandle" });
+    issues.push({ severity: "warning", code: "missing_handle", message: "Missing URL handle", field: "urlHandle", category: "onPage" });
   } else {
     if (handle.length > SEO_RULES.urlHandle.max) {
-      issues.push({ severity: "warning", code: "long_handle", message: `URL handle is long (${handle.length} chars, max ${SEO_RULES.urlHandle.max})`, field: "urlHandle" });
+      issues.push({ severity: "warning", code: "long_handle", message: `URL handle is long (${handle.length} chars, max ${SEO_RULES.urlHandle.max})`, field: "urlHandle", category: "onPage" });
     }
     if (!SEO_RULES.urlHandle.pattern.test(handle)) {
-      issues.push({ severity: "warning", code: "invalid_handle", message: "URL handle should be lowercase letters, numbers, and single hyphens", field: "urlHandle" });
+      issues.push({ severity: "warning", code: "invalid_handle", message: "URL handle should be lowercase letters, numbers, and single hyphens", field: "urlHandle", category: "onPage" });
     }
   }
 
   const alt = (l.altText || "").trim();
   if (!alt) {
-    issues.push({ severity: "warning", code: "missing_alt", message: "Missing image alt text", field: "altText" });
+    issues.push({ severity: "warning", code: "missing_alt", message: "Missing image alt text", field: "altText", category: "onPage" });
   } else if (alt.length < SEO_RULES.altText.min) {
-    issues.push({ severity: "info", code: "short_alt", message: `Alt text is too brief (${alt.length} chars)`, field: "altText" });
+    issues.push({ severity: "info", code: "short_alt", message: `Alt text is too brief (${alt.length} chars)`, field: "altText", category: "onPage" });
   } else if (alt.length > SEO_RULES.altText.max) {
-    issues.push({ severity: "info", code: "long_alt", message: `Alt text is long (${alt.length} chars, max ${SEO_RULES.altText.max})`, field: "altText" });
+    issues.push({ severity: "info", code: "long_alt", message: `Alt text is long (${alt.length} chars, max ${SEO_RULES.altText.max})`, field: "altText", category: "onPage" });
   }
 
   const tagCount = Array.isArray(l.tags) ? l.tags.filter((t) => t && t.trim()).length : 0;
   if (tagCount < SEO_RULES.tags.min) {
-    issues.push({ severity: "info", code: "few_tags", message: `Only ${tagCount} tags (aim ${SEO_RULES.tags.min}+)`, field: "tags" });
+    issues.push({ severity: "info", code: "few_tags", message: `Only ${tagCount} tags (aim ${SEO_RULES.tags.min}+)`, field: "tags", category: "aeo" });
   }
 
   const desc = (l.description || "").trim();
   const wordCount = desc.split(/\s+/).filter(Boolean).length;
   if (wordCount < SEO_RULES.bodyContent.minWords) {
-    issues.push({ severity: "warning", code: "thin_content", message: `Description is thin (${wordCount} words, aim ${SEO_RULES.bodyContent.minWords}+)`, field: "description" });
+    issues.push({ severity: "warning", code: "thin_content", message: `Description is thin (${wordCount} words, aim ${SEO_RULES.bodyContent.minWords}+)`, field: "description", category: "aeo" });
   }
 
   return issues;

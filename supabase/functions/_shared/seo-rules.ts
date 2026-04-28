@@ -11,11 +11,13 @@ export const SEO_RULES = {
 };
 
 export type SeoSeverity = "error" | "warning" | "info";
+export type SeoCategory = "onPage" | "structuredData" | "aeo" | "performance";
 
 export interface SeoIssue {
   severity: SeoSeverity;
   code: string;
   message: string;
+  category?: SeoCategory;
   field?: string;
 }
 
