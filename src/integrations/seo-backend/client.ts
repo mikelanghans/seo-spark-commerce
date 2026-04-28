@@ -29,3 +29,9 @@ export async function retryScan(scanId: string): Promise<string> {
   if (!data?.scanId) throw new Error((data as any)?.error || "No scanId returned");
   return data.scanId as string;
 }
+
+export async function extendScan(scanId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("seo-extend-scan", { body: { scanId } });
+  if (error) throw new Error(error.message || "Failed to extend scan");
+  if ((data as any)?.error) throw new Error((data as any).error);
+}
