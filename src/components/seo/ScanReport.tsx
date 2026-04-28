@@ -11,6 +11,12 @@ const sevColor: Record<string, string> = {
   info: "secondary",
 };
 
+const asUrlString = (u: unknown): string => {
+  if (typeof u === "string") return u;
+  if (u && typeof u === "object" && typeof (u as any).url === "string") return (u as any).url;
+  return "";
+};
+
 export const ScanReport = ({ report }: { report: ScanReportType }) => {
   const [fixPage, setFixPage] = useState<ScanReportPage | null>(null);
 
