@@ -204,11 +204,11 @@ export const DesignPlacementEditor = ({
     const dx = (e.clientX - dragStartRef.current.x) / rect.width;
     const dy = (e.clientY - dragStartRef.current.y) / rect.height;
     let nextX = dragStartRef.current.startOffsetX + dx;
-    // Magnetic snap: when within 1.5% of true center, snap to 0 for a clean centered result
-    if (Math.abs(nextX) < 0.015) nextX = 0;
+    // Magnetic snap to the SHIRT's center (not image center)
+    if (Math.abs(nextX - shirtCenterOffset) < 0.015) nextX = shirtCenterOffset;
     setOffsetX(Math.max(-0.3, Math.min(0.3, nextX)));
     setOffsetY(Math.max(0.05, Math.min(0.7, dragStartRef.current.startOffsetY + dy)));
-  }, [dragging]);
+  }, [dragging, shirtCenterOffset]);
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
