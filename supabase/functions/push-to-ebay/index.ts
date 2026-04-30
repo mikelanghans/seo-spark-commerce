@@ -320,6 +320,9 @@ serve(async (req) => {
     const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
     const description = buildDescriptionHtml(listing);
+    const updateImages = !updateFields || updateFields.includes("images");
+    const updateDescription = !updateFields || updateFields.includes("description");
+    const updateTitle = !updateFields || updateFields.includes("title");
 
     const hasStoredPublishedListing = existingListingId && !isBrandAuraSku(existingListingId);
     const storedListingOffer = hasStoredPublishedListing
@@ -327,6 +330,37 @@ serve(async (req) => {
       : null;
 
     if (hasStoredPublishedListing && storedListingOffer?.offerId) {
+      const reviseRes = await ebayRequestWithRetry(
+        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
+        token,
+        "PUT",
+        buildInventoryPayload(knownSku, listing, updateImages ? images : [], updateImages),
+      );
+
+      if (reviseRes.status < 200 || reviseRes.status >= 300) {
+        console.error("eBay inventory update error:", reviseRes.status, reviseRes.body);
+        throw new Error(`eBay inventory update failed: ${reviseRes.status}`);
+      }
+
+      if (updateDescription || updateTitle) {
+        const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
+        if (existingOffer?.offerId) {
+          const offerPatch: Record<string, unknown> = {};
+          if (updateDescription) offerPatch.listingDescription = description;
+          const offerRes = await ebayRequest(
+            `${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}`,
+            token,
+            "PATCH",
+            offerPatch,
+          );
+          console.log("Existing offer patch:", offerRes.status, offerRes.body);
+          if (offerRes.status < 200 || offerRes.status >= 300) {
+            console.error("eBay offer patch error:", offerRes.status, offerRes.body);
+            throw new Error(`eBay offer update failed: ${offerRes.status}`);
+          }
+        }
+      }
+
         const publishRes = await ebayRequest(
           `${apiBase}/sell/inventory/v1/offer/${storedListingOffer.offerId}/publish`,
           token,
@@ -342,19 +376,6 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-      // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
-      const reviseRes = await ebayRequestWithRetry(
-        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
-        token,
-        "PUT",
-        buildInventoryPayload(knownSku, listing, images, !updateFields || updateFields.includes("images")),
-      );
-
-      if (reviseRes.status < 200 || reviseRes.status >= 300) {
-        console.error("eBay revise error:", reviseRes.status, reviseRes.body);
-        throw new Error(`eBay update failed: ${reviseRes.status}`);
-      }
 
       return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: existingListingId, action: "updated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
