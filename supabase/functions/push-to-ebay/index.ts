@@ -111,12 +111,15 @@ const buildDescriptionHtml = (listing: any) => {
   return (body + bullets).slice(0, 80000);
 };
 
-const imageUrlsForEbay = (images: unknown) => {
+const imageUrlsForEbay = (images: unknown, excludedDesignUrls = new Set<string>()) => {
   const urls = Array.isArray(images)
-    ? images.map((img: any) => String(img?.image_url || "").trim())
+    ? images
+        .filter((img: any) => String(img?.image_type || "mockup").toLowerCase() !== "design")
+        .map((img: any) => String(img?.image_url || "").trim())
     : [];
   return [...new Set(urls)]
     .filter((url) => /^https:\/\//i.test(url))
+    .filter((url) => !excludedDesignUrls.has(url))
     .slice(0, 12);
 };
 
@@ -145,10 +148,11 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
   return offer ? {
     offerId: offer.offerId || offer.id || null,
     listingId: offer.listing?.listingId || offer.listingId || null,
+    offer,
   } : null;
 };
 
-const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
+const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>()) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
     description: buildDescriptionHtml(listing),
@@ -166,7 +170,7 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       "MPN": [sku],
     },
   };
-  const imageUrls = imageUrlsForEbay(images);
+  const imageUrls = imageUrlsForEbay(images, excludedDesignUrls);
   if (includeImages && imageUrls.length > 0) product.imageUrls = imageUrls;
 
   return {
@@ -310,12 +314,24 @@ serve(async (req) => {
     }
 
     // Get current product to check existing listing
-    const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
+    const { data: product } = await sb.from("products").select("ebay_listing_id, image_url").eq("id", productId).maybeSingle();
     const existingListingId = product?.ebay_listing_id;
+    const { data: designRows } = await sb
+      .from("product_images")
+      .select("image_url")
+      .eq("product_id", productId)
+      .eq("image_type", "design");
+    const excludedDesignUrls = new Set<string>([
+      String(product?.image_url || "").trim(),
+      ...((designRows || []).map((row: any) => String(row?.image_url || "").trim())),
+    ].filter(Boolean));
     const marketplaceId = "EBAY_US";
     const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
     const description = buildDescriptionHtml(listing);
+    const updateImages = !updateFields || updateFields.includes("images");
+    const updateDescription = !updateFields || updateFields.includes("description");
+    const updateTitle = !updateFields || updateFields.includes("title");
 
     const hasStoredPublishedListing = existingListingId && !isBrandAuraSku(existingListingId);
     const storedListingOffer = hasStoredPublishedListing
@@ -323,6 +339,40 @@ serve(async (req) => {
       : null;
 
     if (hasStoredPublishedListing && storedListingOffer?.offerId) {
+      const reviseRes = await ebayRequestWithRetry(
+        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
+        token,
+        "PUT",
+        buildInventoryPayload(knownSku, listing, updateImages ? images : [], updateImages, excludedDesignUrls),
+      );
+
+      if (reviseRes.status < 200 || reviseRes.status >= 300) {
+        console.error("eBay inventory update error:", reviseRes.status, reviseRes.body);
+        throw new Error(`eBay inventory update failed: ${reviseRes.status}`);
+      }
+
+      if (updateDescription || updateTitle) {
+        const offerPatch = {
+          ...storedListingOffer.offer,
+          listingDescription: updateDescription ? description : storedListingOffer.offer?.listingDescription,
+        };
+        delete (offerPatch as any).offerId;
+        delete (offerPatch as any).listing;
+        delete (offerPatch as any).status;
+        delete (offerPatch as any).href;
+        const offerRes = await ebayRequest(
+            `${apiBase}/sell/inventory/v1/offer/${storedListingOffer.offerId}`,
+            token,
+          "PUT",
+          offerPatch,
+        );
+        console.log("Existing offer update:", offerRes.status, offerRes.body);
+        if (offerRes.status < 200 || offerRes.status >= 300) {
+          console.error("eBay offer update error:", offerRes.status, offerRes.body);
+          throw new Error(`eBay offer update failed: ${offerRes.status}`);
+        }
+      }
+
         const publishRes = await ebayRequest(
           `${apiBase}/sell/inventory/v1/offer/${storedListingOffer.offerId}/publish`,
           token,
@@ -339,19 +389,6 @@ serve(async (req) => {
           });
         }
 
-      // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
-      const reviseRes = await ebayRequestWithRetry(
-        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
-        token,
-        "PUT",
-        buildInventoryPayload(knownSku, listing, images, !updateFields || updateFields.includes("images")),
-      );
-
-      if (reviseRes.status < 200 || reviseRes.status >= 300) {
-        console.error("eBay revise error:", reviseRes.status, reviseRes.body);
-        throw new Error(`eBay update failed: ${reviseRes.status}`);
-      }
-
       return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: existingListingId, action: "updated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -363,16 +400,16 @@ serve(async (req) => {
       // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
       const sku = knownSku;
 
-      const inventoryPayload = buildInventoryPayload(sku, listing, images);
+      const inventoryPayload = buildInventoryPayload(sku, listing, images, true, excludedDesignUrls);
       let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
 
-      if (createRes.status >= 500 && imageUrlsForEbay(images).length > 1) {
+      if (createRes.status >= 500 && imageUrlsForEbay(images, excludedDesignUrls).length > 1) {
         console.warn("Retrying eBay inventory create with a single image after server error");
         createRes = await ebayRequestWithRetry(
           `${apiBase}/sell/inventory/v1/inventory_item/${sku}`,
           token,
           "PUT",
-          buildInventoryPayload(sku, listing, imageUrlsForEbay(images).slice(0, 1).map((image_url) => ({ image_url }))),
+          buildInventoryPayload(sku, listing, imageUrlsForEbay(images, excludedDesignUrls).slice(0, 1).map((image_url) => ({ image_url })), true, excludedDesignUrls),
         );
       }
 
