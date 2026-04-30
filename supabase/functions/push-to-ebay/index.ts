@@ -149,6 +149,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
   return offer ? {
     offerId: offer.offerId || offer.id || null,
     listingId: offer.listing?.listingId || offer.listingId || null,
+    offer,
   } : null;
 };
 
