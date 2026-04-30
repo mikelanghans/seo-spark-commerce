@@ -604,6 +604,17 @@ const Dashboard = () => {
                               </div>
                             </DropdownMenuItem>
                           )}
+                          {selectedOrg?.enabled_marketplaces?.includes("etsy") && (
+                            <DropdownMenuItem onClick={openEtsyConfirm} className="gap-2">
+                              <Tag className="h-4 w-4" />
+                              <div>
+                                <p className="font-medium">Push to Etsy</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Skips products already on Etsy
+                                </p>
+                              </div>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={async () => { const subset = getSelectedProducts(); await handleGenerateAllListings(subset); if (!cancelGenAllRef.current) handlePushAllToShopify(subset); }} className="gap-2 border-t border-border">
                             <Rocket className="h-4 w-4 text-primary" />
                             <div>
