@@ -32,6 +32,9 @@ export function useProductHandlers(
   const [pushingAllShopify, setPushingAllShopify] = useState(false);
   const [pushAllProgress, setPushAllProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllRef = useRef(false);
+  const [pushingAllEbay, setPushingAllEbay] = useState(false);
+  const [pushAllEbayProgress, setPushAllEbayProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllEbayRef = useRef(false);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
