@@ -276,17 +276,38 @@ serve(async (req) => {
 
     // Get current product to check existing listing
     const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
-    const existingItemId = product?.ebay_listing_id;
+    const existingListingId = product?.ebay_listing_id;
+    const marketplaceId = "EBAY_US";
+    const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
     const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
-    if (existingItemId) {
+    if (existingListingId) {
+      const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
+      if (!isBrandAuraSku(existingListingId) && existingOffer?.offerId) {
+        const publishRes = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}/publish`,
+          token,
+          "POST",
+          {},
+        );
+        console.log("Republish existing offer:", publishRes.status, publishRes.body);
+        if (publishRes.status >= 200 && publishRes.status < 300) {
+          const publishData = safeJson(publishRes.body);
+          const listingId = publishData.listingId || existingOffer.listingId || existingListingId;
+          await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
+          return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: listingId, action: "published" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
       const reviseRes = await ebayRequestWithRetry(
-        `${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`,
+        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
         token,
         "PUT",
-        buildInventoryPayload(existingItemId, listing, images, !updateFields || updateFields.includes("images")),
+        buildInventoryPayload(knownSku, listing, images, !updateFields || updateFields.includes("images")),
       );
 
       if (reviseRes.status < 200 || reviseRes.status >= 300) {
@@ -294,7 +315,7 @@ serve(async (req) => {
         throw new Error(`eBay update failed: ${reviseRes.status}`);
       }
 
-      return new Response(JSON.stringify({ success: true, item_id: existingItemId, action: "updated" }), {
+      return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: existingListingId, action: "updated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
