@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const ebayRequest = async (url: string, token: string, method: string, payload?: unknown) => {
   const urlObj = new URL(url);
   const body = payload != null ? JSON.stringify(payload) : undefined;
@@ -15,6 +17,7 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
     Accept: "application/json",
     "Content-Type": "application/json",
     "Content-Language": "en-US",
+    "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
   };
   if (body) {
     headers["Content-Length"] = new TextEncoder().encode(body).length;
@@ -46,6 +49,70 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
     if (body) req.write(body);
     req.end();
   });
+};
+
+const ebayRequestWithRetry = async (url: string, token: string, method: string, payload?: unknown) => {
+  let result = { status: 0, body: "" };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) await sleep(1000 * attempt);
+    result = await ebayRequest(url, token, method, payload);
+    if (result.status < 500) return result;
+  }
+  return result;
+};
+
+const parsePrice = (value: unknown) => {
+  const match = String(value ?? "").match(/\d+(?:\.\d{1,2})?/);
+  const amount = match ? Number.parseFloat(match[0]) : 29.99;
+  return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "29.99";
+};
+
+const cleanText = (value: unknown, fallback: string, maxLength: number) => {
+  const cleaned = String(value ?? "")
+    .replace(/[#*_`]/g, "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (cleaned || fallback).slice(0, maxLength);
+};
+
+const imageUrlsForEbay = (images: unknown) => {
+  const urls = Array.isArray(images)
+    ? images.map((img: any) => String(img?.image_url || "").trim())
+    : [];
+  return [...new Set(urls)]
+    .filter((url) => /^https:\/\//i.test(url))
+    .slice(0, 12);
+};
+
+const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
+  const product: Record<string, unknown> = {
+    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
+    description: `<p>${cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000)}</p>`,
+    brand: "Youniverses",
+    mpn: sku,
+    upc: "Does not apply",
+    aspects: {
+      Brand: ["Youniverses"],
+      Type: ["T-Shirt"],
+      Department: ["Unisex Adults"],
+      "Size Type": ["Regular"],
+      Material: ["Cotton"],
+      "Graphic Print": ["Yes"],
+    },
+  };
+  const imageUrls = imageUrlsForEbay(images);
+  if (includeImages && imageUrls.length > 0) product.imageUrls = imageUrls;
+
+  return {
+    product,
+    condition: "NEW",
+    availability: {
+      shipToLocationAvailability: {
+        quantity: 999,
+      },
+    },
+  };
 };
 
 const fetchPolicies = async (apiBase: string, token: string, marketplaceId: string) => {
