@@ -76,6 +76,41 @@ const cleanText = (value: unknown, fallback: string, maxLength: number) => {
   return (cleaned || fallback).slice(0, maxLength);
 };
 
+// Convert plain-text description into HTML preserving paragraph breaks.
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const descriptionToHtml = (value: unknown, fallback: string) => {
+  const raw = String(value ?? "")
+    .replace(/[#*_`]/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ")
+    .trim();
+  const text = raw || fallback;
+  const paragraphs = text
+    .split(/\n\s*\n+/)
+    .map((p) => p.replace(/\n/g, " ").replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean);
+  return paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
+};
+
+const bulletsToHtml = (bullets: unknown) => {
+  if (!Array.isArray(bullets)) return "";
+  const items = bullets
+    .map((b) => String(b ?? "").replace(/[#*_`]/g, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 10);
+  if (!items.length) return "";
+  return `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+};
+
+const buildDescriptionHtml = (listing: any) => {
+  const body = descriptionToHtml(listing?.description, "Graphic t-shirt in new condition.");
+  const bullets = bulletsToHtml(listing?.bullet_points);
+  // eBay limits description to ~500k chars; we'll cap to be safe.
+  return (body + bullets).slice(0, 80000);
+};
+
 const imageUrlsForEbay = (images: unknown) => {
   const urls = Array.isArray(images)
     ? images.map((img: any) => String(img?.image_url || "").trim())
