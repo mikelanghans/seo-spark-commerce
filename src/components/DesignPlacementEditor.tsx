@@ -67,7 +67,7 @@ export const DesignPlacementEditor = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? TEXT_ONLY_SCALE : DEFAULT_SCALE;
   const [scale, setScale] = useState(initialPlacement?.scale ?? defaultScale);
-  const [shirtCenterOffset, setShirtCenterOffset] = useState(0); // detected garment-center offset from image center, in fraction of width
+  const shirtCenterOffset = 0; // mockups are framed shirt-centered; image center == shirt center
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.20);
   const [dragging, setDragging] = useState(false);
@@ -82,63 +82,6 @@ export const DesignPlacementEditor = ({
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
   const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
-
-  // Detect garment horizontal center by sampling the template's middle band
-  // and finding the centroid of "garment" pixels (mid-luma, low-saturation mass
-  // distinct from the surrounding background).
-  useEffect(() => {
-    let cancelled = false;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      if (cancelled) return;
-      try {
-        const W = 200;
-        const H = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * W));
-        const c = document.createElement("canvas");
-        c.width = W; c.height = H;
-        const ctx = c.getContext("2d");
-        if (!ctx) return;
-        ctx.drawImage(img, 0, 0, W, H);
-        // Sample horizontal band around the chest area (y: 25%–55%)
-        const y0 = Math.floor(H * 0.25);
-        const y1 = Math.floor(H * 0.55);
-        const data = ctx.getImageData(0, y0, W, y1 - y0).data;
-        // Sample background color from the corners (avg of 4 corners)
-        const corner = (cx: number, cy: number) => {
-          const d = ctx.getImageData(cx, cy, 1, 1).data;
-          return [d[0], d[1], d[2]];
-        };
-        const bg = [
-          corner(2, 2), corner(W - 3, 2),
-          corner(2, H - 3), corner(W - 3, H - 3),
-        ].reduce((acc, [r, g, b]) => [acc[0] + r, acc[1] + g, acc[2] + b], [0, 0, 0])
-          .map(v => v / 4);
-        let sumX = 0, count = 0;
-        for (let y = 0; y < y1 - y0; y++) {
-          for (let x = 0; x < W; x++) {
-            const i = (y * W + x) * 4;
-            const dr = data[i] - bg[0], dg = data[i + 1] - bg[1], db = data[i + 2] - bg[2];
-            const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-            if (dist > 35) { sumX += x; count++; }
-          }
-        }
-        if (count > W * 5) {
-          const cx = sumX / count;
-          const offset = (cx - W / 2) / W; // fraction of width, signed
-          // clamp tiny noise
-          const clamped = Math.abs(offset) < 0.01 ? 0 : Math.max(-0.2, Math.min(0.2, offset));
-          if (!cancelled) {
-            setShirtCenterOffset(clamped);
-            // If the user hasn't manually set X yet, snap initial position to the detected center
-            if (!userTouchedXRef.current) setOffsetX(clamped);
-          }
-        }
-      } catch { /* ignore */ }
-    };
-    img.src = templateUrl;
-    return () => { cancelled = true; };
-  }, [templateUrl]);
 
   // Strip background from design for transparent preview
   useEffect(() => {
