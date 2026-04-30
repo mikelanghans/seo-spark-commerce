@@ -506,8 +506,14 @@ serve(async (req) => {
           if (Object.keys(listingPolicies).length > 0) offerPayload.listingPolicies = listingPolicies;
 
           const existing = await findOfferForSku(apiBase, token, vSku, marketplaceId);
-          const res = existing?.offerId
-            ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existing.offerId}`, token, "PUT", offerPayload)
+          // If an UNPUBLISHED offer exists, delete it and recreate to avoid stale product-link errors (25604)
+          if (existing?.offerId && (!existing.status || existing.status === "UNPUBLISHED")) {
+            const delRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existing.offerId}`, token, "DELETE");
+            console.log("Deleted stale unpublished offer:", existing.offerId, delRes.status);
+          }
+          const stillExists = (existing?.offerId && existing.status && existing.status !== "UNPUBLISHED") ? existing : null;
+          const res = stillExists?.offerId
+            ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${stillExists.offerId}`, token, "PUT", offerPayload)
             : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
           if (res.status < 200 || res.status >= 300) {
             console.error("Variant offer failed:", vSku, res.status, res.body);
