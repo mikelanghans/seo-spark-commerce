@@ -85,6 +85,34 @@ const imageUrlsForEbay = (images: unknown) => {
     .slice(0, 12);
 };
 
+const isBrandAuraSku = (value: unknown) => /^BA-[a-z0-9-]+$/i.test(String(value || ""));
+
+const stableSkuForProduct = (productId: string) => `BA-${productId.slice(0, 8)}`;
+
+const safeJson = (body: string) => {
+  try {
+    return JSON.parse(body || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const findOfferForSku = async (apiBase: string, token: string, sku: string, marketplaceId: string) => {
+  const res = await ebayRequest(
+    `${apiBase}/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}&marketplace_id=${marketplaceId}`,
+    token,
+    "GET",
+  );
+  console.log("Offer lookup:", res.status, res.body);
+  if (res.status < 200 || res.status >= 300) return null;
+  const data = safeJson(res.body);
+  const offer = Array.isArray(data.offers) ? data.offers[0] : null;
+  return offer ? {
+    offerId: offer.offerId || offer.id || null,
+    listingId: offer.listing?.listingId || offer.listingId || null,
+  } : null;
+};
+
 const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
