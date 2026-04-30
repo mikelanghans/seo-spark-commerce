@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.save-printify-credentials]
 verify_jwt = false
+
+[functions.ebay-account-deletion]
+verify_jwt = false
