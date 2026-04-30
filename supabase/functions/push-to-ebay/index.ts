@@ -221,28 +221,16 @@ serve(async (req) => {
     const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
     const existingItemId = product?.ebay_listing_id;
 
-    const description = (listing.description || "").replace(/[#*_]/g, "");
-    const tags = (listing.tags || []).slice(0, 30);
+    const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
     if (existingItemId) {
-      // Build selective update payload
-      const include = (field: string) => !updateFields || updateFields.includes(field);
-      const productPayload: Record<string, unknown> = {};
-      if (include("title")) productPayload.title = listing.title.slice(0, 80);
-      if (include("description")) productPayload.description = `<p>${description}</p>`;
-      if (include("images")) productPayload.imageUrls = images?.map((img: any) => img.image_url).filter(Boolean) || [];
-      productPayload.aspects = {};
-
-      // Revise existing listing
-      const reviseRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, "PUT", {
-        product: productPayload,
-        condition: "NEW",
-        availability: {
-          shipToLocationAvailability: {
-            quantity: 999,
-          },
-        },
-      });
+      // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
+      const reviseRes = await ebayRequestWithRetry(
+        `${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`,
+        token,
+        "PUT",
+        buildInventoryPayload(existingItemId, listing, images, !updateFields || updateFields.includes("images")),
+      );
 
       if (reviseRes.status < 200 || reviseRes.status >= 300) {
         console.error("eBay revise error:", reviseRes.status, reviseRes.body);
@@ -256,20 +244,18 @@ serve(async (req) => {
       // Create new inventory item
       const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
 
-      const createRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", {
-        product: {
-          title: listing.title.slice(0, 80),
-          description: `<p>${description}</p>`,
-          aspects: {},
-          imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
-        },
-        condition: "NEW",
-        availability: {
-          shipToLocationAvailability: {
-            quantity: 999,
-          },
-        },
-      });
+      const inventoryPayload = buildInventoryPayload(sku, listing, images);
+      let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
+
+      if (createRes.status >= 500 && imageUrlsForEbay(images).length > 1) {
+        console.warn("Retrying eBay inventory create with a single image after server error");
+        createRes = await ebayRequestWithRetry(
+          `${apiBase}/sell/inventory/v1/inventory_item/${sku}`,
+          token,
+          "PUT",
+          buildInventoryPayload(sku, listing, imageUrlsForEbay(images).slice(0, 1).map((image_url) => ({ image_url }))),
+        );
+      }
 
       if (createRes.status < 200 || createRes.status >= 300) {
         const errText = createRes.body;
