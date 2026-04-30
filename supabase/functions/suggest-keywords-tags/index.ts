@@ -52,6 +52,7 @@ serve(async (req) => {
       etsy: "Etsy allows up to 13 tags, max 20 chars each, lowercase, multi-word phrases (e.g. 'cosmic earth tee') strongly preferred over single words. Focus on shopper search phrases (long-tail, gift occasions, recipient, style descriptors).",
       ebay: "eBay item specifics-style keywords: brand, type, style, color, occasion, recipient. Concise 1–3 word phrases. Buyer-intent focused.",
       shopify: "Shopify tags double as product taxonomy + SEO. Use 1–3 word phrases mixing category, style, audience, occasion, and trending modifiers.",
+      tiktok: "TikTok Shop has NO separate tag field — keywords get woven into the title and description. Suggest punchy, trend-aware phrases (1–4 words) that read naturally inside copy: shopper-intent terms, viral aesthetics ('coquette', 'cottagecore', 'y2k' if genuinely relevant), gift occasions, recipient. Skip stiff e-commerce jargon.",
     };
     const rule = marketplaceRules[marketplace] || marketplaceRules.shopify;
 
