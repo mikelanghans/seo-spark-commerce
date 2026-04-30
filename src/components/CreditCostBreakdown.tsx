@@ -1,6 +1,6 @@
 import { CREDIT_COSTS } from "@/lib/creditCosts";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle, CreditCard } from "lucide-react";
+import { Sparkles, Image, Palette, FileText, MessageSquare, Share2, DollarSign, HelpCircle, CreditCard, Check, X, ExternalLink } from "lucide-react";
 
 const COST_GROUPS = [
   {
@@ -45,6 +45,10 @@ const FAQ_ITEMS = [
     q: "Can I try before subscribing?",
     a: "Yes! The Free plan includes 25 credits/month so you can experience every AI feature before committing to a paid plan.",
   },
+  {
+    q: "Are there other costs outside of credits?",
+    a: "Yes — credits cover everything inside this app (AI generation, listing creation, marketplace pushes, SEO scans, storage). But your connected platforms bill you directly: Printify charges per order for printing & shipping; Shopify, Etsy, eBay, and Meta charge their own subscription, listing, and transaction fees on your account. We never touch those.",
+  },
 ];
 
 export function CreditCostBreakdown() {
@@ -82,6 +86,38 @@ export function CreditCostBreakdown() {
         <p className="text-xs text-muted-foreground">
           Need more? Purchase credit packs anytime — they never expire and stack on top of your monthly allowance.
         </p>
+      </div>
+
+      {/* What credits cover vs what they don't */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-foreground">Your credits cover</span>
+          </div>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            <li>• AI generation (designs, mockups, listings, social posts)</li>
+            <li>• SEO site scans and re-scans</li>
+            <li>• Marketplace pushes to Printify, Shopify, Etsy, eBay</li>
+            <li>• Image storage & autopilot workflows</li>
+            <li>• All app infrastructure and bandwidth</li>
+          </ul>
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <X className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-semibold text-foreground">Billed by third parties</span>
+          </div>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            <li>• <strong className="text-foreground">Printify</strong> — printing & shipping per order</li>
+            <li>• <strong className="text-foreground">Shopify / Etsy / eBay</strong> — platform & listing fees</li>
+            <li>• <strong className="text-foreground">Meta</strong> — ad spend (if used)</li>
+            <li>• Each platform's own transaction fees on sales</li>
+          </ul>
+          <p className="text-[11px] text-muted-foreground/80 pt-1 flex items-center gap-1">
+            <ExternalLink className="h-3 w-3" /> Charged on your connected accounts, not by us.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-4">
