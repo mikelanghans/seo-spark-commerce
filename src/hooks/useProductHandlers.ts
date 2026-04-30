@@ -310,9 +310,15 @@ export function useProductHandlers(
           continue;
         }
         const ebayListing = productListings.find((l) => l.marketplace === "ebay") || productListings[0];
-        const { data: imgs } = await supabase.from("product_images").select("image_url, position").eq("product_id", product.id).order("position", { ascending: true });
-        const images = (imgs && imgs.length > 0)
-          ? imgs.map((img) => ({ image_url: img.image_url }))
+        const { data: imgs } = await supabase.from("product_images").select("image_url, position, image_type").eq("product_id", product.id).order("position", { ascending: true });
+        // eBay: prioritize mockups (lifestyle/garment shots) before raw design files
+        const sorted = (imgs || []).slice().sort((a: any, b: any) => {
+          const rank = (t: string) => (t === "mockup" ? 0 : 1);
+          const r = rank(a.image_type) - rank(b.image_type);
+          return r !== 0 ? r : (a.position ?? 0) - (b.position ?? 0);
+        });
+        const images = sorted.length > 0
+          ? sorted.map((img: any) => ({ image_url: img.image_url }))
           : (product.image_url ? [{ image_url: product.image_url }] : []);
 
         const { data, error } = await supabase.functions.invoke("push-to-ebay", {
