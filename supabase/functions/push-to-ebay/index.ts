@@ -96,6 +96,8 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       Type: ["T-Shirt"],
       Department: ["Unisex Adults"],
       "Size Type": ["Regular"],
+      Size: [String(listing?.size || "L")],
+      Color: [String(listing?.color || "Black")],
       Material: ["Cotton"],
       "Graphic Print": ["Yes"],
       "MPN": [sku],
@@ -402,11 +404,11 @@ serve(async (req) => {
       if (publishRes.status < 200 || publishRes.status >= 300) {
         console.error("eBay publish error:", publishRes.status, publishRes.body);
         return new Response(JSON.stringify({
-          success: true,
+          success: false,
+          error: `eBay publish failed: ${publishRes.body.slice(0, 500)}`,
           item_id: sku,
-          action: "created",
-          warning: `Offer created but publish failed: ${publishRes.body.slice(0, 200)}`,
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
