@@ -532,18 +532,19 @@ const Dashboard = () => {
                   onDeselectAll={deselectAllProducts}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    {generatingAll || pushingAllShopify ? (
+                    {generatingAll || pushingAllShopify || pushingAllEbay ? (
                       <Button
                         onClick={() => {
                           if (generatingAll) cancelGenAllRef.current = true;
                           if (pushingAllShopify) cancelPushAllRef.current = true;
+                          if (pushingAllEbay) cancelPushAllEbayRef.current = true;
                         }}
                         size="sm"
                         variant="destructive"
                         className="gap-1.5 text-xs sm:text-sm"
                       >
                         <X className="h-3.5 w-3.5" />
-                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
+                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : pushingAllEbay ? `eBay (${pushAllEbayProgress.done}/${pushAllEbayProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
                       </Button>
                     ) : (
                       <DropdownMenu>
@@ -571,6 +572,15 @@ const Dashboard = () => {
                               <p className="font-medium">Push to Shopify</p>
                               <p className="text-[10px] text-muted-foreground">
                                 {selectedProductIds.size > 0 ? `Sync ${selectedProductIds.size} selected products` : "Sync all products"}
+                              </p>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePushAllToEbay(getSelectedProducts())} className="gap-2">
+                            <Tag className="h-4 w-4" />
+                            <div>
+                              <p className="font-medium">Push to eBay</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Skips products already on eBay
                               </p>
                             </div>
                           </DropdownMenuItem>
