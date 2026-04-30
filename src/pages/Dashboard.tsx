@@ -128,13 +128,14 @@ const Dashboard = () => {
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
+    pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     allTags, handleAddTag, handleRemoveTag,
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
-    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay,
+    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
   } = productHandlers;
 
   const designProcessing = useDesignProcessing(user?.id);
