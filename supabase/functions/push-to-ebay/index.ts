@@ -316,8 +316,17 @@ serve(async (req) => {
     }
 
     // Get current product to check existing listing
-    const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
+    const { data: product } = await sb.from("products").select("ebay_listing_id, image_url").eq("id", productId).maybeSingle();
     const existingListingId = product?.ebay_listing_id;
+    const { data: designRows } = await sb
+      .from("product_images")
+      .select("image_url")
+      .eq("product_id", productId)
+      .eq("image_type", "design");
+    const excludedDesignUrls = new Set<string>([
+      String(product?.image_url || "").trim(),
+      ...((designRows || []).map((row: any) => String(row?.image_url || "").trim())),
+    ].filter(Boolean));
     const marketplaceId = "EBAY_US";
     const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
@@ -336,7 +345,7 @@ serve(async (req) => {
         `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
         token,
         "PUT",
-        buildInventoryPayload(knownSku, listing, updateImages ? images : [], updateImages),
+        buildInventoryPayload(knownSku, listing, updateImages ? images : [], updateImages, excludedDesignUrls),
       );
 
       if (reviseRes.status < 200 || reviseRes.status >= 300) {
@@ -393,16 +402,16 @@ serve(async (req) => {
       // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
       const sku = knownSku;
 
-      const inventoryPayload = buildInventoryPayload(sku, listing, images);
+      const inventoryPayload = buildInventoryPayload(sku, listing, images, true, excludedDesignUrls);
       let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
 
-      if (createRes.status >= 500 && imageUrlsForEbay(images).length > 1) {
+      if (createRes.status >= 500 && imageUrlsForEbay(images, excludedDesignUrls).length > 1) {
         console.warn("Retrying eBay inventory create with a single image after server error");
         createRes = await ebayRequestWithRetry(
           `${apiBase}/sell/inventory/v1/inventory_item/${sku}`,
           token,
           "PUT",
-          buildInventoryPayload(sku, listing, imageUrlsForEbay(images).slice(0, 1).map((image_url) => ({ image_url }))),
+          buildInventoryPayload(sku, listing, imageUrlsForEbay(images, excludedDesignUrls).slice(0, 1).map((image_url) => ({ image_url })), true, excludedDesignUrls),
         );
       }
 
