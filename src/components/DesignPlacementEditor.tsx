@@ -279,28 +279,27 @@ export const DesignPlacementEditor = ({
           draggable={false}
         />
 
-        {/* Centering guides — vertical center line, chest line, and chest target box.
-            The vertical line turns solid + brighter when the design is horizontally centered. */}
+        {/* Centering guides — vertical line aligned to the DETECTED shirt center */}
         {templateLoaded && (
           <>
-            {/* Vertical center line */}
+            {/* Vertical center line at shirt center */}
             <div
               className={`absolute top-0 bottom-0 pointer-events-none transition-colors ${
-                Math.abs(offsetX) < 0.01
+                Math.abs(offsetX - shirtCenterOffset) < 0.01
                   ? "border-l-2 border-primary/80"
                   : "border-l border-dashed border-primary/30"
               }`}
-              style={{ left: "50%", transform: "translateX(-0.5px)" }}
+              style={{ left: `${50 + shirtCenterOffset * 100}%`, transform: "translateX(-0.5px)" }}
             />
-            {/* Chest target box (recommended placement zone, ~28% wide × 32% tall, centered, top at 20%) */}
+            {/* Chest target box (recommended placement zone, ~28% wide × 32% tall, centered on shirt, top at 20%) */}
             <div
               className="absolute pointer-events-none border border-dashed border-primary/35 rounded"
-              style={{ left: "36%", top: "20%", width: "28%", height: "32%" }}
+              style={{ left: `${36 + shirtCenterOffset * 100}%`, top: "20%", width: "28%", height: "32%" }}
             />
             {/* Tiny center crosshair at chest sweet spot */}
             <div
               className="absolute pointer-events-none w-3 h-3 rounded-full border border-primary/60"
-              style={{ left: "50%", top: "36%", transform: "translate(-50%, -50%)" }}
+              style={{ left: `${50 + shirtCenterOffset * 100}%`, top: "36%", transform: "translate(-50%, -50%)" }}
             />
           </>
         )}
