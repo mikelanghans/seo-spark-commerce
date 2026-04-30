@@ -681,6 +681,56 @@ const Dashboard = () => {
           onMatched={() => { if (selectedOrg) loadProducts(selectedOrg.id); }}
         />
       )}
+
+      <AlertDialog open={ebayConfirm.open} onOpenChange={(o) => setEbayConfirm((s) => ({ ...s, open: o }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish {ebayConfirm.eligible.length} {ebayConfirm.eligible.length === 1 ? "product" : "products"} to eBay?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  This will create live eBay listings using your existing fulfillment, payment, and return policies.
+                  Each product uses its eBay-specific SEO listing (or the first generated listing as fallback) and its current price.
+                </p>
+                {ebayConfirm.skipped > 0 && (
+                  <p className="text-amber-500">
+                    {ebayConfirm.skipped} product{ebayConfirm.skipped === 1 ? " is" : "s are"} already on eBay and will be skipped.
+                  </p>
+                )}
+                {ebayConfirm.eligible.length > 0 && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 max-h-40 overflow-y-auto">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Will publish:</p>
+                    <ul className="space-y-0.5 text-xs">
+                      {ebayConfirm.eligible.slice(0, 10).map((p) => (
+                        <li key={p.id} className="truncate">• {p.title || "Untitled"}</li>
+                      ))}
+                      {ebayConfirm.eligible.length > 10 && (
+                        <li className="text-muted-foreground">…and {ebayConfirm.eligible.length - 10} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                {ebayConfirm.eligible.length === 0 && (
+                  <p className="text-muted-foreground">No eligible products to publish.</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={ebayConfirm.eligible.length === 0}
+              onClick={() => {
+                const toPush = ebayConfirm.products;
+                setEbayConfirm({ open: false, products: [], eligible: [], skipped: 0 });
+                handlePushAllToEbay(toPush);
+              }}
+            >
+              Publish to eBay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
