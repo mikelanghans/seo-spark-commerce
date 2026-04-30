@@ -388,7 +388,7 @@ export const DesignPlacementEditor = ({
           </label>
           <Slider
             value={[offsetX]}
-            onValueChange={([v]) => setOffsetX(v)}
+            onValueChange={([v]) => { setOffsetX(v); userTouchedXRef.current = true; }}
             min={-0.3}
             max={0.3}
             step={0.005}
