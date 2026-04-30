@@ -123,8 +123,6 @@ const imageUrlsForEbay = (images: unknown, excludedDesignUrls = new Set<string>(
     .slice(0, 12);
 };
 
-const normalizeMockupImages = (images: unknown) => imageUrlsForEbay(images).map((image_url) => ({ image_url }));
-
 const isBrandAuraSku = (value: unknown) => /^BA-[a-z0-9-]+$/i.test(String(value || ""));
 
 const stableSkuForProduct = (productId: string) => `BA-${productId.slice(0, 8)}`;
