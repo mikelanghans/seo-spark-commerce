@@ -85,6 +85,34 @@ const imageUrlsForEbay = (images: unknown) => {
     .slice(0, 12);
 };
 
+const isBrandAuraSku = (value: unknown) => /^BA-[a-z0-9-]+$/i.test(String(value || ""));
+
+const stableSkuForProduct = (productId: string) => `BA-${productId.slice(0, 8)}`;
+
+const safeJson = (body: string) => {
+  try {
+    return JSON.parse(body || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const findOfferForSku = async (apiBase: string, token: string, sku: string, marketplaceId: string) => {
+  const res = await ebayRequest(
+    `${apiBase}/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}&marketplace_id=${marketplaceId}`,
+    token,
+    "GET",
+  );
+  console.log("Offer lookup:", res.status, res.body);
+  if (res.status < 200 || res.status >= 300) return null;
+  const data = safeJson(res.body);
+  const offer = Array.isArray(data.offers) ? data.offers[0] : null;
+  return offer ? {
+    offerId: offer.offerId || offer.id || null,
+    listingId: offer.listing?.listingId || offer.listingId || null,
+  } : null;
+};
+
 const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
@@ -248,17 +276,38 @@ serve(async (req) => {
 
     // Get current product to check existing listing
     const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
-    const existingItemId = product?.ebay_listing_id;
+    const existingListingId = product?.ebay_listing_id;
+    const marketplaceId = "EBAY_US";
+    const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
     const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
-    if (existingItemId) {
+    if (existingListingId && !isBrandAuraSku(existingListingId)) {
+      const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
+      if (!isBrandAuraSku(existingListingId) && existingOffer?.offerId) {
+        const publishRes = await ebayRequest(
+          `${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}/publish`,
+          token,
+          "POST",
+          {},
+        );
+        console.log("Republish existing offer:", publishRes.status, publishRes.body);
+        if (publishRes.status >= 200 && publishRes.status < 300) {
+          const publishData = safeJson(publishRes.body);
+          const listingId = publishData.listingId || existingOffer.listingId || existingListingId;
+          await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
+          return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: listingId, action: "published" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
       const reviseRes = await ebayRequestWithRetry(
-        `${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`,
+        `${apiBase}/sell/inventory/v1/inventory_item/${knownSku}`,
         token,
         "PUT",
-        buildInventoryPayload(existingItemId, listing, images, !updateFields || updateFields.includes("images")),
+        buildInventoryPayload(knownSku, listing, images, !updateFields || updateFields.includes("images")),
       );
 
       if (reviseRes.status < 200 || reviseRes.status >= 300) {
@@ -266,12 +315,12 @@ serve(async (req) => {
         throw new Error(`eBay update failed: ${reviseRes.status}`);
       }
 
-      return new Response(JSON.stringify({ success: true, item_id: existingItemId, action: "updated" }), {
+      return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: existingListingId, action: "updated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
-      // Create new inventory item
-      const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
+      // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
+      const sku = knownSku;
 
       const inventoryPayload = buildInventoryPayload(sku, listing, images);
       let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
@@ -296,11 +345,7 @@ serve(async (req) => {
         throw new Error(`eBay create failed: ${createRes.status} — ${errText.slice(0, 200)}`);
       }
 
-      // Save eBay item ID (SKU) back to product
-      await sb.from("products").update({ ebay_listing_id: sku } as any).eq("id", productId);
-
       // Step 2: Create an offer
-      const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
       const price = parsePrice(listing.price);
 
       // Ensure a default inventory location exists
@@ -357,32 +402,32 @@ serve(async (req) => {
         offerPayload.listingPolicies = listingPolicies;
       }
 
-      const offerRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+      const existingOffer = await findOfferForSku(apiBase, token, sku, marketplaceId);
+      const offerRes = existingOffer?.offerId
+        ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}`, token, "PUT", offerPayload)
+        : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
       console.log("Offer response:", offerRes.status, offerRes.body);
 
       if (offerRes.status < 200 || offerRes.status >= 300) {
-        // Inventory item was created, but offer failed — still return partial success
         console.error("eBay offer error:", offerRes.status, offerRes.body);
         return new Response(JSON.stringify({
-          success: true,
-          item_id: sku,
-          action: "created",
-          warning: `Inventory item created but offer failed: ${offerRes.body.slice(0, 200)}`,
+          success: false,
+          error: `eBay offer failed: ${offerRes.body.slice(0, 500)}`,
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const offerData = JSON.parse(offerRes.body);
-      const offerId = offerData.offerId;
+      const offerData = safeJson(offerRes.body);
+      const offerId = offerData.offerId || existingOffer?.offerId;
 
       if (!offerId) {
         return new Response(JSON.stringify({
-          success: true,
-          item_id: sku,
-          action: "created",
-          warning: "Offer created but no offerId returned.",
+          success: false,
+          error: "eBay offer created but no offerId returned.",
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -413,8 +458,22 @@ serve(async (req) => {
         });
       }
 
-      const publishData = JSON.parse(publishRes.body);
+      const publishData = safeJson(publishRes.body);
       const listingId = publishData.listingId;
+
+      if (!listingId) {
+        console.error("eBay publish missing listingId:", publishRes.body);
+        return new Response(JSON.stringify({
+          success: false,
+          error: `eBay published response did not include a listing ID: ${publishRes.body.slice(0, 500)}`,
+          item_id: sku,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
 
       return new Response(JSON.stringify({
         success: true,

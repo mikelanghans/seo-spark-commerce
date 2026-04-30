@@ -817,11 +817,12 @@ const ProductCard = ({
               {/* Per-marketplace sync badges */}
               {(() => {
                 const shopifyStale = product.shopify_product_id && (!product.shopify_synced_at || new Date(product.shopify_synced_at) < new Date(product.updated_at || 0));
+                const isPublishedEbayListingId = (value?: string | null) => !!value && !/^BA-[a-z0-9-]+$/i.test(value);
                 const marketplaces: Array<{ key: string; label: string; linked: boolean; stale?: boolean }> = [
                   { key: "shopify", label: "Shopify", linked: !!product.shopify_product_id, stale: !!shopifyStale },
                   { key: "printify", label: "Printify", linked: !!product.printify_product_id },
                   { key: "etsy", label: "Etsy", linked: !!product.etsy_listing_id },
-                  { key: "ebay", label: "eBay", linked: !!product.ebay_listing_id },
+                  { key: "ebay", label: "eBay", linked: isPublishedEbayListingId(product.ebay_listing_id) },
                   { key: "meta", label: "Meta", linked: !!product.meta_listing_id },
                 ];
                 const linked = marketplaces.filter((m) => m.linked);

@@ -5,6 +5,8 @@ import { notifySyncFailure } from "@/lib/notificationHelpers";
 import type { Product, Listing, Organization } from "@/types/dashboard";
 import { ALL_MARKETPLACES } from "@/types/dashboard";
 
+const isPublishedEbayListingId = (value?: string | null) => !!value && !/^BA-[a-z0-9-]+$/i.test(value);
+
 export function useProductHandlers(
   userId: string | undefined,
   selectedOrg: Organization | null,
@@ -287,7 +289,7 @@ export function useProductHandlers(
     if (!ebayConn) { toast.error("eBay not connected. Go to Settings to connect first."); return; }
 
     // Only products without an existing eBay listing
-    const queue = targetProducts.filter((p) => !p.ebay_listing_id);
+    const queue = targetProducts.filter((p) => !isPublishedEbayListingId(p.ebay_listing_id));
     const skipped = targetProducts.length - queue.length;
     if (queue.length === 0) { toast.info("All selected products already have eBay listings."); return; }
     if (skipped > 0) toast.info(`Skipping ${skipped} product(s) already on eBay`);
