@@ -111,7 +111,7 @@ const buildDescriptionHtml = (listing: any) => {
   return (body + bullets).slice(0, 80000);
 };
 
-const imageUrlsForEbay = (images: unknown) => {
+const imageUrlsForEbay = (images: unknown, excludedDesignUrls = new Set<string>()) => {
   const urls = Array.isArray(images)
     ? images
         .filter((img: any) => String(img?.image_type || "mockup").toLowerCase() !== "design")
@@ -119,6 +119,7 @@ const imageUrlsForEbay = (images: unknown) => {
     : [];
   return [...new Set(urls)]
     .filter((url) => /^https:\/\//i.test(url))
+    .filter((url) => !excludedDesignUrls.has(url))
     .slice(0, 12);
 };
 
@@ -153,7 +154,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
   } : null;
 };
 
-const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
+const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>()) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
     description: buildDescriptionHtml(listing),
@@ -171,7 +172,7 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       "MPN": [sku],
     },
   };
-  const imageUrls = imageUrlsForEbay(images);
+  const imageUrls = imageUrlsForEbay(images, excludedDesignUrls);
   if (includeImages && imageUrls.length > 0) product.imageUrls = imageUrls;
 
   return {
