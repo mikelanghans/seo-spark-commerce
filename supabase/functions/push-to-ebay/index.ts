@@ -178,7 +178,7 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
     condition: "NEW",
     availability: {
       shipToLocationAvailability: {
-        quantity: 999,
+        quantity: 10,
       },
     },
   };
@@ -497,7 +497,7 @@ serve(async (req) => {
             sku: vSku,
             marketplaceId,
             format: "FIXED_PRICE",
-            availableQuantity: 999,
+            availableQuantity: 10,
             categoryId: "15687",
             listingDescription: description,
             pricingSummary: { price: { value: priceForSize(basePrice, size, listing?.size_pricing), currency: "USD" } },
