@@ -60,6 +60,8 @@ import { ALL_MARKETPLACES } from "@/types/dashboard";
 
 const LOW_CREDIT_NOTIFICATION_MILESTONES = [10, 5, 3, 1] as const;
 
+const isPublishedEbayListingId = (value?: string | null) => !!value && !/^BA-[a-z0-9-]+$/i.test(value);
+
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -160,7 +162,7 @@ const Dashboard = () => {
   const [ebayConfirm, setEbayConfirm] = useState<{ open: boolean; products: Product[]; eligible: Product[]; skipped: number }>({ open: false, products: [], eligible: [], skipped: 0 });
   const openEbayConfirm = () => {
     const subset = getSelectedProducts();
-    const eligible = subset.filter((p) => !p.ebay_listing_id);
+    const eligible = subset.filter((p) => !isPublishedEbayListingId(p.ebay_listing_id));
     setEbayConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
   };
 
