@@ -142,7 +142,10 @@ export const DesignPlacementEditor = ({
     const rect = containerRef.current.getBoundingClientRect();
     const dx = (e.clientX - dragStartRef.current.x) / rect.width;
     const dy = (e.clientY - dragStartRef.current.y) / rect.height;
-    setOffsetX(Math.max(-0.3, Math.min(0.3, dragStartRef.current.startOffsetX + dx)));
+    let nextX = dragStartRef.current.startOffsetX + dx;
+    // Magnetic snap: when within 1.5% of true center, snap to 0 for a clean centered result
+    if (Math.abs(nextX) < 0.015) nextX = 0;
+    setOffsetX(Math.max(-0.3, Math.min(0.3, nextX)));
     setOffsetY(Math.max(0.05, Math.min(0.7, dragStartRef.current.startOffsetY + dy)));
   }, [dragging]);
 
