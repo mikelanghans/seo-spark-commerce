@@ -272,7 +272,7 @@ serve(async (req) => {
 
       // Step 2: Create an offer
       const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
-      const price = listing.price || "29.99";
+      const price = parsePrice(listing.price);
 
       // Ensure a default inventory location exists
       const locationKey = "default-location";
@@ -307,7 +307,7 @@ serve(async (req) => {
         marketplaceId,
         format: "FIXED_PRICE",
         availableQuantity: 999,
-        categoryId: "11450", // default: Clothing > T-Shirts
+        categoryId: "15687", // Men's Clothing > Shirts > T-Shirts
         listingDescription: `<p>${description}</p>`,
         pricingSummary: {
           price: {
@@ -361,7 +361,7 @@ serve(async (req) => {
       // Step 3: Publish the offer
       let publishRes = { status: 0, body: "" };
       for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+        if (attempt > 0) await sleep(2000);
         publishRes = await ebayRequest(
           `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
           token,
