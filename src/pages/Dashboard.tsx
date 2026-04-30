@@ -164,6 +164,14 @@ const Dashboard = () => {
     setEbayConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
   };
 
+  // Etsy bulk push confirmation
+  const [etsyConfirm, setEtsyConfirm] = useState<{ open: boolean; products: Product[]; eligible: Product[]; skipped: number }>({ open: false, products: [], eligible: [], skipped: 0 });
+  const openEtsyConfirm = () => {
+    const subset = getSelectedProducts();
+    const eligible = subset.filter((p) => !p.etsy_listing_id);
+    setEtsyConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
+  };
+
   const getSelectedProducts = (): Product[] => {
     if (selectedProductIds.size === 0) return products.filter((p) => !p.archived_at);
     return products.filter((p) => selectedProductIds.has(p.id));
