@@ -132,20 +132,25 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
       const listing = getListing("ebay");
       if (!listing) { toast.error("No listing found. Generate one first."); return; }
 
-      // Fetch all product images so eBay receives mockups (not just the design)
+      // Fetch all product images so eBay receives mockups only (never the raw design)
       const { data: imgs } = await supabase
         .from("product_images")
         .select("image_url, position, image_type")
         .eq("product_id", product.id)
         .order("position", { ascending: true });
-      const sorted = (imgs || []).slice().sort((a: any, b: any) => {
-        const rank = (t: string) => (t === "mockup" ? 0 : 1);
-        const r = rank(a.image_type) - rank(b.image_type);
-        return r !== 0 ? r : (a.position ?? 0) - (b.position ?? 0);
-      });
-      const ebayImages = sorted.length > 0
-        ? sorted.map((img: any) => ({ image_url: img.image_url }))
-        : images.map((img) => ({ image_url: img.image_url }));
+      const mockupsOnly = (imgs || [])
+        .filter((img: any) => img.image_type === "mockup")
+        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+      const ebayImages = mockupsOnly.length > 0
+        ? mockupsOnly.map((img: any) => ({ image_url: img.image_url }))
+        : images
+            .filter((img: any) => (img as any).image_type !== "design")
+            .map((img) => ({ image_url: img.image_url }));
+
+      if (ebayImages.length === 0) {
+        toast.error("No mockup images found. Generate mockups before pushing to eBay.");
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke("push-to-ebay", {
         body: {
