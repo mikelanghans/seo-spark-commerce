@@ -5,6 +5,7 @@ import { RotateCw, Check, Loader2 } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { smartRemoveBackground } from "@/lib/removeBackground";
+import { detectGarmentCenter } from "@/lib/detectGarmentCenter";
 
 interface Props {
   templateUrl: string;
@@ -67,7 +68,9 @@ export const DesignPlacementEditor = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? TEXT_ONLY_SCALE : DEFAULT_SCALE;
   const [scale, setScale] = useState(initialPlacement?.scale ?? defaultScale);
-  const shirtCenterOffset = 0; // mockups are framed shirt-centered; image center == shirt center
+  // Detected garment-horizontal-center as a fraction of image width (0 = image center).
+  // Only set when detection confidence is high enough; otherwise stays 0.
+  const [shirtCenterOffset, setShirtCenterOffset] = useState(0);
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.20);
   const [dragging, setDragging] = useState(false);
@@ -82,6 +85,20 @@ export const DesignPlacementEditor = ({
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
   const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
+
+  // Detect the garment's true horizontal center (shoulder-line analysis).
+  // Apply only when confidence is high enough AND the user hasn't manually
+  // positioned the design — keeps the slider honest while auto-aligning props-skewed shots.
+  useEffect(() => {
+    let cancelled = false;
+    detectGarmentCenter(templateUrl).then(({ offsetX: detected, confidence }) => {
+      if (cancelled) return;
+      if (confidence < 0.6) return; // not confident — leave at image center
+      setShirtCenterOffset(detected);
+      if (!userTouchedXRef.current) setOffsetX(detected);
+    });
+    return () => { cancelled = true; };
+  }, [templateUrl]);
 
   // Strip background from design for transparent preview
   useEffect(() => {
