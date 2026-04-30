@@ -67,6 +67,7 @@ export const DesignPlacementEditor = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? TEXT_ONLY_SCALE : DEFAULT_SCALE;
   const [scale, setScale] = useState(initialPlacement?.scale ?? defaultScale);
+  const [shirtCenterOffset, setShirtCenterOffset] = useState(0); // detected garment-center offset from image center, in fraction of width
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.20);
   const [dragging, setDragging] = useState(false);
@@ -80,6 +81,64 @@ export const DesignPlacementEditor = ({
   const resizeStartRef = useRef<{ x: number; y: number; startScale: number } | null>(null);
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
+  const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
+
+  // Detect garment horizontal center by sampling the template's middle band
+  // and finding the centroid of "garment" pixels (mid-luma, low-saturation mass
+  // distinct from the surrounding background).
+  useEffect(() => {
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (cancelled) return;
+      try {
+        const W = 200;
+        const H = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * W));
+        const c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, W, H);
+        // Sample horizontal band around the chest area (y: 25%–55%)
+        const y0 = Math.floor(H * 0.25);
+        const y1 = Math.floor(H * 0.55);
+        const data = ctx.getImageData(0, y0, W, y1 - y0).data;
+        // Sample background color from the corners (avg of 4 corners)
+        const corner = (cx: number, cy: number) => {
+          const d = ctx.getImageData(cx, cy, 1, 1).data;
+          return [d[0], d[1], d[2]];
+        };
+        const bg = [
+          corner(2, 2), corner(W - 3, 2),
+          corner(2, H - 3), corner(W - 3, H - 3),
+        ].reduce((acc, [r, g, b]) => [acc[0] + r, acc[1] + g, acc[2] + b], [0, 0, 0])
+          .map(v => v / 4);
+        let sumX = 0, count = 0;
+        for (let y = 0; y < y1 - y0; y++) {
+          for (let x = 0; x < W; x++) {
+            const i = (y * W + x) * 4;
+            const dr = data[i] - bg[0], dg = data[i + 1] - bg[1], db = data[i + 2] - bg[2];
+            const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+            if (dist > 35) { sumX += x; count++; }
+          }
+        }
+        if (count > W * 5) {
+          const cx = sumX / count;
+          const offset = (cx - W / 2) / W; // fraction of width, signed
+          // clamp tiny noise
+          const clamped = Math.abs(offset) < 0.01 ? 0 : Math.max(-0.2, Math.min(0.2, offset));
+          if (!cancelled) {
+            setShirtCenterOffset(clamped);
+            // If the user hasn't manually set X yet, snap initial position to the detected center
+            if (!userTouchedXRef.current) setOffsetX(clamped);
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    img.src = templateUrl;
+    return () => { cancelled = true; };
+  }, [templateUrl]);
 
   // Strip background from design for transparent preview
   useEffect(() => {
@@ -120,14 +179,16 @@ export const DesignPlacementEditor = ({
 
   const handleReset = () => {
     setScale(defaultScale);
-    setOffsetX(0);
+    setOffsetX(shirtCenterOffset);
     setOffsetY(0.20);
+    userTouchedXRef.current = false;
   };
 
   // Drag handling
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     setDragging(true);
+    userTouchedXRef.current = true;
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
@@ -143,11 +204,11 @@ export const DesignPlacementEditor = ({
     const dx = (e.clientX - dragStartRef.current.x) / rect.width;
     const dy = (e.clientY - dragStartRef.current.y) / rect.height;
     let nextX = dragStartRef.current.startOffsetX + dx;
-    // Magnetic snap: when within 1.5% of true center, snap to 0 for a clean centered result
-    if (Math.abs(nextX) < 0.015) nextX = 0;
+    // Magnetic snap to the SHIRT's center (not image center)
+    if (Math.abs(nextX - shirtCenterOffset) < 0.015) nextX = shirtCenterOffset;
     setOffsetX(Math.max(-0.3, Math.min(0.3, nextX)));
     setOffsetY(Math.max(0.05, Math.min(0.7, dragStartRef.current.startOffsetY + dy)));
-  }, [dragging]);
+  }, [dragging, shirtCenterOffset]);
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
@@ -188,7 +249,7 @@ export const DesignPlacementEditor = ({
           <p className="text-xs text-muted-foreground">Drag the design or use sliders to fine-tune position & size</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setOffsetX(0)} className="gap-1.5" title="Snap to horizontal center">
+          <Button variant="ghost" size="sm" onClick={() => { setOffsetX(shirtCenterOffset); userTouchedXRef.current = false; }} className="gap-1.5" title="Snap to shirt center">
             ↔ Center
           </Button>
           <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5">
@@ -218,28 +279,27 @@ export const DesignPlacementEditor = ({
           draggable={false}
         />
 
-        {/* Centering guides — vertical center line, chest line, and chest target box.
-            The vertical line turns solid + brighter when the design is horizontally centered. */}
+        {/* Centering guides — vertical line aligned to the DETECTED shirt center */}
         {templateLoaded && (
           <>
-            {/* Vertical center line */}
+            {/* Vertical center line at shirt center */}
             <div
               className={`absolute top-0 bottom-0 pointer-events-none transition-colors ${
-                Math.abs(offsetX) < 0.01
+                Math.abs(offsetX - shirtCenterOffset) < 0.01
                   ? "border-l-2 border-primary/80"
                   : "border-l border-dashed border-primary/30"
               }`}
-              style={{ left: "50%", transform: "translateX(-0.5px)" }}
+              style={{ left: `${50 + shirtCenterOffset * 100}%`, transform: "translateX(-0.5px)" }}
             />
-            {/* Chest target box (recommended placement zone, ~28% wide × 32% tall, centered, top at 20%) */}
+            {/* Chest target box (recommended placement zone, ~28% wide × 32% tall, centered on shirt, top at 20%) */}
             <div
               className="absolute pointer-events-none border border-dashed border-primary/35 rounded"
-              style={{ left: "36%", top: "20%", width: "28%", height: "32%" }}
+              style={{ left: `${36 + shirtCenterOffset * 100}%`, top: "20%", width: "28%", height: "32%" }}
             />
             {/* Tiny center crosshair at chest sweet spot */}
             <div
               className="absolute pointer-events-none w-3 h-3 rounded-full border border-primary/60"
-              style={{ left: "50%", top: "36%", transform: "translate(-50%, -50%)" }}
+              style={{ left: `${50 + shirtCenterOffset * 100}%`, top: "36%", transform: "translate(-50%, -50%)" }}
             />
           </>
         )}
@@ -328,7 +388,7 @@ export const DesignPlacementEditor = ({
           </label>
           <Slider
             value={[offsetX]}
-            onValueChange={([v]) => setOffsetX(v)}
+            onValueChange={([v]) => { setOffsetX(v); userTouchedXRef.current = true; }}
             min={-0.3}
             max={0.3}
             step={0.005}
