@@ -814,20 +814,39 @@ const ProductCard = ({
                   {product.category}
                 </span>
               )}
-              {/* Shopify sync status badge */}
-              {!product.shopify_product_id ? (
-                <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  Local only
-                </span>
-              ) : product.shopify_synced_at && new Date(product.shopify_synced_at) >= new Date(product.updated_at || 0) ? (
-                <span className="inline-block rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-medium">
-                  ✓ Synced
-                </span>
-              ) : (
-                <span className="inline-block rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-medium">
-                  ⬆ Local changes
-                </span>
-              )}
+              {/* Per-marketplace sync badges */}
+              {(() => {
+                const shopifyStale = product.shopify_product_id && (!product.shopify_synced_at || new Date(product.shopify_synced_at) < new Date(product.updated_at || 0));
+                const marketplaces: Array<{ key: string; label: string; linked: boolean; stale?: boolean }> = [
+                  { key: "shopify", label: "Shopify", linked: !!product.shopify_product_id, stale: !!shopifyStale },
+                  { key: "printify", label: "Printify", linked: !!product.printify_product_id },
+                  { key: "etsy", label: "Etsy", linked: !!product.etsy_listing_id },
+                  { key: "ebay", label: "eBay", linked: !!product.ebay_listing_id },
+                  { key: "meta", label: "Meta", linked: !!product.meta_listing_id },
+                ];
+                const linked = marketplaces.filter((m) => m.linked);
+                if (linked.length === 0) {
+                  return (
+                    <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Local only
+                    </span>
+                  );
+                }
+                return linked.map((m) => (
+                  <span
+                    key={m.key}
+                    className={cn(
+                      "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium border",
+                      m.stale
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                        : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    )}
+                    title={m.stale ? `${m.label}: local changes not synced` : `${m.label}: synced`}
+                  >
+                    {m.stale ? "⬆" : "✓"} {m.label}
+                  </span>
+                ));
+              })()}
             </div>
             <h3 className={cn("font-semibold leading-tight", compact ? "text-xs" : "text-sm")}>
               {product.title}
