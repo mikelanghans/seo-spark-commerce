@@ -7,6 +7,7 @@ import { Store } from "lucide-react";
 const MARKETPLACES = [
   { value: "etsy", label: "Etsy", icon: "🧶" },
   { value: "ebay", label: "eBay", icon: "🏷️" },
+  { value: "tiktok", label: "TikTok Shop", icon: "🎵" },
 ];
 
 interface Props {

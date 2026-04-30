@@ -61,8 +61,8 @@ export interface Listing {
 
 export type View = "orgs" | "org-form" | "products" | "product-form" | "product-detail" | "bulk-upload" | "autopilot" | "shopify-enrich" | "settings";
 
-export const ALL_MARKETPLACES = ["etsy", "ebay"] as const;
-export const ALL_PUSH_CHANNELS = ["etsy", "ebay"] as const;
+export const ALL_MARKETPLACES = ["etsy", "ebay", "tiktok"] as const;
+export const ALL_PUSH_CHANNELS = ["etsy", "ebay", "tiktok"] as const;
 
 export const EMPTY_ORG_FORM = {
   name: "",

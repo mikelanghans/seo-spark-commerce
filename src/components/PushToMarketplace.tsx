@@ -7,6 +7,7 @@ import {
 import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
+import { PushToTikTok } from "@/components/PushToTikTok";
 
 interface Product {
   id: string;
@@ -69,6 +70,7 @@ const EBAY_UPDATE_FIELDS = [
 export const PushToMarketplace = ({ product, listings, images, userId, enabledChannels }: Props) => {
   const showEtsy = !enabledChannels || enabledChannels.includes("etsy");
   const showEbay = !enabledChannels || enabledChannels.includes("ebay");
+  const showTiktok = !enabledChannels || enabledChannels.includes("tiktok");
   const [pushingEtsy, setPushingEtsy] = useState(false);
   const [pushingEbay, setPushingEbay] = useState(false);
   const [etsyResult, setEtsyResult] = useState<PushResult | null>(null);
@@ -229,6 +231,10 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
             )}
             {ebayResult?.success ? `eBay ${ebayResult.action}` : "Push to eBay"}
           </Button>
+        )}
+
+        {showTiktok && (
+          <PushToTikTok product={product} hasListings={listings.length > 0} />
         )}
       </div>
 

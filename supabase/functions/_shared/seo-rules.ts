@@ -10,6 +10,24 @@ export const SEO_RULES = {
   tags: { min: 3, max: 13 },
 };
 
+// Per-marketplace overrides — TikTok allows much longer titles & has no tag field of its own.
+// Use getRulesFor(marketplace) when generating or grading marketplace-specific content.
+export const MARKETPLACE_RULE_OVERRIDES: Record<string, Partial<typeof SEO_RULES>> = {
+  tiktok: {
+    title: { min: 30, max: 255, soft_min: 20, soft_max: 255 },
+    // TikTok descriptions are recommended 3–5 selling points, no hard cap
+    metaDescription: { min: 80, max: 500, soft_min: 60, soft_max: 600 },
+    tags: { min: 0, max: 0 }, // TikTok has no separate tag field — keywords embedded in title/description
+  },
+};
+
+export function getRulesFor(marketplace?: string): typeof SEO_RULES {
+  if (!marketplace) return SEO_RULES;
+  const overrides = MARKETPLACE_RULE_OVERRIDES[marketplace.toLowerCase()];
+  if (!overrides) return SEO_RULES;
+  return { ...SEO_RULES, ...overrides } as typeof SEO_RULES;
+}
+
 export type SeoSeverity = "error" | "warning" | "info";
 export type SeoCategory = "onPage" | "structuredData" | "aeo" | "performance";
 
