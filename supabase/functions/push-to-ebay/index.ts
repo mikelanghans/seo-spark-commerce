@@ -303,7 +303,6 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      }
 
       // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
       const reviseRes = await ebayRequestWithRetry(
