@@ -152,7 +152,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
   } : null;
 };
 
-const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>()) => {
+const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>(), sizeOverride?: string, colorOverride?: string) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
     description: buildDescriptionHtml(listing),
@@ -163,8 +163,8 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       Type: ["T-Shirt"],
       Department: ["Unisex Adults"],
       "Size Type": ["Regular"],
-      Size: [String(listing?.size || "L")],
-      Color: [String(listing?.color || "Black")],
+      Size: [String(sizeOverride || listing?.size || "L")],
+      Color: [String(colorOverride || listing?.color || "Black")],
       Material: ["Cotton"],
       "Graphic Print": ["Yes"],
       "MPN": [sku],
@@ -182,6 +182,48 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       },
     },
   };
+};
+
+// ----- Multi-variation helpers -----
+const DEFAULT_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+const SIZE_UPCHARGE: Record<string, number> = { "2XL": 2, "3XL": 4, "4XL": 6, "5XL": 8 };
+
+const slug = (s: string) => String(s || "").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "X";
+
+const variantSku = (baseSku: string, color: string, size: string) =>
+  `${baseSku}-${slug(color)}-${slug(size)}`.slice(0, 50);
+
+const sizesFromListing = (listing: any): string[] => {
+  const sp = listing?.size_pricing;
+  if (sp && typeof sp === "object" && !Array.isArray(sp)) {
+    const keys = Object.keys(sp).filter(Boolean);
+    if (keys.length) return keys;
+  }
+  return DEFAULT_SIZES;
+};
+
+const priceForSize = (basePrice: number, size: string, sizePricing?: any): string => {
+  if (sizePricing && typeof sizePricing === "object" && sizePricing[size] != null) {
+    const v = parsePrice(sizePricing[size]);
+    return v;
+  }
+  const upcharge = SIZE_UPCHARGE[size] || 0;
+  return (basePrice + upcharge).toFixed(2);
+};
+
+// Group images by color from product_images rows
+const groupImagesByColor = (images: any[], excludedDesignUrls: Set<string>): Map<string, string[]> => {
+  const map = new Map<string, string[]>();
+  for (const img of images || []) {
+    if (String(img?.image_type || "mockup").toLowerCase() === "design") continue;
+    const url = String(img?.image_url || "").trim();
+    if (!url || excludedDesignUrls.has(url) || !/^https:\/\//i.test(url)) continue;
+    const color = String(img?.color_name || "").trim() || "Black";
+    if (!map.has(color)) map.set(color, []);
+    const arr = map.get(color)!;
+    if (!arr.includes(url)) arr.push(url);
+  }
+  return map;
 };
 
 const fetchPolicies = async (apiBase: string, token: string, marketplaceId: string) => {
