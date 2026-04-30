@@ -423,7 +423,7 @@ serve(async (req) => {
         format: "FIXED_PRICE",
         availableQuantity: 999,
         categoryId: "15687", // Men's Clothing > Shirts > T-Shirts
-        listingDescription: `<p>${description}</p>`,
+        listingDescription: description,
         pricingSummary: {
           price: {
             value: price,
