@@ -9,6 +9,7 @@ export const CREDIT_COSTS: Record<string, number> = {
   "recommend-colors": 1,
   "suggest-pricing": 1,
   "check-listing-health": 1,
+  "suggest-keywords-tags": 1,
   "generate-social-posts": 1,
   "generate-messages": 2,
   "generate-listings": 2,
