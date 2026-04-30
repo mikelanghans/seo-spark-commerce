@@ -25,9 +25,12 @@ serve(async (req) => {
         });
       }
 
-      // eBay expects: SHA-256 hash of challengeCode + verificationToken + endpoint URL
-      const endpoint = url.origin + url.pathname;
+      // eBay expects: SHA-256 hash of challengeCode + verificationToken + endpoint URL.
+      // CRITICAL: endpoint must EXACTLY match the URL registered in the eBay Developer Portal
+      // (no trailing slash, no query string). We hard-code it to avoid host/path mismatches.
+      const endpoint = "https://qhlrjoytvowzsxulfnku.supabase.co/functions/v1/ebay-account-deletion";
       const toHash = challengeCode + verificationToken + endpoint;
+      console.log("Verification attempt:", { challengeCode, endpoint, tokenLen: verificationToken?.length });
 
       const encoder = new TextEncoder();
       const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(toHash));
