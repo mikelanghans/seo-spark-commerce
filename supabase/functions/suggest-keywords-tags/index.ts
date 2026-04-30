@@ -32,6 +32,9 @@ serve(async (req) => {
     const existingTags: string[] = Array.isArray(body.existingTags)
       ? body.existingTags.filter((t: unknown) => typeof t === "string").map((t: string) => t.trim()).filter(Boolean)
       : [];
+    const excludedSections: string[] = Array.isArray(body.excludedSections)
+      ? body.excludedSections.filter((s: unknown) => typeof s === "string")
+      : [];
 
     const ctx = {
       brand: clamp(business.name, 80, "Unknown brand"),
@@ -52,6 +55,25 @@ serve(async (req) => {
     };
     const rule = marketplaceRules[marketplace] || marketplaceRules.shopify;
 
+    // Build exclusion guidance based on the brand's "Exclude from Listings" settings
+    const exclusionLines: string[] = [];
+    const excludedKeywordTerms: string[] = [];
+    if (excludedSections.includes("materials")) {
+      exclusionLines.push("- Materials / fabric / fit / sizing / fabric composition / garment specs (the storefront displays these separately).");
+      excludedKeywordTerms.push("cotton", "polyester", "fabric", "fit", "size", "sizing", "material", "garment dye", "ringspun", "heavyweight", "lightweight", "soft tee");
+    }
+    if (excludedSections.includes("care")) {
+      exclusionLines.push("- Care instructions / wash / dry / iron / care guide.");
+      excludedKeywordTerms.push("machine wash", "wash cold", "tumble dry", "easy care", "care instructions");
+    }
+    if (excludedSections.includes("shipping")) {
+      exclusionLines.push("- Shipping / delivery / fast shipping / free shipping / returns / refund policy.");
+      excludedKeywordTerms.push("fast shipping", "free shipping", "quick delivery", "easy returns", "ships fast", "ships free");
+    }
+    const exclusionBlock = exclusionLines.length
+      ? `\n\nCONTENT EXCLUSIONS — STRICT (do NOT propose any tag or keyword touching these topics):\n${exclusionLines.join("\n")}\nAlso avoid these specific terms or near-variants: ${excludedKeywordTerms.join(", ")}.\nFocus instead on the product story, design theme, audience, mood, gifting context, and brand voice.`
+      : "";
+
     const prompt = `You are an SEO and marketplace search expert. Suggest fresh KEYWORD and TAG ideas for one product, tightly tailored to its category and target audience.
 
 PRODUCT
@@ -68,7 +90,7 @@ BRAND CONTEXT
 MARKETPLACE: ${marketplace}
 - Marketplace rules: ${rule}
 
-ALREADY-USED TAGS (do NOT repeat these or near-duplicates): ${ctx.existing || "(none)"}
+ALREADY-USED TAGS (do NOT repeat these or near-duplicates): ${ctx.existing || "(none)"}${exclusionBlock}
 
 YOUR JOB
 Generate two lists:
@@ -152,7 +174,19 @@ Plain text only. No markdown. No emojis.`;
     if (!toolCall) throw new Error("No tool call in response");
     const parsed = JSON.parse(toolCall.function.arguments);
 
-    // Sanitize: lowercase, dedupe (case-insensitive) against existing + each other
+    // Build forbidden-substring list from excluded sections (defense-in-depth)
+    const forbiddenSubstrings: string[] = [];
+    if (excludedSections.includes("materials")) {
+      forbiddenSubstrings.push("cotton", "polyester", "fabric", " fit", "fitted", "sizing", "size guide", "material", "garment", "ringspun", "heavyweight", "lightweight", "soft tee", "cozy fit");
+    }
+    if (excludedSections.includes("care")) {
+      forbiddenSubstrings.push("wash", "dry", "iron", "care instruction", "easy care");
+    }
+    if (excludedSections.includes("shipping")) {
+      forbiddenSubstrings.push("shipping", "delivery", "ships ", "return", "refund");
+    }
+
+    // Sanitize: lowercase, dedupe, strip excluded topics
     const existingLower = new Set(existingTags.map((t) => t.toLowerCase()));
     const seen = new Set<string>();
     const cleanList = (arr: unknown, max: number): string[] => {
@@ -163,6 +197,7 @@ Plain text only. No markdown. No emojis.`;
         const t = raw.trim().replace(/^#+/, "").replace(/^["']|["']$/g, "").toLowerCase();
         if (!t || t.length > 50) continue;
         if (existingLower.has(t) || seen.has(t)) continue;
+        if (forbiddenSubstrings.some((bad) => t.includes(bad))) continue;
         seen.add(t);
         out.push(t);
         if (out.length >= max) break;
