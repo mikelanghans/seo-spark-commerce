@@ -583,7 +583,7 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePushAllToEbay(getSelectedProducts())} className="gap-2">
+                          <DropdownMenuItem onClick={openEbayConfirm} className="gap-2">
                             <Tag className="h-4 w-4" />
                             <div>
                               <p className="font-medium">Push to eBay</p>
