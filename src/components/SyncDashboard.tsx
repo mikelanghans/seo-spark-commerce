@@ -29,7 +29,10 @@ const MARKETPLACES = [
 function getListingId(product: Product, marketplace: string): string | null {
   if (marketplace === "shopify") return product.shopify_product_id?.toString() || null;
   if (marketplace === "etsy") return (product as any).etsy_listing_id || null;
-  if (marketplace === "ebay") return (product as any).ebay_listing_id || null;
+  if (marketplace === "ebay") {
+    const listingId = (product as any).ebay_listing_id || null;
+    return listingId && !/^BA-[a-z0-9-]+$/i.test(listingId) ? listingId : null;
+  }
   if (marketplace === "meta") return (product as any).meta_listing_id || null;
   return null;
 }
