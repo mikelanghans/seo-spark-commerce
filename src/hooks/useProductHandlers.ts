@@ -35,6 +35,9 @@ export function useProductHandlers(
   const [pushingAllEbay, setPushingAllEbay] = useState(false);
   const [pushAllEbayProgress, setPushAllEbayProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllEbayRef = useRef(false);
+  const [pushingAllEtsy, setPushingAllEtsy] = useState(false);
+  const [pushAllEtsyProgress, setPushAllEtsyProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllEtsyRef = useRef(false);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
@@ -344,6 +347,72 @@ export function useProductHandlers(
     }
   };
 
+  const handlePushAllToEtsy = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || !userId || targetProducts.length === 0) return;
+    const { data: etsyConn } = await supabase.from("etsy_connections").select("id, access_token").eq("user_id", userId).maybeSingle();
+    if (!etsyConn || !etsyConn.access_token) { toast.error("Etsy not connected. Go to Settings to connect first."); return; }
+
+    const queue = targetProducts.filter((p) => !p.etsy_listing_id);
+    const skipped = targetProducts.length - queue.length;
+    if (queue.length === 0) { toast.info("All selected products already have Etsy listings."); return; }
+    if (skipped > 0) toast.info(`Skipping ${skipped} product(s) already on Etsy`);
+
+    cancelPushAllEtsyRef.current = false;
+    setPushingAllEtsy(true);
+    setPushAllEtsyProgress({ done: 0, total: queue.length });
+    let successCount = 0;
+
+    for (let i = 0; i < queue.length; i++) {
+      if (cancelPushAllEtsyRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
+      const product = queue[i];
+      setPushAllEtsyProgress({ done: i, total: queue.length });
+      try {
+        const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
+        if (!productListings || productListings.length === 0) {
+          if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Etsy", `Skipped "${product.title}": no SEO listing. Generate one first.`);
+          continue;
+        }
+        const etsyListing = productListings.find((l) => l.marketplace === "etsy") || productListings[0];
+        const { data: imgs } = await supabase.from("product_images").select("image_url, position").eq("product_id", product.id).order("position", { ascending: true });
+        const images = (imgs && imgs.length > 0)
+          ? imgs.map((img) => ({ image_url: img.image_url }))
+          : (product.image_url ? [{ image_url: product.image_url }] : []);
+
+        const { data, error } = await supabase.functions.invoke("push-to-etsy", {
+          body: {
+            userId,
+            productId: product.id,
+            listing: {
+              title: etsyListing.title,
+              description: etsyListing.description,
+              tags: etsyListing.tags,
+              seo_title: etsyListing.seo_title,
+              seo_description: etsyListing.seo_description,
+              url_handle: etsyListing.url_handle,
+              alt_text: etsyListing.alt_text,
+              price: product.price,
+            },
+            images,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to push ${product.title} to Etsy:`, err);
+        if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Etsy", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+      }
+      if (i < queue.length - 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+    setPushAllEtsyProgress({ done: queue.length, total: queue.length });
+    setPushingAllEtsy(false);
+    if (!cancelPushAllEtsyRef.current) {
+      toast.success(`Pushed ${successCount}/${queue.length} products to Etsy!`);
+      if (selectedOrg) loadProducts(selectedOrg.id);
+    }
+  };
+
   return {
     products, setProducts, selectedProduct, setSelectedProduct,
     listings, setListings, loading, generating,
@@ -352,12 +421,13 @@ export function useProductHandlers(
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
+    pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     getFilteredProducts, allTags, handleAddTag, handleRemoveTag,
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
-    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay,
+    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
   };
 }

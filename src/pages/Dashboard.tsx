@@ -128,13 +128,14 @@ const Dashboard = () => {
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
+    pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     allTags, handleAddTag, handleRemoveTag,
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
-    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay,
+    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
   } = productHandlers;
 
   const designProcessing = useDesignProcessing(user?.id);
@@ -161,6 +162,14 @@ const Dashboard = () => {
     const subset = getSelectedProducts();
     const eligible = subset.filter((p) => !p.ebay_listing_id);
     setEbayConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
+  };
+
+  // Etsy bulk push confirmation
+  const [etsyConfirm, setEtsyConfirm] = useState<{ open: boolean; products: Product[]; eligible: Product[]; skipped: number }>({ open: false, products: [], eligible: [], skipped: 0 });
+  const openEtsyConfirm = () => {
+    const subset = getSelectedProducts();
+    const eligible = subset.filter((p) => !p.etsy_listing_id);
+    setEtsyConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
   };
 
   const getSelectedProducts = (): Product[] => {
@@ -540,19 +549,20 @@ const Dashboard = () => {
                   onDeselectAll={deselectAllProducts}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    {generatingAll || pushingAllShopify || pushingAllEbay ? (
+                    {generatingAll || pushingAllShopify || pushingAllEbay || pushingAllEtsy ? (
                       <Button
                         onClick={() => {
                           if (generatingAll) cancelGenAllRef.current = true;
                           if (pushingAllShopify) cancelPushAllRef.current = true;
                           if (pushingAllEbay) cancelPushAllEbayRef.current = true;
+                          if (pushingAllEtsy) cancelPushAllEtsyRef.current = true;
                         }}
                         size="sm"
                         variant="destructive"
                         className="gap-1.5 text-xs sm:text-sm"
                       >
                         <X className="h-3.5 w-3.5" />
-                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : pushingAllEbay ? `eBay (${pushAllEbayProgress.done}/${pushAllEbayProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
+                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : pushingAllEbay ? `eBay (${pushAllEbayProgress.done}/${pushAllEbayProgress.total})` : pushingAllEtsy ? `Etsy (${pushAllEtsyProgress.done}/${pushAllEtsyProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
                       </Button>
                     ) : (
                       <DropdownMenu>
@@ -590,6 +600,17 @@ const Dashboard = () => {
                                 <p className="font-medium">Push to eBay</p>
                                 <p className="text-[10px] text-muted-foreground">
                                   Skips products already on eBay
+                                </p>
+                              </div>
+                            </DropdownMenuItem>
+                          )}
+                          {selectedOrg?.enabled_marketplaces?.includes("etsy") && (
+                            <DropdownMenuItem onClick={openEtsyConfirm} className="gap-2">
+                              <Tag className="h-4 w-4" />
+                              <div>
+                                <p className="font-medium">Push to Etsy</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Skips products already on Etsy
                                 </p>
                               </div>
                             </DropdownMenuItem>
@@ -729,6 +750,56 @@ const Dashboard = () => {
               }}
             >
               Publish to eBay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={etsyConfirm.open} onOpenChange={(o) => setEtsyConfirm((s) => ({ ...s, open: o }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish {etsyConfirm.eligible.length} {etsyConfirm.eligible.length === 1 ? "product" : "products"} to Etsy?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  This will create live Etsy listings using each product's Etsy-specific SEO listing
+                  (or the first generated listing as fallback) and its current price.
+                </p>
+                {etsyConfirm.skipped > 0 && (
+                  <p className="text-amber-500">
+                    {etsyConfirm.skipped} product{etsyConfirm.skipped === 1 ? " is" : "s are"} already on Etsy and will be skipped.
+                  </p>
+                )}
+                {etsyConfirm.eligible.length > 0 && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 max-h-40 overflow-y-auto">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Will publish:</p>
+                    <ul className="space-y-0.5 text-xs">
+                      {etsyConfirm.eligible.slice(0, 10).map((p) => (
+                        <li key={p.id} className="truncate">• {p.title || "Untitled"}</li>
+                      ))}
+                      {etsyConfirm.eligible.length > 10 && (
+                        <li className="text-muted-foreground">…and {etsyConfirm.eligible.length - 10} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                {etsyConfirm.eligible.length === 0 && (
+                  <p className="text-muted-foreground">No eligible products to publish.</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={etsyConfirm.eligible.length === 0}
+              onClick={() => {
+                const toPush = etsyConfirm.products;
+                setEtsyConfirm({ open: false, products: [], eligible: [], skipped: 0 });
+                handlePushAllToEtsy(toPush);
+              }}
+            >
+              Publish to Etsy
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
