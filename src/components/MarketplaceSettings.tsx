@@ -218,8 +218,43 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const connectEbay = async () => {
     setSavingEbay(true);
     try {
+      if (!ebayClientId.trim() || !ebayRuName.trim()) {
+        toast.error("App ID and RuName are required");
+        setSavingEbay(false);
+        return;
+      }
+      if (!ebayConn && !ebayClientSecret.trim()) {
+        toast.error("Cert ID is required");
+        setSavingEbay(false);
+        return;
+      }
+
+      const payload = {
+        user_id: userId,
+        client_id: ebayClientId.trim(),
+        ru_name: ebayRuName.trim(),
+        environment: ebayEnv,
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      if (ebayClientSecret.trim()) {
+        payload.client_secret = ebayClientSecret.trim();
+      }
+
+      const { data: savedConn, error: saveError } = ebayConn
+        ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id).select("id, client_id, ru_name, environment").single()
+        : await supabase.from("ebay_connections").upsert(payload, { onConflict: "user_id" }).select("id, client_id, ru_name, environment").single();
+      if (saveError) throw saveError;
+      setEbayConn({
+        id: (savedConn as any).id,
+        client_id: (savedConn as any).client_id,
+        environment: (savedConn as any).environment,
+        has_token: false,
+      });
+      setEbayCredsSaved(true);
+
       // Use the user's own Client ID for the OAuth consent screen
-      const savedClientId = ebayClientId || ebayConn?.client_id;
+      const savedClientId = (savedConn as any)?.client_id || ebayClientId || ebayConn?.client_id;
       if (!savedClientId) {
         toast.error("Save your eBay credentials first");
         setSavingEbay(false);
@@ -227,9 +262,9 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       }
 
       // Fetch the saved RuName from the connection
-      let ruName = ebayRuName;
-      if (!ruName && ebayConn) {
-        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", ebayConn.id).maybeSingle();
+      let ruName = (savedConn as any)?.ru_name || ebayRuName;
+      if (!ruName && (savedConn || ebayConn)) {
+        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", (savedConn as any)?.id || ebayConn?.id).maybeSingle();
         ruName = (connData as any)?.ru_name || "";
       }
       if (!ruName) {
@@ -238,13 +273,14 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const isSandbox = ebayEnv === "sandbox";
+      const activeEnv = (savedConn as any)?.environment || ebayEnv;
+      const isSandbox = activeEnv === "sandbox";
       const authBase = isSandbox
         ? "https://auth.sandbox.ebay.com/oauth2/authorize"
         : "https://auth.ebay.com/oauth2/authorize";
 
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
-      const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: ebayEnv }));
+      const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: activeEnv }));
 
       const authUrl = `${authBase}?client_id=${savedClientId}&response_type=code&redirect_uri=${ruName}&scope=${scopes}&state=${state}`;
       console.log("eBay OAuth URL:", authUrl);
