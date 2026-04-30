@@ -29,6 +29,7 @@ export interface SuggestionContext {
     category?: string;
     description?: string;
   };
+  excludedSections?: string[];
 }
 
 interface Props {
