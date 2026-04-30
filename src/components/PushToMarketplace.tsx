@@ -152,11 +152,7 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
       const mockupsOnly = (imgs || [])
         .filter((img: any) => img.image_type === "mockup")
         .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
-      const ebayImages = mockupsOnly.length > 0
-        ? mockupsOnly.map((img: any) => ({ image_url: img.image_url }))
-        : images
-            .filter((img: any) => (img as any).image_type !== "design")
-            .map((img) => ({ image_url: img.image_url }));
+      const ebayImages = mockupsOnly.map((img: any) => ({ image_url: img.image_url, image_type: img.image_type }));
 
       if (ebayImages.length === 0) {
         toast.error("No mockup images found. Generate mockups before pushing to eBay.");
