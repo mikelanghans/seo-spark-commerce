@@ -280,11 +280,12 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         : "https://auth.ebay.com/oauth2/authorize";
 
       const scopes = encodeURIComponent("https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account");
-      const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: activeEnv }));
+      const state = encodeURIComponent(JSON.stringify({ origin: window.location.origin, environment: activeEnv, redirectUri: ruName }));
 
       let messageHandled = false;
       const handler = async (e: MessageEvent) => {
         if (e.data?.type !== "ebay-oauth") return;
+        if (e.origin !== window.location.origin) return;
         messageHandled = true;
         window.removeEventListener("message", handler);
 
@@ -298,7 +299,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           const { data: result, error } = await supabase.functions.invoke("ebay-exchange-token", {
             body: {
               code: e.data.code,
-              redirectUri: ruName,
+              redirectUri: e.data.redirectUri || ruName,
               environment: e.data.environment || ebayEnv,
             },
           });
