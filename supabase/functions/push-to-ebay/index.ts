@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const ebayRequest = async (url: string, token: string, method: string, payload?: unknown) => {
   const urlObj = new URL(url);
   const body = payload != null ? JSON.stringify(payload) : undefined;
@@ -15,6 +17,7 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
     Accept: "application/json",
     "Content-Type": "application/json",
     "Content-Language": "en-US",
+    "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
   };
   if (body) {
     headers["Content-Length"] = new TextEncoder().encode(body).length;
@@ -46,6 +49,70 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
     if (body) req.write(body);
     req.end();
   });
+};
+
+const ebayRequestWithRetry = async (url: string, token: string, method: string, payload?: unknown) => {
+  let result = { status: 0, body: "" };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) await sleep(1000 * attempt);
+    result = await ebayRequest(url, token, method, payload);
+    if (result.status < 500) return result;
+  }
+  return result;
+};
+
+const parsePrice = (value: unknown) => {
+  const match = String(value ?? "").match(/\d+(?:\.\d{1,2})?/);
+  const amount = match ? Number.parseFloat(match[0]) : 29.99;
+  return Number.isFinite(amount) && amount > 0 ? amount.toFixed(2) : "29.99";
+};
+
+const cleanText = (value: unknown, fallback: string, maxLength: number) => {
+  const cleaned = String(value ?? "")
+    .replace(/[#*_`]/g, "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (cleaned || fallback).slice(0, maxLength);
+};
+
+const imageUrlsForEbay = (images: unknown) => {
+  const urls = Array.isArray(images)
+    ? images.map((img: any) => String(img?.image_url || "").trim())
+    : [];
+  return [...new Set(urls)]
+    .filter((url) => /^https:\/\//i.test(url))
+    .slice(0, 12);
+};
+
+const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
+  const product: Record<string, unknown> = {
+    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
+    description: `<p>${cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000)}</p>`,
+    brand: "Youniverses",
+    mpn: sku,
+    upc: "Does not apply",
+    aspects: {
+      Brand: ["Youniverses"],
+      Type: ["T-Shirt"],
+      Department: ["Unisex Adults"],
+      "Size Type": ["Regular"],
+      Material: ["Cotton"],
+      "Graphic Print": ["Yes"],
+    },
+  };
+  const imageUrls = imageUrlsForEbay(images);
+  if (includeImages && imageUrls.length > 0) product.imageUrls = imageUrls;
+
+  return {
+    product,
+    condition: "NEW",
+    availability: {
+      shipToLocationAvailability: {
+        quantity: 999,
+      },
+    },
+  };
 };
 
 const fetchPolicies = async (apiBase: string, token: string, marketplaceId: string) => {
@@ -87,6 +154,25 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user }, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !user || user.id !== userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const sb = createClient(supabaseUrl, supabaseKey);
 
     // Get eBay connection
@@ -102,7 +188,7 @@ serve(async (req) => {
       });
     }
 
-    const { client_id, client_secret, environment, access_token, refresh_token } = conn;
+    const { client_id, client_secret, environment, access_token, refresh_token, token_expires_at } = conn;
 
     // Determine API base URL
     const isSandbox = environment === "sandbox";
@@ -113,8 +199,11 @@ serve(async (req) => {
     // Get/refresh access token if needed
     let token = access_token;
 
-    if (!token && client_id && client_secret) {
-      // Get client credentials token (limited scope)
+    const expiresAt = token_expires_at ? Date.parse(token_expires_at) : 0;
+    const shouldRefresh = !token || !expiresAt || expiresAt < Date.now() + 5 * 60 * 1000;
+
+    if (shouldRefresh && refresh_token && client_id && client_secret) {
+      // Refresh the seller user token; Sell Inventory APIs require user-granted scopes.
       const authBase = isSandbox
         ? "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
         : "https://api.ebay.com/identity/v1/oauth2/token";
@@ -126,7 +215,11 @@ serve(async (req) => {
           Authorization: `Basic ${creds}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: "grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope",
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token,
+          scope: "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account",
+        }).toString(),
       });
 
       if (!tokenRes.ok) {
@@ -141,6 +234,7 @@ serve(async (req) => {
       // Save token
       await sb.from("ebay_connections").update({
         access_token: token,
+        refresh_token: tokenData.refresh_token || refresh_token,
         token_expires_at: new Date(Date.now() + (tokenData.expires_in || 7200) * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       } as any).eq("id", conn.id);
@@ -154,28 +248,16 @@ serve(async (req) => {
     const { data: product } = await sb.from("products").select("ebay_listing_id").eq("id", productId).maybeSingle();
     const existingItemId = product?.ebay_listing_id;
 
-    const description = (listing.description || "").replace(/[#*_]/g, "");
-    const tags = (listing.tags || []).slice(0, 30);
+    const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
     if (existingItemId) {
-      // Build selective update payload
-      const include = (field: string) => !updateFields || updateFields.includes(field);
-      const productPayload: Record<string, unknown> = {};
-      if (include("title")) productPayload.title = listing.title.slice(0, 80);
-      if (include("description")) productPayload.description = `<p>${description}</p>`;
-      if (include("images")) productPayload.imageUrls = images?.map((img: any) => img.image_url).filter(Boolean) || [];
-      productPayload.aspects = {};
-
-      // Revise existing listing
-      const reviseRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`, token, "PUT", {
-        product: productPayload,
-        condition: "NEW",
-        availability: {
-          shipToLocationAvailability: {
-            quantity: 999,
-          },
-        },
-      });
+      // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
+      const reviseRes = await ebayRequestWithRetry(
+        `${apiBase}/sell/inventory/v1/inventory_item/${existingItemId}`,
+        token,
+        "PUT",
+        buildInventoryPayload(existingItemId, listing, images, !updateFields || updateFields.includes("images")),
+      );
 
       if (reviseRes.status < 200 || reviseRes.status >= 300) {
         console.error("eBay revise error:", reviseRes.status, reviseRes.body);
@@ -189,20 +271,18 @@ serve(async (req) => {
       // Create new inventory item
       const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
 
-      const createRes = await ebayRequest(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", {
-        product: {
-          title: listing.title.slice(0, 80),
-          description: `<p>${description}</p>`,
-          aspects: {},
-          imageUrls: images?.map((img: any) => img.image_url).filter(Boolean) || [],
-        },
-        condition: "NEW",
-        availability: {
-          shipToLocationAvailability: {
-            quantity: 999,
-          },
-        },
-      });
+      const inventoryPayload = buildInventoryPayload(sku, listing, images);
+      let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
+
+      if (createRes.status >= 500 && imageUrlsForEbay(images).length > 1) {
+        console.warn("Retrying eBay inventory create with a single image after server error");
+        createRes = await ebayRequestWithRetry(
+          `${apiBase}/sell/inventory/v1/inventory_item/${sku}`,
+          token,
+          "PUT",
+          buildInventoryPayload(sku, listing, imageUrlsForEbay(images).slice(0, 1).map((image_url) => ({ image_url }))),
+        );
+      }
 
       if (createRes.status < 200 || createRes.status >= 300) {
         const errText = createRes.body;
@@ -219,7 +299,7 @@ serve(async (req) => {
 
       // Step 2: Create an offer
       const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
-      const price = listing.price || "29.99";
+      const price = parsePrice(listing.price);
 
       // Ensure a default inventory location exists
       const locationKey = "default-location";
@@ -254,7 +334,7 @@ serve(async (req) => {
         marketplaceId,
         format: "FIXED_PRICE",
         availableQuantity: 999,
-        categoryId: "11450", // default: Clothing > T-Shirts
+        categoryId: "15687", // Men's Clothing > Shirts > T-Shirts
         listingDescription: `<p>${description}</p>`,
         pricingSummary: {
           price: {
@@ -308,7 +388,7 @@ serve(async (req) => {
       // Step 3: Publish the offer
       let publishRes = { status: 0, body: "" };
       for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+        if (attempt > 0) await sleep(2000);
         publishRes = await ebayRequest(
           `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
           token,

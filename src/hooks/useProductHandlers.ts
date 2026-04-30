@@ -283,8 +283,8 @@ export function useProductHandlers(
   const handlePushAllToEbay = async (productSubset?: Product[]) => {
     const targetProducts = productSubset || products;
     if (!selectedOrg || !userId || targetProducts.length === 0) return;
-    const { data: ebayConn } = await supabase.from("ebay_connections").select("id, access_token").eq("user_id", userId).maybeSingle();
-    if (!ebayConn || !ebayConn.access_token) { toast.error("eBay not connected. Go to Settings to connect first."); return; }
+    const { data: ebayConn } = await supabase.from("ebay_connections").select("id, token_expires_at").eq("user_id", userId).maybeSingle();
+    if (!ebayConn) { toast.error("eBay not connected. Go to Settings to connect first."); return; }
 
     // Only products without an existing eBay listing
     const queue = targetProducts.filter((p) => !p.ebay_listing_id);
