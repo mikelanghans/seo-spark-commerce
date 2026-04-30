@@ -24,7 +24,7 @@ serve(async (req) => {
     const userId = user.id;
 
     const { code, redirectUri, environment } = await req.json();
-    if (!code || !redirectUri) throw new Error("code and redirectUri are required");
+    if (!code) throw new Error("code is required");
 
     // Read user's own credentials from the database
     const adminClient = createClient(
@@ -34,18 +34,22 @@ serve(async (req) => {
 
     const { data: conn } = await adminClient
       .from("ebay_connections")
-      .select("id, client_id, client_secret, environment")
+      .select("id, client_id, client_secret, ru_name, environment")
       .eq("user_id", userId)
       .maybeSingle();
 
     const clientId = String(conn?.client_id || "").trim();
     const clientSecret = String(conn?.client_secret || "").trim();
+    const savedRedirectUri = String(conn?.ru_name || "").trim();
+    const tokenRedirectUri = String(redirectUri || savedRedirectUri).trim();
 
     if (!conn || !clientId || !clientSecret) {
       throw new Error("No eBay credentials found. Please save your Client ID and Secret first.");
     }
+    if (!tokenRedirectUri) throw new Error("RuName is required. Please save your eBay RuName first.");
 
-    const isSandbox = (environment || conn.environment) === "sandbox";
+    const activeEnvironment = conn.environment || environment || "production";
+    const isSandbox = activeEnvironment === "sandbox";
     const tokenUrl = isSandbox
       ? "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
       : "https://api.ebay.com/identity/v1/oauth2/token";
@@ -61,7 +65,7 @@ serve(async (req) => {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
-        redirect_uri: redirectUri,
+        redirect_uri: tokenRedirectUri,
       }).toString(),
     });
 
@@ -107,12 +111,12 @@ serve(async (req) => {
         access_token: accessToken,
         refresh_token: refreshToken,
         token_expires_at: tokenExpiresAt,
-        environment: environment || conn.environment,
+        environment: activeEnvironment,
         updated_at: new Date().toISOString(),
       })
       .eq("id", conn.id);
 
-    return new Response(JSON.stringify({ success: true, environment: environment || conn.environment }), {
+    return new Response(JSON.stringify({ success: true, environment: activeEnvironment }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
