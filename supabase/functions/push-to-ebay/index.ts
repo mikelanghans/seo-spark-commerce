@@ -436,173 +436,167 @@ serve(async (req) => {
       });
     } else {
       if (hasStoredPublishedListing && !storedListingOffer?.offerId) {
-        console.log("Stored eBay listing is stale or deleted; creating and publishing a new offer for SKU:", knownSku);
+        console.log("Stored eBay listing is stale or deleted; creating multi-variation group for SKU:", knownSku);
       }
 
-      // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
-      const sku = knownSku;
+      const baseSku = knownSku;
+      const basePrice = Number.parseFloat(parsePrice(listing.price));
+      const sizes = sizesFromListing(listing);
+      const colorMap = groupImagesByColor(Array.isArray(images) ? images as any[] : [], excludedDesignUrls);
+      const colors = colorMap.size > 0
+        ? Array.from(colorMap.keys())
+        : [String(listing?.color || "Black")];
 
-      const inventoryPayload = buildInventoryPayload(sku, listing, images, true, excludedDesignUrls);
-      let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
-
-      if (createRes.status >= 500 && imageUrlsForEbay(images, excludedDesignUrls).length > 1) {
-        console.warn("Retrying eBay inventory create with a single image after server error");
-        createRes = await ebayRequestWithRetry(
-          `${apiBase}/sell/inventory/v1/inventory_item/${sku}`,
-          token,
-          "PUT",
-          buildInventoryPayload(sku, listing, imageUrlsForEbay(images, excludedDesignUrls).slice(0, 1).map((image_url) => ({ image_url })), true, excludedDesignUrls),
-        );
-      }
-
-      if (createRes.status < 200 || createRes.status >= 300) {
-        const errText = createRes.body;
-        console.error("eBay create error:", createRes.status, errText);
-
-        if (createRes.status === 401 || createRes.status === 403) {
-          throw new Error("eBay authentication failed. Your credentials may be invalid.");
-        }
-        throw new Error(`eBay create failed: ${createRes.status} — ${errText.slice(0, 200)}`);
-      }
-
-      // Step 2: Create an offer
-      const price = parsePrice(listing.price);
-
-      // Ensure a default inventory location exists
+      // Ensure default location
       const locationKey = "default-location";
       const locCheck = await ebayRequest(`${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "GET");
       if (locCheck.status >= 300) {
         console.log("Creating default inventory location...");
-        const locCreate = await ebayRequest(
+        await ebayRequest(
           `${apiBase}/sell/inventory/v1/location/${locationKey}`, token, "POST", {
-            location: {
-              address: {
-                addressLine1: "123 Main St",
-                city: "New York",
-                stateOrProvince: "NY",
-                postalCode: "10001",
-                country: "US",
-              },
-            },
+            location: { address: { addressLine1: "123 Main St", city: "New York", stateOrProvince: "NY", postalCode: "10001", country: "US" } },
             merchantLocationStatus: "ENABLED",
             name: "Default Location",
             locationTypes: ["WAREHOUSE"],
           }
         );
-        console.log("Location create:", locCreate.status, locCreate.body);
       }
 
-      // Fetch seller's business policies
       const policies = await fetchPolicies(apiBase, token, marketplaceId);
-      console.log("Fetched policies:", JSON.stringify(policies));
 
-      const offerPayload: Record<string, unknown> = {
-        sku,
-        marketplaceId,
-        format: "FIXED_PRICE",
-        availableQuantity: 999,
-        categoryId: "15687", // Men's Clothing > Shirts > T-Shirts
-        listingDescription: description,
-        pricingSummary: {
-          price: {
-            value: price,
-            currency: "USD",
-          },
-        },
-        listingPolicies: {} as Record<string, string>,
-      };
-      offerPayload.merchantLocationKey = locationKey;
+      // Step 1: create one inventory item per (color, size) combo
+      const variantSkus: string[] = [];
+      const allImageUrls = new Set<string>();
+      for (const color of colors) {
+        const colorImages = (colorMap.get(color) || []).map((image_url) => ({ image_url, image_type: "mockup" }));
+        for (const url of colorMap.get(color) || []) allImageUrls.add(url);
+        for (const size of sizes) {
+          const vSku = variantSku(baseSku, color, size);
+          variantSkus.push(vSku);
+          const payload = buildInventoryPayload(vSku, listing, colorImages, true, excludedDesignUrls, size, color);
+          const res = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${vSku}`, token, "PUT", payload);
+          if (res.status < 200 || res.status >= 300) {
+            console.error("Variant inventory create failed:", vSku, res.status, res.body);
+            throw new Error(`eBay variant create failed (${vSku}): ${res.status} — ${res.body.slice(0, 200)}`);
+          }
+        }
+      }
 
-      // Add policies if available
+      // Step 2: create an offer per variant
+      const variantOfferIds: string[] = [];
       const listingPolicies: Record<string, string> = {};
       if (policies.fulfillmentPolicyId) listingPolicies.fulfillmentPolicyId = policies.fulfillmentPolicyId;
       if (policies.paymentPolicyId) listingPolicies.paymentPolicyId = policies.paymentPolicyId;
       if (policies.returnPolicyId) listingPolicies.returnPolicyId = policies.returnPolicyId;
-      if (Object.keys(listingPolicies).length > 0) {
-        offerPayload.listingPolicies = listingPolicies;
+
+      for (const color of colors) {
+        for (const size of sizes) {
+          const vSku = variantSku(baseSku, color, size);
+          const offerPayload: Record<string, unknown> = {
+            sku: vSku,
+            marketplaceId,
+            format: "FIXED_PRICE",
+            availableQuantity: 999,
+            categoryId: "15687",
+            listingDescription: description,
+            pricingSummary: { price: { value: priceForSize(basePrice, size, listing?.size_pricing), currency: "USD" } },
+            merchantLocationKey: locationKey,
+          };
+          if (Object.keys(listingPolicies).length > 0) offerPayload.listingPolicies = listingPolicies;
+
+          const existing = await findOfferForSku(apiBase, token, vSku, marketplaceId);
+          const res = existing?.offerId
+            ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existing.offerId}`, token, "PUT", offerPayload)
+            : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+          if (res.status < 200 || res.status >= 300) {
+            console.error("Variant offer failed:", vSku, res.status, res.body);
+            throw new Error(`eBay variant offer failed (${vSku}): ${res.body.slice(0, 200)}`);
+          }
+          const data = safeJson(res.body);
+          const offerId = data.offerId || existing?.offerId;
+          if (offerId) variantOfferIds.push(offerId);
+        }
       }
 
-      const existingOffer = await findOfferForSku(apiBase, token, sku, marketplaceId);
-      const offerRes = existingOffer?.offerId
-        ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}`, token, "PUT", offerPayload)
-        : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
-      console.log("Offer response:", offerRes.status, offerRes.body);
+      // Step 3: create/update the inventory item group (this is what makes it a multi-variation listing)
+      const groupKey = baseSku;
+      const groupTitle = cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80);
+      const groupImages = Array.from(allImageUrls).slice(0, 12);
+      const variesBy: Record<string, unknown> = {
+        aspectsImageVariesBy: ["Color"],
+        specifications: [
+          { name: "Color", values: colors },
+          { name: "Size", values: sizes },
+        ],
+      };
+      const groupPayload: Record<string, unknown> = {
+        inventoryItemGroupKey: groupKey,
+        title: groupTitle,
+        description: description,
+        variantSKUs: variantSkus,
+        aspects: {
+          Brand: ["Youniverses"],
+          Type: ["T-Shirt"],
+          Department: ["Unisex Adults"],
+          Material: ["Cotton"],
+        },
+        variesBy,
+      };
+      if (groupImages.length > 0) groupPayload.imageUrls = groupImages;
 
-      if (offerRes.status < 200 || offerRes.status >= 300) {
-        console.error("eBay offer error:", offerRes.status, offerRes.body);
-        return new Response(JSON.stringify({
-          success: false,
-          error: `eBay offer failed: ${offerRes.body.slice(0, 500)}`,
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const groupRes = await ebayRequestWithRetry(
+        `${apiBase}/sell/inventory/v1/inventory_item_group/${encodeURIComponent(groupKey)}`,
+        token,
+        "PUT",
+        groupPayload,
+      );
+      if (groupRes.status < 200 || groupRes.status >= 300) {
+        console.error("Inventory item group failed:", groupRes.status, groupRes.body);
+        throw new Error(`eBay item group failed: ${groupRes.body.slice(0, 300)}`);
       }
 
-      const offerData = safeJson(offerRes.body);
-      const offerId = offerData.offerId || existingOffer?.offerId;
-
-      if (!offerId) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: "eBay offer created but no offerId returned.",
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Step 3: Publish the offer
+      // Step 4: publish the group (single multi-variation listing)
       let publishRes = { status: 0, body: "" };
       for (let attempt = 0; attempt < 3; attempt++) {
         if (attempt > 0) await sleep(2000);
         publishRes = await ebayRequest(
-          `${apiBase}/sell/inventory/v1/offer/${offerId}/publish`,
+          `${apiBase}/sell/inventory/v1/offer/publish_by_inventory_item_group`,
           token,
           "POST",
-          {},
+          { inventoryItemGroupKey: groupKey, marketplaceId },
         );
-        console.log(`Publish attempt ${attempt + 1}:`, publishRes.status, publishRes.body);
+        console.log(`Group publish attempt ${attempt + 1}:`, publishRes.status, publishRes.body);
         if (publishRes.status >= 200 && publishRes.status < 300) break;
       }
 
       if (publishRes.status < 200 || publishRes.status >= 300) {
-        console.error("eBay publish error:", publishRes.status, publishRes.body);
+        console.error("eBay group publish error:", publishRes.status, publishRes.body);
         return new Response(JSON.stringify({
           success: false,
           error: `eBay publish failed: ${publishRes.body.slice(0, 500)}`,
-          item_id: sku,
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+          item_id: baseSku,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const publishData = safeJson(publishRes.body);
       const listingId = publishData.listingId;
-
       if (!listingId) {
-        console.error("eBay publish missing listingId:", publishRes.body);
         return new Response(JSON.stringify({
           success: false,
-          error: `eBay published response did not include a listing ID: ${publishRes.body.slice(0, 500)}`,
-          item_id: sku,
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+          error: `eBay publish response missing listingId: ${publishRes.body.slice(0, 500)}`,
+          item_id: baseSku,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
 
       return new Response(JSON.stringify({
         success: true,
-        item_id: sku,
+        item_id: baseSku,
         listing_id: listingId,
         action: "published",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        variants: variantSkus.length,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
   } catch (e) {
     console.error("push-to-ebay error:", e);
