@@ -88,6 +88,38 @@ export function CreditCostBreakdown() {
         </p>
       </div>
 
+      {/* What credits cover vs what they don't */}
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-foreground">Your credits cover</span>
+          </div>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            <li>• AI generation (designs, mockups, listings, social posts)</li>
+            <li>• SEO site scans and re-scans</li>
+            <li>• Marketplace pushes to Printify, Shopify, Etsy, eBay</li>
+            <li>• Image storage & autopilot workflows</li>
+            <li>• All app infrastructure and bandwidth</li>
+          </ul>
+        </div>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <X className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-semibold text-foreground">Billed by third parties</span>
+          </div>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            <li>• <strong className="text-foreground">Printify</strong> — printing & shipping per order</li>
+            <li>• <strong className="text-foreground">Shopify / Etsy / eBay</strong> — platform & listing fees</li>
+            <li>• <strong className="text-foreground">Meta</strong> — ad spend (if used)</li>
+            <li>• Each platform's own transaction fees on sales</li>
+          </ul>
+          <p className="text-[11px] text-muted-foreground/80 pt-1 flex items-center gap-1">
+            <ExternalLink className="h-3 w-3" /> Charged on your connected accounts, not by us.
+          </p>
+        </div>
+      </div>
+
       <div className="space-y-4">
         {COST_GROUPS.map(({ label, icon: Icon, items }) => (
           <div key={label} className="rounded-lg border border-border bg-card/50 p-4">
