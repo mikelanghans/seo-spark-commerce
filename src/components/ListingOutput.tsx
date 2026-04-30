@@ -119,6 +119,75 @@ export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext 
     setDraft({ ...draft, tags: [...draft.tags, ""] });
   };
 
+  // Source of truth for tags currently shown (draft when editing, listing otherwise)
+  const currentTags = (): string[] => (editing ? draft.tags : listing.tags).filter(Boolean);
+
+  const fetchSuggestions = async () => {
+    setLoadingSuggestions(true);
+    setShowSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-keywords-tags", {
+        body: {
+          marketplace,
+          existingTags: currentTags(),
+          business: suggestionContext?.business || {},
+          product: {
+            title: suggestionContext?.product?.title || listing.title,
+            category: suggestionContext?.product?.category || "",
+            description: suggestionContext?.product?.description || listing.description,
+          },
+        },
+      });
+      if (error) {
+        const msg = (error as any)?.message || "Failed to fetch suggestions";
+        if (msg.includes("402")) toast.error("AI credits exhausted — add credits to continue.");
+        else if (msg.includes("429")) toast.error("Rate limit reached — please wait a moment.");
+        else toast.error(msg);
+        setShowSuggestions(false);
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.error);
+        setShowSuggestions(false);
+        return;
+      }
+      setSuggestedTags(Array.isArray(data?.tags) ? data.tags : []);
+      setSuggestedKeywords(Array.isArray(data?.keywords) ? data.keywords : []);
+      setSuggestionRationale(data?.rationale || "");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to fetch suggestions");
+      setShowSuggestions(false);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const addSuggestedTag = (tag: string) => {
+    const lower = tag.toLowerCase();
+    const existing = currentTags().map((t) => t.toLowerCase());
+    if (existing.includes(lower)) return;
+
+    if (editing) {
+      setDraft({ ...draft, tags: [...draft.tags, tag] });
+    } else if (onSave) {
+      onSave({ ...listing, tags: [...listing.tags, tag] });
+    }
+    setSuggestedTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const addAllSuggestedTags = () => {
+    const existing = new Set(currentTags().map((t) => t.toLowerCase()));
+    const toAdd = suggestedTags.filter((t) => !existing.has(t.toLowerCase()));
+    if (toAdd.length === 0) return;
+
+    if (editing) {
+      setDraft({ ...draft, tags: [...draft.tags, ...toAdd] });
+    } else if (onSave) {
+      onSave({ ...listing, tags: [...listing.tags, ...toAdd] });
+    }
+    setSuggestedTags([]);
+  };
+
   return (
     <div className="mt-4 space-y-6 rounded-xl border border-border bg-card p-6">
       {/* Edit / Save Controls */}
