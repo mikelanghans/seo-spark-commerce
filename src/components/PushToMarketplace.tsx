@@ -51,6 +51,8 @@ type PushResult = {
   error?: string;
 };
 
+const isPublishedEbayListingId = (value?: string | null) => !!value && !/^BA-[a-z0-9-]+$/i.test(value);
+
 const ETSY_UPDATE_FIELDS = [
   { key: "title", label: "Title" },
   { key: "description", label: "Description" },
@@ -155,7 +157,7 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
   };
 
   const etsyIsExisting = !!product.etsy_listing_id;
-  const ebayIsExisting = !!product.ebay_listing_id;
+  const ebayIsExisting = isPublishedEbayListingId(product.ebay_listing_id);
 
   return (
     <>
