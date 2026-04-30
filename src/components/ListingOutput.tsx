@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Globe, Search, Pencil, Save, X } from "lucide-react";
+import { Check, Copy, Search, Pencil, Save, X, Sparkles, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface ListingData {
   title: string;
@@ -15,10 +17,25 @@ export interface ListingData {
   altText?: string;
 }
 
+export interface SuggestionContext {
+  business?: {
+    name?: string;
+    niche?: string;
+    tone?: string;
+    audience?: string;
+  };
+  product?: {
+    title?: string;
+    category?: string;
+    description?: string;
+  };
+}
+
 interface Props {
   marketplace: string;
   listing: ListingData;
   onSave?: (updated: ListingData) => void;
+  suggestionContext?: SuggestionContext;
 }
 
 export const ListingOutput = ({ marketplace, listing, onSave }: Props) => {
