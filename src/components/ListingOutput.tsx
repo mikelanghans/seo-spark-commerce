@@ -38,10 +38,17 @@ interface Props {
   suggestionContext?: SuggestionContext;
 }
 
-export const ListingOutput = ({ marketplace, listing, onSave }: Props) => {
+export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext }: Props) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ListingData>(listing);
+
+  // Suggestion state
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
+  const [suggestionRationale, setSuggestionRationale] = useState<string>("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Re-sync draft whenever the underlying listing prop changes (e.g. after regeneration
   // or switching products). Prevents stale tags / SEO from leaking into edit mode.
