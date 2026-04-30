@@ -375,7 +375,8 @@ serve(async (req) => {
     const updateDescription = !updateFields || updateFields.includes("description");
     const updateTitle = !updateFields || updateFields.includes("title");
 
-    const hasStoredPublishedListing = existingListingId && !isBrandAuraSku(existingListingId);
+    // Always rebuild as a multi-variation group; single-SKU update path is disabled.
+    const hasStoredPublishedListing = false;
     const storedListingOffer = hasStoredPublishedListing
       ? await findOfferForSku(apiBase, token, knownSku, marketplaceId)
       : null;
