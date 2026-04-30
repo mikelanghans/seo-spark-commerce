@@ -545,7 +545,9 @@ serve(async (req) => {
         },
         variesBy,
       };
-      if (groupImages.length > 0) groupPayload.imageUrls = groupImages;
+      // Note: do NOT set group-level imageUrls. With aspectsImageVariesBy=["Color"],
+      // eBay pulls images from each variant's inventory item, keyed by Color.
+      // Setting group imageUrls in addition causes the gallery to show duplicates.
 
       const groupRes = await ebayRequestWithRetry(
         `${apiBase}/sell/inventory/v1/inventory_item_group/${encodeURIComponent(groupKey)}`,

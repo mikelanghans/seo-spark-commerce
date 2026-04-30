@@ -146,13 +146,13 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
       // Fetch all product images so eBay receives mockups only (never the raw design)
       const { data: imgs } = await supabase
         .from("product_images")
-        .select("image_url, position, image_type")
+        .select("image_url, position, image_type, color_name")
         .eq("product_id", product.id)
         .order("position", { ascending: true });
       const mockupsOnly = (imgs || [])
         .filter((img: any) => img.image_type === "mockup")
         .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
-      const ebayImages = mockupsOnly.map((img: any) => ({ image_url: img.image_url, image_type: img.image_type }));
+      const ebayImages = mockupsOnly.map((img: any) => ({ image_url: img.image_url, image_type: img.image_type, color_name: img.color_name }));
 
       if (ebayImages.length === 0) {
         toast.error("No mockup images found. Generate mockups before pushing to eBay.");
