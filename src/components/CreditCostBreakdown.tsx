@@ -45,6 +45,10 @@ const FAQ_ITEMS = [
     q: "Can I try before subscribing?",
     a: "Yes! The Free plan includes 25 credits/month so you can experience every AI feature before committing to a paid plan.",
   },
+  {
+    q: "Are there other costs outside of credits?",
+    a: "Yes — credits cover everything inside this app (AI generation, listing creation, marketplace pushes, SEO scans, storage). But your connected platforms bill you directly: Printify charges per order for printing & shipping; Shopify, Etsy, eBay, and Meta charge their own subscription, listing, and transaction fees on your account. We never touch those.",
+  },
 ];
 
 export function CreditCostBreakdown() {
