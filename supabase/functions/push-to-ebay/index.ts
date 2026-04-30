@@ -320,7 +320,7 @@ serve(async (req) => {
       });
     } else {
       // Create new inventory item
-      const sku = `BA-${productId.slice(0, 8)}-${Date.now()}`;
+      const sku = stableSkuForProduct(productId);
 
       const inventoryPayload = buildInventoryPayload(sku, listing, images);
       let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
@@ -345,11 +345,7 @@ serve(async (req) => {
         throw new Error(`eBay create failed: ${createRes.status} — ${errText.slice(0, 200)}`);
       }
 
-      // Save eBay item ID (SKU) back to product
-      await sb.from("products").update({ ebay_listing_id: sku } as any).eq("id", productId);
-
       // Step 2: Create an offer
-      const marketplaceId = isSandbox ? "EBAY_US" : "EBAY_US";
       const price = parsePrice(listing.price);
 
       // Ensure a default inventory location exists
@@ -406,32 +402,32 @@ serve(async (req) => {
         offerPayload.listingPolicies = listingPolicies;
       }
 
-      const offerRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+      const existingOffer = await findOfferForSku(apiBase, token, sku, marketplaceId);
+      const offerRes = existingOffer?.offerId
+        ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}`, token, "PUT", offerPayload)
+        : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
       console.log("Offer response:", offerRes.status, offerRes.body);
 
       if (offerRes.status < 200 || offerRes.status >= 300) {
-        // Inventory item was created, but offer failed — still return partial success
         console.error("eBay offer error:", offerRes.status, offerRes.body);
         return new Response(JSON.stringify({
-          success: true,
-          item_id: sku,
-          action: "created",
-          warning: `Inventory item created but offer failed: ${offerRes.body.slice(0, 200)}`,
+          success: false,
+          error: `eBay offer failed: ${offerRes.body.slice(0, 500)}`,
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const offerData = JSON.parse(offerRes.body);
-      const offerId = offerData.offerId;
+      const offerData = safeJson(offerRes.body);
+      const offerId = offerData.offerId || existingOffer?.offerId;
 
       if (!offerId) {
         return new Response(JSON.stringify({
-          success: true,
-          item_id: sku,
-          action: "created",
-          warning: "Offer created but no offerId returned.",
+          success: false,
+          error: "eBay offer created but no offerId returned.",
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -462,8 +458,22 @@ serve(async (req) => {
         });
       }
 
-      const publishData = JSON.parse(publishRes.body);
+      const publishData = safeJson(publishRes.body);
       const listingId = publishData.listingId;
+
+      if (!listingId) {
+        console.error("eBay publish missing listingId:", publishRes.body);
+        return new Response(JSON.stringify({
+          success: false,
+          error: `eBay published response did not include a listing ID: ${publishRes.body.slice(0, 500)}`,
+          item_id: sku,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
 
       return new Response(JSON.stringify({
         success: true,
