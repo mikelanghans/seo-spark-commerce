@@ -5,6 +5,7 @@ import { RotateCw, Check, Loader2 } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { smartRemoveBackground } from "@/lib/removeBackground";
+import { detectGarmentCenter } from "@/lib/detectGarmentCenter";
 
 interface Props {
   templateUrl: string;
@@ -67,7 +68,9 @@ export const DesignPlacementEditor = ({
 }: Props) => {
   const defaultScale = designStyle === "text-only" ? TEXT_ONLY_SCALE : DEFAULT_SCALE;
   const [scale, setScale] = useState(initialPlacement?.scale ?? defaultScale);
-  const shirtCenterOffset = 0; // mockups are framed shirt-centered; image center == shirt center
+  // Detected garment-horizontal-center as a fraction of image width (0 = image center).
+  // Only set when detection confidence is high enough; otherwise stays 0.
+  const [shirtCenterOffset, setShirtCenterOffset] = useState(0);
   const [offsetX, setOffsetX] = useState(initialPlacement?.offsetX ?? 0);
   const [offsetY, setOffsetY] = useState(initialPlacement?.offsetY ?? 0.20);
   const [dragging, setDragging] = useState(false);
