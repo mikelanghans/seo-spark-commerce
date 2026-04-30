@@ -113,12 +113,16 @@ const buildDescriptionHtml = (listing: any) => {
 
 const imageUrlsForEbay = (images: unknown) => {
   const urls = Array.isArray(images)
-    ? images.map((img: any) => String(img?.image_url || "").trim())
+    ? images
+        .filter((img: any) => String(img?.image_type || "mockup").toLowerCase() !== "design")
+        .map((img: any) => String(img?.image_url || "").trim())
     : [];
   return [...new Set(urls)]
     .filter((url) => /^https:\/\//i.test(url))
     .slice(0, 12);
 };
+
+const normalizeMockupImages = (images: unknown) => imageUrlsForEbay(images).map((image_url) => ({ image_url }));
 
 const isBrandAuraSku = (value: unknown) => /^BA-[a-z0-9-]+$/i.test(String(value || ""));
 
