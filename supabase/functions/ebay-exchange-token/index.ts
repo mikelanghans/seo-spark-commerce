@@ -65,6 +65,9 @@ serve(async (req) => {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error("eBay token exchange error:", errText);
+      if (errText.includes("invalid_client")) {
+        throw new Error("eBay rejected the App ID or Cert ID. Re-paste the Production App ID and Production Cert ID from the same eBay keyset, then authorize again.");
+      }
       throw new Error(`eBay token exchange failed (${tokenRes.status})`);
     }
 
