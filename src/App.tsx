@@ -199,6 +199,7 @@ const App = () => {
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/oauth/ebay/callback" element={<EbayOAuthCallback />} />
+                <Route path="/ebay/callback" element={<EbayOAuthCallback />} />
                 <Route path="/invite/:token" element={<AcceptInvite />} />
                 <Route path="/features" element={<Features />} />
                 <Route path="/terms" element={<Terms />} />
