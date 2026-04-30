@@ -132,6 +132,17 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
       const listing = getListing("ebay");
       if (!listing) { toast.error("No listing found. Generate one first."); return; }
 
+      // Fetch bullet_points from DB (not present on the trimmed Listing prop)
+      const { data: listingRow } = await supabase
+        .from("listings")
+        .select("bullet_points")
+        .eq("product_id", product.id)
+        .eq("marketplace", listing.marketplace)
+        .maybeSingle();
+      const bulletPoints: string[] = Array.isArray(listingRow?.bullet_points)
+        ? (listingRow!.bullet_points as any[]).map((b) => String(b)).filter(Boolean)
+        : [];
+
       // Fetch all product images so eBay receives mockups only (never the raw design)
       const { data: imgs } = await supabase
         .from("product_images")
