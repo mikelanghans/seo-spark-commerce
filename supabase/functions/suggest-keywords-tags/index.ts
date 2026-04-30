@@ -32,6 +32,9 @@ serve(async (req) => {
     const existingTags: string[] = Array.isArray(body.existingTags)
       ? body.existingTags.filter((t: unknown) => typeof t === "string").map((t: string) => t.trim()).filter(Boolean)
       : [];
+    const excludedSections: string[] = Array.isArray(body.excludedSections)
+      ? body.excludedSections.filter((s: unknown) => typeof s === "string")
+      : [];
 
     const ctx = {
       brand: clamp(business.name, 80, "Unknown brand"),
@@ -52,6 +55,25 @@ serve(async (req) => {
     };
     const rule = marketplaceRules[marketplace] || marketplaceRules.shopify;
 
+    // Build exclusion guidance based on the brand's "Exclude from Listings" settings
+    const exclusionLines: string[] = [];
+    const excludedKeywordTerms: string[] = [];
+    if (excludedSections.includes("materials")) {
+      exclusionLines.push("- Materials / fabric / fit / sizing / fabric composition / garment specs (the storefront displays these separately).");
+      excludedKeywordTerms.push("cotton", "polyester", "fabric", "fit", "size", "sizing", "material", "garment dye", "ringspun", "heavyweight", "lightweight", "soft tee");
+    }
+    if (excludedSections.includes("care")) {
+      exclusionLines.push("- Care instructions / wash / dry / iron / care guide.");
+      excludedKeywordTerms.push("machine wash", "wash cold", "tumble dry", "easy care", "care instructions");
+    }
+    if (excludedSections.includes("shipping")) {
+      exclusionLines.push("- Shipping / delivery / fast shipping / free shipping / returns / refund policy.");
+      excludedKeywordTerms.push("fast shipping", "free shipping", "quick delivery", "easy returns", "ships fast", "ships free");
+    }
+    const exclusionBlock = exclusionLines.length
+      ? `\n\nCONTENT EXCLUSIONS — STRICT (do NOT propose any tag or keyword touching these topics):\n${exclusionLines.join("\n")}\nAlso avoid these specific terms or near-variants: ${excludedKeywordTerms.join(", ")}.\nFocus instead on the product story, design theme, audience, mood, gifting context, and brand voice.`
+      : "";
+
     const prompt = `You are an SEO and marketplace search expert. Suggest fresh KEYWORD and TAG ideas for one product, tightly tailored to its category and target audience.
 
 PRODUCT
@@ -68,7 +90,7 @@ BRAND CONTEXT
 MARKETPLACE: ${marketplace}
 - Marketplace rules: ${rule}
 
-ALREADY-USED TAGS (do NOT repeat these or near-duplicates): ${ctx.existing || "(none)"}
+ALREADY-USED TAGS (do NOT repeat these or near-duplicates): ${ctx.existing || "(none)"}${exclusionBlock}
 
 YOUR JOB
 Generate two lists:
