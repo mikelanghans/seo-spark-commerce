@@ -86,6 +86,20 @@ export const DesignPlacementEditor = ({
   const [processingDesign, setProcessingDesign] = useState(true);
   const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
 
+  // Detect the garment's true horizontal center (shoulder-line analysis).
+  // Apply only when confidence is high enough AND the user hasn't manually
+  // positioned the design — keeps the slider honest while auto-aligning props-skewed shots.
+  useEffect(() => {
+    let cancelled = false;
+    detectGarmentCenter(templateUrl).then(({ offsetX: detected, confidence }) => {
+      if (cancelled) return;
+      if (confidence < 0.6) return; // not confident — leave at image center
+      setShirtCenterOffset(detected);
+      if (!userTouchedXRef.current) setOffsetX(detected);
+    });
+    return () => { cancelled = true; };
+  }, [templateUrl]);
+
   // Strip background from design for transparent preview
   useEffect(() => {
     let cancelled = false;
