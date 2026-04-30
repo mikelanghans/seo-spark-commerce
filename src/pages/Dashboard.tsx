@@ -583,15 +583,17 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={openEbayConfirm} className="gap-2">
-                            <Tag className="h-4 w-4" />
-                            <div>
-                              <p className="font-medium">Push to eBay</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                Skips products already on eBay
-                              </p>
-                            </div>
-                          </DropdownMenuItem>
+                          {selectedOrg?.enabled_marketplaces?.includes("ebay") && (
+                            <DropdownMenuItem onClick={openEbayConfirm} className="gap-2">
+                              <Tag className="h-4 w-4" />
+                              <div>
+                                <p className="font-medium">Push to eBay</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Skips products already on eBay
+                                </p>
+                              </div>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={async () => { const subset = getSelectedProducts(); await handleGenerateAllListings(subset); if (!cancelGenAllRef.current) handlePushAllToShopify(subset); }} className="gap-2 border-t border-border">
                             <Rocket className="h-4 w-4 text-primary" />
                             <div>
