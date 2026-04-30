@@ -174,7 +174,19 @@ Plain text only. No markdown. No emojis.`;
     if (!toolCall) throw new Error("No tool call in response");
     const parsed = JSON.parse(toolCall.function.arguments);
 
-    // Sanitize: lowercase, dedupe (case-insensitive) against existing + each other
+    // Build forbidden-substring list from excluded sections (defense-in-depth)
+    const forbiddenSubstrings: string[] = [];
+    if (excludedSections.includes("materials")) {
+      forbiddenSubstrings.push("cotton", "polyester", "fabric", " fit", "fitted", "sizing", "size guide", "material", "garment", "ringspun", "heavyweight", "lightweight", "soft tee", "cozy fit");
+    }
+    if (excludedSections.includes("care")) {
+      forbiddenSubstrings.push("wash", "dry", "iron", "care instruction", "easy care");
+    }
+    if (excludedSections.includes("shipping")) {
+      forbiddenSubstrings.push("shipping", "delivery", "ships ", "return", "refund");
+    }
+
+    // Sanitize: lowercase, dedupe, strip excluded topics
     const existingLower = new Set(existingTags.map((t) => t.toLowerCase()));
     const seen = new Set<string>();
     const cleanList = (arr: unknown, max: number): string[] => {
@@ -185,6 +197,7 @@ Plain text only. No markdown. No emojis.`;
         const t = raw.trim().replace(/^#+/, "").replace(/^["']|["']$/g, "").toLowerCase();
         if (!t || t.length > 50) continue;
         if (existingLower.has(t) || seen.has(t)) continue;
+        if (forbiddenSubstrings.some((bad) => t.includes(bad))) continue;
         seen.add(t);
         out.push(t);
         if (out.length >= max) break;
