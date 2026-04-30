@@ -315,7 +315,7 @@ serve(async (req) => {
     const marketplaceId = "EBAY_US";
     const knownSku = isBrandAuraSku(existingListingId) ? existingListingId : stableSkuForProduct(productId);
 
-    const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
+    const description = buildDescriptionHtml(listing);
 
     const hasStoredPublishedListing = existingListingId && !isBrandAuraSku(existingListingId);
     const storedListingOffer = hasStoredPublishedListing
