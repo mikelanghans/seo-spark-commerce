@@ -179,14 +179,16 @@ export const DesignPlacementEditor = ({
 
   const handleReset = () => {
     setScale(defaultScale);
-    setOffsetX(0);
+    setOffsetX(shirtCenterOffset);
     setOffsetY(0.20);
+    userTouchedXRef.current = false;
   };
 
   // Drag handling
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
     setDragging(true);
+    userTouchedXRef.current = true;
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
