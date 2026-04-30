@@ -185,6 +185,9 @@ export const DesignPlacementEditor = ({
           <p className="text-xs text-muted-foreground">Drag the design or use sliders to fine-tune position & size</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setOffsetX(0)} className="gap-1.5" title="Snap to horizontal center">
+            ↔ Center
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5">
             <RotateCw className="h-3.5 w-3.5" /> Reset
           </Button>
