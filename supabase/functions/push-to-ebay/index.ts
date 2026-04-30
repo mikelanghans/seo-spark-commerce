@@ -98,6 +98,7 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       "Size Type": ["Regular"],
       Material: ["Cotton"],
       "Graphic Print": ["Yes"],
+      "MPN": [sku],
     },
   };
   const imageUrls = imageUrlsForEbay(images);
