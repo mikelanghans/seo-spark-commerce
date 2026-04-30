@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { RotateCw, Check, Loader2 } from "lucide-react";
+import { RotateCw, Check, Loader2, Eye, EyeOff } from "lucide-react";
 import type { DesignPlacement } from "@/lib/mockupComposition";
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { smartRemoveBackground } from "@/lib/removeBackground";
@@ -84,6 +84,7 @@ export const DesignPlacementEditor = ({
   const resizeStartRef = useRef<{ x: number; y: number; startScale: number } | null>(null);
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
+  const [previewMode, setPreviewMode] = useState(false);
   const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
 
   // Detect the garment's true horizontal center (shoulder-line analysis).
@@ -209,10 +210,20 @@ export const DesignPlacementEditor = ({
           <p className="text-xs text-muted-foreground">Drag the design or use sliders to fine-tune position & size</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => { setOffsetX(shirtCenterOffset); userTouchedXRef.current = false; }} className="gap-1.5" title="Snap to shirt center">
+          <Button
+            variant={previewMode ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setPreviewMode((v) => !v)}
+            className="gap-1.5"
+            title={previewMode ? "Show guides & handles" : "Hide guides to preview placement"}
+          >
+            {previewMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            {previewMode ? "Edit" : "Preview"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => { setOffsetX(shirtCenterOffset); userTouchedXRef.current = false; }} className="gap-1.5" title="Snap to shirt center" disabled={previewMode}>
             ↔ Center
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5" disabled={previewMode}>
             <RotateCw className="h-3.5 w-3.5" /> Reset
           </Button>
           <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
@@ -239,8 +250,9 @@ export const DesignPlacementEditor = ({
           draggable={false}
         />
 
-        {/* Centering guides — vertical line aligned to the DETECTED shirt center */}
-        {templateLoaded && (
+        {/* Centering guides — vertical line aligned to the DETECTED shirt center.
+            Hidden in preview mode so the user can confirm what the final mockup will look like. */}
+        {templateLoaded && !previewMode && (
           <>
             {/* Vertical center line at shirt center */}
             <div
@@ -275,10 +287,10 @@ export const DesignPlacementEditor = ({
             alt="Design"
             draggable={false}
             onLoad={handleDesignLoad}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            className={`absolute pointer-events-auto ${dragging ? "cursor-grabbing" : "cursor-grab"} ${designLoaded ? "opacity-100" : "opacity-0"} transition-opacity`}
+            onPointerDown={previewMode ? undefined : handlePointerDown}
+            onPointerMove={previewMode ? undefined : handlePointerMove}
+            onPointerUp={previewMode ? undefined : handlePointerUp}
+            className={`absolute ${previewMode ? "pointer-events-none" : `pointer-events-auto ${dragging ? "cursor-grabbing" : "cursor-grab"}`} ${designLoaded ? "opacity-100" : "opacity-0"} transition-opacity`}
             style={{
               width: `${designWidthPct}%`,
               height: `${designHeightPct}%`,
@@ -291,7 +303,7 @@ export const DesignPlacementEditor = ({
         )}
 
         {/* Corner handles — grabbable for resizing */}
-        {templateLoaded && designLoaded && (
+        {templateLoaded && designLoaded && !previewMode && (
           <>
             {[
               { left: designLeftPct, top: designTopPct, cursor: "nwse-resize" },
@@ -325,6 +337,12 @@ export const DesignPlacementEditor = ({
               }}
             />
           </>
+        )}
+
+        {previewMode && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full bg-background/80 backdrop-blur text-[10px] font-medium text-muted-foreground border border-border pointer-events-none">
+            Preview — final placement
+          </div>
         )}
       </div>
 
