@@ -131,6 +131,7 @@ export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext 
         body: {
           marketplace,
           existingTags: currentTags(),
+          excludedSections: suggestionContext?.excludedSections || [],
           business: suggestionContext?.business || {},
           product: {
             title: suggestionContext?.product?.title || listing.title,
