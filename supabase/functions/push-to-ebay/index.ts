@@ -91,7 +91,6 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
     description: `<p>${cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000)}</p>`,
     brand: "Youniverses",
     mpn: sku,
-    upc: "Does not apply",
     aspects: {
       Brand: ["Youniverses"],
       Type: ["T-Shirt"],
