@@ -38,7 +38,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const allMarketplaces = ["etsy", "ebay", "shopify"];
+    const allMarketplaces = ["etsy", "ebay", "shopify", "tiktok"];
     const marketplaces = (requestedMarketplaces && requestedMarketplaces.length > 0)
       ? requestedMarketplaces.filter((m: string) => allMarketplaces.includes(m))
       : (enhanceOnly ? ["shopify"] : allMarketplaces);
@@ -117,6 +117,7 @@ Marketplace style:
 - Etsy: creative title with tags, storytelling description with emojis, handmade feel
 - eBay: clear factual title, structured description, trust signals
 - Shopify: clean brand-forward copy, lifestyle-oriented
+- TikTok Shop: punchy hook-first title (≤255 chars), Gen-Z / trend-aware tone, conversational, light emoji use OK. Description as 3–5 selling-point paragraphs separated by single blank lines, each focused on a clear benefit (vibe, fit-feel, gift-worthy, occasions). NO bullet markers (• - *) in the description — TikTok strips them. Plain text only.
 
 IMPORTANT FORMATTING RULES:
 - Descriptions must be PLAIN TEXT only — no markdown (no #, ##, ###, **, *, etc.)
@@ -186,6 +187,7 @@ For EACH marketplace listing, also generate (these are STRICT SEO requirements �
       etsy: "Etsy: creative title with tags, storytelling description with emojis, handmade feel.",
       ebay: "eBay: clear factual title, structured description, trust signals.",
       shopify: "Shopify: clean brand-forward copy, lifestyle-oriented.",
+      tiktok: "TikTok Shop: hook-first title up to 255 chars, Gen-Z / trend-aware tone, conversational. Description = 3–5 short benefit-focused paragraphs separated by blank lines, NO bullet markers. Light emoji OK. Plain text only — no markdown.",
     };
 
     const settled = await Promise.allSettled(
