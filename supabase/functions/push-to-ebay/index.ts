@@ -154,6 +154,25 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user }, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !user || user.id !== userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const sb = createClient(supabaseUrl, supabaseKey);
 
     // Get eBay connection
@@ -169,7 +188,7 @@ serve(async (req) => {
       });
     }
 
-    const { client_id, client_secret, environment, access_token, refresh_token } = conn;
+    const { client_id, client_secret, environment, access_token, refresh_token, token_expires_at } = conn;
 
     // Determine API base URL
     const isSandbox = environment === "sandbox";
@@ -180,8 +199,11 @@ serve(async (req) => {
     // Get/refresh access token if needed
     let token = access_token;
 
-    if (!token && client_id && client_secret) {
-      // Get client credentials token (limited scope)
+    const expiresAt = token_expires_at ? Date.parse(token_expires_at) : 0;
+    const shouldRefresh = !token || !expiresAt || expiresAt < Date.now() + 5 * 60 * 1000;
+
+    if (shouldRefresh && refresh_token && client_id && client_secret) {
+      // Refresh the seller user token; Sell Inventory APIs require user-granted scopes.
       const authBase = isSandbox
         ? "https://api.sandbox.ebay.com/identity/v1/oauth2/token"
         : "https://api.ebay.com/identity/v1/oauth2/token";
@@ -193,7 +215,11 @@ serve(async (req) => {
           Authorization: `Basic ${creds}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: "grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope",
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token,
+          scope: "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.marketing https://api.ebay.com/oauth/api_scope/sell.account",
+        }).toString(),
       });
 
       if (!tokenRes.ok) {
@@ -208,6 +234,7 @@ serve(async (req) => {
       // Save token
       await sb.from("ebay_connections").update({
         access_token: token,
+        refresh_token: tokenData.refresh_token || refresh_token,
         token_expires_at: new Date(Date.now() + (tokenData.expires_in || 7200) * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       } as any).eq("id", conn.id);
