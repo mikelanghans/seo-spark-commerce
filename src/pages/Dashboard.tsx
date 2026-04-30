@@ -754,6 +754,56 @@ const Dashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={etsyConfirm.open} onOpenChange={(o) => setEtsyConfirm((s) => ({ ...s, open: o }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish {etsyConfirm.eligible.length} {etsyConfirm.eligible.length === 1 ? "product" : "products"} to Etsy?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  This will create live Etsy listings using each product's Etsy-specific SEO listing
+                  (or the first generated listing as fallback) and its current price.
+                </p>
+                {etsyConfirm.skipped > 0 && (
+                  <p className="text-amber-500">
+                    {etsyConfirm.skipped} product{etsyConfirm.skipped === 1 ? " is" : "s are"} already on Etsy and will be skipped.
+                  </p>
+                )}
+                {etsyConfirm.eligible.length > 0 && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 max-h-40 overflow-y-auto">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Will publish:</p>
+                    <ul className="space-y-0.5 text-xs">
+                      {etsyConfirm.eligible.slice(0, 10).map((p) => (
+                        <li key={p.id} className="truncate">• {p.title || "Untitled"}</li>
+                      ))}
+                      {etsyConfirm.eligible.length > 10 && (
+                        <li className="text-muted-foreground">…and {etsyConfirm.eligible.length - 10} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                {etsyConfirm.eligible.length === 0 && (
+                  <p className="text-muted-foreground">No eligible products to publish.</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={etsyConfirm.eligible.length === 0}
+              onClick={() => {
+                const toPush = etsyConfirm.products;
+                setEtsyConfirm({ open: false, products: [], eligible: [], skipped: 0 });
+                handlePushAllToEtsy(toPush);
+              }}
+            >
+              Publish to Etsy
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
