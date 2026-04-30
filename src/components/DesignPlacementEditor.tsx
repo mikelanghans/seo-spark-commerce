@@ -142,7 +142,10 @@ export const DesignPlacementEditor = ({
     const rect = containerRef.current.getBoundingClientRect();
     const dx = (e.clientX - dragStartRef.current.x) / rect.width;
     const dy = (e.clientY - dragStartRef.current.y) / rect.height;
-    setOffsetX(Math.max(-0.3, Math.min(0.3, dragStartRef.current.startOffsetX + dx)));
+    let nextX = dragStartRef.current.startOffsetX + dx;
+    // Magnetic snap: when within 1.5% of true center, snap to 0 for a clean centered result
+    if (Math.abs(nextX) < 0.015) nextX = 0;
+    setOffsetX(Math.max(-0.3, Math.min(0.3, nextX)));
     setOffsetY(Math.max(0.05, Math.min(0.7, dragStartRef.current.startOffsetY + dy)));
   }, [dragging]);
 
@@ -185,6 +188,9 @@ export const DesignPlacementEditor = ({
           <p className="text-xs text-muted-foreground">Drag the design or use sliders to fine-tune position & size</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setOffsetX(0)} className="gap-1.5" title="Snap to horizontal center">
+            ↔ Center
+          </Button>
           <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5">
             <RotateCw className="h-3.5 w-3.5" /> Reset
           </Button>
@@ -211,6 +217,33 @@ export const DesignPlacementEditor = ({
           }}
           draggable={false}
         />
+
+        {/* Centering guides — vertical center line, chest line, and chest target box.
+            The vertical line turns solid + brighter when the design is horizontally centered. */}
+        {templateLoaded && (
+          <>
+            {/* Vertical center line */}
+            <div
+              className={`absolute top-0 bottom-0 pointer-events-none transition-colors ${
+                Math.abs(offsetX) < 0.01
+                  ? "border-l-2 border-primary/80"
+                  : "border-l border-dashed border-primary/30"
+              }`}
+              style={{ left: "50%", transform: "translateX(-0.5px)" }}
+            />
+            {/* Chest target box (recommended placement zone, ~28% wide × 32% tall, centered, top at 20%) */}
+            <div
+              className="absolute pointer-events-none border border-dashed border-primary/35 rounded"
+              style={{ left: "36%", top: "20%", width: "28%", height: "32%" }}
+            />
+            {/* Tiny center crosshair at chest sweet spot */}
+            <div
+              className="absolute pointer-events-none w-3 h-3 rounded-full border border-primary/60"
+              style={{ left: "50%", top: "36%", transform: "translate(-50%, -50%)" }}
+            />
+          </>
+        )}
+
         {processingDesign && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
