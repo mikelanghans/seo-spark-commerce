@@ -282,11 +282,14 @@ serve(async (req) => {
 
     const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
-    if (existingListingId && !isBrandAuraSku(existingListingId)) {
-      const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
-      if (!isBrandAuraSku(existingListingId) && existingOffer?.offerId) {
+    const hasStoredPublishedListing = existingListingId && !isBrandAuraSku(existingListingId);
+    const storedListingOffer = hasStoredPublishedListing
+      ? await findOfferForSku(apiBase, token, knownSku, marketplaceId)
+      : null;
+
+    if (hasStoredPublishedListing && storedListingOffer?.offerId) {
         const publishRes = await ebayRequest(
-          `${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}/publish`,
+          `${apiBase}/sell/inventory/v1/offer/${storedListingOffer.offerId}/publish`,
           token,
           "POST",
           {},
@@ -294,13 +297,12 @@ serve(async (req) => {
         console.log("Republish existing offer:", publishRes.status, publishRes.body);
         if (publishRes.status >= 200 && publishRes.status < 300) {
           const publishData = safeJson(publishRes.body);
-          const listingId = publishData.listingId || existingOffer.listingId || existingListingId;
+          const listingId = publishData.listingId || storedListingOffer.listingId || existingListingId;
           await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
           return new Response(JSON.stringify({ success: true, item_id: knownSku, listing_id: listingId, action: "published" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      }
 
       // Revise existing listing. eBay treats PUT as a full replacement, so send a complete item payload.
       const reviseRes = await ebayRequestWithRetry(
@@ -319,6 +321,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
+      if (hasStoredPublishedListing && !storedListingOffer?.offerId) {
+        console.log("Stored eBay listing is stale or deleted; creating and publishing a new offer for SKU:", knownSku);
+      }
+
       // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
       const sku = knownSku;
 
