@@ -27,7 +27,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 import { canAccess } from "@/lib/featureGates";
 import {
-  Sparkles, Plus, Package, ArrowLeft, Loader2, Upload, X, Store, Share2, CalendarDays, GitCompare, ChevronDown, Rocket, Lock, BarChart3, Settings, ImageIcon, FolderOpen, Link2,
+  Sparkles, Plus, Package, ArrowLeft, Loader2, Upload, X, Store, Share2, CalendarDays, GitCompare, ChevronDown, Rocket, Lock, BarChart3, Settings, ImageIcon, FolderOpen, Link2, Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAiUsage } from "@/hooks/useAiUsage";
