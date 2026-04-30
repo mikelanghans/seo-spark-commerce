@@ -6,13 +6,15 @@ serve(async (req) => {
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
-  // state contains JSON with origin + environment
+  // state contains JSON with origin + environment + redirectUri
   let origin = "*";
   let environment = "sandbox";
+  let redirectUri = "";
   try {
     const parsed = JSON.parse(decodeURIComponent(state || "{}"));
     origin = parsed.origin || "*";
     environment = parsed.environment || "sandbox";
+    redirectUri = parsed.redirectUri || "";
   } catch {
     origin = state ? decodeURIComponent(state) : "*";
   }
@@ -22,6 +24,7 @@ serve(async (req) => {
     if (error) redirectUrl.searchParams.set("error", error);
     if (code) redirectUrl.searchParams.set("code", code);
     redirectUrl.searchParams.set("environment", environment);
+    if (redirectUri) redirectUrl.searchParams.set("redirectUri", redirectUri);
 
     return Response.redirect(redirectUrl.toString(), 302);
   } catch {
