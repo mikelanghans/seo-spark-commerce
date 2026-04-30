@@ -35,6 +35,9 @@ export interface Product {
   image_url: string | null;
   shopify_product_id: number | null;
   printify_product_id: string | null;
+  ebay_listing_id?: string | null;
+  etsy_listing_id?: string | null;
+  meta_listing_id?: string | null;
   size_pricing: Record<string, string> | null;
   tags: string[];
   archived_at: string | null;

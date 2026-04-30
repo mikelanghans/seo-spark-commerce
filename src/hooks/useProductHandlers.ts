@@ -32,6 +32,9 @@ export function useProductHandlers(
   const [pushingAllShopify, setPushingAllShopify] = useState(false);
   const [pushAllProgress, setPushAllProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllRef = useRef(false);
+  const [pushingAllEbay, setPushingAllEbay] = useState(false);
+  const [pushAllEbayProgress, setPushAllEbayProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllEbayRef = useRef(false);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
@@ -274,6 +277,73 @@ export function useProductHandlers(
     if (!cancelPushAllRef.current) { toast.success(`Pushed ${successCount}/${targetProducts.length} products to Shopify!`); if (selectedOrg) loadProducts(selectedOrg.id); }
   };
 
+  const handlePushAllToEbay = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || !userId || targetProducts.length === 0) return;
+    const { data: ebayConn } = await supabase.from("ebay_connections").select("id, access_token").eq("user_id", userId).maybeSingle();
+    if (!ebayConn || !ebayConn.access_token) { toast.error("eBay not connected. Go to Settings to connect first."); return; }
+
+    // Only products without an existing eBay listing
+    const queue = targetProducts.filter((p) => !p.ebay_listing_id);
+    const skipped = targetProducts.length - queue.length;
+    if (queue.length === 0) { toast.info("All selected products already have eBay listings."); return; }
+    if (skipped > 0) toast.info(`Skipping ${skipped} product(s) already on eBay`);
+
+    cancelPushAllEbayRef.current = false;
+    setPushingAllEbay(true);
+    setPushAllEbayProgress({ done: 0, total: queue.length });
+    let successCount = 0;
+
+    for (let i = 0; i < queue.length; i++) {
+      if (cancelPushAllEbayRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
+      const product = queue[i];
+      setPushAllEbayProgress({ done: i, total: queue.length });
+      try {
+        const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
+        if (!productListings || productListings.length === 0) {
+          if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "eBay", `Skipped "${product.title}": no SEO listing. Generate one first.`);
+          continue;
+        }
+        const ebayListing = productListings.find((l) => l.marketplace === "ebay") || productListings[0];
+        const { data: imgs } = await supabase.from("product_images").select("image_url, position").eq("product_id", product.id).order("position", { ascending: true });
+        const images = (imgs && imgs.length > 0)
+          ? imgs.map((img) => ({ image_url: img.image_url }))
+          : (product.image_url ? [{ image_url: product.image_url }] : []);
+
+        const { data, error } = await supabase.functions.invoke("push-to-ebay", {
+          body: {
+            userId,
+            productId: product.id,
+            listing: {
+              title: ebayListing.title,
+              description: ebayListing.description,
+              tags: ebayListing.tags,
+              seo_title: ebayListing.seo_title,
+              seo_description: ebayListing.seo_description,
+              url_handle: ebayListing.url_handle,
+              alt_text: ebayListing.alt_text,
+              price: product.price,
+            },
+            images,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to push ${product.title} to eBay:`, err);
+        if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "eBay", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+      }
+      if (i < queue.length - 1) await new Promise((r) => setTimeout(r, 1500));
+    }
+    setPushAllEbayProgress({ done: queue.length, total: queue.length });
+    setPushingAllEbay(false);
+    if (!cancelPushAllEbayRef.current) {
+      toast.success(`Pushed ${successCount}/${queue.length} products to eBay!`);
+      if (selectedOrg) loadProducts(selectedOrg.id);
+    }
+  };
+
   return {
     products, setProducts, selectedProduct, setSelectedProduct,
     listings, setListings, loading, generating,
@@ -281,12 +351,13 @@ export function useProductHandlers(
     selectedMarketplaces, setSelectedMarketplaces,
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
+    pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     getFilteredProducts, allTags, handleAddTag, handleRemoveTag,
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
-    handleGenerateAllListings, handlePushAllToShopify,
+    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay,
   };
 }
