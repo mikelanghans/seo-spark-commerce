@@ -539,7 +539,9 @@ serve(async (req) => {
           Brand: ["Youniverses"],
           Type: ["T-Shirt"],
           Department: ["Unisex Adults"],
+          "Size Type": ["Regular"],
           Material: ["Cotton"],
+          "Graphic Print": ["Yes"],
         },
         variesBy,
       };
