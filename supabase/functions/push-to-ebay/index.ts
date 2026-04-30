@@ -282,7 +282,7 @@ serve(async (req) => {
 
     const description = cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000);
 
-    if (existingListingId) {
+    if (existingListingId && !isBrandAuraSku(existingListingId)) {
       const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
       if (!isBrandAuraSku(existingListingId) && existingOffer?.offerId) {
         const publishRes = await ebayRequest(
@@ -319,8 +319,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
-      // Create new inventory item
-      const sku = stableSkuForProduct(productId);
+      // Create or complete an inventory item. Legacy rows may contain a SKU before the offer was published.
+      const sku = knownSku;
 
       const inventoryPayload = buildInventoryPayload(sku, listing, images);
       let createRes = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${sku}`, token, "PUT", inventoryPayload);
