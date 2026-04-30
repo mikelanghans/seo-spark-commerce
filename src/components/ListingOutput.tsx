@@ -269,11 +269,30 @@ export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext 
       )}
 
       {/* Tags */}
-      {(editing || listing.tags.length > 0) && (
+      {(editing || listing.tags.length > 0 || onSave) && (
         <div>
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tags / Keywords</label>
-            {!editing && <CopyBtn text={listing.tags.join(", ")} field="tags" />}
+            <div className="flex items-center gap-1">
+              {onSave && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchSuggestions}
+                  disabled={loadingSuggestions}
+                  className="h-7 gap-1.5 px-2 text-xs"
+                  title="Suggest more keywords & tags based on your product type and target audience"
+                >
+                  {loadingSuggestions ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  )}
+                  Suggest more
+                </Button>
+              )}
+              {!editing && listing.tags.length > 0 && <CopyBtn text={listing.tags.join(", ")} field="tags" />}
+            </div>
           </div>
           {editing ? (
             <div className="space-y-2">
@@ -294,10 +313,99 @@ export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext 
               <Button variant="outline" size="sm" onClick={addTag}>+ Add tag</Button>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {listing.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">{tag}</span>
-              ))}
+            listing.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {listing.tags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">{tag}</span>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* AI Suggestions Panel */}
+          {showSuggestions && (
+            <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    AI Suggestions for {marketplace}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowSuggestions(false)}
+                  className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title="Hide suggestions"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {loadingSuggestions ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Analyzing product type and audience…
+                </div>
+              ) : (
+                <>
+                  {suggestionRationale && (
+                    <p className="text-xs italic text-muted-foreground">{suggestionRationale}</p>
+                  )}
+
+                  {suggestedTags.length > 0 ? (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Tap a tag to add it</span>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={addAllSuggestedTags}>
+                          Add all
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => addSuggestedTag(tag)}
+                            className="group flex items-center gap-1 rounded-full border border-primary/40 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+                          >
+                            <Plus className="h-3 w-3 opacity-70 group-hover:opacity-100" />
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No new tag ideas — your tags already cover the obvious angles.</p>
+                  )}
+
+                  {suggestedKeywords.length > 0 && (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Long-tail SEO keywords</span>
+                        <button
+                          onClick={() => copy(suggestedKeywords.join(", "), "suggKw")}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {copiedField === "suggKw" ? "Copied" : "Copy all"}
+                        </button>
+                      </div>
+                      <ul className="space-y-1">
+                        {suggestedKeywords.map((kw) => (
+                          <li key={kw} className="flex items-start gap-2 text-xs text-secondary-foreground">
+                            <Search className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                            <span>{kw}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-1">
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={fetchSuggestions} disabled={loadingSuggestions}>
+                      <Sparkles className="h-3 w-3" /> Suggest different ideas
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
