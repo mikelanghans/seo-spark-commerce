@@ -404,11 +404,11 @@ serve(async (req) => {
       if (publishRes.status < 200 || publishRes.status >= 300) {
         console.error("eBay publish error:", publishRes.status, publishRes.body);
         return new Response(JSON.stringify({
-          success: true,
+          success: false,
+          error: `eBay publish failed: ${publishRes.body.slice(0, 500)}`,
           item_id: sku,
-          action: "created",
-          warning: `Offer created but publish failed: ${publishRes.body.slice(0, 200)}`,
         }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
