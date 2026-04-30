@@ -151,7 +151,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
 const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true) => {
   const product: Record<string, unknown> = {
     title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
-    description: `<p>${cleanText(listing?.description, "Graphic t-shirt in new condition.", 4000)}</p>`,
+    description: buildDescriptionHtml(listing),
     brand: "Youniverses",
     mpn: sku,
     aspects: {
