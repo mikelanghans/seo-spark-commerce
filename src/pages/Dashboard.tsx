@@ -155,6 +155,14 @@ const Dashboard = () => {
   };
   const deselectAllProducts = () => setSelectedProductIds(new Set());
 
+  // eBay bulk push confirmation
+  const [ebayConfirm, setEbayConfirm] = useState<{ open: boolean; products: Product[]; eligible: Product[]; skipped: number }>({ open: false, products: [], eligible: [], skipped: 0 });
+  const openEbayConfirm = () => {
+    const subset = getSelectedProducts();
+    const eligible = subset.filter((p) => !p.ebay_listing_id);
+    setEbayConfirm({ open: true, products: subset, eligible, skipped: subset.length - eligible.length });
+  };
+
   const getSelectedProducts = (): Product[] => {
     if (selectedProductIds.size === 0) return products.filter((p) => !p.archived_at);
     return products.filter((p) => selectedProductIds.has(p.id));
