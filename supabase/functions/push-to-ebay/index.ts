@@ -96,6 +96,8 @@ const buildInventoryPayload = (sku: string, listing: any, images: unknown, inclu
       Type: ["T-Shirt"],
       Department: ["Unisex Adults"],
       "Size Type": ["Regular"],
+      Size: [String(listing?.size || "L")],
+      Color: [String(listing?.color || "Black")],
       Material: ["Cotton"],
       "Graphic Print": ["Yes"],
       "MPN": [sku],
