@@ -127,13 +127,14 @@ const Dashboard = () => {
     selectedMarketplaces, setSelectedMarketplaces,
     importingShopify, generatingAll, genAllProgress, cancelGenAllRef,
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
+    pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
     allTags, handleAddTag, handleRemoveTag,
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
-    handleGenerateAllListings, handlePushAllToShopify,
+    handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay,
   } = productHandlers;
 
   const designProcessing = useDesignProcessing(user?.id);
