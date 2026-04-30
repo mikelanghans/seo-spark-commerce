@@ -344,21 +344,24 @@ serve(async (req) => {
       }
 
       if (updateDescription || updateTitle) {
-        const existingOffer = await findOfferForSku(apiBase, token, knownSku, marketplaceId);
-        if (existingOffer?.offerId) {
-          const offerPatch: Record<string, unknown> = {};
-          if (updateDescription) offerPatch.listingDescription = description;
-          const offerRes = await ebayRequest(
-            `${apiBase}/sell/inventory/v1/offer/${existingOffer.offerId}`,
+        const offerPatch = {
+          ...storedListingOffer.offer,
+          listingDescription: updateDescription ? description : storedListingOffer.offer?.listingDescription,
+        };
+        delete (offerPatch as any).offerId;
+        delete (offerPatch as any).listing;
+        delete (offerPatch as any).status;
+        delete (offerPatch as any).href;
+        const offerRes = await ebayRequest(
+            `${apiBase}/sell/inventory/v1/offer/${storedListingOffer.offerId}`,
             token,
-            "PATCH",
-            offerPatch,
-          );
-          console.log("Existing offer patch:", offerRes.status, offerRes.body);
-          if (offerRes.status < 200 || offerRes.status >= 300) {
-            console.error("eBay offer patch error:", offerRes.status, offerRes.body);
-            throw new Error(`eBay offer update failed: ${offerRes.status}`);
-          }
+          "PUT",
+          offerPatch,
+        );
+        console.log("Existing offer update:", offerRes.status, offerRes.body);
+        if (offerRes.status < 200 || offerRes.status >= 300) {
+          console.error("eBay offer update error:", offerRes.status, offerRes.body);
+          throw new Error(`eBay offer update failed: ${offerRes.status}`);
         }
       }
 
