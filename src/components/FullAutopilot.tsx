@@ -604,7 +604,7 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             }
 
             // Capture Shopify product ID created by Printify auto-sync (poll up to 30s if needed)
-            let linkedShopifyId: number | null = printifyResult?.shopifyProductId ?? null;
+            linkedShopifyId = printifyResult?.shopifyProductId ?? null;
             if (linkedShopifyId) {
               await supabase.from("products").update({ shopify_product_id: linkedShopifyId }).eq("id", productId);
             } else {
