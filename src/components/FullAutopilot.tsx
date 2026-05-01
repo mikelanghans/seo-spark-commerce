@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { removeBackground, upscaleBase64Png, recolorOpaquePixels, hasMeaningfulAccentColors, darkenBrightPixels, smartRemoveBackground } from "@/lib/removeBackground";
 import {
   ensureImageDataUrl,
   getImageDimensionsFromDataUrl,
@@ -8,8 +7,7 @@ import {
   getUnifiedDesignSize,
 } from "@/lib/mockupComposition";
 import { Button } from "@/components/ui/button";
-import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
-import { CC1717_SIZE_CHART_URL } from "@/lib/sizeChart";
+import { pushPrintifyThenShopify } from "@/lib/pushPrintifyThenShopify";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
