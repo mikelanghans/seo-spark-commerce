@@ -98,20 +98,50 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find the connection by store domain + organization_id for precision
-    let query = adminClient
-      .from("shopify_connections")
-      .select("id, user_id, client_id, client_secret")
-      .eq("store_domain", domain);
-
+    // SAFETY GUARD: When organizationId is present in state, look up the brand's
+    // expected store_domain FIRST and compare against what Shopify returned.
+    // This catches the common Safari/Chrome scenario where the user is logged
+    // into a different Shopify store in their browser, and Shopify silently
+    // swaps the target store on the OAuth redirect.
     if (organizationId) {
-      query = query.eq("organization_id", organizationId);
-    }
+      const { data: expected, error: expectedError } = await adminClient
+        .from("shopify_connections")
+        .select("id, user_id, client_id, client_secret, store_domain")
+        .eq("organization_id", organizationId)
+        .maybeSingle();
 
-    const { data: connection, error: connError } = await query.maybeSingle();
+      if (expectedError || !expected) {
+        throw new Error("No Shopify connection found for this brand. Please save your store domain and credentials first.");
+      }
 
-    if (connError || !connection) {
-      throw new Error("No matching Shopify connection found for this store domain.");
+      const expectedDomain = (expected.store_domain || "").replace(/^https?:\/\//, "").replace(/\/$/, "").toLowerCase();
+      if (expectedDomain && expectedDomain !== domain.toLowerCase()) {
+        throw new Error(
+          `Store mismatch: this brand is configured for "${expectedDomain}", but Shopify authorized "${domain}". ` +
+          `This usually means a different Shopify store is logged in to your browser. ` +
+          `Please log out of all Shopify admin sessions (or use a private/incognito window), then try connecting again.`
+        );
+      }
+
+      // Use the brand's connection row directly — no risk of matching the wrong row.
+      var connection: { id: string; user_id: string; client_id: string | null; client_secret: string | null } = {
+        id: expected.id,
+        user_id: expected.user_id,
+        client_id: expected.client_id,
+        client_secret: expected.client_secret,
+      };
+    } else {
+      // Legacy path: no organizationId in state — fall back to domain-only lookup.
+      const { data: connectionRow, error: connError } = await adminClient
+        .from("shopify_connections")
+        .select("id, user_id, client_id, client_secret")
+        .eq("store_domain", domain)
+        .maybeSingle();
+
+      if (connError || !connectionRow) {
+        throw new Error("No matching Shopify connection found for this store domain.");
+      }
+      var connection: { id: string; user_id: string; client_id: string | null; client_secret: string | null } = connectionRow;
     }
 
     // Use per-org credentials from the connection row, fall back to env vars for legacy
