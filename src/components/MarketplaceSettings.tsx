@@ -220,21 +220,8 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
       const authUrl = `https://www.etsy.com/oauth/connect?response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&client_id=${clientId}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
 
-      // Use a new tab (bypasses iframe COOP/popup-blocker issues in preview).
-      // The Etsy callback will redirect that tab back to our app with ?etsy_oauth_code=...
-      // which the page-load effect picks up to finish the exchange.
-      const win = window.open(authUrl, "_blank", "noopener,noreferrer");
-      if (!win) {
-        // Popup/tab blocked — fall back to same-tab redirect so it always works
-        toast.message("Redirecting to Etsy to authorize…");
-        setTimeout(() => { window.location.href = authUrl; }, 400);
-        return;
-      }
-
-      toast.message("Complete the Etsy approval in the new tab. You'll be returned here automatically.");
-      // We can't reliably observe the new tab (COOP), so just stop the spinner —
-      // the page-load handler will restart it when the tab redirects back.
-      setSavingEtsy(false);
+      toast.message("Redirecting to Etsy. If Etsy asks for verification, complete it there and you'll be returned automatically.");
+      window.location.href = authUrl;
     } catch (e: any) {
       toast.error(e.message || "Failed to start Etsy OAuth");
       setSavingEtsy(false);
@@ -505,6 +492,12 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
               <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 <p className="font-medium text-foreground mb-1">Set this Callback URL in your Etsy app:</p>
                 <code className="break-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback</code>
+              </div>
+              <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Authorization note</p>
+                <p>
+                  Etsy may show a verification page before approval. Complete that step in the Etsy page; Brand Aura will return here automatically after Etsy grants access.
+                </p>
               </div>
             </div>
             {!etsyCredsSaved && !etsyConn ? (
