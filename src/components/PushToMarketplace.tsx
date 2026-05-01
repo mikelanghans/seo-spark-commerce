@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 import { PushToTikTok } from "@/components/PushToTikTok";
