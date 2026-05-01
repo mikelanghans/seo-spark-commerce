@@ -100,19 +100,106 @@ export interface PushChainResult {
   shopifyStaleCleared?: boolean;
 }
 
-const invoke = async <T = any>(
+type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
+type FunctionErrorResponse = { error?: string };
+type PrintifyUploadResponse = FunctionErrorResponse & { image?: { id?: string } };
+type PrintifyChainResponse = FunctionErrorResponse & {
+  staleIdCleared?: boolean;
+  printifyProductId?: string;
+  shopifyProductId?: number;
+  variantCount?: number;
+};
+type ShopifyIdRecoveryResponse = { shopifyProductId?: number | null };
+type ShopifyPushResponse = FunctionErrorResponse & {
+  staleShopifyIdCleared?: boolean;
+  shopifyProduct?: { id?: number };
+};
+
+const invoke = async <T = Record<string, unknown>>(
   name: string,
   body: Record<string, unknown>,
   retry: boolean,
   label: string,
-): Promise<{ data: T | null; error: { message: string } | null }> => {
+): Promise<EdgeInvokeResult<T>> => {
+  const call = () => supabase.functions.invoke<T>(name, { body }) as Promise<EdgeInvokeResult<T>>;
   if (retry) {
-    return (await withRetry(
-      () => supabase.functions.invoke(name, { body }),
-      { label },
-    )) as any;
+    return await withRetry(call, { label });
   }
-  return (await supabase.functions.invoke(name, { body })) as any;
+  return await call();
+};
+
+const pollForLinkedShopifyId = async ({
+  productId,
+  printifyProductId,
+  printifyShopId,
+  organizationId,
+  retry,
+  retryLabel,
+  onProgress,
+  onProductUpdate,
+}: {
+  productId: string;
+  printifyProductId: string;
+  printifyShopId: number;
+  organizationId: string;
+  retry: boolean;
+  retryLabel: string;
+  onProgress: (stage: ChainStage, message: string) => void;
+  onProductUpdate: (updates: Partial<PushChainProduct>) => void;
+}) => {
+  onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 90s)");
+  const pollStart = Date.now();
+  const POLL_TIMEOUT_MS = 90_000;
+  const POLL_INTERVAL_MS = 5_000;
+  while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+    const { data: row } = await supabase
+      .from("products")
+      .select("shopify_product_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (row?.shopify_product_id) {
+      const linkedId = row.shopify_product_id as number;
+      onProductUpdate({ shopify_product_id: linkedId });
+      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
+      return linkedId;
+    }
+
+    const { data: recoveryData } = await invoke<ShopifyIdRecoveryResponse>(
+      "printify-create-product",
+      {
+        action: "recover-shopify-id",
+        shopId: printifyShopId,
+        printifyProductId,
+        productId,
+        organizationId,
+      },
+      retry,
+      `shopify-id-recovery-${retryLabel}`,
+    );
+    if (recoveryData?.shopifyProductId) {
+      const linkedId = recoveryData.shopifyProductId as number;
+      onProductUpdate({ shopify_product_id: linkedId });
+      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
+      return linkedId;
+    }
+  }
+
+  return null;
+};
+
+const recoverPersistedPrintifyLinks = async (productId: string) => {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data: row } = await supabase
+      .from("products")
+      .select("printify_product_id, shopify_product_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (row?.printify_product_id) return row;
+    await new Promise((r) => setTimeout(r, 2_500));
+  }
+  return null;
 };
 
 /**
@@ -179,7 +266,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // ---------- STEP 1: Printify (update or create) ----------
   if (printifyProductId) {
     onProgress("printify-update", "Updating existing Printify product");
-    const { data: pData, error: pErr } = await invoke(
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
       "printify-create-product",
       {
         action: "update",
@@ -221,7 +308,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
 
     onProgress("printify-design", "Preparing & uploading design to Printify");
     const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500);
-    const { data: uploadData, error: uploadErr } = await invoke(
+    const { data: uploadData, error: uploadErr } = await invoke<PrintifyUploadResponse>(
       "printify-upload-image",
       {
         base64Contents,
@@ -240,7 +327,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     if (hasLightColors) {
       onProgress("printify-dark", "Creating dark-ink variant for light garments");
       const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-      const { data: dUp, error: dErr } = await invoke(
+      const { data: dUp, error: dErr } = await invoke<PrintifyUploadResponse>(
         "printify-upload-image",
         {
           base64Contents: darkBase64,
@@ -271,7 +358,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       .map((m) => ({ printifyColorName: m.color_name, imageUrl: m.image_url }));
 
     onProgress("printify-create", "Creating Printify product (auto-syncs to Shopify)");
-    const { data: pData, error: pErr } = await invoke(
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
       "printify-create-product",
       {
         ...printifyPayloadBase,
@@ -289,10 +376,16 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       retry,
       `printify-create-${retryLabel}`,
     );
-    if (pErr) throw new Error(`Printify create failed: ${pErr.message}`);
+    if (pErr) {
+      const recovered = await recoverPersistedPrintifyLinks(product.id);
+      if (!recovered?.printify_product_id) throw new Error(`Printify create failed: ${pErr.message}`);
+      printifyProductId = recovered.printify_product_id;
+      currentShopifyId = (recovered.shopify_product_id as number | null) ?? currentShopifyId;
+      onProductUpdate({ printify_product_id: printifyProductId, shopify_product_id: currentShopifyId });
+    }
     if (pData?.error) throw new Error(`Printify create failed: ${pData.error}`);
 
-    printifyProductId = pData?.printifyProductId ?? null;
+    printifyProductId = pData?.printifyProductId ?? printifyProductId;
     variantCount = pData?.variantCount;
     if (printifyProductId) {
       await supabase.from("products").update({ printify_product_id: printifyProductId }).eq("id", product.id);
@@ -311,24 +404,16 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // persists `shopify_product_id` on the products row when it arrives.
   // Poll the row here so autopilot can complete the SEO push in the same run.
   if (!currentShopifyId && printifyProductId) {
-    onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 90s)");
-    const pollStart = Date.now();
-    const POLL_TIMEOUT_MS = 90_000;
-    const POLL_INTERVAL_MS = 5_000;
-    while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      const { data: row } = await supabase
-        .from("products")
-        .select("shopify_product_id")
-        .eq("id", product.id)
-        .maybeSingle();
-      if (row?.shopify_product_id) {
-        currentShopifyId = row.shopify_product_id as number;
-        onProductUpdate({ shopify_product_id: currentShopifyId });
-        onProgress("shopify-wait", `Shopify product linked (${currentShopifyId})`);
-        break;
-      }
-    }
+    currentShopifyId = await pollForLinkedShopifyId({
+      productId: product.id,
+      printifyProductId,
+      printifyShopId,
+      organizationId,
+      retry,
+      retryLabel,
+      onProgress,
+      onProductUpdate,
+    });
   }
 
   if (!currentShopifyId) {
@@ -363,7 +448,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }));
 
   onProgress("shopify-push", "Pushing mockups & SEO to Shopify");
-  const { data: shopifyData, error: shopifyError } = await invoke(
+  const { data: shopifyData, error: shopifyError } = await invoke<ShopifyPushResponse>(
     "push-to-shopify",
     {
       organizationId,
