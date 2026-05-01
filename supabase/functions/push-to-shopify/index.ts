@@ -146,7 +146,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, replaceAllImages = false } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, replaceAllImages = false, allowCreateOnMissingProduct = false } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -174,6 +174,7 @@ serve(async (req) => {
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     let existingShopifyId: number | null = product.shopify_product_id ?? null;
     let existingPrintifyId: string | null = product.printify_product_id ?? null;
+    let printifyShopIdForLink: number | null = null;
 
     if (!existingShopifyId && product.id) {
       const { data: latestProductLink } = await adminClient
@@ -214,6 +215,9 @@ serve(async (req) => {
     }
 
     if (!existingShopifyId) {
+      if (allowCreateOnMissingProduct) {
+        console.log("No linked Shopify product found — creating Shopify product directly and linking it to Printify");
+      } else {
       return new Response(JSON.stringify({
         success: false,
         missingShopifyLink: true,
@@ -222,9 +226,10 @@ serve(async (req) => {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+      }
     }
 
-    const isUpdate = true;
+    const isUpdate = !!existingShopifyId;
     const effectiveUpdateFields = Array.isArray(updateFields) ? updateFields : undefined;
     console.log(`Updating existing Shopify product ${existingShopifyId} while preserving current variant/options matrix`);
 
