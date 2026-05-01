@@ -76,6 +76,7 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
   const [pushingEbay, setPushingEbay] = useState(false);
   const [etsyResult, setEtsyResult] = useState<PushResult | null>(null);
   const [ebayResult, setEbayResult] = useState<PushResult | null>(null);
+  const [pushingAll, setPushingAll] = useState(false);
 
   // Update dialog state
   const [updateDialog, setUpdateDialog] = useState<"etsy" | "ebay" | null>(null);
