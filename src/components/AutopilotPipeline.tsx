@@ -418,7 +418,7 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           organizationId: organization.id,
           userId,
           product: productData,
-          listings: shopifyListing ? [shopifyListing] : [],
+          listings: shopifyListing ? [shopifyListing as any] : [],
           printifyShopId,
           blueprintId: AUTOPILOT_PRINTIFY_BLUEPRINT.blueprintId,
           selectedSizes: AUTOPILOT_PRINTIFY_BLUEPRINT.sizes,
