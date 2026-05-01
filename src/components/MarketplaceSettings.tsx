@@ -50,7 +50,56 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
   const [ebayCredsSaved, setEbayCredsSaved] = useState(false);
 
 
-  useEffect(() => { loadConnections(); }, []);
+  useEffect(() => {
+    const handleEtsyOAuthReturn = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("etsy_oauth_code");
+      const error = params.get("etsy_oauth_error");
+      const errorDescription = params.get("etsy_oauth_error_description");
+
+      if (!code && !error) return;
+
+      params.delete("etsy_oauth_code");
+      params.delete("etsy_oauth_error");
+      params.delete("etsy_oauth_error_description");
+      const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash}`;
+      window.history.replaceState({}, "", nextUrl);
+
+      if (error) {
+        toast.error(errorDescription || error || "Etsy authorization failed");
+        localStorage.removeItem("etsy_code_verifier");
+        return;
+      }
+
+      const storedVerifier = localStorage.getItem("etsy_code_verifier");
+      if (!storedVerifier) {
+        toast.error("Etsy authorization expired. Please try again.");
+        return;
+      }
+
+      setSavingEtsy(true);
+      try {
+        const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback`;
+        const { data: result, error: exchangeError } = await supabase.functions.invoke("etsy-exchange-token", {
+          body: { code, codeVerifier: storedVerifier, redirectUri },
+        });
+
+        if (exchangeError) throw exchangeError;
+        if (result?.error) throw new Error(result.error);
+
+        toast.success(`Etsy connected! ${result.shopName ? `Shop: ${result.shopName}` : ""}`);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to connect Etsy");
+      } finally {
+        localStorage.removeItem("etsy_code_verifier");
+        setSavingEtsy(false);
+        await loadConnections();
+      }
+    };
+
+    loadConnections();
+    handleEtsyOAuthReturn();
+  }, []);
 
   const loadConnections = async () => {
     setLoading(true);
