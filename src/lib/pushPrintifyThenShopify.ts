@@ -86,6 +86,7 @@ export type ChainStage =
   | "printify-update"
   | "shopify-gallery"
   | "shopify-push"
+  | "shopify-wait"
   | "skipped";
 
 export interface PushChainResult {
