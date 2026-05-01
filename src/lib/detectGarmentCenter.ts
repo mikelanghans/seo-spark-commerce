@@ -217,14 +217,21 @@ function analyze(img: HTMLImageElement): GarmentCenter {
     const lift = Math.max(0, bestScore - avg);
     const peakedness = Math.max(0, bestScore - secondScore);
     let confidence = Math.min(1, bestScore * 0.4 + lift * 4 + peakedness * 6);
-    if (bestScore < 0.7) confidence = Math.min(confidence, 0.4);
+    if (bestScore < 0.65) confidence = Math.min(confidence, 0.4);
 
-    // Cross-check: symmetry winner should be close to bbox center. If they
-    // disagree by >6% of width, the symmetry result is suspicious — average
-    // them and dampen confidence.
+    // Cross-check with the shirt's bounding-box center.
+    // - If they AGREE closely (<2% of width apart), this is the strongest possible
+    //   signal — both independent methods picked the same axis. Boost confidence.
+    // - If they disagree moderately (2–6%), trust symmetry but cap confidence.
+    // - If they disagree strongly (>6%), average them and heavily dampen.
     const bboxOffsetFrac = Math.abs(bestAxis - bboxCenter) / W;
     let finalAxis = bestAxis;
-    if (bboxOffsetFrac > 0.06) {
+    if (bboxOffsetFrac < 0.02) {
+      // Strong agreement — high-confidence centering.
+      confidence = Math.max(confidence, 0.85);
+    } else if (bboxOffsetFrac < 0.06) {
+      confidence = Math.max(confidence, 0.6);
+    } else {
       finalAxis = (bestAxis + bboxCenter) / 2;
       confidence *= 0.6;
     }
