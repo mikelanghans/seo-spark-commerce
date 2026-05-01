@@ -22,6 +22,7 @@ serve(async (req) => {
       fallbackUrl.searchParams.set("etsy_oauth_code", code);
     }
   }
+  const fallbackHref = fallbackUrl?.toString() || "";
 
   const html = `<!DOCTYPE html><html><body><script>
     let delivered = false;
@@ -33,7 +34,7 @@ serve(async (req) => {
       }
     } catch (_) {}
     if (!delivered && ${JSON.stringify(!!fallbackUrl)}) {
-      window.location.replace(${JSON.stringify(fallbackUrl.toString())});
+      window.location.replace(${JSON.stringify(fallbackHref)});
     }
   </script><p>Connecting to Etsy... you can close this window.</p></body></html>`;
 
