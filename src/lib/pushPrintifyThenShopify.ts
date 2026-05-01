@@ -65,6 +65,10 @@ export interface PushChainOptions {
   publishOnPrintify?: boolean;
   /** Append the CC1717 size chart image to the Shopify gallery. Defaults to true. */
   appendSizeChart?: boolean;
+  /** Optional Shopify status passed to push-to-shopify (e.g. "active" | "draft"). */
+  shopifyStatus?: "active" | "draft";
+  /** Extra tags to merge into the Shopify listing tags (de-duped). */
+  extraShopifyTags?: string[];
   /** Optional progress callback for UIs that want fine-grained step messages. */
   onProgress?: (stage: ChainStage, message: string) => void;
   /** Optional callback used by UIs to update local product state after each persist. */
