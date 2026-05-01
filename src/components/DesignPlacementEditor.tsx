@@ -385,6 +385,27 @@ export const DesignPlacementEditor = ({
         )}
       </div>
 
+      {/* Alignment readout — live numeric feedback vs. detected shirt center */}
+      {templateLoaded && (
+        <div className="flex items-center justify-center gap-3 text-[11px] font-medium">
+          {(() => {
+            const delta = offsetX - shirtCenterOffset;
+            const absDelta = Math.abs(delta);
+            const aligned = absDelta < 0.005;
+            const close = absDelta < 0.02;
+            const tone = aligned ? "text-primary" : close ? "text-muted-foreground" : "text-amber-500";
+            const label = aligned
+              ? "● Centered on shirt"
+              : `${delta > 0 ? "→" : "←"} ${Math.round(absDelta * 100)}% off shirt center`;
+            return <span className={tone}>{label}</span>;
+          })()}
+          <span className="text-muted-foreground/60">·</span>
+          <span className="text-muted-foreground">
+            Detection: {centerConfidence > 0 ? `${Math.round(centerConfidence * 100)}%` : "—"}
+          </span>
+        </div>
+      )}
+
       {/* Sliders */}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
