@@ -524,10 +524,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 7: Push to Printify
+          // Step 7: Push to Printify (which will auto-sync to Shopify)
           updateProduct(i, { step: "Pushing to Printify..." });
           log(`  🖨️ Pushing to Printify...`, "info");
 
+          let linkedShopifyId: number | null = null;
           try {
             // Get shop ID — prefer brand-level mapping, fallback to first shop
             let shopId = organization.printify_shop_id;
