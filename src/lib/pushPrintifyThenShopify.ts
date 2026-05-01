@@ -100,19 +100,19 @@ export interface PushChainResult {
   shopifyStaleCleared?: boolean;
 }
 
-const invoke = async <T = any>(
+type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
+
+const invoke = async <T = Record<string, unknown>>(
   name: string,
   body: Record<string, unknown>,
   retry: boolean,
   label: string,
-): Promise<{ data: T | null; error: { message: string } | null }> => {
+): Promise<EdgeInvokeResult<T>> => {
+  const call = () => supabase.functions.invoke<T>(name, { body }) as Promise<EdgeInvokeResult<T>>;
   if (retry) {
-    return (await withRetry(
-      () => supabase.functions.invoke(name, { body }),
-      { label },
-    )) as any;
+    return await withRetry(call, { label });
   }
-  return (await supabase.functions.invoke(name, { body })) as any;
+  return await call();
 };
 
 const pollForLinkedShopifyId = async ({
