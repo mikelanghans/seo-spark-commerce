@@ -74,7 +74,7 @@ export const STEPS = [
   { key: "upload" as const, label: "Upload Images" },
   { key: "analyze" as const, label: "AI Analyze" },
   { key: "listings" as const, label: "Generate Listings + SEO" },
-  { key: "shopify" as const, label: "Push to Shopify (Variants)" },
+  { key: "shopify" as const, label: "Push to Printify → Shopify" },
 ] as const;
 
 /** Extract color name from a mockup filename like "black-front.png" → "Black Front" */
