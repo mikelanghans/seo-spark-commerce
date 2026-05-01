@@ -35,10 +35,10 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
   // Etsy state (Printify moved to PrintifySettings)
   const [etsyConn, setEtsyConn] = useState<EtsyConn | null>(null);
-  const [etsyApiKey, setEtsyApiKey] = useState("");
-  const [etsyShopId, setEtsyShopId] = useState("");
-  const [etsyShopName, setEtsyShopName] = useState("");
+  const [etsyClientId, setEtsyClientId] = useState("");
+  const [etsyClientSecret, setEtsyClientSecret] = useState("");
   const [savingEtsy, setSavingEtsy] = useState(false);
+  const [etsyCredsSaved, setEtsyCredsSaved] = useState(false);
 
   // eBay state
   const [ebayConn, setEbayConn] = useState<EbayConn | null>(null);
