@@ -215,107 +215,26 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
       const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback`;
       const scopes = "shops_r%20shops_w%20listings_r%20listings_w";
+      // state must be the app origin so the callback can redirect back here
       const state = encodeURIComponent(window.location.origin);
 
       const authUrl = `https://www.etsy.com/oauth/connect?response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&client_id=${clientId}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
-      let messageHandled = false;
-      let checkClosed: ReturnType<typeof setInterval> | undefined;
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      let pollStatus: ReturnType<typeof setInterval> | undefined;
 
-      const handler = async (e: MessageEvent) => {
-        if (e.data?.type !== "etsy-oauth") return;
-        messageHandled = true;
-        window.removeEventListener("message", handler);
-        if (checkClosed) clearInterval(checkClosed);
-        if (timeoutId) clearTimeout(timeoutId);
-        if (pollStatus) clearInterval(pollStatus);
-
-        if (e.data.error) {
-          localStorage.removeItem("etsy_code_verifier");
-          toast.error(e.data.errorDescription || e.data.error || "Etsy authorization failed");
-          setSavingEtsy(false);
-          return;
-        }
-
-        try {
-          const storedVerifier = localStorage.getItem("etsy_code_verifier");
-          localStorage.removeItem("etsy_code_verifier");
-
-          const { data: result, error } = await supabase.functions.invoke("etsy-exchange-token", {
-            body: {
-              code: e.data.code,
-              codeVerifier: storedVerifier,
-              redirectUri,
-            },
-          });
-
-          if (error) throw error;
-          if (result?.error) throw new Error(result.error);
-
-          toast.success(`Etsy connected! ${result.shopName ? `Shop: ${result.shopName}` : ""}`);
-          await loadConnections();
-        } catch (err: any) {
-          toast.error(err.message || "Failed to connect Etsy");
-        } finally {
-          setSavingEtsy(false);
-        }
-      };
-
-      window.addEventListener("message", handler);
-
-      const popup = window.open(authUrl, "etsy-oauth", "width=600,height=700");
-      if (!popup) {
-        window.removeEventListener("message", handler);
-        localStorage.removeItem("etsy_code_verifier");
-        toast.error("Popup blocked. Please allow popups for Brand Aura and try again.");
-        setSavingEtsy(false);
+      // Use a new tab (bypasses iframe COOP/popup-blocker issues in preview).
+      // The Etsy callback will redirect that tab back to our app with ?etsy_oauth_code=...
+      // which the page-load effect picks up to finish the exchange.
+      const win = window.open(authUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup/tab blocked — fall back to same-tab redirect so it always works
+        toast.message("Redirecting to Etsy to authorize…");
+        setTimeout(() => { window.location.href = authUrl; }, 400);
         return;
       }
 
-      checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          if (pollStatus) clearInterval(pollStatus);
-          if (!messageHandled) {
-            window.removeEventListener("message", handler);
-            localStorage.removeItem("etsy_code_verifier");
-            toast.error("Etsy authorization window closed before the connection finished.");
-            setSavingEtsy(false);
-          }
-        }
-      }, 1000);
-
-      pollStatus = setInterval(async () => {
-        if (messageHandled) return;
-        const { data } = await supabase
-          .from("etsy_connections")
-          .select("token_expires_at, shop_name, shop_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (data?.token_expires_at) {
-          messageHandled = true;
-          window.removeEventListener("message", handler);
-          if (checkClosed) clearInterval(checkClosed);
-          if (timeoutId) clearTimeout(timeoutId);
-          if (pollStatus) clearInterval(pollStatus);
-          popup.close();
-          toast.success(`Etsy connected! ${data.shop_name || data.shop_id ? `Shop: ${data.shop_name || data.shop_id}` : ""}`);
-          await loadConnections();
-          setSavingEtsy(false);
-        }
-      }, 4000);
-
-      timeoutId = setTimeout(() => {
-        if (!messageHandled) {
-          window.removeEventListener("message", handler);
-          if (pollStatus) clearInterval(pollStatus);
-          localStorage.removeItem("etsy_code_verifier");
-          popup.close();
-          toast.error("Etsy authorization timed out. Please try again and complete the Etsy approval window.");
-          setSavingEtsy(false);
-        }
-      }, 120000);
+      toast.message("Complete the Etsy approval in the new tab. You'll be returned here automatically.");
+      // We can't reliably observe the new tab (COOP), so just stop the spinner —
+      // the page-load handler will restart it when the tab redirects back.
+      setSavingEtsy(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to start Etsy OAuth");
       setSavingEtsy(false);
