@@ -10,7 +10,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
 import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
+import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
+import { recolorOpaquePixels } from "@/lib/removeBackground";
+import { parsePrintPlacement } from "@/lib/printPlacement";
+import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY } from "@/lib/productTypes";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
+
+// Mirrors PushPrintifyThenShopify: Comfort Colors 1717 default for Autopilot
+const AUTOPILOT_PRINTIFY_BLUEPRINT = { blueprintId: 706, sizes: ["S", "M", "L", "XL", "2XL", "3XL"] };
+
+const LIGHT_COLORS = new Set([
+  "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+  "island reef", "chambray", "white", "flo blue", "watermelon",
+  "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+  "light green", "bay", "sage",
+]);
 import {
   createPipelineJob,
   updatePipelineItem,
