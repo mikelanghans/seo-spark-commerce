@@ -102,7 +102,48 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
   };
 
+  const saveEtsyCreds = async () => {
+    if (!etsyClientId.trim()) {
+      toast.error("Etsy Keystring (Client ID) is required");
+      return;
+    }
+    setSavingEtsy(true);
+    try {
+      const payload: any = {
+        user_id: userId,
+        client_id: etsyClientId.trim(),
+        updated_at: new Date().toISOString(),
+      };
+      if (etsyClientSecret.trim()) payload.client_secret = etsyClientSecret.trim();
+
+      // Ensure NOT NULL columns get values on insert
+      if (!etsyConn) {
+        payload.shop_id = "pending";
+        payload.shop_name = "";
+        payload.api_key = etsyClientId.trim();
+      }
+
+      const { error } = etsyConn
+        ? await supabase.from("etsy_connections").update(payload).eq("id", etsyConn.id)
+        : await supabase.from("etsy_connections").upsert(payload, { onConflict: "user_id" });
+      if (error) throw error;
+
+      setEtsyCredsSaved(true);
+      toast.success("Etsy credentials saved! Now authorize your shop.");
+      await loadConnections();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save Etsy credentials");
+    } finally {
+      setSavingEtsy(false);
+    }
+  };
+
   const connectEtsy = async () => {
+    const clientId = etsyClientId.trim() || etsyConn?.client_id;
+    if (!clientId) {
+      toast.error("Save your Etsy Keystring (Client ID) first");
+      return;
+    }
     setSavingEtsy(true);
     try {
       // Generate PKCE code_verifier and code_challenge
@@ -110,17 +151,15 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       crypto.getRandomValues(array);
       const codeVerifier = btoa(String.fromCharCode(...array))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      
+
       const encoder = new TextEncoder();
       const data = encoder.encode(codeVerifier);
       const digest = await crypto.subtle.digest("SHA-256", data);
       const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-      // Store verifier for later token exchange
       localStorage.setItem("etsy_code_verifier", codeVerifier);
 
-      const clientId = "3ww8h9ip1bp9fhtwcwqa123b";
       const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback`;
       const scopes = "shops_r%20shops_w%20listings_r%20listings_w";
       const state = encodeURIComponent(window.location.origin);
@@ -165,7 +204,6 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
       window.addEventListener("message", handler);
 
-      // Fallback if popup is closed without completing
       const checkClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(checkClosed);
