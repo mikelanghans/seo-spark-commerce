@@ -270,6 +270,20 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
         {showTiktok && (
           <PushToTikTok product={product} hasListings={listings.length > 0} />
         )}
+
+        {(showEtsy || showEbay || showTiktok) && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={pushToAll}
+            disabled={pushingAll || pushingEtsy || pushingEbay || listings.length === 0}
+            className="gap-2"
+            title="Push this product to every enabled marketplace at once"
+          >
+            {pushingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+            Push to All Marketplaces
+          </Button>
+        )}
       </div>
 
       {/* Etsy Update Dialog */}
