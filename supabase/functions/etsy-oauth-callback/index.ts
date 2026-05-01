@@ -13,12 +13,14 @@ serve(async (req) => {
   const message = error
     ? { type: "etsy-oauth", error, errorDescription }
     : { type: "etsy-oauth", code };
-  const fallbackUrl = new URL(origin);
-  if (error) {
-    fallbackUrl.searchParams.set("etsy_oauth_error", error);
-    if (errorDescription) fallbackUrl.searchParams.set("etsy_oauth_error_description", errorDescription);
-  } else if (code) {
-    fallbackUrl.searchParams.set("etsy_oauth_code", code);
+  const fallbackUrl = origin === "*" ? null : new URL(origin);
+  if (fallbackUrl) {
+    if (error) {
+      fallbackUrl.searchParams.set("etsy_oauth_error", error);
+      if (errorDescription) fallbackUrl.searchParams.set("etsy_oauth_error_description", errorDescription);
+    } else if (code) {
+      fallbackUrl.searchParams.set("etsy_oauth_code", code);
+    }
   }
 
   const html = `<!DOCTYPE html><html><body><script>
@@ -30,7 +32,7 @@ serve(async (req) => {
         window.close();
       }
     } catch (_) {}
-    if (!delivered) {
+    if (!delivered && ${JSON.stringify(!!fallbackUrl)}) {
       window.location.replace(${JSON.stringify(fallbackUrl.toString())});
     }
   </script><p>Connecting to Etsy... you can close this window.</p></body></html>`;
