@@ -70,8 +70,11 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           shop_id: d.shop_id,
           shop_name: d.shop_name,
           api_key: d.api_key,
+          client_id: d.client_id || "",
           has_token: !!d.access_token,
         });
+        setEtsyClientId(d.client_id || "");
+        if (d.client_id) setEtsyCredsSaved(true);
       }
 
       if (ebayRes.data) {
