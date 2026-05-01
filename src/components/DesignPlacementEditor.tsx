@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { RotateCw, Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { RotateCw, Check, Loader2, Eye, EyeOff, Crosshair } from "lucide-react";
+import { toast } from "sonner";
 import type { DesignPlacement } from "@/lib/mockupComposition";
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { smartRemoveBackground } from "@/lib/removeBackground";
-import { detectGarmentCenter } from "@/lib/detectGarmentCenter";
+import { detectGarmentCenter, detectGarmentCenterFresh } from "@/lib/detectGarmentCenter";
 
 interface Props {
   templateUrl: string;
@@ -85,20 +86,50 @@ export const DesignPlacementEditor = ({
   const [processedDesignUrl, setProcessedDesignUrl] = useState<string | null>(null);
   const [processingDesign, setProcessingDesign] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+  const [autoCentering, setAutoCentering] = useState(false);
+  const [centerConfidence, setCenterConfidence] = useState(0);
   const userTouchedXRef = useRef(initialPlacement?.offsetX !== undefined && initialPlacement?.offsetX !== 0);
 
-  // Detect the garment's true horizontal center (shoulder-line analysis).
-  // Apply only when confidence is high enough AND the user hasn't manually
-  // positioned the design — keeps the slider honest while auto-aligning props-skewed shots.
+  // Detect the garment's true horizontal center via silhouette+symmetry analysis.
+  // Auto-applies only when confidence is high enough AND the user hasn't manually
+  // positioned the design. The Auto-Center button overrides both.
   useEffect(() => {
     let cancelled = false;
-    detectGarmentCenter(templateUrl).then(({ offsetX: detected, confidence }) => {
+    detectGarmentCenter(templateUrl).then(({ offsetX: detected, confidence, reliable }) => {
       if (cancelled) return;
-      if (confidence < 0.6) return; // not confident — leave at image center
+      setCenterConfidence(confidence);
+      if (!reliable) return;
       setShirtCenterOffset(detected);
       if (!userTouchedXRef.current) setOffsetX(detected);
     });
     return () => { cancelled = true; };
+  }, [templateUrl]);
+
+  const handleAutoCenter = useCallback(async () => {
+    setAutoCentering(true);
+    try {
+      const { offsetX: detected, confidence } = await detectGarmentCenterFresh(templateUrl);
+      setCenterConfidence(confidence);
+      setShirtCenterOffset(detected);
+      setOffsetX(detected);
+      userTouchedXRef.current = false;
+      const pct = Math.round(confidence * 100);
+      if (confidence >= 0.75) {
+        toast.success(`Auto-centered (${pct}% confidence)`);
+      } else if (confidence >= 0.5) {
+        toast.message(`Centered with moderate confidence (${pct}%)`, {
+          description: "Double-check the placement or fine-tune with the slider.",
+        });
+      } else {
+        toast.warning(`Low confidence (${pct}%) — couldn't reliably find the shirt center`, {
+          description: "Drag the design or use the slider to position manually.",
+        });
+      }
+    } catch {
+      toast.error("Auto-center failed");
+    } finally {
+      setAutoCentering(false);
+    }
   }, [templateUrl]);
 
   // Strip background from design for transparent preview
@@ -220,8 +251,16 @@ export const DesignPlacementEditor = ({
             {previewMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {previewMode ? "Edit" : "Preview"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => { setOffsetX(shirtCenterOffset); userTouchedXRef.current = false; }} className="gap-1.5" title="Snap to shirt center" disabled={previewMode}>
-            ↔ Center
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAutoCenter}
+            className="gap-1.5"
+            title="Re-analyze the shirt and snap design to its true center"
+            disabled={previewMode || autoCentering}
+          >
+            {autoCentering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+            Auto-Center
           </Button>
           <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5" disabled={previewMode}>
             <RotateCw className="h-3.5 w-3.5" /> Reset
@@ -345,6 +384,27 @@ export const DesignPlacementEditor = ({
           </div>
         )}
       </div>
+
+      {/* Alignment readout — live numeric feedback vs. detected shirt center */}
+      {templateLoaded && (
+        <div className="flex items-center justify-center gap-3 text-[11px] font-medium">
+          {(() => {
+            const delta = offsetX - shirtCenterOffset;
+            const absDelta = Math.abs(delta);
+            const aligned = absDelta < 0.005;
+            const close = absDelta < 0.02;
+            const tone = aligned ? "text-primary" : close ? "text-muted-foreground" : "text-amber-500";
+            const label = aligned
+              ? "● Centered on shirt"
+              : `${delta > 0 ? "→" : "←"} ${Math.round(absDelta * 100)}% off shirt center`;
+            return <span className={tone}>{label}</span>;
+          })()}
+          <span className="text-muted-foreground/60">·</span>
+          <span className="text-muted-foreground">
+            Detection: {centerConfidence > 0 ? `${Math.round(centerConfidence * 100)}%` : "—"}
+          </span>
+        </div>
+      )}
 
       {/* Sliders */}
       <div className="grid gap-3 sm:grid-cols-3">
