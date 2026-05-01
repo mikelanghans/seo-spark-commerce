@@ -415,158 +415,25 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
           .eq("marketplace", "shopify");
         const shopifyListing = shopifyListings?.[0];
 
-        // ===== STEP 4a: Push to Printify =====
-        let currentShopifyId: number | null = productData.shopify_product_id ?? null;
-
-        const printifyPayloadBase = {
-          shopId: printifyShopId,
-          title: shopifyListing?.title || productData.title,
-          description: shopifyListing?.description || productData.description,
-          tags: shopifyListing?.tags || (productData.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
-          price: productData.price,
-          sizePricing,
-          productId: productData.id,
+        // Run the shared Printify → Shopify chain.
+        await pushPrintifyThenShopify({
           organizationId: organization.id,
-        };
-
-        if (productData.printify_product_id) {
-          // Update existing Printify product
-          const { data: pData, error: pErr } = await withRetry(
-            () => supabase.functions.invoke("printify-create-product", {
-              body: {
-                action: "update",
-                printifyProductId: productData.printify_product_id,
-                updateFields: ["title", "description", "tags", "pricing"],
-                ...printifyPayloadBase,
-              },
-            }),
-            { label: `printify-update-${i}` }
-          );
-          if (pErr) throw new Error(`Printify update failed: ${pErr.message}`);
-          if (pData?.error) throw new Error(`Printify update failed: ${pData.error}`);
-          if (pData?.shopifyProductId) currentShopifyId = pData.shopifyProductId;
-        } else {
-          // Create new Printify product (with auto-publish so Printify syncs to Shopify)
-          const colorsToUse = mockupUploads.length > 0
+          userId,
+          product: productData,
+          listings: shopifyListing ? [shopifyListing] : [],
+          printifyShopId,
+          blueprintId: AUTOPILOT_PRINTIFY_BLUEPRINT.blueprintId,
+          selectedSizes: AUTOPILOT_PRINTIFY_BLUEPRINT.sizes,
+          selectedColors: mockupUploads.length > 0
             ? Array.from(new Set(mockupUploads.map((m) => m.colorName)))
-            : ["Black"];
-          const lightColorsSelected = colorsToUse.filter((c) => LIGHT_COLORS.has(c.toLowerCase()));
-          const hasLightColors = lightColorsSelected.length > 0;
-
-          // Upload design to Printify
-          const base64Contents = await preparePrintifyDesignBase64(designUrl, 4500);
-          const { data: uploadData, error: uploadErr } = await withRetry(
-            () => supabase.functions.invoke("printify-upload-image", {
-              body: {
-                base64Contents,
-                fileName: `${productData.title}-design.png`,
-                organizationId: organization.id,
-              },
-            }),
-            { label: `printify-upload-${i}` }
-          );
-          if (uploadErr) throw new Error(`Printify upload failed: ${uploadErr.message}`);
-          if (uploadData?.error) throw new Error(`Printify upload failed: ${uploadData.error}`);
-          const printifyImageId = uploadData.image?.id;
-          if (!printifyImageId) throw new Error("Printify did not return an image id");
-
-          // Dark variant for light garments
-          let darkPrintifyImageId: string | null = null;
-          if (hasLightColors) {
-            const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-            const { data: dUp, error: dErr } = await withRetry(
-              () => supabase.functions.invoke("printify-upload-image", {
-                body: {
-                  base64Contents: darkBase64,
-                  fileName: `${productData.title}-dark-design.png`,
-                  organizationId: organization.id,
-                },
-              }),
-              { label: `printify-dark-upload-${i}` }
-            );
-            if (dErr) throw new Error(`Printify dark upload failed: ${dErr.message}`);
-            if (dUp?.error) throw new Error(`Printify dark upload failed: ${dUp.error}`);
-            darkPrintifyImageId = dUp.image?.id || null;
-          }
-
-          // Get the print provider for this blueprint
-          const { data: variantsInfo } = await supabase.functions.invoke("printify-get-variants", {
-            body: {
-              blueprintId: AUTOPILOT_PRINTIFY_BLUEPRINT.blueprintId,
-              organizationId: organization.id,
-              shopId: printifyShopId,
-            },
-          });
-          const printProviderId = variantsInfo?.printProviderId;
-          if (!printProviderId) throw new Error("Could not resolve Printify print provider for blueprint 706");
-
-          const savedPlacement = parsePrintPlacement(productData.print_placement);
-
-          const mockupImagesForPrintify = mockupUploads.map((m) => ({
-            printifyColorName: m.colorName,
-            imageUrl: m.url,
-          }));
-
-          const { data: pData, error: pErr } = await withRetry(
-            () => supabase.functions.invoke("printify-create-product", {
-              body: {
-                ...printifyPayloadBase,
-                printifyImageId,
-                darkPrintifyImageId,
-                lightColors: hasLightColors ? [...LIGHT_COLORS] : [],
-                selectedColors: colorsToUse,
-                selectedSizes: AUTOPILOT_PRINTIFY_BLUEPRINT.sizes,
-                mockupImages: mockupImagesForPrintify,
-                placement: savedPlacement,
-                printProviderId,
-                blueprintId: AUTOPILOT_PRINTIFY_BLUEPRINT.blueprintId,
-                publish: true,
-              },
-            }),
-            { label: `printify-create-${i}` }
-          );
-          if (pErr) throw new Error(`Printify create failed: ${pErr.message}`);
-          if (pData?.error) throw new Error(`Printify create failed: ${pData.error}`);
-
-          if (pData?.printifyProductId) {
-            await supabase.from("products").update({ printify_product_id: pData.printifyProductId }).eq("id", productData.id);
-          }
-          if (pData?.shopifyProductId) {
-            currentShopifyId = pData.shopifyProductId;
-            await supabase.from("products").update({ shopify_product_id: currentShopifyId }).eq("id", productData.id);
-          }
-        }
-
-        // ===== STEP 4b: Push mockups + SEO to Shopify (only if linked) =====
-        if (!currentShopifyId) {
-          // Printify sync may still be in progress; mark step done with a soft warning.
-          // The user can re-run Push to Shopify manually later.
-          console.warn(`[Autopilot] No Shopify product linked yet for "${productData.title}" — skipping SEO push.`);
-        } else {
-          const rawVariants = mockupUploads.map((m) => ({
-            colorName: m.colorName,
-            imageUrl: m.url,
-          }));
-          const optimizedVariants = await optimizeVariantsForShopify(rawVariants, userId, productId || "unknown");
-
-          const { data: shopifyResult, error: shopifyError } = await withRetry(
-            () => supabase.functions.invoke("push-to-shopify", {
-              body: {
-                organizationId: organization.id,
-                product: { ...productData, shopify_product_id: currentShopifyId },
-                listings: shopifyListing ? [shopifyListing] : [],
-                imageUrl: designUrl,
-                variants: optimizedVariants,
-                forceVariants: false,
-                allowCreateOnMissingProduct: false,
-                replaceAllImages: true,
-              },
-            }),
-            { label: `shopify-${i}` }
-          );
-          if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
-          if (shopifyResult?.error) throw new Error(`Shopify push failed: ${shopifyResult.error}`);
-        }
+            : ["Black"],
+          sizePricing,
+          mockupImages: mockupUploads.map((m) => ({ color_name: m.colorName, image_url: m.url })),
+          placement: parsePrintPlacement(productData.print_placement),
+          publishOnPrintify: true,
+          appendSizeChart: true,
+          retryLabel: String(i),
+        });
       }
 
 
