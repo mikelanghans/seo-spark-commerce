@@ -493,6 +493,12 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
                 <p className="font-medium text-foreground mb-1">Set this Callback URL in your Etsy app:</p>
                 <code className="break-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback</code>
               </div>
+              <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Authorization note</p>
+                <p>
+                  Etsy may show a verification page before approval. Complete that step in the Etsy page; Brand Aura will return here automatically after Etsy grants access.
+                </p>
+              </div>
             </div>
             {!etsyCredsSaved && !etsyConn ? (
               <Button onClick={saveEtsyCreds} disabled={savingEtsy} className="gap-2">
