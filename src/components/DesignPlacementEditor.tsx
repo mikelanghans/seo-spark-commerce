@@ -251,8 +251,16 @@ export const DesignPlacementEditor = ({
             {previewMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {previewMode ? "Edit" : "Preview"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => { setOffsetX(shirtCenterOffset); userTouchedXRef.current = false; }} className="gap-1.5" title="Snap to shirt center" disabled={previewMode}>
-            ↔ Center
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAutoCenter}
+            className="gap-1.5"
+            title="Re-analyze the shirt and snap design to its true center"
+            disabled={previewMode || autoCentering}
+          >
+            {autoCentering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+            Auto-Center
           </Button>
           <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5" disabled={previewMode}>
             <RotateCw className="h-3.5 w-3.5" /> Reset
