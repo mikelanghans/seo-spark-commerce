@@ -623,54 +623,58 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 8: Push to Shopify
+          // Step 8: Push SEO/mockups to Shopify (update existing product created by Printify sync)
           updateProduct(i, { step: "Pushing to Shopify..." });
-          log(`  🛍️ Pushing to Shopify...`, "info");
+          log(`  🛍️ Updating Shopify product...`, "info");
 
-          try {
-            // Fetch mockup images for Shopify gallery
-            const { data: shopifyMockups } = await supabase
-              .from("product_images")
-              .select("image_url, color_name, position")
-              .eq("product_id", productId)
-              .eq("image_type", "mockup")
-              .order("position");
+          if (!linkedShopifyId) {
+            log(`  ⚠️ Skipping Shopify update — no linked Shopify product yet (Printify sync pending)`, "error");
+          } else {
+            try {
+              // Fetch mockup images for Shopify gallery
+              const { data: shopifyMockups } = await supabase
+                .from("product_images")
+                .select("image_url, color_name, position")
+                .eq("product_id", productId)
+                .eq("image_type", "mockup")
+                .order("position");
 
-            const shopifyVariants = await optimizeVariantsForShopify(
-              (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
-              userId,
-              productId,
-            );
+              const shopifyVariants = await optimizeVariantsForShopify(
+                (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
+                userId,
+                productId,
+              );
 
-            // Append CC1717 size chart as the last image
-            shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
+              // Append CC1717 size chart as the last image
+              shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
 
-            const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
-              body: {
-                organizationId: organization.id,
-                product: {
-                  id: productId,
-                  title: shopifyListing?.title || productTitle,
-                  description: shopifyListing?.description || messageText,
-                  category: "T-Shirt",
-                  price: "29.99",
-                  keywords: organization.niche,
-                  shopify_product_id: null,
+              const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
+                body: {
+                  organizationId: organization.id,
+                  product: {
+                    id: productId,
+                    title: shopifyListing?.title || productTitle,
+                    description: shopifyListing?.description || messageText,
+                    category: "T-Shirt",
+                    price: "29.99",
+                    keywords: organization.niche,
+                    shopify_product_id: linkedShopifyId,
+                  },
+                  listings: shopifyListing ? [{
+                    ...shopifyListing,
+                    tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
+                  }] : [],
+                  imageUrl: designUrl,
+                  variants: shopifyVariants,
+                  shopifyStatus,
                 },
-                listings: shopifyListing ? [{
-                  ...shopifyListing,
-                  tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
-                }] : [],
-                imageUrl: designUrl,
-                variants: shopifyVariants,
-                shopifyStatus,
-              },
-            });
+              });
 
-            if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
-            log(`  ✅ Published to Shopify`, "success");
-          } catch (err: any) {
-            log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
+              if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
+              log(`  ✅ Published to Shopify`, "success");
+            } catch (err: any) {
+              log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
+            }
           }
           tick();
 
