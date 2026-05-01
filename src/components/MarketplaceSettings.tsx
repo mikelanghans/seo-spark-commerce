@@ -358,7 +358,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     try {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
-      if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
+      if (platform === "etsy") { setEtsyConn(null); setEtsyClientId(""); setEtsyClientSecret(""); setEtsyCredsSaved(false); }
       else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); setEbayRuName(""); }
       toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
     } catch (e: any) {
