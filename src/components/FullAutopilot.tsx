@@ -592,16 +592,29 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 productId,
                 printProviderId,
                 organizationId: organization.id,
+                publish: true,
               },
             });
 
             if (printifyErr || printifyResult?.error) throw new Error(printifyResult?.error || printifyErr?.message);
-            
+
             if (printifyResult?.printifyProductId) {
               await supabase.from("products").update({ printify_product_id: printifyResult.printifyProductId }).eq("id", productId);
             }
-            
-            log(`  ✅ Pushed to Printify (${printifyResult?.variantCount || 0} variants)`, "success");
+
+            // Capture Shopify product ID created by Printify auto-sync (poll up to 30s if needed)
+            let linkedShopifyId: number | null = printifyResult?.shopifyProductId ?? null;
+            if (linkedShopifyId) {
+              await supabase.from("products").update({ shopify_product_id: linkedShopifyId }).eq("id", productId);
+            } else {
+              for (let attempt = 0; attempt < 10; attempt++) {
+                await new Promise((r) => setTimeout(r, 3000));
+                const { data: row } = await supabase.from("products").select("shopify_product_id").eq("id", productId).maybeSingle();
+                if (row?.shopify_product_id) { linkedShopifyId = row.shopify_product_id as number; break; }
+              }
+            }
+
+            log(`  ✅ Pushed to Printify (${printifyResult?.variantCount || 0} variants)${linkedShopifyId ? ` → Shopify #${linkedShopifyId}` : ""}`, "success");
           } catch (err: any) {
             log(`  ⚠️ Printify push failed: ${err.message}`, "error");
           }
