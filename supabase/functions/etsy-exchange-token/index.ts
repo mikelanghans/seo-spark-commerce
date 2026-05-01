@@ -70,21 +70,57 @@ serve(async (req) => {
 
     if (!accessToken) throw new Error("No access token received from Etsy");
 
-    // Get shop info using the new token
-    const shopRes = await fetch("https://openapi.etsy.com/v3/application/users/me", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "x-api-key": clientId,
-      },
-    });
+    // Get user info using the new token. Etsy v3 access tokens are formatted as
+    // "<user_id>.<token>" so we can derive the user id without an extra call,
+    // but we still call /users/me as a safety check.
+    const tokenUserId = String(accessToken).split(".")[0] || "";
 
     let shopId = "";
     let shopName = "";
+    let etsyUserId = tokenUserId;
 
-    if (shopRes.ok) {
-      const userData = await shopRes.json();
-      shopId = String(userData.shop_id || "");
-      shopName = userData.shop_name || userData.login_name || "";
+    try {
+      const meRes = await fetch("https://openapi.etsy.com/v3/application/users/me", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "x-api-key": clientId,
+        },
+      });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        if (me?.user_id) etsyUserId = String(me.user_id);
+        if (me?.shop_id) shopId = String(me.shop_id);
+        if (me?.shop_name) shopName = String(me.shop_name);
+      } else {
+        console.error("Etsy /users/me failed:", meRes.status, await meRes.text());
+      }
+    } catch (err) {
+      console.error("Etsy /users/me fetch error:", err);
+    }
+
+    // If we still don't have a shop, fetch the user's shop directly.
+    if (!shopId && etsyUserId) {
+      try {
+        const shopRes = await fetch(
+          `https://openapi.etsy.com/v3/application/users/${etsyUserId}/shops`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "x-api-key": clientId,
+            },
+          }
+        );
+        if (shopRes.ok) {
+          const shopData = await shopRes.json();
+          // Endpoint returns the shop object directly (not a list)
+          shopId = String(shopData.shop_id || shopData.id || "");
+          shopName = shopData.shop_name || shopName || "";
+        } else {
+          console.error("Etsy /users/{id}/shops failed:", shopRes.status, await shopRes.text());
+        }
+      } catch (err) {
+        console.error("Etsy /users/{id}/shops fetch error:", err);
+      }
     }
 
     // Store connection using service role for reliability

@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 import { PushToTikTok } from "@/components/PushToTikTok";
+import { exportSingleProductToTikTok } from "@/lib/tiktokExport";
 
 interface Product {
   id: string;
@@ -75,6 +76,7 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
   const [pushingEbay, setPushingEbay] = useState(false);
   const [etsyResult, setEtsyResult] = useState<PushResult | null>(null);
   const [ebayResult, setEbayResult] = useState<PushResult | null>(null);
+  const [pushingAll, setPushingAll] = useState(false);
 
   // Update dialog state
   const [updateDialog, setUpdateDialog] = useState<"etsy" | "ebay" | null>(null);
@@ -185,6 +187,38 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
     }
   };
 
+  const pushToAll = async () => {
+    if (listings.length === 0) {
+      toast.error("Generate listings first.");
+      return;
+    }
+    setPushingAll(true);
+    const summary: string[] = [];
+    try {
+      if (showEtsy) {
+        try {
+          await pushToEtsy(product.etsy_listing_id ? ETSY_UPDATE_FIELDS.map(f => f.key) : undefined);
+          summary.push("Etsy ✓");
+        } catch { summary.push("Etsy ✗"); }
+      }
+      if (showEbay) {
+        try {
+          await pushToEbay(isPublishedEbayListingId(product.ebay_listing_id) ? EBAY_UPDATE_FIELDS.map(f => f.key) : undefined);
+          summary.push("eBay ✓");
+        } catch { summary.push("eBay ✗"); }
+      }
+      if (showTiktok) {
+        try {
+          await exportSingleProductToTikTok(product as any);
+          summary.push("TikTok ✓");
+        } catch { summary.push("TikTok ✗"); }
+      }
+      toast.success(`Push to All complete: ${summary.join(" · ")}`, { duration: 6000 });
+    } finally {
+      setPushingAll(false);
+    }
+  };
+
   const etsyIsExisting = !!product.etsy_listing_id;
   const ebayIsExisting = isPublishedEbayListingId(product.ebay_listing_id);
 
@@ -235,6 +269,20 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
 
         {showTiktok && (
           <PushToTikTok product={product} hasListings={listings.length > 0} />
+        )}
+
+        {(showEtsy || showEbay || showTiktok) && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={pushToAll}
+            disabled={pushingAll || pushingEtsy || pushingEbay || listings.length === 0}
+            className="gap-2"
+            title="Push this product to every enabled marketplace at once"
+          >
+            {pushingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+            Push to All Marketplaces
+          </Button>
         )}
       </div>
 
