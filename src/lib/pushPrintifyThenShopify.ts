@@ -166,7 +166,7 @@ const pollForLinkedShopifyId = async ({
       return linkedId;
     }
 
-    const { data: recoveryData } = await invoke(
+    const { data: recoveryData } = await invoke<ShopifyIdRecoveryResponse>(
       "printify-create-product",
       {
         action: "recover-shopify-id",
@@ -266,7 +266,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // ---------- STEP 1: Printify (update or create) ----------
   if (printifyProductId) {
     onProgress("printify-update", "Updating existing Printify product");
-    const { data: pData, error: pErr } = await invoke(
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
       "printify-create-product",
       {
         action: "update",
@@ -308,7 +308,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
 
     onProgress("printify-design", "Preparing & uploading design to Printify");
     const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500);
-    const { data: uploadData, error: uploadErr } = await invoke(
+    const { data: uploadData, error: uploadErr } = await invoke<PrintifyUploadResponse>(
       "printify-upload-image",
       {
         base64Contents,
@@ -327,7 +327,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     if (hasLightColors) {
       onProgress("printify-dark", "Creating dark-ink variant for light garments");
       const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-      const { data: dUp, error: dErr } = await invoke(
+      const { data: dUp, error: dErr } = await invoke<PrintifyUploadResponse>(
         "printify-upload-image",
         {
           base64Contents: darkBase64,
