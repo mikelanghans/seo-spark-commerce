@@ -5,16 +5,20 @@ serve(async (req) => {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
+  const errorDescription = url.searchParams.get("error_description");
 
   // state contains the origin URL for postMessage
   const origin = state ? decodeURIComponent(state) : "*";
 
+  const message = error
+    ? { type: "etsy-oauth", error, errorDescription }
+    : { type: "etsy-oauth", code };
+
   const html = `<!DOCTYPE html><html><body><script>
-    window.opener.postMessage({
-      type: "etsy-oauth",
-      ${error ? `error: "${error}"` : `code: "${code}"`}
-    }, "${origin}");
-    window.close();
+    if (window.opener) {
+      window.opener.postMessage(${JSON.stringify(message)}, ${JSON.stringify(origin)});
+      window.close();
+    }
   </script><p>Connecting to Etsy... you can close this window.</p></body></html>`;
 
   return new Response(html, {
