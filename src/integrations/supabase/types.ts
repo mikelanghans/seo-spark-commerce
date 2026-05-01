@@ -418,6 +418,8 @@ export type Database = {
         Row: {
           access_token: string | null
           api_key: string
+          client_id: string
+          client_secret: string
           created_at: string
           id: string
           refresh_token: string | null
@@ -430,6 +432,8 @@ export type Database = {
         Insert: {
           access_token?: string | null
           api_key?: string
+          client_id?: string
+          client_secret?: string
           created_at?: string
           id?: string
           refresh_token?: string | null
@@ -442,6 +446,8 @@ export type Database = {
         Update: {
           access_token?: string | null
           api_key?: string
+          client_id?: string
+          client_secret?: string
           created_at?: string
           id?: string
           refresh_token?: string | null

@@ -17,6 +17,7 @@ interface EtsyConn {
   shop_id: string;
   shop_name: string;
   api_key: string;
+  client_id: string;
   has_token: boolean;
 }
 
@@ -34,10 +35,10 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
   // Etsy state (Printify moved to PrintifySettings)
   const [etsyConn, setEtsyConn] = useState<EtsyConn | null>(null);
-  const [etsyApiKey, setEtsyApiKey] = useState("");
-  const [etsyShopId, setEtsyShopId] = useState("");
-  const [etsyShopName, setEtsyShopName] = useState("");
+  const [etsyClientId, setEtsyClientId] = useState("");
+  const [etsyClientSecret, setEtsyClientSecret] = useState("");
   const [savingEtsy, setSavingEtsy] = useState(false);
+  const [etsyCredsSaved, setEtsyCredsSaved] = useState(false);
 
   // eBay state
   const [ebayConn, setEbayConn] = useState<EbayConn | null>(null);
@@ -69,8 +70,11 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           shop_id: d.shop_id,
           shop_name: d.shop_name,
           api_key: d.api_key,
+          client_id: d.client_id || "",
           has_token: !!d.access_token,
         });
+        setEtsyClientId(d.client_id || "");
+        if (d.client_id) setEtsyCredsSaved(true);
       }
 
       if (ebayRes.data) {
@@ -98,7 +102,48 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
   };
 
+  const saveEtsyCreds = async () => {
+    if (!etsyClientId.trim()) {
+      toast.error("Etsy Keystring (Client ID) is required");
+      return;
+    }
+    setSavingEtsy(true);
+    try {
+      const payload: any = {
+        user_id: userId,
+        client_id: etsyClientId.trim(),
+        updated_at: new Date().toISOString(),
+      };
+      if (etsyClientSecret.trim()) payload.client_secret = etsyClientSecret.trim();
+
+      // Ensure NOT NULL columns get values on insert
+      if (!etsyConn) {
+        payload.shop_id = "pending";
+        payload.shop_name = "";
+        payload.api_key = etsyClientId.trim();
+      }
+
+      const { error } = etsyConn
+        ? await supabase.from("etsy_connections").update(payload).eq("id", etsyConn.id)
+        : await supabase.from("etsy_connections").upsert(payload, { onConflict: "user_id" });
+      if (error) throw error;
+
+      setEtsyCredsSaved(true);
+      toast.success("Etsy credentials saved! Now authorize your shop.");
+      await loadConnections();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save Etsy credentials");
+    } finally {
+      setSavingEtsy(false);
+    }
+  };
+
   const connectEtsy = async () => {
+    const clientId = etsyClientId.trim() || etsyConn?.client_id;
+    if (!clientId) {
+      toast.error("Save your Etsy Keystring (Client ID) first");
+      return;
+    }
     setSavingEtsy(true);
     try {
       // Generate PKCE code_verifier and code_challenge
@@ -106,17 +151,15 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       crypto.getRandomValues(array);
       const codeVerifier = btoa(String.fromCharCode(...array))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      
+
       const encoder = new TextEncoder();
       const data = encoder.encode(codeVerifier);
       const digest = await crypto.subtle.digest("SHA-256", data);
       const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-      // Store verifier for later token exchange
       localStorage.setItem("etsy_code_verifier", codeVerifier);
 
-      const clientId = "3ww8h9ip1bp9fhtwcwqa123b";
       const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback`;
       const scopes = "shops_r%20shops_w%20listings_r%20listings_w";
       const state = encodeURIComponent(window.location.origin);
@@ -161,7 +204,6 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
       window.addEventListener("message", handler);
 
-      // Fallback if popup is closed without completing
       const checkClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(checkClosed);
@@ -354,7 +396,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     try {
       const { error } = await supabase.from(table).delete().eq("id", id);
       if (error) throw error;
-      if (platform === "etsy") { setEtsyConn(null); setEtsyApiKey(""); setEtsyShopId(""); setEtsyShopName(""); }
+      if (platform === "etsy") { setEtsyConn(null); setEtsyClientId(""); setEtsyClientSecret(""); setEtsyCredsSaved(false); }
       else { setEbayConn(null); setEbayClientId(""); setEbayClientSecret(""); setEbayRuName(""); }
       toast.success(`${platform === "etsy" ? "Etsy" : "eBay"} disconnected`);
     } catch (e: any) {
@@ -382,10 +424,19 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
             <ShoppingBag className="h-5 w-5 text-orange-500" />
             <span className="font-semibold">Etsy</span>
           </div>
-          {etsyConn ? (
+          {etsyConn?.has_token ? (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
                 <Check className="h-3 w-3 mr-1" /> Connected
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={() => deleteConnection("etsy")}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : etsyConn ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                Credentials saved
               </Badge>
               <Button variant="ghost" size="icon" onClick={() => deleteConnection("etsy")}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -396,23 +447,62 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           )}
         </div>
 
-        {etsyConn ? (
+        {etsyConn?.has_token ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            {etsyConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
+            <p className="text-green-600 dark:text-green-400">OAuth token active</p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your Etsy shop to push AI-generated listings directly. Click below to authorize via Etsy.
+              Connect your Etsy shop to push AI-generated listings. Enter your Keystring (Client ID) from the{" "}
+              <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary">
+                Etsy Developer Portal <ExternalLink className="h-3 w-3" />
+              </a>
             </p>
-            <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
-              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
-              {savingEtsy ? "Connecting..." : "Connect Etsy Shop"}
-            </Button>
+            <div className="grid gap-3">
+              <div>
+                <Label>Keystring (Client ID)</Label>
+                <Input value={etsyClientId} onChange={(e) => setEtsyClientId(e.target.value)} placeholder="Your Etsy app keystring" />
+              </div>
+              <div>
+                <Label>Shared Secret (optional)</Label>
+                <Input
+                  type="password"
+                  value={etsyClientSecret}
+                  onChange={(e) => setEtsyClientSecret(e.target.value)}
+                  placeholder={etsyConn ? "••••••••  (saved — enter new value to change)" : "Your Etsy shared secret"}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Etsy uses PKCE so a secret isn't required, but you can store it for refresh flows.
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Set this Callback URL in your Etsy app:</p>
+                <code className="break-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback</code>
+              </div>
+            </div>
+            {!etsyCredsSaved && !etsyConn ? (
+              <Button onClick={saveEtsyCreds} disabled={savingEtsy} className="gap-2">
+                {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Save Credentials
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button onClick={saveEtsyCreds} disabled={savingEtsy} variant="outline" className="gap-2">
+                  <Check className="h-4 w-4" />
+                  Update Credentials
+                </Button>
+                <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
+                  {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+                  {savingEtsy ? "Connecting..." : "Authorize Etsy Shop"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
 
       {/* eBay */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
