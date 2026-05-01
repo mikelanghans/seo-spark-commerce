@@ -187,6 +187,38 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
     }
   };
 
+  const pushToAll = async () => {
+    if (listings.length === 0) {
+      toast.error("Generate listings first.");
+      return;
+    }
+    setPushingAll(true);
+    const summary: string[] = [];
+    try {
+      if (showEtsy) {
+        try {
+          await pushToEtsy(product.etsy_listing_id ? ETSY_UPDATE_FIELDS.map(f => f.key) : undefined);
+          summary.push("Etsy ✓");
+        } catch { summary.push("Etsy ✗"); }
+      }
+      if (showEbay) {
+        try {
+          await pushToEbay(isPublishedEbayListingId(product.ebay_listing_id) ? EBAY_UPDATE_FIELDS.map(f => f.key) : undefined);
+          summary.push("eBay ✓");
+        } catch { summary.push("eBay ✗"); }
+      }
+      if (showTiktok) {
+        try {
+          await exportSingleProductToTikTok(product as any);
+          summary.push("TikTok ✓");
+        } catch { summary.push("TikTok ✗"); }
+      }
+      toast.success(`Push to All complete: ${summary.join(" · ")}`, { duration: 6000 });
+    } finally {
+      setPushingAll(false);
+    }
+  };
+
   const etsyIsExisting = !!product.etsy_listing_id;
   const ebayIsExisting = isPublishedEbayListingId(product.ebay_listing_id);
 
