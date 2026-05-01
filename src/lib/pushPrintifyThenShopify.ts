@@ -141,6 +141,8 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     placement,
     publishOnPrintify = true,
     appendSizeChart = true,
+    shopifyStatus,
+    extraShopifyTags = [],
     onProgress = () => {},
     onProductUpdate = () => {},
     retry = true,
