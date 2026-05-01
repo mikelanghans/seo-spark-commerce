@@ -441,6 +441,12 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     appendSizeChart,
     mockups: mockupImages,
   });
+  const variantsForShopify = !currentShopifyId && variants.every((v) => v.colorName === "Size Chart") && selectedColors?.length
+    ? [
+      ...selectedColors.map((colorName) => ({ colorName, imageUrl: product.image_url! })),
+      ...variants,
+    ]
+    : variants;
 
   const listingsMapped = listings.map((l) => ({
     marketplace: l.marketplace,
@@ -471,8 +477,9 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       },
       listings: listingsMapped,
       imageUrl: product.image_url,
-      variants,
-      forceVariants: false,
+      variants: variantsForShopify,
+      sizes: selectedSizes,
+      forceVariants: !currentShopifyId,
       allowCreateOnMissingProduct: !currentShopifyId,
       replaceAllImages: true,
       ...(shopifyStatus ? { shopifyStatus } : {}),
