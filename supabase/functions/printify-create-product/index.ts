@@ -200,9 +200,14 @@ serve(async (req) => {
         console.log(`Recovered Printify-linked Shopify product ID: ${resolvedShopifyProductId}`);
       }
 
+      const publishStatus = resolvedShopifyProductId
+        ? null
+        : await getPrintifyProductPublishStatus(printifyToken, pShopId, printifyProductId);
+
       return new Response(JSON.stringify({
         success: true,
         shopifyProductId: resolvedShopifyProductId,
+        publishStatus,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
