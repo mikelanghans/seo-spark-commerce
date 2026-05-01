@@ -350,6 +350,25 @@ serve(async (req) => {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id, shopify_synced_at: new Date().toISOString() }).eq("id", product.id);
     }
 
+    if (!isUpdate && createdProduct?.id && existingPrintifyId) {
+      if (organizationId) {
+        const { data: org } = await adminClient
+          .from("organizations")
+          .select("printify_shop_id")
+          .eq("id", organizationId)
+          .maybeSingle();
+        printifyShopIdForLink = org?.printify_shop_id ?? null;
+      }
+      const printifyToken = await getPrintifyToken(adminClient, organizationId);
+      await markPrintifyPublishingSucceeded(
+        printifyToken,
+        printifyShopIdForLink,
+        existingPrintifyId,
+        createdProduct.id,
+        createdProduct.handle ? `https://${domain}/products/${createdProduct.handle}` : undefined,
+      );
+    }
+
     // For updates, add any missing color variants before uploading images
     let allVariants = createdProduct?.variants || [];
     if (isUpdate && createdProduct?.id && actualColorVariants.length > 0) {
