@@ -114,11 +114,11 @@ export const DesignPlacementEditor = ({
       setOffsetX(detected);
       userTouchedXRef.current = false;
       const pct = Math.round(confidence * 100);
-      if (confidence >= 0.75) {
-        toast.success(`Auto-centered (${pct}% confidence)`);
-      } else if (confidence >= 0.5) {
-        toast.message(`Centered with moderate confidence (${pct}%)`, {
-          description: "Double-check the placement or fine-tune with the slider.",
+      if (confidence >= 0.6) {
+        toast.success(`Auto-centered on shirt (${pct}% confidence)`);
+      } else if (confidence >= 0.35) {
+        toast.message(`Centered (${pct}% confidence)`, {
+          description: "Eyeball the placement — fine-tune with the slider if needed.",
         });
       } else {
         toast.warning(`Low confidence (${pct}%) — couldn't reliably find the shirt center`, {
