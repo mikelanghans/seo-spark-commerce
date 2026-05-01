@@ -372,24 +372,16 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // persists `shopify_product_id` on the products row when it arrives.
   // Poll the row here so autopilot can complete the SEO push in the same run.
   if (!currentShopifyId && printifyProductId) {
-    onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 90s)");
-    const pollStart = Date.now();
-    const POLL_TIMEOUT_MS = 90_000;
-    const POLL_INTERVAL_MS = 5_000;
-    while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      const { data: row } = await supabase
-        .from("products")
-        .select("shopify_product_id")
-        .eq("id", product.id)
-        .maybeSingle();
-      if (row?.shopify_product_id) {
-        currentShopifyId = row.shopify_product_id as number;
-        onProductUpdate({ shopify_product_id: currentShopifyId });
-        onProgress("shopify-wait", `Shopify product linked (${currentShopifyId})`);
-        break;
-      }
-    }
+    currentShopifyId = await pollForLinkedShopifyId({
+      productId: product.id,
+      printifyProductId,
+      printifyShopId,
+      organizationId,
+      retry,
+      retryLabel,
+      onProgress,
+      onProductUpdate,
+    });
   }
 
   if (!currentShopifyId) {
