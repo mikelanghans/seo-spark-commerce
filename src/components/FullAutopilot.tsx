@@ -524,10 +524,11 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 7: Push to Printify
+          // Step 7: Push to Printify (which will auto-sync to Shopify)
           updateProduct(i, { step: "Pushing to Printify..." });
           log(`  🖨️ Pushing to Printify...`, "info");
 
+          let linkedShopifyId: number | null = null;
           try {
             // Get shop ID — prefer brand-level mapping, fallback to first shop
             let shopId = organization.printify_shop_id;
@@ -592,16 +593,29 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
                 productId,
                 printProviderId,
                 organizationId: organization.id,
+                publish: true,
               },
             });
 
             if (printifyErr || printifyResult?.error) throw new Error(printifyResult?.error || printifyErr?.message);
-            
+
             if (printifyResult?.printifyProductId) {
               await supabase.from("products").update({ printify_product_id: printifyResult.printifyProductId }).eq("id", productId);
             }
-            
-            log(`  ✅ Pushed to Printify (${printifyResult?.variantCount || 0} variants)`, "success");
+
+            // Capture Shopify product ID created by Printify auto-sync (poll up to 30s if needed)
+            linkedShopifyId = printifyResult?.shopifyProductId ?? null;
+            if (linkedShopifyId) {
+              await supabase.from("products").update({ shopify_product_id: linkedShopifyId }).eq("id", productId);
+            } else {
+              for (let attempt = 0; attempt < 10; attempt++) {
+                await new Promise((r) => setTimeout(r, 3000));
+                const { data: row } = await supabase.from("products").select("shopify_product_id").eq("id", productId).maybeSingle();
+                if (row?.shopify_product_id) { linkedShopifyId = row.shopify_product_id as number; break; }
+              }
+            }
+
+            log(`  ✅ Pushed to Printify (${printifyResult?.variantCount || 0} variants)${linkedShopifyId ? ` → Shopify #${linkedShopifyId}` : ""}`, "success");
           } catch (err: any) {
             log(`  ⚠️ Printify push failed: ${err.message}`, "error");
           }
@@ -609,54 +623,58 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 8: Push to Shopify
+          // Step 8: Push SEO/mockups to Shopify (update existing product created by Printify sync)
           updateProduct(i, { step: "Pushing to Shopify..." });
-          log(`  🛍️ Pushing to Shopify...`, "info");
+          log(`  🛍️ Updating Shopify product...`, "info");
 
-          try {
-            // Fetch mockup images for Shopify gallery
-            const { data: shopifyMockups } = await supabase
-              .from("product_images")
-              .select("image_url, color_name, position")
-              .eq("product_id", productId)
-              .eq("image_type", "mockup")
-              .order("position");
+          if (!linkedShopifyId) {
+            log(`  ⚠️ Skipping Shopify update — no linked Shopify product yet (Printify sync pending)`, "error");
+          } else {
+            try {
+              // Fetch mockup images for Shopify gallery
+              const { data: shopifyMockups } = await supabase
+                .from("product_images")
+                .select("image_url, color_name, position")
+                .eq("product_id", productId)
+                .eq("image_type", "mockup")
+                .order("position");
 
-            const shopifyVariants = await optimizeVariantsForShopify(
-              (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
-              userId,
-              productId,
-            );
+              const shopifyVariants = await optimizeVariantsForShopify(
+                (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
+                userId,
+                productId,
+              );
 
-            // Append CC1717 size chart as the last image
-            shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
+              // Append CC1717 size chart as the last image
+              shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
 
-            const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
-              body: {
-                organizationId: organization.id,
-                product: {
-                  id: productId,
-                  title: shopifyListing?.title || productTitle,
-                  description: shopifyListing?.description || messageText,
-                  category: "T-Shirt",
-                  price: "29.99",
-                  keywords: organization.niche,
-                  shopify_product_id: null,
+              const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
+                body: {
+                  organizationId: organization.id,
+                  product: {
+                    id: productId,
+                    title: shopifyListing?.title || productTitle,
+                    description: shopifyListing?.description || messageText,
+                    category: "T-Shirt",
+                    price: "29.99",
+                    keywords: organization.niche,
+                    shopify_product_id: linkedShopifyId,
+                  },
+                  listings: shopifyListing ? [{
+                    ...shopifyListing,
+                    tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
+                  }] : [],
+                  imageUrl: designUrl,
+                  variants: shopifyVariants,
+                  shopifyStatus,
                 },
-                listings: shopifyListing ? [{
-                  ...shopifyListing,
-                  tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
-                }] : [],
-                imageUrl: designUrl,
-                variants: shopifyVariants,
-                shopifyStatus,
-              },
-            });
+              });
 
-            if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
-            log(`  ✅ Published to Shopify`, "success");
-          } catch (err: any) {
-            log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
+              if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
+              log(`  ✅ Published to Shopify`, "success");
+            } catch (err: any) {
+              log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
+            }
           }
           tick();
 
