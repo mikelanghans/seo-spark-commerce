@@ -424,10 +424,19 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
             <ShoppingBag className="h-5 w-5 text-orange-500" />
             <span className="font-semibold">Etsy</span>
           </div>
-          {etsyConn ? (
+          {etsyConn?.has_token ? (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-300">
                 <Check className="h-3 w-3 mr-1" /> Connected
+              </Badge>
+              <Button variant="ghost" size="icon" onClick={() => deleteConnection("etsy")}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ) : etsyConn ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300">
+                Credentials saved
               </Badge>
               <Button variant="ghost" size="icon" onClick={() => deleteConnection("etsy")}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -438,23 +447,62 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           )}
         </div>
 
-        {etsyConn ? (
+        {etsyConn?.has_token ? (
           <div className="text-sm text-muted-foreground">
             <p>Shop: <span className="text-foreground font-medium">{etsyConn.shop_name || etsyConn.shop_id}</span></p>
-            {etsyConn.has_token && <p className="text-green-600 dark:text-green-400">OAuth token active</p>}
+            <p className="text-green-600 dark:text-green-400">OAuth token active</p>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your Etsy shop to push AI-generated listings directly. Click below to authorize via Etsy.
+              Connect your Etsy shop to push AI-generated listings. Enter your Keystring (Client ID) from the{" "}
+              <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary">
+                Etsy Developer Portal <ExternalLink className="h-3 w-3" />
+              </a>
             </p>
-            <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
-              {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
-              {savingEtsy ? "Connecting..." : "Connect Etsy Shop"}
-            </Button>
+            <div className="grid gap-3">
+              <div>
+                <Label>Keystring (Client ID)</Label>
+                <Input value={etsyClientId} onChange={(e) => setEtsyClientId(e.target.value)} placeholder="Your Etsy app keystring" />
+              </div>
+              <div>
+                <Label>Shared Secret (optional)</Label>
+                <Input
+                  type="password"
+                  value={etsyClientSecret}
+                  onChange={(e) => setEtsyClientSecret(e.target.value)}
+                  placeholder={etsyConn ? "••••••••  (saved — enter new value to change)" : "Your Etsy shared secret"}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Etsy uses PKCE so a secret isn't required, but you can store it for refresh flows.
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">Set this Callback URL in your Etsy app:</p>
+                <code className="break-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/etsy-oauth-callback</code>
+              </div>
+            </div>
+            {!etsyCredsSaved && !etsyConn ? (
+              <Button onClick={saveEtsyCreds} disabled={savingEtsy} className="gap-2">
+                {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Save Credentials
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button onClick={saveEtsyCreds} disabled={savingEtsy} variant="outline" className="gap-2">
+                  <Check className="h-4 w-4" />
+                  Update Credentials
+                </Button>
+                <Button onClick={connectEtsy} disabled={savingEtsy} className="gap-2">
+                  {savingEtsy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+                  {savingEtsy ? "Connecting..." : "Authorize Etsy Shop"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
 
       {/* eBay */}
       <div className="rounded-xl border border-border bg-card p-5 space-y-4">
