@@ -221,6 +221,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       let messageHandled = false;
       let checkClosed: ReturnType<typeof setInterval> | undefined;
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      let pollStatus: ReturnType<typeof setInterval> | undefined;
 
       const handler = async (e: MessageEvent) => {
         if (e.data?.type !== "etsy-oauth") return;
@@ -228,6 +229,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         window.removeEventListener("message", handler);
         if (checkClosed) clearInterval(checkClosed);
         if (timeoutId) clearTimeout(timeoutId);
+        if (pollStatus) clearInterval(pollStatus);
 
         if (e.data.error) {
           localStorage.removeItem("etsy_code_verifier");
@@ -274,6 +276,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       checkClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(checkClosed);
+          if (pollStatus) clearInterval(pollStatus);
           if (!messageHandled) {
             window.removeEventListener("message", handler);
             localStorage.removeItem("etsy_code_verifier");
@@ -283,9 +286,30 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         }
       }, 1000);
 
+      pollStatus = setInterval(async () => {
+        if (messageHandled) return;
+        const { data } = await supabase
+          .from("etsy_connections")
+          .select("token_expires_at, shop_name, shop_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (data?.token_expires_at) {
+          messageHandled = true;
+          window.removeEventListener("message", handler);
+          if (checkClosed) clearInterval(checkClosed);
+          if (timeoutId) clearTimeout(timeoutId);
+          if (pollStatus) clearInterval(pollStatus);
+          popup.close();
+          toast.success(`Etsy connected! ${data.shop_name || data.shop_id ? `Shop: ${data.shop_name || data.shop_id}` : ""}`);
+          await loadConnections();
+          setSavingEtsy(false);
+        }
+      }, 4000);
+
       timeoutId = setTimeout(() => {
         if (!messageHandled) {
           window.removeEventListener("message", handler);
+          if (pollStatus) clearInterval(pollStatus);
           localStorage.removeItem("etsy_code_verifier");
           popup.close();
           toast.error("Etsy authorization timed out. Please try again and complete the Etsy approval window.");
