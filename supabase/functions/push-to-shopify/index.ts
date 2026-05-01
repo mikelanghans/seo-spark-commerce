@@ -253,13 +253,15 @@ serve(async (req) => {
 
     const pushedColorNames = actualColorVariants.map((v) => v.colorName);
     const deleteColorFilter = replaceAllImages ? undefined : (pushedColorNames.length > 0 ? pushedColorNames : undefined);
-    if (shouldUpdateImages && imageEntries.length > 0) {
+    if (existingShopifyId && shouldUpdateImages && imageEntries.length > 0) {
       await deleteExistingImages(domain, connection.access_token, existingShopifyId, deleteColorFilter);
     }
 
-    let shopifyResponse = await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct);
+    let shopifyResponse = existingShopifyId
+      ? await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct)
+      : await createShopifyProduct(domain, connection.access_token, shopifyProduct);
 
-    if (shopifyResponse.status === 404) {
+    if (existingShopifyId && shopifyResponse.status === 404) {
       console.log("Existing Shopify product not found (404)");
 
       for (const delayMs of missingProductRetryDelays) {
