@@ -29,8 +29,20 @@ serve(async (req) => {
       throw new Error("code, codeVerifier, and redirectUri are required");
     }
 
-    const clientId = Deno.env.get("ETSY_CLIENT_ID");
-    if (!clientId) throw new Error("ETSY_CLIENT_ID not configured");
+    // Look up the user's saved Etsy app credentials (client_id is the Etsy keystring).
+    // Use service role to read because client_secret is REVOKEd from authenticated.
+    const adminLookup = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: existingConn } = await adminLookup
+      .from("etsy_connections")
+      .select("id, client_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const clientId = existingConn?.client_id || Deno.env.get("ETSY_CLIENT_ID");
+    if (!clientId) throw new Error("Etsy Client ID (Keystring) not set. Save your app credentials first.");
 
     // Exchange authorization code for tokens
     const tokenRes = await fetch("https://api.etsy.com/v3/public/oauth/token", {
