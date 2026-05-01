@@ -17,6 +17,7 @@ interface EtsyConn {
   shop_id: string;
   shop_name: string;
   api_key: string;
+  client_id: string;
   has_token: boolean;
 }
 
