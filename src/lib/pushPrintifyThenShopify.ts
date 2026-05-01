@@ -176,6 +176,19 @@ const pollForLinkedShopifyId = async ({
   return null;
 };
 
+const recoverPersistedPrintifyLinks = async (productId: string) => {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data: row } = await supabase
+      .from("products")
+      .select("printify_product_id, shopify_product_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (row?.printify_product_id) return row;
+    await new Promise((r) => setTimeout(r, 2_500));
+  }
+  return null;
+};
+
 /**
  * End-to-end Printify → Shopify chain.
  *   • If the product already has a `printify_product_id` → updates Printify (title/desc/tags/pricing).
