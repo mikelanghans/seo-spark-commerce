@@ -156,6 +156,33 @@ serve(async (req) => {
       });
     }
 
+    if (action === "recover-shopify-id") {
+      const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      let pShopId = body.shopId;
+      if (!pShopId && organizationId) {
+        const { data: org } = await adminClient.from("organizations").select("printify_shop_id").eq("id", organizationId).single();
+        pShopId = org?.printify_shop_id;
+      }
+      if (!pShopId) throw new Error("No Printify shop configured");
+      if (!printifyProductId) throw new Error("printifyProductId is required for Shopify ID recovery");
+
+      const resolvedShopifyProductId = await getPrintifyExternalShopifyId(printifyToken, pShopId, printifyProductId);
+      if (resolvedShopifyProductId && productId) {
+        await adminClient
+          .from("products")
+          .update({ shopify_product_id: resolvedShopifyProductId })
+          .eq("id", productId);
+        console.log(`Recovered Printify-linked Shopify product ID: ${resolvedShopifyProductId}`);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        shopifyProductId: resolvedShopifyProductId,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Handle selective update action
     if (action === "update-price" || action === "update") {
       const pPrintifyProductId = body.printifyProductId;
