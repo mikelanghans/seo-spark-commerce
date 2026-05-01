@@ -168,6 +168,12 @@ TYPOGRAPHY:
 COLOR: ${colorDirection} as primary ink on ${bgColor}. May use a single bold accent shape.
 ${isLightOnDark ? "IMPORTANT: For dark garments. White/light ink." : "IMPORTANT: For light garments. Dark ink."}
 
+⛔ CRITICAL — NO DARK FILLED BACKGROUND BLOCKS:
+- Do NOT place a large filled black/dark rectangle, square, or banner behind the text or artwork. The white canvas IS the background — keep it white.
+- Shapes used as "compositional anchors" must be OUTLINED, OPEN, or used as small accents — NOT a solid dark slab covering most of the artwork.
+- If you place text on top of a shape, that shape must be an OUTLINE/STROKE only (no fill), or a small badge that occupies less than 15% of the canvas. Otherwise the dark block will print onto the shirt as a giant black box.
+- Think Swiss poster on white paper — ink marks on a clean ground, not a dark poster cut out and slapped onto a tee.
+
 LAYOUT: ${randomLayout}
 
 SIZE & FILL: The design should FILL at least 70-85% of the canvas width — be BOLD and dominant.
