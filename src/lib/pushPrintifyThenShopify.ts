@@ -358,7 +358,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       .map((m) => ({ printifyColorName: m.color_name, imageUrl: m.image_url }));
 
     onProgress("printify-create", "Creating Printify product (auto-syncs to Shopify)");
-    const { data: pData, error: pErr } = await invoke(
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
       "printify-create-product",
       {
         ...printifyPayloadBase,
@@ -448,7 +448,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }));
 
   onProgress("shopify-push", "Pushing mockups & SEO to Shopify");
-  const { data: shopifyData, error: shopifyError } = await invoke(
+  const { data: shopifyData, error: shopifyError } = await invoke<ShopifyPushResponse>(
     "push-to-shopify",
     {
       organizationId,
