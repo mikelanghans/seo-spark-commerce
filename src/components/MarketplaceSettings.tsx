@@ -56,7 +56,11 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     setLoading(true);
     try {
       const [etsyRes, ebayRes, orgRes] = await Promise.all([
-        supabase.from("etsy_connections").select("*").eq("user_id", userId).maybeSingle(),
+        supabase
+          .from("etsy_connections")
+          .select("id, shop_id, shop_name, api_key, client_id, token_expires_at")
+          .eq("user_id", userId)
+          .maybeSingle(),
         supabase.from("ebay_connections").select("id, user_id, client_id, ru_name, environment, token_expires_at, created_at, updated_at").eq("user_id", userId).maybeSingle(),
         organizationId
           ? supabase.from("organizations").select("id").eq("id", organizationId).single()
@@ -71,7 +75,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           shop_name: d.shop_name,
           api_key: d.api_key,
           client_id: d.client_id || "",
-          has_token: !!d.access_token,
+          has_token: !!d.token_expires_at,
         });
         setEtsyClientId(d.client_id || "");
         if (d.client_id) setEtsyCredsSaved(true);
@@ -165,15 +169,20 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       const state = encodeURIComponent(window.location.origin);
 
       const authUrl = `https://www.etsy.com/oauth/connect?response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&client_id=${clientId}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
-
-      const popup = window.open(authUrl, "etsy-oauth", "width=600,height=700");
+      let messageHandled = false;
+      let checkClosed: ReturnType<typeof setInterval> | undefined;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       const handler = async (e: MessageEvent) => {
         if (e.data?.type !== "etsy-oauth") return;
+        messageHandled = true;
         window.removeEventListener("message", handler);
+        if (checkClosed) clearInterval(checkClosed);
+        if (timeoutId) clearTimeout(timeoutId);
 
         if (e.data.error) {
-          toast.error("Etsy authorization failed");
+          localStorage.removeItem("etsy_code_verifier");
+          toast.error(e.data.errorDescription || e.data.error || "Etsy authorization failed");
           setSavingEtsy(false);
           return;
         }
@@ -194,7 +203,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
           if (result?.error) throw new Error(result.error);
 
           toast.success(`Etsy connected! ${result.shopName ? `Shop: ${result.shopName}` : ""}`);
-          loadConnections();
+          await loadConnections();
         } catch (err: any) {
           toast.error(err.message || "Failed to connect Etsy");
         } finally {
@@ -204,12 +213,36 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
 
       window.addEventListener("message", handler);
 
-      const checkClosed = setInterval(() => {
+      const popup = window.open(authUrl, "etsy-oauth", "width=600,height=700");
+      if (!popup) {
+        window.removeEventListener("message", handler);
+        localStorage.removeItem("etsy_code_verifier");
+        toast.error("Popup blocked. Please allow popups for Brand Aura and try again.");
+        setSavingEtsy(false);
+        return;
+      }
+
+      checkClosed = setInterval(() => {
         if (popup?.closed) {
           clearInterval(checkClosed);
-          setSavingEtsy(false);
+          if (!messageHandled) {
+            window.removeEventListener("message", handler);
+            localStorage.removeItem("etsy_code_verifier");
+            toast.error("Etsy authorization window closed before the connection finished.");
+            setSavingEtsy(false);
+          }
         }
       }, 1000);
+
+      timeoutId = setTimeout(() => {
+        if (!messageHandled) {
+          window.removeEventListener("message", handler);
+          localStorage.removeItem("etsy_code_verifier");
+          popup.close();
+          toast.error("Etsy authorization timed out. Please try again and complete the Etsy approval window.");
+          setSavingEtsy(false);
+        }
+      }, 120000);
     } catch (e: any) {
       toast.error(e.message || "Failed to start Etsy OAuth");
       setSavingEtsy(false);
