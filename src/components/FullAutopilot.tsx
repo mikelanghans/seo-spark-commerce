@@ -524,158 +524,68 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
 
           if (cancelRef.current) break;
 
-          // Step 7: Push to Printify (which will auto-sync to Shopify)
-          updateProduct(i, { step: "Pushing to Printify..." });
-          log(`  🖨️ Pushing to Printify...`, "info");
+          // Step 7+8: Push to Printify → Shopify (chained via shared helper)
+          updateProduct(i, { step: "Pushing to Printify → Shopify..." });
+          log(`  🖨️ Pushing to Printify → Shopify...`, "info");
 
-          let linkedShopifyId: number | null = null;
           try {
-            // Get shop ID — prefer brand-level mapping, fallback to first shop
+            // Resolve shop ID — prefer brand-level mapping, fallback to first shop
             let shopId = organization.printify_shop_id;
             if (!shopId) {
               const { data: shopsData } = await supabase.functions.invoke("printify-get-shops", {
                 body: { organizationId: organization.id },
               });
-              if (shopsData?.shops?.length > 0) {
-                shopId = shopsData.shops[0].id;
-              }
+              if (shopsData?.shops?.length > 0) shopId = shopsData.shops[0].id;
             }
             if (!shopId) throw new Error("No Printify shop found — set one in brand settings");
 
-            // Upload design
-            // Remove black background client-side, upscale for high DPI, upload as base64
-            let base64Contents = await removeBackground(designUrl, "black");
-            base64Contents = await upscaleBase64Png(base64Contents, 4500);
-            const { data: uploadData, error: uploadErr } = await supabase.functions.invoke("printify-upload-image", {
-              body: { base64Contents, fileName: `${productTitle}-design.png`, organizationId: organization.id },
-            });
-            if (uploadErr || uploadData?.error) throw new Error(uploadData?.error || uploadErr?.message);
-            const printifyImageId = uploadData.image?.id;
-            if (!printifyImageId) throw new Error("Failed to upload design to Printify");
+            // Reload product so we have the latest design URL
+            const { data: prodRow } = await supabase
+              .from("products")
+              .select("*")
+              .eq("id", productId)
+              .single();
+            if (!prodRow) throw new Error("Product not found after creation");
 
-            // Upload dark-ink variant for light-colored shirts
-            const hasAccents = await hasMeaningfulAccentColors(base64Contents);
-            const darkBase64 = hasAccents
-              ? await darkenBrightPixels(base64Contents)
-              : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
-            const { data: darkUpload } = await supabase.functions.invoke("printify-upload-image", {
-              body: { base64Contents: darkBase64, fileName: `${productTitle}-dark-design.png`, organizationId: organization.id },
-            });
-            const darkPrintifyImageId = darkUpload?.image?.id || null;
-
-            // Get print provider
-            const { data: variantData } = await supabase.functions.invoke("printify-get-variants", {
-              body: { blueprintId: 706, organizationId: organization.id },
-            });
-            const printProviderId = variantData?.printProviderId;
-
-            // Known Comfort Colors 1717 light colors
-            const LIGHT_COLORS = [
-              "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
-              "island reef", "chambray", "white", "flo blue", "watermelon",
-              "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-              "light green", "bay", "sage",
-            ];
-
-            const { data: printifyResult, error: printifyErr } = await supabase.functions.invoke("printify-create-product", {
-              body: {
-                shopId,
-                title: shopifyListing?.title || productTitle,
-                description: shopifyListing?.description || messageText,
-                tags: [...(shopifyListing?.tags || []), "T-shirts"],
-                printifyImageId,
-                darkPrintifyImageId,
-                lightColors: darkPrintifyImageId ? LIGHT_COLORS : [],
-                selectedColors: recommendedColors,
-                selectedSizes: ["S", "M", "L", "XL", "2XL"],
-                price: "29.99",
-                mockupImages: [],
-                productId,
-                printProviderId,
-                organizationId: organization.id,
-                publish: true,
-              },
+            const result = await pushPrintifyThenShopify({
+              organizationId: organization.id,
+              userId,
+              product: prodRow as any,
+              listings: shopifyListing
+                ? [{
+                    marketplace: "shopify",
+                    title: shopifyListing.title,
+                    description: shopifyListing.description,
+                    tags: shopifyListing.tags || [],
+                    bullet_points: shopifyListing.bulletPoints,
+                    seo_title: shopifyListing.seoTitle,
+                    seo_description: shopifyListing.seoDescription,
+                    url_handle: shopifyListing.urlHandle,
+                    alt_text: shopifyListing.altText,
+                  }]
+                : [],
+              printifyShopId: shopId,
+              blueprintId: 706,
+              selectedSizes: ["S", "M", "L", "XL", "2XL"],
+              selectedColors: recommendedColors,
+              shopifyStatus,
+              extraShopifyTags: ["T-shirts"],
+              retryLabel: String(i),
             });
 
-            if (printifyErr || printifyResult?.error) throw new Error(printifyResult?.error || printifyErr?.message);
-
-            if (printifyResult?.printifyProductId) {
-              await supabase.from("products").update({ printify_product_id: printifyResult.printifyProductId }).eq("id", productId);
-            }
-
-            // Capture Shopify product ID created by Printify auto-sync (poll up to 30s if needed)
-            linkedShopifyId = printifyResult?.shopifyProductId ?? null;
-            if (linkedShopifyId) {
-              await supabase.from("products").update({ shopify_product_id: linkedShopifyId }).eq("id", productId);
+            log(
+              `  ✅ Pushed to Printify${result.variantCount ? ` (${result.variantCount} variants)` : ""}${result.shopifyProductId ? ` → Shopify #${result.shopifyProductId}` : ""}`,
+              "success",
+            );
+            if (result.shopifySkipped) {
+              log(`  ⚠️ Shopify update skipped — no linked Shopify product yet (Printify sync pending)`, "error");
             } else {
-              for (let attempt = 0; attempt < 10; attempt++) {
-                await new Promise((r) => setTimeout(r, 3000));
-                const { data: row } = await supabase.from("products").select("shopify_product_id").eq("id", productId).maybeSingle();
-                if (row?.shopify_product_id) { linkedShopifyId = row.shopify_product_id as number; break; }
-              }
+              log(`  ✅ Published to Shopify`, "success");
             }
-
-            log(`  ✅ Pushed to Printify (${printifyResult?.variantCount || 0} variants)${linkedShopifyId ? ` → Shopify #${linkedShopifyId}` : ""}`, "success");
           } catch (err: any) {
-            log(`  ⚠️ Printify push failed: ${err.message}`, "error");
+            log(`  ⚠️ Printify → Shopify push failed: ${err.message}`, "error");
           }
           tick();
-
-          if (cancelRef.current) break;
-
-          // Step 8: Push SEO/mockups to Shopify (update existing product created by Printify sync)
-          updateProduct(i, { step: "Pushing to Shopify..." });
-          log(`  🛍️ Updating Shopify product...`, "info");
-
-          if (!linkedShopifyId) {
-            log(`  ⚠️ Skipping Shopify update — no linked Shopify product yet (Printify sync pending)`, "error");
-          } else {
-            try {
-              // Fetch mockup images for Shopify gallery
-              const { data: shopifyMockups } = await supabase
-                .from("product_images")
-                .select("image_url, color_name, position")
-                .eq("product_id", productId)
-                .eq("image_type", "mockup")
-                .order("position");
-
-              const shopifyVariants = await optimizeVariantsForShopify(
-                (shopifyMockups || []).map((m: any) => ({ colorName: m.color_name, imageUrl: m.image_url })),
-                userId,
-                productId,
-              );
-
-              // Append CC1717 size chart as the last image
-              shopifyVariants.push({ colorName: "Size Chart", imageUrl: CC1717_SIZE_CHART_URL });
-
-              const { data: shopifyPushData, error: shopifyPushErr } = await supabase.functions.invoke("push-to-shopify", {
-                body: {
-                  organizationId: organization.id,
-                  product: {
-                    id: productId,
-                    title: shopifyListing?.title || productTitle,
-                    description: shopifyListing?.description || messageText,
-                    category: "T-Shirt",
-                    price: "29.99",
-                    keywords: organization.niche,
-                    shopify_product_id: linkedShopifyId,
-                  },
-                  listings: shopifyListing ? [{
-                    ...shopifyListing,
-                    tags: [...new Set([...(shopifyListing.tags || []), "T-shirts"])],
-                  }] : [],
-                  imageUrl: designUrl,
-                  variants: shopifyVariants,
-                  shopifyStatus,
-                },
-              });
-
-              if (shopifyPushErr || shopifyPushData?.error) throw new Error(shopifyPushData?.error || shopifyPushErr?.message);
-              log(`  ✅ Published to Shopify`, "success");
-            } catch (err: any) {
-              log(`  ⚠️ Shopify push failed: ${err.message}`, "error");
-            }
-          }
           tick();
 
           updateProduct(i, { status: "done", step: "Complete!" });
