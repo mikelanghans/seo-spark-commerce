@@ -8,6 +8,7 @@ import { ShoppingBag, Package, Loader2, CheckCircle2, AlertCircle, Rocket } from
 import { toast } from "sonner";
 import { UpdateFieldSelector } from "@/components/UpdateFieldSelector";
 import { PushToTikTok } from "@/components/PushToTikTok";
+import { exportSingleProductToTikTok } from "@/lib/tiktokExport";
 
 interface Product {
   id: string;
