@@ -363,10 +363,16 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       retry,
       `printify-create-${retryLabel}`,
     );
-    if (pErr) throw new Error(`Printify create failed: ${pErr.message}`);
+    if (pErr) {
+      const recovered = await recoverPersistedPrintifyLinks(product.id);
+      if (!recovered?.printify_product_id) throw new Error(`Printify create failed: ${pErr.message}`);
+      printifyProductId = recovered.printify_product_id;
+      currentShopifyId = (recovered.shopify_product_id as number | null) ?? currentShopifyId;
+      onProductUpdate({ printify_product_id: printifyProductId, shopify_product_id: currentShopifyId });
+    }
     if (pData?.error) throw new Error(`Printify create failed: ${pData.error}`);
 
-    printifyProductId = pData?.printifyProductId ?? null;
+    printifyProductId = pData?.printifyProductId ?? printifyProductId;
     variantCount = pData?.variantCount;
     if (printifyProductId) {
       await supabase.from("products").update({ printify_product_id: printifyProductId }).eq("id", product.id);
