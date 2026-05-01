@@ -115,6 +115,67 @@ const invoke = async <T = any>(
   return (await supabase.functions.invoke(name, { body })) as any;
 };
 
+const pollForLinkedShopifyId = async ({
+  productId,
+  printifyProductId,
+  printifyShopId,
+  organizationId,
+  retry,
+  retryLabel,
+  onProgress,
+  onProductUpdate,
+}: {
+  productId: string;
+  printifyProductId: string;
+  printifyShopId: number;
+  organizationId: string;
+  retry: boolean;
+  retryLabel: string;
+  onProgress: (stage: ChainStage, message: string) => void;
+  onProductUpdate: (updates: Partial<PushChainProduct>) => void;
+}) => {
+  onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 90s)");
+  const pollStart = Date.now();
+  const POLL_TIMEOUT_MS = 90_000;
+  const POLL_INTERVAL_MS = 5_000;
+  while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+    const { data: row } = await supabase
+      .from("products")
+      .select("shopify_product_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (row?.shopify_product_id) {
+      const linkedId = row.shopify_product_id as number;
+      onProductUpdate({ shopify_product_id: linkedId });
+      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
+      return linkedId;
+    }
+
+    const { data: recoveryData } = await invoke(
+      "printify-create-product",
+      {
+        action: "recover-shopify-id",
+        shopId: printifyShopId,
+        printifyProductId,
+        productId,
+        organizationId,
+      },
+      retry,
+      `shopify-id-recovery-${retryLabel}`,
+    );
+    if (recoveryData?.shopifyProductId) {
+      const linkedId = recoveryData.shopifyProductId as number;
+      onProductUpdate({ shopify_product_id: linkedId });
+      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
+      return linkedId;
+    }
+  }
+
+  return null;
+};
+
 /**
  * End-to-end Printify → Shopify chain.
  *   • If the product already has a `printify_product_id` → updates Printify (title/desc/tags/pricing).
