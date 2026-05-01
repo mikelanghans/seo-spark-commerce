@@ -109,7 +109,15 @@ type PrintifyChainResponse = FunctionErrorResponse & {
   shopifyProductId?: number;
   variantCount?: number;
 };
-type ShopifyIdRecoveryResponse = { shopifyProductId?: number | null };
+type ShopifyIdRecoveryResponse = {
+  shopifyProductId?: number | null;
+  publishStatus?: {
+    external?: unknown;
+    visible?: boolean | null;
+    isLocked?: boolean | null;
+    salesChannel?: unknown;
+  } | null;
+};
 type ShopifyPushResponse = FunctionErrorResponse & {
   staleShopifyIdCleared?: boolean;
   shopifyProduct?: { id?: number };
@@ -151,6 +159,7 @@ const pollForLinkedShopifyId = async ({
   const pollStart = Date.now();
   const POLL_TIMEOUT_MS = 90_000;
   const POLL_INTERVAL_MS = 5_000;
+  let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
   while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
@@ -184,8 +193,13 @@ const pollForLinkedShopifyId = async ({
       onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
       return linkedId;
     }
+    lastPublishStatus = recoveryData?.publishStatus ?? lastPublishStatus;
   }
 
+  console.warn("Printify published product did not expose a Shopify external.id within polling window", {
+    printifyProductId,
+    lastPublishStatus,
+  });
   return null;
 };
 
