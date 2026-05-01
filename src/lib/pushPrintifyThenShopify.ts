@@ -101,6 +101,19 @@ export interface PushChainResult {
 }
 
 type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
+type FunctionErrorResponse = { error?: string };
+type PrintifyUploadResponse = FunctionErrorResponse & { image?: { id?: string } };
+type PrintifyChainResponse = FunctionErrorResponse & {
+  staleIdCleared?: boolean;
+  printifyProductId?: string;
+  shopifyProductId?: number;
+  variantCount?: number;
+};
+type ShopifyIdRecoveryResponse = { shopifyProductId?: number | null };
+type ShopifyPushResponse = FunctionErrorResponse & {
+  staleShopifyIdCleared?: boolean;
+  shopifyProduct?: { id?: number };
+};
 
 const invoke = async <T = Record<string, unknown>>(
   name: string,
