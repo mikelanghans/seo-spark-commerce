@@ -356,6 +356,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       forceVariants: false,
       allowCreateOnMissingProduct: false,
       replaceAllImages: true,
+      ...(shopifyStatus ? { shopifyStatus } : {}),
     },
     retry,
     `shopify-${retryLabel}`,
