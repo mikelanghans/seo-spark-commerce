@@ -153,12 +153,17 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
 
   const shopifyListing = listings.find((l) => l.marketplace === "shopify");
 
+  const baseTags = shopifyListing?.tags
+    || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+  const mergedTags = extraShopifyTags.length > 0
+    ? Array.from(new Set([...(baseTags || []), ...extraShopifyTags]))
+    : baseTags;
+
   const printifyPayloadBase = {
     shopId: printifyShopId,
     title: shopifyListing?.title || product.title,
     description: shopifyListing?.description || product.description,
-    tags: shopifyListing?.tags
-      || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
+    tags: mergedTags,
     price: product.price,
     sizePricing,
     productId: product.id,
