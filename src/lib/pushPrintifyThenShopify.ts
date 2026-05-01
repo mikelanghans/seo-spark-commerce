@@ -431,14 +431,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }
 
   if (!currentShopifyId) {
-    onProgress("skipped", "Shopify sync still pending after 90s — SEO push will run on next autopilot pass");
-    return {
-      printifyProductId,
-      shopifyProductId: null,
-      shopifySkipped: true,
-      variantCount,
-      printifyStaleCleared,
-    };
+    onProgress("shopify-push", "Printify did not provide a Shopify link — creating and linking Shopify product directly");
   }
 
   onProgress("shopify-gallery", "Building Shopify image gallery");
@@ -474,12 +467,13 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
         price: product.price,
         keywords: product.keywords,
         shopify_product_id: currentShopifyId,
+        printify_product_id: printifyProductId,
       },
       listings: listingsMapped,
       imageUrl: product.image_url,
       variants,
       forceVariants: false,
-      allowCreateOnMissingProduct: false,
+      allowCreateOnMissingProduct: !currentShopifyId,
       replaceAllImages: true,
       ...(shopifyStatus ? { shopifyStatus } : {}),
     },
