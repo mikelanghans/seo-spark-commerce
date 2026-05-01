@@ -24,6 +24,43 @@ const updateShopifyProduct = (
   },
 );
 
+const createShopifyProduct = (
+  domain: string,
+  accessToken: string,
+  shopifyProduct: Record<string, unknown>,
+) => fetch(
+  `https://${domain}/admin/api/2024-01/products.json`,
+  {
+    method: "POST",
+    headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+    body: JSON.stringify({ product: shopifyProduct }),
+  },
+);
+
+const markPrintifyPublishingSucceeded = async (
+  printifyToken: string | null,
+  printifyShopId: number | null,
+  printifyProductId: string | null,
+  shopifyProductId: number,
+  shopifyHandle?: string,
+) => {
+  if (!printifyToken || !printifyShopId || !printifyProductId) return;
+
+  const res = await fetch(
+    `https://api.printify.com/v1/shops/${printifyShopId}/products/${printifyProductId}/publishing_succeeded.json`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ external: { id: String(shopifyProductId), handle: shopifyHandle || String(shopifyProductId) } }),
+    },
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.warn(`Failed to mark Printify publish succeeded (${res.status}): ${text.slice(0, 300)}`);
+  }
+};
+
 const getPrintifyToken = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adminClient: any,
