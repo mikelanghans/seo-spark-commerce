@@ -8,12 +8,10 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSteps } from "./autopilot/PipelineSteps";
-import { optimizeVariantsForShopify } from "@/lib/shopifyImageOptimizer";
 import { withRetry, processWithConcurrency } from "@/lib/pipelineUtils";
-import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
-import { recolorOpaquePixels } from "@/lib/removeBackground";
 import { parsePrintPlacement } from "@/lib/printPlacement";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY } from "@/lib/productTypes";
+import { pushPrintifyThenShopify } from "@/lib/pushPrintifyThenShopify";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
 
 // Mirrors PushPrintifyThenShopify: Comfort Colors 1717 default for Autopilot
