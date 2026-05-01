@@ -24,6 +24,43 @@ const updateShopifyProduct = (
   },
 );
 
+const createShopifyProduct = (
+  domain: string,
+  accessToken: string,
+  shopifyProduct: Record<string, unknown>,
+) => fetch(
+  `https://${domain}/admin/api/2024-01/products.json`,
+  {
+    method: "POST",
+    headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+    body: JSON.stringify({ product: shopifyProduct }),
+  },
+);
+
+const markPrintifyPublishingSucceeded = async (
+  printifyToken: string | null,
+  printifyShopId: number | null,
+  printifyProductId: string | null,
+  shopifyProductId: number,
+  shopifyHandle?: string,
+) => {
+  if (!printifyToken || !printifyShopId || !printifyProductId) return;
+
+  const res = await fetch(
+    `https://api.printify.com/v1/shops/${printifyShopId}/products/${printifyProductId}/publishing_succeeded.json`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ external: { id: String(shopifyProductId), handle: shopifyHandle || String(shopifyProductId) } }),
+    },
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.warn(`Failed to mark Printify publish succeeded (${res.status}): ${text.slice(0, 300)}`);
+  }
+};
+
 const getPrintifyToken = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adminClient: any,
@@ -109,7 +146,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const body = await req.json();
-    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, replaceAllImages = false } = body;
+    const { product, listings, imageUrl, variants, sizes: productSizes, shopifyStatus, organizationId, updateFields, forceVariants, replaceAllImages = false, allowCreateOnMissingProduct = false } = body;
 
     // Resolve Shopify connection
     let connection = null;
@@ -137,6 +174,7 @@ serve(async (req) => {
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
     let existingShopifyId: number | null = product.shopify_product_id ?? null;
     let existingPrintifyId: string | null = product.printify_product_id ?? null;
+    let printifyShopIdForLink: number | null = null;
 
     if (!existingShopifyId && product.id) {
       const { data: latestProductLink } = await adminClient
@@ -177,6 +215,9 @@ serve(async (req) => {
     }
 
     if (!existingShopifyId) {
+      if (allowCreateOnMissingProduct) {
+        console.log("No linked Shopify product found — creating Shopify product directly and linking it to Printify");
+      } else {
       return new Response(JSON.stringify({
         success: false,
         missingShopifyLink: true,
@@ -185,9 +226,10 @@ serve(async (req) => {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+      }
     }
 
-    const isUpdate = true;
+    const isUpdate = !!existingShopifyId;
     const effectiveUpdateFields = Array.isArray(updateFields) ? updateFields : undefined;
     console.log(`Updating existing Shopify product ${existingShopifyId} while preserving current variant/options matrix`);
 
@@ -211,13 +253,15 @@ serve(async (req) => {
 
     const pushedColorNames = actualColorVariants.map((v) => v.colorName);
     const deleteColorFilter = replaceAllImages ? undefined : (pushedColorNames.length > 0 ? pushedColorNames : undefined);
-    if (shouldUpdateImages && imageEntries.length > 0) {
+    if (existingShopifyId && shouldUpdateImages && imageEntries.length > 0) {
       await deleteExistingImages(domain, connection.access_token, existingShopifyId, deleteColorFilter);
     }
 
-    let shopifyResponse = await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct);
+    let shopifyResponse = existingShopifyId
+      ? await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct)
+      : await createShopifyProduct(domain, connection.access_token, shopifyProduct);
 
-    if (shopifyResponse.status === 404) {
+    if (existingShopifyId && shopifyResponse.status === 404) {
       console.log("Existing Shopify product not found (404)");
 
       for (const delayMs of missingProductRetryDelays) {
@@ -304,6 +348,25 @@ serve(async (req) => {
     // Save Shopify product ID and sync timestamp back
     if (createdProduct?.id && product.id) {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id, shopify_synced_at: new Date().toISOString() }).eq("id", product.id);
+    }
+
+    if (!isUpdate && createdProduct?.id && existingPrintifyId) {
+      if (organizationId) {
+        const { data: org } = await adminClient
+          .from("organizations")
+          .select("printify_shop_id")
+          .eq("id", organizationId)
+          .maybeSingle();
+        printifyShopIdForLink = org?.printify_shop_id ?? null;
+      }
+      const printifyToken = await getPrintifyToken(adminClient, organizationId);
+      await markPrintifyPublishingSucceeded(
+        printifyToken,
+        printifyShopIdForLink,
+        existingPrintifyId,
+        createdProduct.id,
+        createdProduct.handle ? `https://${domain}/products/${createdProduct.handle}` : undefined,
+      );
     }
 
     // For updates, add any missing color variants before uploading images

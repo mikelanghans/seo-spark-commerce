@@ -94,6 +94,31 @@ const getPrintifyExternalShopifyId = async (
   }
 };
 
+const getPrintifyProductPublishStatus = async (
+  printifyToken: string,
+  shopId: number,
+  printifyProductId: string,
+) => {
+  const productRes = await fetch(
+    `https://api.printify.com/v1/shops/${shopId}/products/${printifyProductId}.json`,
+    { headers: { Authorization: `Bearer ${printifyToken}` } },
+  );
+
+  if (!productRes.ok) {
+    return { fetchStatus: productRes.status, external: null, visible: null, isLocked: null };
+  }
+
+  const productData = await productRes.json();
+  return {
+    fetchStatus: productRes.status,
+    external: productData?.external ?? null,
+    visible: productData?.visible ?? null,
+    isLocked: productData?.is_locked ?? null,
+    salesChannel: productData?.sales_channel_properties ?? null,
+    publishingSucceeded: Boolean(productData?.external?.id),
+  };
+};
+
 const mapPlacementToPrintify = (placement: PlacementInput | null) => {
   if (!placement) {
     return {
@@ -175,9 +200,14 @@ serve(async (req) => {
         console.log(`Recovered Printify-linked Shopify product ID: ${resolvedShopifyProductId}`);
       }
 
+      const publishStatus = resolvedShopifyProductId
+        ? null
+        : await getPrintifyProductPublishStatus(printifyToken, pShopId, printifyProductId);
+
       return new Response(JSON.stringify({
         success: true,
         shopifyProductId: resolvedShopifyProductId,
+        publishStatus,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

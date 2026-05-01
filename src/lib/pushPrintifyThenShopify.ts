@@ -109,7 +109,15 @@ type PrintifyChainResponse = FunctionErrorResponse & {
   shopifyProductId?: number;
   variantCount?: number;
 };
-type ShopifyIdRecoveryResponse = { shopifyProductId?: number | null };
+type ShopifyIdRecoveryResponse = {
+  shopifyProductId?: number | null;
+  publishStatus?: {
+    external?: unknown;
+    visible?: boolean | null;
+    isLocked?: boolean | null;
+    salesChannel?: unknown;
+  } | null;
+};
 type ShopifyPushResponse = FunctionErrorResponse & {
   staleShopifyIdCleared?: boolean;
   shopifyProduct?: { id?: number };
@@ -151,6 +159,7 @@ const pollForLinkedShopifyId = async ({
   const pollStart = Date.now();
   const POLL_TIMEOUT_MS = 90_000;
   const POLL_INTERVAL_MS = 5_000;
+  let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
   while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
@@ -184,8 +193,13 @@ const pollForLinkedShopifyId = async ({
       onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
       return linkedId;
     }
+    lastPublishStatus = recoveryData?.publishStatus ?? lastPublishStatus;
   }
 
+  console.warn("Printify published product did not expose a Shopify external.id within polling window", {
+    printifyProductId,
+    lastPublishStatus,
+  });
   return null;
 };
 
@@ -417,14 +431,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }
 
   if (!currentShopifyId) {
-    onProgress("skipped", "Shopify sync still pending after 90s — SEO push will run on next autopilot pass");
-    return {
-      printifyProductId,
-      shopifyProductId: null,
-      shopifySkipped: true,
-      variantCount,
-      printifyStaleCleared,
-    };
+    onProgress("shopify-push", "Printify did not provide a Shopify link — creating and linking Shopify product directly");
   }
 
   onProgress("shopify-gallery", "Building Shopify image gallery");
@@ -434,6 +441,12 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     appendSizeChart,
     mockups: mockupImages,
   });
+  const variantsForShopify = !currentShopifyId && variants.every((v) => v.colorName === "Size Chart") && selectedColors?.length
+    ? [
+      ...selectedColors.map((colorName) => ({ colorName, imageUrl: product.image_url! })),
+      ...variants,
+    ]
+    : variants;
 
   const listingsMapped = listings.map((l) => ({
     marketplace: l.marketplace,
@@ -460,12 +473,14 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
         price: product.price,
         keywords: product.keywords,
         shopify_product_id: currentShopifyId,
+        printify_product_id: printifyProductId,
       },
       listings: listingsMapped,
       imageUrl: product.image_url,
-      variants,
-      forceVariants: false,
-      allowCreateOnMissingProduct: false,
+      variants: variantsForShopify,
+      sizes: selectedSizes,
+      forceVariants: !currentShopifyId,
+      allowCreateOnMissingProduct: !currentShopifyId,
       replaceAllImages: true,
       ...(shopifyStatus ? { shopifyStatus } : {}),
     },
