@@ -239,8 +239,9 @@ serve(async (req) => {
 
     // Return an HTML page that posts to opener if available.
     // Do not auto-redirect when opener is unavailable (common with Safari/COOP).
-    const safeTargetOrigin = targetOrigin.replace(/"/g, "");
-    const safeSuccessRedirect = successRedirect.replace(/"/g, "\\\"");
+    // JSON.stringify safely escapes for JS string contexts (handles </script>, quotes, newlines).
+    const jsTargetOrigin = JSON.stringify(targetOrigin);
+    const jsSuccessRedirect = JSON.stringify(successRedirect);
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -289,7 +290,7 @@ serve(async (req) => {
     (function () {
       if (window.opener) {
         try {
-          window.opener.postMessage({ type: "shopify-oauth-success" }, "${safeTargetOrigin}");
+          window.opener.postMessage({ type: "shopify-oauth-success" }, ${jsTargetOrigin});
         } catch (err) {
           // no-op
         }
@@ -301,7 +302,7 @@ serve(async (req) => {
       }
 
       window.__returnToApp = function () {
-        window.location.replace("${safeSuccessRedirect}");
+        window.location.replace(${jsSuccessRedirect});
       };
 
       window.__closeTab = function () {
