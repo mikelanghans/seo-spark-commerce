@@ -1525,6 +1525,10 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      redeem_ff_code_atomic: {
+        Args: { _code: string; _user_id: string }
+        Returns: Json
+      }
       validate_beta_code: { Args: { _code: string }; Returns: boolean }
     }
     Enums: {
