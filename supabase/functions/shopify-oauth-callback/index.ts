@@ -330,14 +330,18 @@ serve(async (req) => {
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
     const errorMsg = e instanceof Error ? e.message : "Unknown error";
-    const safeError = errorMsg.replace(/"/g, "\\\"").replace(/\n/g, " ");
+    // HTML-encode for body interpolation; JSON.stringify for JS string contexts.
+    const safeErrorHtml = htmlEncode(errorMsg);
+    const jsErrorMsg = JSON.stringify(errorMsg);
 
     // Best-effort parse of state, so fallback redirect lands back in app.
     const fallbackUrl = new URL(req.url);
     const stateRaw = fallbackUrl.searchParams.get("state");
-    const { origin, returnTo } = parseOauthState(stateRaw);
+    const { origin: rawOrigin, returnTo: rawReturnTo } = parseOauthState(stateRaw);
+    const origin = sanitizeOrigin(rawOrigin);
+    const returnTo = sanitizeReturnTo(rawReturnTo);
     const redirectBase = returnTo || origin || "/";
-    const redirectTarget = buildAppRedirectUrl(redirectBase, "error", errorMsg).replace(/"/g, "\\\"");
+    const jsRedirectTarget = JSON.stringify(buildAppRedirectUrl(redirectBase, "error", errorMsg));
 
     const html = `<!DOCTYPE html>
 <html>
