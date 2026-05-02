@@ -355,8 +355,14 @@ serve(async (req) => {
       throw new Error("No eBay access token available. Please reconnect.");
     }
 
-    // Get current product to check existing listing
-    const { data: product } = await sb.from("products").select("ebay_listing_id, image_url").eq("id", productId).maybeSingle();
+    // Get current product to check existing listing (and verify ownership)
+    const { data: product } = await sb.from("products").select("ebay_listing_id, image_url, user_id").eq("id", productId).maybeSingle();
+    if (!product || (product as any).user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const existingListingId = product?.ebay_listing_id;
     const { data: designRows } = await sb
       .from("product_images")
