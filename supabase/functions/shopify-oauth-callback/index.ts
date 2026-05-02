@@ -402,14 +402,14 @@ serve(async (req) => {
       var hadOpener = !!window.opener;
       if (hadOpener) {
         try {
-          window.opener.postMessage({ type: "shopify-oauth-error", error: "${safeError}" }, "*");
+          window.opener.postMessage({ type: "shopify-oauth-error", error: ${jsErrorMsg} }, "*");
         } catch (err) {
           // no-op: opener messaging can be blocked by browser COOP policies
         }
       }
 
       window.__redirectToApp = function () {
-        window.location.replace("${redirectTarget}");
+        window.location.replace(${jsRedirectTarget});
       };
 
       window.__closePopup = function () {
@@ -424,7 +424,7 @@ serve(async (req) => {
   <div class="card">
     <h1>Shopify authorization failed</h1>
     <p>We couldn't complete the connection. Please return to the app and try again.</p>
-    <code>${safeError}</code>
+    <code>${safeErrorHtml}</code>
     <div class="actions">
       <button class="primary" onclick="window.__redirectToApp()">Return to app</button>
       <button onclick="window.__closePopup()">Close window</button>
