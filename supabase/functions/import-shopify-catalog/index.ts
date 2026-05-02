@@ -42,6 +42,15 @@ serve(async (req) => {
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify caller is a member of the organization
+    const { data: roleData } = await adminClient.rpc("get_org_role", { _user_id: user.id, _org_id: organizationId });
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: connection, error: connError } = await adminClient
       .from("shopify_connections")
       .select("store_domain, access_token")

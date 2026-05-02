@@ -151,6 +151,12 @@ serve(async (req) => {
     // Resolve Shopify connection
     let connection = null;
     if (organizationId) {
+      const { data: roleData } = await adminClient.rpc("get_org_role", { _user_id: user.id, _org_id: organizationId });
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: "Forbidden: not an organization member" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const res = await adminClient.from("shopify_connections").select("store_domain, access_token").eq("organization_id", organizationId).maybeSingle();
       connection = res.data;
     }

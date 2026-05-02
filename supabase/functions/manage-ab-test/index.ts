@@ -46,6 +46,23 @@ Deno.serve(async (req) => {
       .single();
     if (!test) throw new Error("Test not found");
 
+    // Verify caller is a member of the test's organization
+    const { data: roleData } = await adminClient.rpc("get_org_role", {
+      _user_id: userId,
+      _org_id: test.organization_id,
+    });
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Restrict mutating actions to owner/editor
+    if ((action === "swap" || action === "end") && !["owner", "editor"].includes(roleData as string)) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: evaluate — fetch Shopify data and update variant metrics
     if (action === "evaluate") {
       const { data: conn } = await adminClient
