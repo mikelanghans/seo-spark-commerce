@@ -12,10 +12,9 @@ serve(async (req) => {
   try {
     // Credit pre-check
     const userId = await getUserIdFromAuth(req);
-    if (userId) {
-      const ok = await deductCredits(userId, "recommend-colors");
-      if (!ok) return insufficientCreditsResponse("recommend-colors");
-    }
+    if (!userId) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const ok = await deductCredits(userId, "recommend-colors");
+    if (!ok) return insufficientCreditsResponse("recommend-colors");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

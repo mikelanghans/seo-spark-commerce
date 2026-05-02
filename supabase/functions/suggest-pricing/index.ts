@@ -12,10 +12,9 @@ serve(async (req) => {
   try {
     // Credit pre-check
     const userId = await getUserIdFromAuth(req);
-    if (userId) {
-      const ok = await deductCredits(userId, "suggest-pricing");
-      if (!ok) return insufficientCreditsResponse("suggest-pricing");
-    }
+    if (!userId) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const ok = await deductCredits(userId, "suggest-pricing");
+    if (!ok) return insufficientCreditsResponse("suggest-pricing");
 
     const { product, business } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
