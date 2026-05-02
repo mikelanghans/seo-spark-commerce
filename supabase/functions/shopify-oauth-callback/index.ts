@@ -113,7 +113,10 @@ serve(async (req) => {
     const shop = url.searchParams.get("shop");
     const stateRaw = url.searchParams.get("state") || "";
 
-    const { origin, returnTo, organizationId } = parseOauthState(stateRaw);
+    const { origin: rawOrigin, returnTo: rawReturnTo, organizationId } = parseOauthState(stateRaw);
+    // Allowlist origin/returnTo to prevent open-redirect & XSS via attacker-controlled state.
+    const origin = sanitizeOrigin(rawOrigin);
+    const returnTo = sanitizeReturnTo(rawReturnTo);
 
     console.log("shopify-oauth-callback request", {
       hasCode: !!code,
@@ -124,6 +127,11 @@ serve(async (req) => {
 
     if (!code || !shop) {
       throw new Error("Missing code or shop parameter from Shopify");
+    }
+
+    // Validate shop domain matches Shopify's expected pattern (myshop.myshopify.com).
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(shop.replace(/^https?:\/\//, "").replace(/\/$/, ""))) {
+      throw new Error("Invalid shop domain");
     }
 
     const domain = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
