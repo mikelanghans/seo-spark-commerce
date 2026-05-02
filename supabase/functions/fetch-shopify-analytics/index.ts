@@ -38,6 +38,14 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
+    // Verify org membership before accessing org credentials
+    const { data: roleData } = await adminClient.rpc("get_org_role", { _user_id: userId, _org_id: organizationId });
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Find Shopify connection
     let connection = null;
     const { data: orgConn } = await adminClient
