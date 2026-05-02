@@ -85,7 +85,8 @@ export async function requireUserId(req: Request): Promise<string | Response> {
 export async function deductCredits(
   userId: string,
   functionName: string,
-  multiplier = 1
+  multiplier = 1,
+  organizationId?: string | null
 ): Promise<boolean> {
   const cost = (CREDIT_COSTS[functionName] || 1) * multiplier;
 
@@ -112,12 +113,38 @@ export async function deductCredits(
   const used = usageCount ?? 0;
   const subscriptionRemaining = Math.max(0, subscriptionLimit - used);
 
+  let orgIdToLog = organizationId ?? null;
+  if (!orgIdToLog) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("user_id", userId)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle();
+    orgIdToLog = org?.id ?? null;
+  }
+
+  const logUsageRow = async () => {
+    if (!orgIdToLog) return;
+    try {
+      await supabase.from("ai_usage_log").insert({
+        user_id: userId,
+        organization_id: orgIdToLog,
+        function_name: functionName,
+      });
+    } catch (e) {
+      console.error("ai_usage_log insert failed:", e);
+    }
+  };
+
   // 3. If within subscription allowance, allow without deducting purchased credits
   if (subscriptionRemaining >= cost) {
+    await logUsageRow();
     return true;
   }
 
-  // 4. Need purchased credits for the overflow (or full cost if subscription exhausted)
+  // 4. Need purchased credits for the overflow
   const neededFromPurchased = cost - subscriptionRemaining;
 
   const { data, error } = await supabase.rpc("deduct_user_credits", {
@@ -130,8 +157,13 @@ export async function deductCredits(
     return false;
   }
 
-  return data === true;
+  if (data === true) {
+    await logUsageRow();
+    return true;
+  }
+  return false;
 }
+
 
 /**
  * Returns a 402 response for insufficient credits.
