@@ -244,12 +244,9 @@ const CollectionCard = ({ collection, onClick }: { collection: ShopifyCollection
             {collection.products_count} product{collection.products_count !== 1 ? "s" : ""}
           </p>
           {collection.body_html && (
-            <p
-              className="text-xs text-muted-foreground mt-1 line-clamp-2"
-              dangerouslySetInnerHTML={{
-                __html: collection.body_html.replace(/<[^>]*>/g, "").slice(0, 120),
-              }}
-            />
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {collection.body_html.replace(/<[^>]*>/g, "").slice(0, 120)}
+            </p>
           )}
           {collection.collection_type === "smart" && collection.rules && collection.rules.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
