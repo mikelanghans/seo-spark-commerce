@@ -30,38 +30,16 @@ serve(async (req) => {
     if (!user) throw new Error("Not authenticated");
 
     const { code } = await req.json();
-    if (!code || typeof code !== "string") throw new Error("Invalid code");
+    if (!code || typeof code !== "string" || code.length > 64) throw new Error("Invalid code");
 
-    // Check if already redeemed
-    const { data: existing } = await supabaseAdmin
-      .from("ff_redemptions")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (existing) throw new Error("You have already redeemed a code");
-
-    // Find the code
-    const { data: ffCode } = await supabaseAdmin
-      .from("ff_codes")
-      .select("*")
-      .eq("code", code.trim().toLowerCase())
-      .maybeSingle();
-    if (!ffCode) throw new Error("Invalid invite code");
-    if (ffCode.current_uses >= ffCode.max_uses) throw new Error("This code has reached its limit");
-
-    // Redeem
-    await supabaseAdmin.from("ff_redemptions").insert({
-      user_id: user.id,
-      code_id: ffCode.id,
-      tier: ffCode.tier,
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc("redeem_ff_code_atomic", {
+      _user_id: user.id,
+      _code: code,
     });
+    if (rpcError) throw rpcError;
+    if ((result as any)?.error) throw new Error((result as any).error);
 
-    await supabaseAdmin
-      .from("ff_codes")
-      .update({ current_uses: ffCode.current_uses + 1 })
-      .eq("id", ffCode.id);
-
-    return new Response(JSON.stringify({ success: true, tier: ffCode.tier }), {
+    return new Response(JSON.stringify({ success: true, tier: (result as any).tier }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
