@@ -10,11 +10,47 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, productId, listing, images, updateFields } = await req.json();
+    // Auth gate — derive userId exclusively from a verified JWT.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claims, error: claimsError } = await authClient.auth.getClaims(token);
+    const userId = claims?.claims?.sub;
+    if (claimsError || !userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { productId, listing, images, updateFields } = await req.json();
+
     const sb = createClient(supabaseUrl, supabaseKey);
+
+    // Verify productId belongs to the authenticated user before any modification.
+    if (productId) {
+      const { data: ownership, error: ownErr } = await sb
+        .from("products")
+        .select("id, user_id")
+        .eq("id", productId)
+        .maybeSingle();
+      if (ownErr || !ownership || ownership.user_id !== userId) {
+        return new Response(JSON.stringify({ error: "Forbidden: product not owned by user" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Get Etsy connection
     const { data: conn, error: connErr } = await sb
