@@ -1,6 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function isAllowedOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname;
+    if (host === "brandaura.syncopateddynamics.com") return true;
+    if (host === "seo-spark-commerce.lovable.app") return true;
+    if (host.endsWith(".lovable.app")) return true;
+    if (host.endsWith(".lovableproject.com")) return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeOrigin(value: string): string {
+  if (!value) return "";
+  try {
+    const u = new URL(value);
+    return isAllowedOrigin(u.origin) ? u.origin : "";
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeReturnTo(value: string): string {
+  if (!value) return "";
+  try {
+    const u = new URL(value);
+    return isAllowedOrigin(u.origin) ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function htmlEncode(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const parseOauthState = (stateRaw: string | null) => {
   let origin = "";
   let returnTo = "";
