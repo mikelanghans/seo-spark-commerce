@@ -1,6 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function isAllowedOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname;
+    if (host === "brandaura.syncopateddynamics.com") return true;
+    if (host === "seo-spark-commerce.lovable.app") return true;
+    if (host.endsWith(".lovable.app")) return true;
+    if (host.endsWith(".lovableproject.com")) return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeOrigin(value: string): string {
+  if (!value) return "";
+  try {
+    const u = new URL(value);
+    return isAllowedOrigin(u.origin) ? u.origin : "";
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeReturnTo(value: string): string {
+  if (!value) return "";
+  try {
+    const u = new URL(value);
+    return isAllowedOrigin(u.origin) ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function htmlEncode(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const parseOauthState = (stateRaw: string | null) => {
   let origin = "";
   let returnTo = "";
@@ -68,7 +113,10 @@ serve(async (req) => {
     const shop = url.searchParams.get("shop");
     const stateRaw = url.searchParams.get("state") || "";
 
-    const { origin, returnTo, organizationId } = parseOauthState(stateRaw);
+    const { origin: rawOrigin, returnTo: rawReturnTo, organizationId } = parseOauthState(stateRaw);
+    // Allowlist origin/returnTo to prevent open-redirect & XSS via attacker-controlled state.
+    const origin = sanitizeOrigin(rawOrigin);
+    const returnTo = sanitizeReturnTo(rawReturnTo);
 
     console.log("shopify-oauth-callback request", {
       hasCode: !!code,
@@ -79,6 +127,11 @@ serve(async (req) => {
 
     if (!code || !shop) {
       throw new Error("Missing code or shop parameter from Shopify");
+    }
+
+    // Validate shop domain matches Shopify's expected pattern (myshop.myshopify.com).
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(shop.replace(/^https?:\/\//, "").replace(/\/$/, ""))) {
+      throw new Error("Invalid shop domain");
     }
 
     const domain = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -186,8 +239,9 @@ serve(async (req) => {
 
     // Return an HTML page that posts to opener if available.
     // Do not auto-redirect when opener is unavailable (common with Safari/COOP).
-    const safeTargetOrigin = targetOrigin.replace(/"/g, "");
-    const safeSuccessRedirect = successRedirect.replace(/"/g, "\\\"");
+    // JSON.stringify safely escapes for JS string contexts (handles </script>, quotes, newlines).
+    const jsTargetOrigin = JSON.stringify(targetOrigin);
+    const jsSuccessRedirect = JSON.stringify(successRedirect);
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -236,7 +290,7 @@ serve(async (req) => {
     (function () {
       if (window.opener) {
         try {
-          window.opener.postMessage({ type: "shopify-oauth-success" }, "${safeTargetOrigin}");
+          window.opener.postMessage({ type: "shopify-oauth-success" }, ${jsTargetOrigin});
         } catch (err) {
           // no-op
         }
@@ -248,7 +302,7 @@ serve(async (req) => {
       }
 
       window.__returnToApp = function () {
-        window.location.replace("${safeSuccessRedirect}");
+        window.location.replace(${jsSuccessRedirect});
       };
 
       window.__closeTab = function () {
@@ -276,14 +330,18 @@ serve(async (req) => {
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
     const errorMsg = e instanceof Error ? e.message : "Unknown error";
-    const safeError = errorMsg.replace(/"/g, "\\\"").replace(/\n/g, " ");
+    // HTML-encode for body interpolation; JSON.stringify for JS string contexts.
+    const safeErrorHtml = htmlEncode(errorMsg);
+    const jsErrorMsg = JSON.stringify(errorMsg);
 
     // Best-effort parse of state, so fallback redirect lands back in app.
     const fallbackUrl = new URL(req.url);
     const stateRaw = fallbackUrl.searchParams.get("state");
-    const { origin, returnTo } = parseOauthState(stateRaw);
+    const { origin: rawOrigin, returnTo: rawReturnTo } = parseOauthState(stateRaw);
+    const origin = sanitizeOrigin(rawOrigin);
+    const returnTo = sanitizeReturnTo(rawReturnTo);
     const redirectBase = returnTo || origin || "/";
-    const redirectTarget = buildAppRedirectUrl(redirectBase, "error", errorMsg).replace(/"/g, "\\\"");
+    const jsRedirectTarget = JSON.stringify(buildAppRedirectUrl(redirectBase, "error", errorMsg));
 
     const html = `<!DOCTYPE html>
 <html>
@@ -344,14 +402,14 @@ serve(async (req) => {
       var hadOpener = !!window.opener;
       if (hadOpener) {
         try {
-          window.opener.postMessage({ type: "shopify-oauth-error", error: "${safeError}" }, "*");
+          window.opener.postMessage({ type: "shopify-oauth-error", error: ${jsErrorMsg} }, "*");
         } catch (err) {
           // no-op: opener messaging can be blocked by browser COOP policies
         }
       }
 
       window.__redirectToApp = function () {
-        window.location.replace("${redirectTarget}");
+        window.location.replace(${jsRedirectTarget});
       };
 
       window.__closePopup = function () {
@@ -366,7 +424,7 @@ serve(async (req) => {
   <div class="card">
     <h1>Shopify authorization failed</h1>
     <p>We couldn't complete the connection. Please return to the app and try again.</p>
-    <code>${safeError}</code>
+    <code>${safeErrorHtml}</code>
     <div class="actions">
       <button class="primary" onclick="window.__redirectToApp()">Return to app</button>
       <button onclick="window.__closePopup()">Close window</button>
