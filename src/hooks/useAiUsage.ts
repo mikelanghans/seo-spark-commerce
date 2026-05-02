@@ -94,15 +94,12 @@ export function useAiUsage(userId: string | null, organizationId?: string | null
   );
 
   const logUsage = useCallback(
-    async (functionName: string, _userId: string) => {
+    async (_functionName: string, _userId: string) => {
       if (!userId || !organizationId) return;
 
-      await (supabase as any).from("ai_usage_log").insert({
-        organization_id: organizationId,
-        user_id: userId,
-        function_name: functionName,
-      });
-
+      // NOTE: Server-side `deductCredits` in edge functions is the authoritative
+      // writer to `ai_usage_log`. We only update local state here to refresh UI
+      // without double-counting against the user's monthly subscription quota.
       setUsedCount((prev) => {
         const newUsed = prev + 1;
         const limit = tierLimit + purchasedCredits;
