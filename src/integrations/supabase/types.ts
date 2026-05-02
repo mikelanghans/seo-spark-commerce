@@ -1098,6 +1098,27 @@ export type Database = {
           },
         ]
       }
+      processed_stripe_sessions: {
+        Row: {
+          credits: number
+          processed_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          credits: number
+          processed_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          credits?: number
+          processed_at?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           color_name: string

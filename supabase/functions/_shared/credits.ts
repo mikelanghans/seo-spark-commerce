@@ -52,6 +52,28 @@ export async function getUserIdFromAuth(req: Request): Promise<string | null> {
 }
 
 /**
+ * Returns a 401 Unauthorized response.
+ */
+export function unauthorizedResponse() {
+  return new Response(
+    JSON.stringify({ error: "Unauthorized. Please sign in." }),
+    {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    }
+  );
+}
+
+/**
+ * Hard auth gate — requires a valid JWT. Returns userId or a Response to short-circuit.
+ */
+export async function requireUserId(req: Request): Promise<string | Response> {
+  const userId = await getUserIdFromAuth(req);
+  if (!userId) return unauthorizedResponse();
+  return userId;
+}
+
+/**
  * Deducts credits for the given function. Returns true if successful.
  *
  * Logic:

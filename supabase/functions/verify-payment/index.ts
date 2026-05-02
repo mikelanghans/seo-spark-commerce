@@ -53,6 +53,27 @@ serve(async (req) => {
       throw new Error("No matching paid session found");
     }
 
+    // Idempotency: only credit once per Stripe session.
+    const { error: dedupeError } = await supabaseAdmin
+      .from("processed_stripe_sessions")
+      .insert({ session_id: validSession.id, user_id: user.id, credits });
+
+    if (dedupeError) {
+      if ((dedupeError as { code?: string }).code === "23505") {
+        // Already processed (likely by webhook) — return current balance, no double credit
+        const { data: cur } = await supabaseAdmin
+          .from("user_credits")
+          .select("credits")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        return new Response(
+          JSON.stringify({ success: true, total: cur?.credits ?? 0, duplicate: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
+      throw new Error("Idempotency check failed");
+    }
+
     // Upsert credits
     const { data: existing } = await supabaseAdmin
       .from("user_credits")

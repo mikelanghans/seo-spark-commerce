@@ -23,10 +23,9 @@ serve(async (req) => {
   try {
     // Credit pre-check
     const userId = await getUserIdFromAuth(req);
-    if (userId) {
-      const ok = await deductCredits(userId, "generate-listings");
-      if (!ok) return insufficientCreditsResponse("generate-listings");
-    }
+    if (!userId) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const ok = await deductCredits(userId, "generate-listings");
+    if (!ok) return insufficientCreditsResponse("generate-listings");
 
     const {
       business = {},

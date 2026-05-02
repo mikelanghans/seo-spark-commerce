@@ -71,8 +71,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Check for duplicate processing using session ID
+    // Idempotency: only credit once per Stripe session.
     const sessionId = session.id;
+    const { error: dedupeError } = await supabaseAdmin
+      .from("processed_stripe_sessions")
+      .insert({ session_id: sessionId, user_id: userId, credits });
+
+    if (dedupeError) {
+      // Unique violation = already processed → no-op
+      if ((dedupeError as { code?: string }).code === "23505") {
+        console.log(`Session ${sessionId} already processed, skipping`);
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.error("Idempotency insert failed:", dedupeError);
+      return new Response(JSON.stringify({ error: "Idempotency check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: existing } = await supabaseAdmin
       .from("user_credits")
       .select("credits, id")
