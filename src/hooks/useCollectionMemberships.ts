@@ -39,10 +39,10 @@ export function useCollectionMemberships(organizationId: string | undefined) {
     if (!organizationId) return;
     supabase
       .from("shopify_connections")
-      .select("id, access_token")
+      .select("id")
       .eq("organization_id", organizationId)
       .maybeSingle()
-      .then(({ data: conn }) => setShopifyConnected(!!conn?.access_token));
+      .then(({ data: conn }) => setShopifyConnected(!!conn?.id));
   }, [organizationId]);
 
   // Load from cache on mount
