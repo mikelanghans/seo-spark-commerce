@@ -357,8 +357,8 @@ export function useProductHandlers(
   const handlePushAllToEtsy = async (productSubset?: Product[]) => {
     const targetProducts = productSubset || products;
     if (!selectedOrg || !userId || targetProducts.length === 0) return;
-    const { data: etsyConn } = await supabase.from("etsy_connections").select("id, access_token").eq("user_id", userId).maybeSingle();
-    if (!etsyConn || !etsyConn.access_token) { toast.error("Etsy not connected. Go to Settings to connect first."); return; }
+    const { data: etsyConn } = await supabase.from("etsy_connections").select("id").eq("user_id", userId).maybeSingle();
+    if (!etsyConn?.id) { toast.error("Etsy not connected. Go to Settings to connect first."); return; }
 
     const queue = targetProducts.filter((p) => !p.etsy_listing_id);
     const skipped = targetProducts.length - queue.length;
