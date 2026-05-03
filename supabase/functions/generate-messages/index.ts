@@ -100,6 +100,13 @@ serve(async (req) => {
     const userId = user.id;
     let feedbackContext = "";
     if (organization.id) {
+      const { data: roleCheck } = await supabase.rpc("get_org_role", { _user_id: userId, _org_id: organization.id });
+      if (!roleCheck) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const serviceClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
