@@ -34,6 +34,16 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
+      const { data: roleData } = await adminClient.rpc("get_org_role", {
+        _user_id: user.id,
+        _org_id: organizationId,
+      });
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: secrets } = await adminClient
         .from("organization_secrets")
         .select("printify_api_token")
