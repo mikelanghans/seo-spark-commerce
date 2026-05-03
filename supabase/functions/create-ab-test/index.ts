@@ -40,6 +40,17 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
+    // Authorization: caller must be owner/editor of organizationId
+    const { data: roleData } = await adminClient.rpc("get_org_role", {
+      _user_id: userId,
+      _org_id: organizationId,
+    });
+    if (!roleData || !["owner", "editor"].includes(roleData as string)) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get product + org context
     const [{ data: product }, { data: org }] = await Promise.all([
       adminClient.from("products").select("*").eq("id", productId).single(),
@@ -47,6 +58,13 @@ Deno.serve(async (req) => {
     ]);
     if (!product) throw new Error("Product not found");
     if (!org) throw new Error("Organization not found");
+
+    // Ensure product belongs to the specified organization
+    if ((product as any).organization_id !== organizationId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get existing listing as variant A baseline
     const { data: existingListing } = await adminClient
