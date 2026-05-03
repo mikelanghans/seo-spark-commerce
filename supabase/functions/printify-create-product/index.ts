@@ -187,6 +187,25 @@ serve(async (req) => {
       });
     }
 
+    // Ownership guard: if a productId is supplied, ensure it belongs to the caller's organization.
+    const productIdToCheck = productId || body.productId;
+    if (productIdToCheck && organizationId) {
+      const ownershipClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: productCheck } = await ownershipClient
+        .from("products")
+        .select("organization_id")
+        .eq("id", productIdToCheck)
+        .maybeSingle();
+      if (!productCheck || (productCheck as any).organization_id !== organizationId) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (action === "recover-shopify-id") {
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       let pShopId = body.shopId;
