@@ -102,7 +102,8 @@ serve(async (req) => {
       await adminClient
         .from("generated_messages")
         .update({ dark_design_url: urlData.publicUrl })
-        .eq("id", messageId);
+        .eq("id", messageId)
+        .eq("user_id", user.id);
     }
     return new Response(JSON.stringify({
       success: true,
