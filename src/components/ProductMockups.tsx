@@ -1064,6 +1064,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       setRegeneratingId(null);
       setFeedbackMockupId(null);
       setFeedbackReason("");
+      setFeedbackDetails("");
       setDesignVariantOverride("auto");
     }
   };
@@ -1310,7 +1311,12 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:text-orange-500"
-                    onClick={() => { setFeedbackMockupId(img.id); setFeedbackReason(""); }}
+                    onClick={() => {
+                      setFeedbackMockupId(img.id);
+                      setFeedbackReason("");
+                      setFeedbackDetails("");
+                      setDesignVariantOverride("auto");
+                    }}
                     title="Report issue & regenerate"
                   >
                     <ThumbsDown className="h-3 w-3" />
