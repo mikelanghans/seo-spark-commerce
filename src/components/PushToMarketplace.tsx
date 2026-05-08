@@ -143,6 +143,14 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
         .eq("product_id", product.id)
         .eq("marketplace", listing.marketplace)
         .maybeSingle();
+
+      // Fetch per-size pricing from the product so eBay variants use the table prices
+      const { data: productRow } = await supabase
+        .from("products")
+        .select("size_pricing")
+        .eq("id", product.id)
+        .maybeSingle();
+      const sizePricing = productRow?.size_pricing ?? null;
       const bulletPoints: string[] = Array.isArray(listingRow?.bullet_points)
         ? (listingRow!.bullet_points as any[]).map((b) => String(b)).filter(Boolean)
         : [];
