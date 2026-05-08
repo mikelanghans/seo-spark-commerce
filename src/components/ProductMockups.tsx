@@ -117,6 +117,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState("");
   const [feedbackDetails, setFeedbackDetails] = useState("");
+  const [designVariantOverride, setDesignVariantOverride] = useState<"auto" | "light" | "dark">("auto");
   const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
   const placementRef = useRef<DesignPlacement | null>(null);
   const recAbortRef = useRef<AbortController | null>(null);
@@ -781,7 +782,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   };
 
   // ─── Regenerate Single (Feedback-informed) ─────────────────────
-  const handleRegenerateSingle = async (colorName: string, feedback: string) => {
+  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto") => {
     const templateUrl = sourceImageUrl;
     if (!templateUrl) {
       toast.error("No template image available.");
@@ -921,8 +922,15 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       }
 
       const isLight = isLightColor(typeConfig, colorName);
+      // Allow user to explicitly override which design variant to composite
+      // light => force LIGHT (white) design (treat garment as dark)
+      // dark  => force DARK design (treat garment as light)
+      const effectiveIsLightGarment =
+        variantOverride === "light" ? false :
+        variantOverride === "dark" ? true :
+        isLight;
       const designForComposite = selectDesignForComposite({
-        isLightGarment: isLight,
+        isLightGarment: effectiveIsLightGarment,
         preserveOriginalDesignAlpha,
         lightDesign: lightDesignBase64,
         darkDesign: darkDesignBase64,
@@ -1017,6 +1025,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       setRegeneratingId(null);
       setFeedbackMockupId(null);
       setFeedbackReason("");
+      setDesignVariantOverride("auto");
     }
   };
 
@@ -1292,24 +1301,47 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                 className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                 rows={2}
               />
+              <div className="space-y-1">
+                <p className="text-[10px] font-medium text-muted-foreground">Design variant</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    { key: "auto", label: "Auto" },
+                    { key: "light", label: "Use light design" },
+                    { key: "dark", label: "Use dark design" },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setDesignVariantOverride(opt.key)}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                        designVariantOverride === opt.key
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs"
-                  onClick={() => { setFeedbackMockupId(null); setFeedbackReason(""); setFeedbackDetails(""); }}
+                  onClick={() => { setFeedbackMockupId(null); setFeedbackReason(""); setFeedbackDetails(""); setDesignVariantOverride("auto"); }}
                 >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
                   className="h-7 text-xs gap-1.5"
-                  disabled={(!feedbackReason && !feedbackDetails.trim()) || regeneratingId === img.color_name}
+                  disabled={(!feedbackReason && !feedbackDetails.trim() && designVariantOverride === "auto") || regeneratingId === img.color_name}
                   onClick={() => {
                     const fullFeedback = feedbackDetails
                       ? feedbackReason ? `${feedbackReason}: ${feedbackDetails}` : feedbackDetails
                       : feedbackReason;
-                    handleRegenerateSingle(img.color_name, fullFeedback);
+                    handleRegenerateSingle(img.color_name, fullFeedback, designVariantOverride);
                   }}
                 >
                   <RotateCw className="h-3 w-3" /> Regenerate
