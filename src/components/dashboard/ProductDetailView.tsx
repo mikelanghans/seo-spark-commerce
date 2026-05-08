@@ -211,6 +211,14 @@ export const ProductDetailView = ({
         if (!nextLightUrl && isUsableDesignUrl(messageDesign?.design_url)) nextLightUrl = messageDesign!.design_url;
         if (!nextDarkUrl && isUsableDesignUrl(messageDesign?.dark_design_url)) nextDarkUrl = messageDesign!.dark_design_url;
 
+        const [storedLightHasTransparency, storedDarkHasTransparency] = await Promise.all([
+          nextLightUrl ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(false),
+          nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
+        ]);
+
+        if (nextLightUrl && !storedLightHasTransparency) nextLightUrl = null;
+        if (nextDarkUrl && !storedDarkHasTransparency) nextDarkUrl = null;
+
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
         const needsLightUpload = !nextLightUrl;
         const needsDarkUpload = !nextDarkUrl || variantsShareSameFile;
