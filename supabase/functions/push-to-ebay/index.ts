@@ -211,6 +211,18 @@ const priceForSize = (basePrice: number, size: string, sizePricing?: any): strin
   return (basePrice + upcharge).toFixed(2);
 };
 
+// Get all valid mockup image URLs (used as fallback when a color has no specific images)
+const allMockupImageUrls = (images: any[], excludedDesignUrls: Set<string>): string[] => {
+  const urls: string[] = [];
+  for (const img of images || []) {
+    if (String(img?.image_type || "mockup").toLowerCase() === "design") continue;
+    const url = String(img?.image_url || "").trim();
+    if (!url || excludedDesignUrls.has(url) || !/^https:\/\//i.test(url)) continue;
+    if (!urls.includes(url)) urls.push(url);
+  }
+  return urls;
+};
+
 // Group images by color from product_images rows
 const groupImagesByColor = (images: any[], excludedDesignUrls: Set<string>): Map<string, string[]> => {
   const map = new Map<string, string[]>();
