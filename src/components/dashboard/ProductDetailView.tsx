@@ -161,6 +161,13 @@ export const ProductDetailView = ({
     });
   };
 
+  const fileToDataUrl = async (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read design file"));
+    reader.readAsDataURL(file);
+  });
+
   useEffect(() => {
     let isActive = true;
 
@@ -216,12 +223,9 @@ export const ProductDetailView = ({
           nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
         ]);
 
-        if (nextLightUrl && !storedLightHasTransparency) nextLightUrl = null;
-        if (nextDarkUrl && !storedDarkHasTransparency) nextDarkUrl = null;
-
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
-        const needsLightUpload = !nextLightUrl;
-        const needsDarkUpload = !nextDarkUrl || variantsShareSameFile;
+        const needsLightUpload = !nextLightUrl || !storedLightHasTransparency;
+        const needsDarkUpload = !nextDarkUrl || !storedDarkHasTransparency || variantsShareSameFile;
         const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
