@@ -117,6 +117,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState("");
   const [feedbackDetails, setFeedbackDetails] = useState("");
+  const [designVariantOverride, setDesignVariantOverride] = useState<"auto" | "light" | "dark">("auto");
   const [placementOverride, setPlacementOverride] = useState<DesignPlacement | null>(null);
   const placementRef = useRef<DesignPlacement | null>(null);
   const recAbortRef = useRef<AbortController | null>(null);
