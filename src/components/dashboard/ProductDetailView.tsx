@@ -161,6 +161,13 @@ export const ProductDetailView = ({
     });
   };
 
+  const fileToDataUrl = async (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read design file"));
+    reader.readAsDataURL(file);
+  });
+
   useEffect(() => {
     let isActive = true;
 
@@ -216,12 +223,9 @@ export const ProductDetailView = ({
           nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
         ]);
 
-        if (nextLightUrl && !storedLightHasTransparency) nextLightUrl = null;
-        if (nextDarkUrl && !storedDarkHasTransparency) nextDarkUrl = null;
-
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
-        const needsLightUpload = !nextLightUrl;
-        const needsDarkUpload = !nextDarkUrl || variantsShareSameFile;
+        const needsLightUpload = !nextLightUrl || !storedLightHasTransparency;
+        const needsDarkUpload = !nextDarkUrl || !storedDarkHasTransparency || variantsShareSameFile;
         const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
@@ -450,7 +454,22 @@ export const ProductDetailView = ({
       toast.error("Please select an image file");
       return;
     }
-    const newUrl = await uploadImageToStorage(file);
+
+    let newUrl: string | null = null;
+
+    try {
+      const sourceDataUrl = await fileToDataUrl(file);
+      const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+        sourceDataUrl,
+        userId,
+        targetSize: 4500,
+      });
+      newUrl = variant === "light" ? lightUrl : (darkUrl || lightUrl);
+    } catch (error) {
+      console.error("Failed to prepare uploaded design file", error);
+      newUrl = await uploadImageToStorage(file);
+    }
+
     if (!newUrl) return;
 
     const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
