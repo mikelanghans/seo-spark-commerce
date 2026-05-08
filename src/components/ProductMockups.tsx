@@ -825,7 +825,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   };
 
   // ─── Regenerate Single (Feedback-informed) ─────────────────────
-  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto") => {
+  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto", mockupId?: string) => {
     const templateUrl = sourceImageUrl;
     if (!templateUrl) {
       toast.error("No template image available.");
@@ -1048,14 +1048,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
-      await insertProductImageIfNotExists({
-        product_id: productId,
-        user_id: userId,
-        image_url: urlData.publicUrl,
-        image_type: "mockup",
-        color_name: colorName,
-        position: 0,
-      });
+      if (mockupId) {
+        const { error: updateErr } = await supabase
+          .from("product_images")
+          .update({ image_url: urlData.publicUrl, position: 0 })
+          .eq("id", mockupId);
+        if (updateErr) throw updateErr;
+        setImages((prev) => prev.map((image) => image.id === mockupId ? { ...image, image_url: urlData.publicUrl } : image));
+      } else {
+        await insertProductImageIfNotExists({
+          product_id: productId,
+          user_id: userId,
+          image_url: urlData.publicUrl,
+          image_type: "mockup",
+          color_name: colorName,
+          position: 0,
+        });
+      }
 
       await loadImages();
       toast.success(`${colorName} mockup regenerated!`);
@@ -1411,7 +1420,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                     const fullFeedback = feedbackDetails
                       ? feedbackReason ? `${feedbackReason}: ${feedbackDetails}` : feedbackDetails
                       : feedbackReason;
-                    handleRegenerateSingle(img.color_name, fullFeedback, designVariantOverride);
+                    handleRegenerateSingle(img.color_name, fullFeedback, designVariantOverride, img.id);
                   }}
                 >
                   <RotateCw className="h-3 w-3" /> Regenerate
