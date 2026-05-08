@@ -584,7 +584,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleSingleDesignDownload("light")}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !lightFileAvailable}
+                    title={!lightFileAvailable ? "Light design file is unavailable" : undefined}
                   >
                     {activeDesignDownload === "light" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Light
                   </Button>
@@ -595,7 +596,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleSingleDesignDownload("dark")}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !darkFileAvailable}
+                    title={!darkFileAvailable ? "Dark design file is unavailable" : undefined}
                   >
                     {activeDesignDownload === "dark" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Dark
                   </Button>
@@ -606,7 +608,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleBothDesignsDownload()}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !lightFileAvailable || !darkFileAvailable}
+                    title={(!lightFileAvailable || !darkFileAvailable) ? "One or both design files are unavailable" : undefined}
                   >
                     {activeDesignDownload === "both" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Both
                   </Button>
