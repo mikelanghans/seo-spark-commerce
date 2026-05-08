@@ -225,7 +225,7 @@ export const ProductDetailView = ({
       } catch (error) {
         console.error("Failed to ensure design files", error);
         if (!isActive) return;
-        setLightDesignUrl(product.image_url ?? null);
+        setLightDesignUrl(null);
         setDarkDesignUrl(null);
       } finally {
         if (isActive) setIsPreparingDesignFiles(false);
