@@ -165,7 +165,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
 
 const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>(), sizeOverride?: string, colorOverride?: string) => {
   const product: Record<string, unknown> = {
-    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
+    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 65),
     description: buildDescriptionHtml(listing),
     brand: "Youniverses",
     mpn: sku,
@@ -618,7 +618,7 @@ serve(async (req) => {
 
       // Step 3: create/update the inventory item group (this is what makes it a multi-variation listing)
       const groupKey = baseSku;
-      const groupTitle = cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80);
+      const groupTitle = cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 65);
       const groupImages = Array.from(allImageUrls).slice(0, 12);
       const variesBy: Record<string, unknown> = {
         aspectsImageVariesBy: ["Color"],
