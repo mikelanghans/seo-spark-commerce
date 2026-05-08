@@ -106,17 +106,24 @@ const getFeedbackAdjustedPlacement = (basePlacement: DesignPlacement | null | un
     offsetY: basePlacement?.offsetY ?? 0.2,
   };
 
-  if (/(too high|too far up|too close to (the )?(neck|collar|top))/.test(text)) next.offsetY += 0.04;
-  else if (/(move|shift|raise|higher|up)/.test(text)) next.offsetY -= 0.04;
+  const tooHigh = /(too high|too far up|too close to (the )?(neck|collar|top))/.test(text);
+  const tooLow = /(too low|too far down|too close to (the )?(bottom|hem))/.test(text);
+  const moveUp = /((move|shift|raise|lift|bring).*(up|higher))|((up|higher).*(move|shift|raise|lift|bring))|\bmove up\b|\bshift up\b|\braise\b|\bhigher\b/.test(text);
+  const moveDown = /((move|shift|lower|drop).*(down|lower))|((down|lower).*(move|shift|lower|drop))|\bmove down\b|\bshift down\b|\blower\b/.test(text);
+  const tooLeft = /(too far left|too left)/.test(text);
+  const tooRight = /(too far right|too right)/.test(text);
+  const moveLeft = /((move|shift).*(left))|((left).*(move|shift))|\bmove left\b|\bshift left\b/.test(text);
+  const moveRight = /((move|shift).*(right))|((right).*(move|shift))|\bmove right\b|\bshift right\b/.test(text);
 
-  if (/(too low|too far down|too close to (the )?(bottom|hem))/.test(text)) next.offsetY -= 0.04;
-  else if (/(move|shift|lower|down)/.test(text)) next.offsetY += 0.04;
+  if (tooHigh) next.offsetY += 0.04;
+  else if (tooLow) next.offsetY -= 0.04;
+  else if (moveUp && !moveDown) next.offsetY -= 0.04;
+  else if (moveDown && !moveUp) next.offsetY += 0.04;
 
-  if (/(too far left|too left)/.test(text)) next.offsetX += 0.03;
-  else if (/(move|shift|left)/.test(text)) next.offsetX -= 0.03;
-
-  if (/(too far right|too right)/.test(text)) next.offsetX -= 0.03;
-  else if (/(move|shift|right)/.test(text)) next.offsetX += 0.03;
+  if (tooLeft) next.offsetX += 0.03;
+  else if (tooRight) next.offsetX -= 0.03;
+  else if (moveLeft && !moveRight) next.offsetX -= 0.03;
+  else if (moveRight && !moveLeft) next.offsetX += 0.03;
 
   if (/(center|centered|centre|centred)/.test(text)) next.offsetX = 0;
   if (/(bigger|larger|increase|too small)/.test(text)) next.scale += 0.04;
@@ -818,7 +825,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   };
 
   // ─── Regenerate Single (Feedback-informed) ─────────────────────
-  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto") => {
+  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto", mockupId?: string) => {
     const templateUrl = sourceImageUrl;
     if (!templateUrl) {
       toast.error("No template image available.");
@@ -1041,14 +1048,23 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
 
       const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
-      await insertProductImageIfNotExists({
-        product_id: productId,
-        user_id: userId,
-        image_url: urlData.publicUrl,
-        image_type: "mockup",
-        color_name: colorName,
-        position: 0,
-      });
+      if (mockupId) {
+        const { error: updateErr } = await supabase
+          .from("product_images")
+          .update({ image_url: urlData.publicUrl, position: 0 })
+          .eq("id", mockupId);
+        if (updateErr) throw updateErr;
+        setImages((prev) => prev.map((image) => image.id === mockupId ? { ...image, image_url: urlData.publicUrl } : image));
+      } else {
+        await insertProductImageIfNotExists({
+          product_id: productId,
+          user_id: userId,
+          image_url: urlData.publicUrl,
+          image_type: "mockup",
+          color_name: colorName,
+          position: 0,
+        });
+      }
 
       await loadImages();
       toast.success(`${colorName} mockup regenerated!`);
@@ -1404,7 +1420,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                     const fullFeedback = feedbackDetails
                       ? feedbackReason ? `${feedbackReason}: ${feedbackDetails}` : feedbackDetails
                       : feedbackReason;
-                    handleRegenerateSingle(img.color_name, fullFeedback, designVariantOverride);
+                    handleRegenerateSingle(img.color_name, fullFeedback, designVariantOverride, img.id);
                   }}
                 >
                   <RotateCw className="h-3 w-3" /> Regenerate
