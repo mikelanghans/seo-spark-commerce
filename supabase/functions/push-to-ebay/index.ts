@@ -581,9 +581,16 @@ serve(async (req) => {
           console.log("Deleted stale unpublished offer:", existing.offerId, delRes.status);
         }
         const stillExists = (existing?.offerId && existing.status && existing.status !== "UNPUBLISHED") ? existing : null;
-        const res = stillExists?.offerId
+        let res = stillExists?.offerId
           ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${stillExists.offerId}`, token, "PUT", offerPayload)
           : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+        // If offer already exists (25002), re-fetch and PUT instead
+        if (res.status >= 400 && (res.body.includes("25002") || res.body.includes("already exists"))) {
+          const reFound = await findOfferForSku(apiBase, token, v.vSku, marketplaceId);
+          if (reFound?.offerId) {
+            res = await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${reFound.offerId}`, token, "PUT", offerPayload);
+          }
+        }
         if (res.status < 200 || res.status >= 300) {
           console.error("Variant offer failed:", v.vSku, res.status, res.body);
           throw new Error(`eBay variant offer failed (${v.vSku}): ${res.body.slice(0, 200)}`);
