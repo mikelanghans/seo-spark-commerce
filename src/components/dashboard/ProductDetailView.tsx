@@ -29,6 +29,7 @@ import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
   ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign, X,
 } from "lucide-react";
+import { hasMeaningfulTransparency } from "@/lib/removeBackground";
 
 interface Props {
   product: Product;
@@ -209,6 +210,14 @@ export const ProductDetailView = ({
 
         if (!nextLightUrl && isUsableDesignUrl(messageDesign?.design_url)) nextLightUrl = messageDesign!.design_url;
         if (!nextDarkUrl && isUsableDesignUrl(messageDesign?.dark_design_url)) nextDarkUrl = messageDesign!.dark_design_url;
+
+        const [lightHasTransparency, darkHasTransparency] = await Promise.all([
+          nextLightUrl ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(false),
+          nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
+        ]);
+
+        if (nextLightUrl && !lightHasTransparency) nextLightUrl = null;
+        if (nextDarkUrl && !darkHasTransparency) nextDarkUrl = null;
 
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
         const needsLightUpload = !nextLightUrl;
