@@ -109,7 +109,7 @@ export const ProductDetailView = ({
       || detectedProductType.key;
   const mockupProductType = PRODUCT_TYPES[fallbackProductTypeKey] || detectedProductType;
   const sourceTemplateUrl = mockupTemplates[mockupProductType.key] || null;
-  const primaryDesignUrl = lightDesignUrl ?? darkDesignUrl ?? product.image_url ?? null;
+  const primaryDesignUrl = lightDesignUrl ?? darkDesignUrl ?? null;
   const activePreviewDesignUrl = (thumbVariant === "dark"
     ? (darkDesignUrl ?? lightDesignUrl)
     : (lightDesignUrl ?? darkDesignUrl)) ?? primaryDesignUrl;
@@ -164,8 +164,8 @@ export const ProductDetailView = ({
     let isActive = true;
 
     const ensureDesignFiles = async () => {
-      if (!userId || !product.image_url) {
-        setLightDesignUrl(product.image_url ?? null);
+      if (!userId) {
+        setLightDesignUrl(null);
         setDarkDesignUrl(null);
         return;
       }
@@ -173,24 +173,47 @@ export const ProductDetailView = ({
       setIsPreparingDesignFiles(true);
 
       try {
-        const { data: rows, error } = await supabase
-          .from("product_images")
-          .select("image_url, color_name")
-          .eq("product_id", product.id)
-          .eq("image_type", "design");
+        const [{ data: rows, error }, { data: messageDesigns, error: messageError }] = await Promise.all([
+          supabase
+            .from("product_images")
+            .select("image_url, color_name, image_type")
+            .eq("product_id", product.id),
+          supabase
+            .from("generated_messages")
+            .select("design_url, dark_design_url")
+            .eq("product_id", product.id)
+            .not("design_url", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1),
+        ]);
 
         if (error) throw error;
+        if (messageError) throw messageError;
 
-        const lightRow = rows?.find((row) => normalizeDesignColorName(row.color_name || "") === "light-on-dark");
-        const darkRow = rows?.find((row) => normalizeDesignColorName(row.color_name || "") === "dark-on-light");
+        const normalizedRows = rows || [];
+        const mockupUrls = new Set(
+          normalizedRows
+            .filter((row) => String(row.image_type || "").toLowerCase() === "mockup")
+            .map((row) => normalizeDesignAssetUrl(row.image_url))
+            .filter(Boolean),
+        );
+        const isKnownMockupUrl = (url: string | null | undefined) => !!url && mockupUrls.has(normalizeDesignAssetUrl(url));
+        const isUsableDesignUrl = (url: string | null | undefined) => !!url && isProductStorageUrl(url) && !isKnownMockupUrl(url);
+        const designRows = normalizedRows.filter((row) => String(row.image_type || "").toLowerCase() === "design");
+        const lightRow = designRows.find((row) => normalizeDesignColorName(row.color_name || "") === "light-on-dark");
+        const darkRow = designRows.find((row) => normalizeDesignColorName(row.color_name || "") === "dark-on-light");
+        const messageDesign = messageDesigns?.[0];
 
-        let nextLightUrl = lightRow?.image_url ?? null;
-        let nextDarkUrl = darkRow?.image_url ?? null;
+        let nextLightUrl = isUsableDesignUrl(lightRow?.image_url) ? lightRow!.image_url : null;
+        let nextDarkUrl = isUsableDesignUrl(darkRow?.image_url) ? darkRow!.image_url : null;
+
+        if (!nextLightUrl && isUsableDesignUrl(messageDesign?.design_url)) nextLightUrl = messageDesign!.design_url;
+        if (!nextDarkUrl && isUsableDesignUrl(messageDesign?.dark_design_url)) nextDarkUrl = messageDesign!.dark_design_url;
 
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
-        const needsLightUpload = !nextLightUrl || !isProductStorageUrl(nextLightUrl);
-        const needsDarkUpload = !nextDarkUrl || !isProductStorageUrl(nextDarkUrl) || variantsShareSameFile;
-        const sourceUrl = nextLightUrl ?? nextDarkUrl ?? product.image_url;
+        const needsLightUpload = !nextLightUrl;
+        const needsDarkUpload = !nextDarkUrl || variantsShareSameFile;
+        const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
           const sourceDataUrl = await urlToDataUrl(sourceUrl);
@@ -210,13 +233,6 @@ export const ProductDetailView = ({
 
         if (rowsToSave.length > 0) {
           await insertProductImagesDeduped(rowsToSave);
-        }
-
-        if (nextLightUrl && product.image_url !== nextLightUrl) {
-          const { error: updateError } = await supabase.from("products").update({ image_url: nextLightUrl }).eq("id", product.id);
-          if (!updateError && isActive) {
-            setSelectedProduct({ ...product, image_url: nextLightUrl });
-          }
         }
 
         if (!isActive) return;
