@@ -922,8 +922,15 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       }
 
       const isLight = isLightColor(typeConfig, colorName);
+      // Allow user to explicitly override which design variant to composite
+      // light => force LIGHT (white) design (treat garment as dark)
+      // dark  => force DARK design (treat garment as light)
+      const effectiveIsLightGarment =
+        variantOverride === "light" ? false :
+        variantOverride === "dark" ? true :
+        isLight;
       const designForComposite = selectDesignForComposite({
-        isLightGarment: isLight,
+        isLightGarment: effectiveIsLightGarment,
         preserveOriginalDesignAlpha,
         lightDesign: lightDesignBase64,
         darkDesign: darkDesignBase64,
