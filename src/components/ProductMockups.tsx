@@ -782,7 +782,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
   };
 
   // ─── Regenerate Single (Feedback-informed) ─────────────────────
-  const handleRegenerateSingle = async (colorName: string, feedback: string) => {
+  const handleRegenerateSingle = async (colorName: string, feedback: string, variantOverride: "auto" | "light" | "dark" = "auto") => {
     const templateUrl = sourceImageUrl;
     if (!templateUrl) {
       toast.error("No template image available.");
