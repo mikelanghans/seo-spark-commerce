@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { Organization, View } from "@/types/dashboard";
 import { EMPTY_ORG_FORM } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 
 export function useOrgHandlers(userId: string | undefined, setView: (v: View) => void) {
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -55,7 +56,20 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
     let logoUrl: string | null | undefined = undefined;
     if (orgLogoFile) logoUrl = await uploadImageToStorage(orgLogoFile);
 
-    const payload: any = { ...orgForm };
+    // Backfill default_size_pricing with product-type defaults so blank cells persist real prices
+    const filledPricing: Record<string, Record<string, string>> = { ...(orgForm.default_size_pricing || {}) };
+    for (const typeKey of orgForm.enabled_product_types || []) {
+      const pt = PRODUCT_TYPES[typeKey as ProductTypeKey];
+      if (!pt?.sizes?.length) continue;
+      const current = filledPricing[typeKey] || {};
+      const merged: Record<string, string> = {};
+      for (const size of pt.sizes) {
+        const v = (current[size] || "").toString().trim();
+        merged[size] = v || pt.defaultSizePricing[size] || "";
+      }
+      filledPricing[typeKey] = merged;
+    }
+    const payload: any = { ...orgForm, default_size_pricing: filledPricing };
     if (logoUrl !== undefined) payload.logo_url = logoUrl;
 
     if (editingOrg) {
