@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { Organization, View } from "@/types/dashboard";
 import { EMPTY_ORG_FORM } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
+import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 
 export function useOrgHandlers(userId: string | undefined, setView: (v: View) => void) {
   const [orgs, setOrgs] = useState<Organization[]>([]);
