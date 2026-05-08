@@ -78,7 +78,13 @@ const cleanText = (value: unknown, fallback: string, maxLength: number) => {
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return (cleaned || fallback).slice(0, maxLength);
+  const text = cleaned || fallback;
+  if (text.length <= maxLength) return text;
+  // Truncate at word boundary, trim trailing separators
+  const sliced = text.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(" ");
+  const cut = lastSpace > maxLength * 0.6 ? sliced.slice(0, lastSpace) : sliced;
+  return cut.replace(/[\s,\-|·•:;]+$/g, "").trim();
 };
 
 // Convert plain-text description into HTML preserving paragraph breaks.
@@ -159,7 +165,7 @@ const findOfferForSku = async (apiBase: string, token: string, sku: string, mark
 
 const buildInventoryPayload = (sku: string, listing: any, images: unknown, includeImages = true, excludedDesignUrls = new Set<string>(), sizeOverride?: string, colorOverride?: string) => {
   const product: Record<string, unknown> = {
-    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80),
+    title: cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 65),
     description: buildDescriptionHtml(listing),
     brand: "Youniverses",
     mpn: sku,
@@ -612,7 +618,7 @@ serve(async (req) => {
 
       // Step 3: create/update the inventory item group (this is what makes it a multi-variation listing)
       const groupKey = baseSku;
-      const groupTitle = cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 80);
+      const groupTitle = cleanText(listing?.title, "Brand Aura Graphic T-Shirt", 65);
       const groupImages = Array.from(allImageUrls).slice(0, 12);
       const variesBy: Record<string, unknown> = {
         aspectsImageVariesBy: ["Color"],
