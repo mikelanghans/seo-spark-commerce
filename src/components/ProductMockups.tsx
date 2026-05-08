@@ -972,7 +972,8 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         darkDesign: darkDesignBase64,
         sharedLightGarmentDesign: sharedLightGarmentDesignBase64,
       });
-      const activePlacement = placementRef.current || placementOverride || undefined;
+      const feedbackText = feedback.trim();
+      const activePlacement = getFeedbackAdjustedPlacement(placementRef.current || placementOverride, feedbackText);
 
       let plainTemplate = templateBase64;
       try {
@@ -994,7 +995,9 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
         );
       } catch { /* continue without reference */ }
 
-      const customInstructions = `IMPORTANT FEEDBACK FROM USER: ${feedback}. Please address these issues in the regenerated mockup.`;
+      const customInstructions = feedbackText
+        ? `IMPORTANT FEEDBACK FROM USER: ${feedbackText}. Please address these issues in the regenerated mockup.`
+        : undefined;
 
       const { data, error } = await supabase.functions.invoke("generate-color-variants", {
         body: {
