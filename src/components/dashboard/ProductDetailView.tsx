@@ -64,6 +64,8 @@ export const ProductDetailView = ({
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [activeDesignDownload, setActiveDesignDownload] = useState<"light" | "dark" | "both" | null>(null);
   const [thumbVariant, setThumbVariant] = useState<"light" | "dark">("light");
+  const [lightFileAvailable, setLightFileAvailable] = useState<boolean>(false);
+  const [darkFileAvailable, setDarkFileAvailable] = useState<boolean>(false);
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
@@ -236,6 +238,36 @@ export const ProductDetailView = ({
       isActive = false;
     };
   }, [product.id, product.image_url, setSelectedProduct, userId]);
+
+  // Probe design URLs to confirm the underlying file actually exists.
+  // Avoids enabling Light/Dark/Both buttons that would spin forever on a 404.
+  useEffect(() => {
+    let cancelled = false;
+    const probe = async (url: string | null): Promise<boolean> => {
+      if (!url) return false;
+      try {
+        const res = await fetch(url, { method: "HEAD", mode: "cors", credentials: "omit" });
+        if (res.ok) return true;
+        // Some storage backends don't allow HEAD; fall back to a tiny ranged GET.
+        if (res.status === 405 || res.status === 403) {
+          const getRes = await fetch(url, { method: "GET", mode: "cors", credentials: "omit", headers: { Range: "bytes=0-0" } });
+          return getRes.ok;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    };
+    setLightFileAvailable(false);
+    setDarkFileAvailable(false);
+    (async () => {
+      const [light, dark] = await Promise.all([probe(lightDesignUrl), probe(darkDesignUrl)]);
+      if (cancelled) return;
+      setLightFileAvailable(light);
+      setDarkFileAvailable(dark);
+    })();
+    return () => { cancelled = true; };
+  }, [lightDesignUrl, darkDesignUrl]);
 
   const orgMarketplaces = ((selectedOrg?.enabled_marketplaces?.length ? selectedOrg.enabled_marketplaces : [...ALL_MARKETPLACES]) as string[]).filter(m => m.toLowerCase() !== "printify");
 
@@ -582,7 +614,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleSingleDesignDownload("light")}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !lightFileAvailable}
+                    title={!lightFileAvailable ? "Light design file is unavailable" : undefined}
                   >
                     {activeDesignDownload === "light" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Light
                   </Button>
@@ -593,7 +626,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleSingleDesignDownload("dark")}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !darkFileAvailable}
+                    title={!darkFileAvailable ? "Dark design file is unavailable" : undefined}
                   >
                     {activeDesignDownload === "dark" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Dark
                   </Button>
@@ -604,7 +638,8 @@ export const ProductDetailView = ({
                     size="sm"
                     className="gap-1.5"
                     onClick={() => void handleBothDesignsDownload()}
-                    disabled={activeDesignDownload !== null}
+                    disabled={activeDesignDownload !== null || !lightFileAvailable || !darkFileAvailable}
+                    title={(!lightFileAvailable || !darkFileAvailable) ? "One or both design files are unavailable" : undefined}
                   >
                     {activeDesignDownload === "both" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Both
                   </Button>
