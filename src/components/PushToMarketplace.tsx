@@ -175,7 +175,7 @@ export const PushToMarketplace = ({ product, listings, images, userId, enabledCh
         body: {
           userId,
           productId: product.id,
-          listing: { ...listing, price: product.price, bullet_points: bulletPoints },
+          listing: { ...listing, price: product.price, bullet_points: bulletPoints, size_pricing: sizePricing },
           images: ebayImages,
           ...(updateFields ? { updateFields } : {}),
         },
