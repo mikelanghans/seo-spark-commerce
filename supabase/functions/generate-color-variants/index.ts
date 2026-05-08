@@ -18,7 +18,7 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   "island green": "Comfort Colors 1717 ISLAND GREEN — a bright, fresh medium green with a subtle cool/teal lean. NOT dark forest, NOT pine, NOT hunter green. Think soft tropical seafoam-meets-jade (near #6CAA8C)",
   ivory: "warm off-white cream (near #F2E9D6)",
   chili: "deep dark red with brown warmth — like dried chili pepper (near #8B2332)",
-  brick: "muted warm terracotta-red, dusty and earthy (near #A05A50)",
+  brick: "Comfort Colors 1717 BRICK — a dusty muted mauve-rose with brown undertones, like faded clay brick. NOT bright terracotta, NOT orange-red. Think soft rosy-brown (near #8E5E5C)",
   espresso: "dark warm BROWN — clearly brown, not black (near #4A3228). Must show visible brown tones",
   midnight: "DARK NAVY BLUE — NOT black. Must show visible blue undertone (near #253147). Should be clearly distinguishable from black by its blue cast",
   sage: "muted light sage green (near #9BAC95)",
