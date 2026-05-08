@@ -560,7 +560,7 @@ serve(async (req) => {
     const sizePriceCents: Record<string, number> = {};
     if (sizePricing && typeof sizePricing === "object") {
       for (const [size, p] of Object.entries(sizePricing)) {
-        const parsed = parseFloat((p as string)?.replace(/[^0-9.]/g, "") || "0");
+        const parsed = parseFloat(String(p ?? "0").replace(/[^0-9.]/g, "") || "0");
         if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
       }
     }
