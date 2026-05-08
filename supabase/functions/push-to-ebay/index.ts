@@ -489,8 +489,11 @@ serve(async (req) => {
       const variantSkus: string[] = [];
       const allImageUrls = new Set<string>();
       for (const color of colors) {
-        const colorImages = (colorMap.get(color) || []).map((image_url) => ({ image_url, image_type: "mockup" }));
-        for (const url of colorMap.get(color) || []) allImageUrls.add(url);
+        const colorUrls = (colorMap.get(color) && colorMap.get(color)!.length > 0)
+          ? colorMap.get(color)!
+          : fallbackImageUrls;
+        const colorImages = colorUrls.map((image_url) => ({ image_url, image_type: "mockup" }));
+        for (const url of colorUrls) allImageUrls.add(url);
         for (const size of sizes) {
           const vSku = variantSku(baseSku, color, size);
           variantSkus.push(vSku);
