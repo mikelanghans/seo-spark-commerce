@@ -621,11 +621,15 @@ serve(async (req) => {
 
       if (publishRes.status < 200 || publishRes.status >= 300) {
         console.error("eBay group publish error:", publishRes.status, publishRes.body);
+        const isEbayInternal = /errorId"\s*:\s*25001|Internal Server Error/i.test(publishRes.body);
         return new Response(JSON.stringify({
           success: false,
-          error: `eBay publish failed: ${publishRes.body.slice(0, 500)}`,
+          error: isEbayInternal
+            ? "eBay is having a temporary issue publishing this listing (error 25001). Please try again in a minute."
+            : `eBay publish failed: ${publishRes.body.slice(0, 500)}`,
           item_id: baseSku,
-        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          retryable: isEbayInternal,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const publishData = safeJson(publishRes.body);
@@ -635,7 +639,7 @@ serve(async (req) => {
           success: false,
           error: `eBay publish response missing listingId: ${publishRes.body.slice(0, 500)}`,
           item_id: baseSku,
-        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       await sb.from("products").update({ ebay_listing_id: String(listingId) } as any).eq("id", productId);
