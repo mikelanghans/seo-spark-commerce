@@ -1025,6 +1025,7 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       setRegeneratingId(null);
       setFeedbackMockupId(null);
       setFeedbackReason("");
+      setDesignVariantOverride("auto");
     }
   };
 
