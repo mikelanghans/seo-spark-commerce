@@ -550,14 +550,19 @@ serve(async (req) => {
       }
       const variantSkus = variantPlans.map((v) => v.vSku);
 
-      // Step 1: create inventory items in parallel (bounded)
-      await runWithConcurrency(variantPlans, 6, async (v) => {
+      // Step 1: create inventory items sequentially. eBay's Inventory API can return
+      // transient 25001 Core Inventory errors when many variant PUTs hit at once.
+      await runWithConcurrency(variantPlans, 1, async (v) => {
         const payload = buildInventoryPayload(v.vSku, listing, v.colorImages, true, excludedDesignUrls, v.size, v.color);
         const res = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${v.vSku}`, token, "PUT", payload);
         if (res.status < 200 || res.status >= 300) {
           console.error("Variant inventory create failed:", v.vSku, res.status, res.body);
+          if (isEbayTransientInventoryError(res.body)) {
+            throw new Error(`eBay is having a temporary inventory issue while creating ${v.vSku}. Please try Push to eBay again in a minute.`);
+          }
           throw new Error(`eBay variant create failed (${v.vSku}): ${res.status} — ${res.body.slice(0, 200)}`);
         }
+        await sleep(300);
       });
 
       // Step 2: create offers in parallel (bounded)
