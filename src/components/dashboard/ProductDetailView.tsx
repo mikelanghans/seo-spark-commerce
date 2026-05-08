@@ -454,7 +454,22 @@ export const ProductDetailView = ({
       toast.error("Please select an image file");
       return;
     }
-    const newUrl = await uploadImageToStorage(file);
+
+    let newUrl: string | null = null;
+
+    try {
+      const sourceDataUrl = await fileToDataUrl(file);
+      const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+        sourceDataUrl,
+        userId,
+        targetSize: 4500,
+      });
+      newUrl = variant === "light" ? lightUrl : (darkUrl || lightUrl);
+    } catch (error) {
+      console.error("Failed to prepare uploaded design file", error);
+      newUrl = await uploadImageToStorage(file);
+    }
+
     if (!newUrl) return;
 
     const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
