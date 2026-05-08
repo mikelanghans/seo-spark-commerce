@@ -315,11 +315,14 @@ serve(async (req) => {
 
         console.log(`Pricing update: fallback=${fallbackPriceCents}, sizePrices=${JSON.stringify(sizePriceCents)}, variants=${printifyProduct.variants.length}`);
 
-        updatePayload.variants = printifyProduct.variants.map((v: any) => {
-          const vSize = (v.options?.size || v.title || "").trim();
-          const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
-          return { id: v.id, price: priceVal, is_enabled: v.is_enabled };
-        });
+        updatePayload.variants = printifyProduct.variants
+          .filter((v: any) => v.is_enabled)
+          .map((v: any) => {
+            const vSize = (v.options?.size || v.title || "").trim();
+            const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
+            return { id: v.id, price: priceVal, is_enabled: true };
+          });
+        console.log(`Pricing update: sending ${updatePayload.variants.length} enabled variants`);
       }
 
       if (Object.keys(updatePayload).length === 0) {
