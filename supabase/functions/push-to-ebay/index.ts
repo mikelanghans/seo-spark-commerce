@@ -53,10 +53,12 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
 
 const ebayRequestWithRetry = async (url: string, token: string, method: string, payload?: unknown) => {
   let result = { status: 0, body: "" };
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt > 0) await sleep(1000 * attempt);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) await sleep(1500 * attempt);
     result = await ebayRequest(url, token, method, payload);
-    if (result.status < 500) return result;
+    // Retry on 5xx OR transient eBay internal errors (25001) which can come back as 400/500
+    const isTransient = result.status >= 500 || /errorId"\s*:\s*25001|Internal Server Error|Core Inventory Service internal error/i.test(result.body);
+    if (!isTransient) return result;
   }
   return result;
 };
