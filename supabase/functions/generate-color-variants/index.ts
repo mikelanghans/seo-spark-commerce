@@ -15,7 +15,7 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   grey: "medium neutral heather gray (near #78797D)",
   "blue jean": "washed dusty denim blue (near #6E8090)",
   pepper: "Comfort Colors 1717 PEPPER — a MEDIUM WARM GRAY, NOT dark, NOT olive, NOT charcoal. Target hex #6B6866. Think of warm concrete or dried clay — a clearly GRAY tone with subtle warm brown undertones. NO green, NO olive, NO charcoal. It must be OBVIOUSLY lighter than black or charcoal. Brightness level similar to a sidewalk in daylight. If it looks dark, greenish, or could be mistaken for black/charcoal/olive, it is WRONG",
-  "island green": "rich green-teal (near #2F8E79)",
+  "island green": "Comfort Colors 1717 ISLAND GREEN — a bright, fresh medium green with a subtle cool/teal lean. NOT dark forest, NOT pine, NOT hunter green. Think soft tropical seafoam-meets-jade (near #6CAA8C)",
   ivory: "warm off-white cream (near #F2E9D6)",
   chili: "deep dark red with brown warmth — like dried chili pepper (near #8B2332)",
   brick: "muted warm terracotta-red, dusty and earthy (near #A05A50)",
