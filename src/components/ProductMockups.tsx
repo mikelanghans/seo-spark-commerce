@@ -1298,10 +1298,13 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => setFeedbackReason(opt)}
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFeedbackReason(prev => prev === opt ? "" : opt);
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-all ${
                       feedbackReason === opt
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-1 ring-offset-background scale-105"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
