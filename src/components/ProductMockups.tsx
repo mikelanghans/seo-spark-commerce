@@ -1194,7 +1194,22 @@ export const ProductMockups = ({ productId, userId, productTitle, organizationId
       {images.map((img) => (
         <div key={img.id} className="group relative rounded-lg border border-border bg-card overflow-hidden">
           <div className="relative h-36 overflow-hidden bg-secondary cursor-pointer" onClick={() => setPreviewImage(img)}>
-            <img src={img.image_url} alt={img.color_name} loading="lazy" decoding="async" className="h-full w-full object-contain p-2" />
+            <img
+              src={img.image_url}
+              alt={img.color_name}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain p-2"
+              onError={(e) => {
+                const el = e.currentTarget as HTMLImageElement & { dataset: { retried?: string } };
+                if (el.dataset.retried) return;
+                el.dataset.retried = "1";
+                // Bypass any cached 404 from the CDN edge after a fresh upload.
+                setTimeout(() => {
+                  el.src = `${img.image_url}${img.image_url.includes("?") ? "&" : "?"}r=${Date.now()}`;
+                }, 800);
+              }}
+            />
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
               <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
