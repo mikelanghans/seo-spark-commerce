@@ -211,6 +211,18 @@ const priceForSize = (basePrice: number, size: string, sizePricing?: any): strin
   return (basePrice + upcharge).toFixed(2);
 };
 
+// Get all valid mockup image URLs (used as fallback when a color has no specific images)
+const allMockupImageUrls = (images: any[], excludedDesignUrls: Set<string>): string[] => {
+  const urls: string[] = [];
+  for (const img of images || []) {
+    if (String(img?.image_type || "mockup").toLowerCase() === "design") continue;
+    const url = String(img?.image_url || "").trim();
+    if (!url || excludedDesignUrls.has(url) || !/^https:\/\//i.test(url)) continue;
+    if (!urls.includes(url)) urls.push(url);
+  }
+  return urls;
+};
+
 // Group images by color from product_images rows
 const groupImagesByColor = (images: any[], excludedDesignUrls: Set<string>): Map<string, string[]> => {
   const map = new Map<string, string[]>();
@@ -449,7 +461,9 @@ serve(async (req) => {
       const baseSku = knownSku;
       const basePrice = Number.parseFloat(parsePrice(listing.price));
       const sizes = sizesFromListing(listing);
-      const colorMap = groupImagesByColor(Array.isArray(images) ? images as any[] : [], excludedDesignUrls);
+      const imagesArr = Array.isArray(images) ? images as any[] : [];
+      const colorMap = groupImagesByColor(imagesArr, excludedDesignUrls);
+      const fallbackImageUrls = allMockupImageUrls(imagesArr, excludedDesignUrls);
       const colors = colorMap.size > 0
         ? Array.from(colorMap.keys())
         : [String(listing?.color || "Black")];
@@ -475,8 +489,11 @@ serve(async (req) => {
       const variantSkus: string[] = [];
       const allImageUrls = new Set<string>();
       for (const color of colors) {
-        const colorImages = (colorMap.get(color) || []).map((image_url) => ({ image_url, image_type: "mockup" }));
-        for (const url of colorMap.get(color) || []) allImageUrls.add(url);
+        const colorUrls = (colorMap.get(color) && colorMap.get(color)!.length > 0)
+          ? colorMap.get(color)!
+          : fallbackImageUrls;
+        const colorImages = colorUrls.map((image_url) => ({ image_url, image_type: "mockup" }));
+        for (const url of colorUrls) allImageUrls.add(url);
         for (const size of sizes) {
           const vSku = variantSku(baseSku, color, size);
           variantSkus.push(vSku);
