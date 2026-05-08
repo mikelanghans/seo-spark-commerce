@@ -485,8 +485,24 @@ serve(async (req) => {
 
       const policies = await fetchPolicies(apiBase, token, marketplaceId);
 
-      // Step 1: create one inventory item per (color, size) combo
-      const variantSkus: string[] = [];
+      // Helper: run async tasks with bounded concurrency to avoid the 150s idle timeout
+      const runWithConcurrency = async <T, R>(items: T[], limit: number, worker: (item: T, idx: number) => Promise<R>): Promise<R[]> => {
+        const results: R[] = new Array(items.length);
+        let cursor = 0;
+        const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+          while (true) {
+            const i = cursor++;
+            if (i >= items.length) return;
+            results[i] = await worker(items[i], i);
+          }
+        });
+        await Promise.all(runners);
+        return results;
+      };
+
+      // Build full (color, size) variant plan up front
+      type VariantPlan = { color: string; size: string; vSku: string; colorImages: { image_url: string; image_type: string }[] };
+      const variantPlans: VariantPlan[] = [];
       const allImageUrls = new Set<string>();
       for (const color of colors) {
         const colorUrls = (colorMap.get(color) && colorMap.get(color)!.length > 0)
@@ -495,58 +511,58 @@ serve(async (req) => {
         const colorImages = colorUrls.map((image_url) => ({ image_url, image_type: "mockup" }));
         for (const url of colorUrls) allImageUrls.add(url);
         for (const size of sizes) {
-          const vSku = variantSku(baseSku, color, size);
-          variantSkus.push(vSku);
-          const payload = buildInventoryPayload(vSku, listing, colorImages, true, excludedDesignUrls, size, color);
-          const res = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${vSku}`, token, "PUT", payload);
-          if (res.status < 200 || res.status >= 300) {
-            console.error("Variant inventory create failed:", vSku, res.status, res.body);
-            throw new Error(`eBay variant create failed (${vSku}): ${res.status} — ${res.body.slice(0, 200)}`);
-          }
+          variantPlans.push({ color, size, vSku: variantSku(baseSku, color, size), colorImages });
         }
       }
+      const variantSkus = variantPlans.map((v) => v.vSku);
 
-      // Step 2: create an offer per variant
-      const variantOfferIds: string[] = [];
+      // Step 1: create inventory items in parallel (bounded)
+      await runWithConcurrency(variantPlans, 6, async (v) => {
+        const payload = buildInventoryPayload(v.vSku, listing, v.colorImages, true, excludedDesignUrls, v.size, v.color);
+        const res = await ebayRequestWithRetry(`${apiBase}/sell/inventory/v1/inventory_item/${v.vSku}`, token, "PUT", payload);
+        if (res.status < 200 || res.status >= 300) {
+          console.error("Variant inventory create failed:", v.vSku, res.status, res.body);
+          throw new Error(`eBay variant create failed (${v.vSku}): ${res.status} — ${res.body.slice(0, 200)}`);
+        }
+      });
+
+      // Step 2: create offers in parallel (bounded)
       const listingPolicies: Record<string, string> = {};
       if (policies.fulfillmentPolicyId) listingPolicies.fulfillmentPolicyId = policies.fulfillmentPolicyId;
       if (policies.paymentPolicyId) listingPolicies.paymentPolicyId = policies.paymentPolicyId;
       if (policies.returnPolicyId) listingPolicies.returnPolicyId = policies.returnPolicyId;
 
-      for (const color of colors) {
-        for (const size of sizes) {
-          const vSku = variantSku(baseSku, color, size);
-          const offerPayload: Record<string, unknown> = {
-            sku: vSku,
-            marketplaceId,
-            format: "FIXED_PRICE",
-            availableQuantity: 10,
-            categoryId: "15687",
-            listingDescription: description,
-            pricingSummary: { price: { value: priceForSize(basePrice, size, listing?.size_pricing), currency: "USD" } },
-            merchantLocationKey: locationKey,
-          };
-          if (Object.keys(listingPolicies).length > 0) offerPayload.listingPolicies = listingPolicies;
+      const variantOfferIds: string[] = [];
+      await runWithConcurrency(variantPlans, 6, async (v) => {
+        const offerPayload: Record<string, unknown> = {
+          sku: v.vSku,
+          marketplaceId,
+          format: "FIXED_PRICE",
+          availableQuantity: 10,
+          categoryId: "15687",
+          listingDescription: description,
+          pricingSummary: { price: { value: priceForSize(basePrice, v.size, listing?.size_pricing), currency: "USD" } },
+          merchantLocationKey: locationKey,
+        };
+        if (Object.keys(listingPolicies).length > 0) offerPayload.listingPolicies = listingPolicies;
 
-          const existing = await findOfferForSku(apiBase, token, vSku, marketplaceId);
-          // If an UNPUBLISHED offer exists, delete it and recreate to avoid stale product-link errors (25604)
-          if (existing?.offerId && (!existing.status || existing.status === "UNPUBLISHED")) {
-            const delRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existing.offerId}`, token, "DELETE");
-            console.log("Deleted stale unpublished offer:", existing.offerId, delRes.status);
-          }
-          const stillExists = (existing?.offerId && existing.status && existing.status !== "UNPUBLISHED") ? existing : null;
-          const res = stillExists?.offerId
-            ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${stillExists.offerId}`, token, "PUT", offerPayload)
-            : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
-          if (res.status < 200 || res.status >= 300) {
-            console.error("Variant offer failed:", vSku, res.status, res.body);
-            throw new Error(`eBay variant offer failed (${vSku}): ${res.body.slice(0, 200)}`);
-          }
-          const data = safeJson(res.body);
-          const offerId = data.offerId || existing?.offerId;
-          if (offerId) variantOfferIds.push(offerId);
+        const existing = await findOfferForSku(apiBase, token, v.vSku, marketplaceId);
+        if (existing?.offerId && (!existing.status || existing.status === "UNPUBLISHED")) {
+          const delRes = await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${existing.offerId}`, token, "DELETE");
+          console.log("Deleted stale unpublished offer:", existing.offerId, delRes.status);
         }
-      }
+        const stillExists = (existing?.offerId && existing.status && existing.status !== "UNPUBLISHED") ? existing : null;
+        const res = stillExists?.offerId
+          ? await ebayRequest(`${apiBase}/sell/inventory/v1/offer/${stillExists.offerId}`, token, "PUT", offerPayload)
+          : await ebayRequest(`${apiBase}/sell/inventory/v1/offer`, token, "POST", offerPayload);
+        if (res.status < 200 || res.status >= 300) {
+          console.error("Variant offer failed:", v.vSku, res.status, res.body);
+          throw new Error(`eBay variant offer failed (${v.vSku}): ${res.body.slice(0, 200)}`);
+        }
+        const data = safeJson(res.body);
+        const offerId = data.offerId || existing?.offerId;
+        if (offerId) variantOfferIds.push(offerId);
+      });
 
       // Step 3: create/update the inventory item group (this is what makes it a multi-variation listing)
       const groupKey = baseSku;
