@@ -273,7 +273,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { userId, productId, listing, images, updateFields } = await req.json();
+    let { userId, productId, listing, images, updateFields } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -367,14 +367,43 @@ serve(async (req) => {
       throw new Error("No eBay access token available. Please reconnect.");
     }
 
-    // Get current product to check existing listing (and verify ownership)
-    const { data: product } = await sb.from("products").select("ebay_listing_id, image_url, user_id").eq("id", productId).maybeSingle();
+    // Get current product to check existing listing (and verify ownership).
+    // Server-side source of truth for price + size_pricing — never trust client values.
+    const { data: product } = await sb
+      .from("products")
+      .select("ebay_listing_id, image_url, user_id, organization_id, price, size_pricing")
+      .eq("id", productId)
+      .maybeSingle();
     if (!product || (product as any).user_id !== userId) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Authoritative pricing: product.size_pricing → org default_size_pricing → product.price
+    const dbProductPricing = ((product as any).size_pricing || {}) as Record<string, any>;
+    let dbSizePricing: Record<string, string> | null = null;
+    if (dbProductPricing && typeof dbProductPricing === "object") {
+      // size_pricing may be { "t-shirt": { S: "29.99", ... } } OR a flat { S: "29.99", ... }
+      if (dbProductPricing["t-shirt"] && typeof dbProductPricing["t-shirt"] === "object") {
+        dbSizePricing = dbProductPricing["t-shirt"];
+      } else if (Object.keys(dbProductPricing).some((k) => /^(XS|S|M|L|XL|2XL|3XL|4XL|5XL)$/i.test(k))) {
+        dbSizePricing = dbProductPricing as Record<string, string>;
+      }
+    }
+    if (!dbSizePricing || Object.keys(dbSizePricing).length === 0) {
+      const { data: orgRow } = await sb
+        .from("organizations")
+        .select("default_size_pricing")
+        .eq("id", (product as any).organization_id)
+        .maybeSingle();
+      const orgDefaults = ((orgRow as any)?.default_size_pricing?.["t-shirt"] || {}) as Record<string, string>;
+      if (orgDefaults && Object.keys(orgDefaults).length > 0) dbSizePricing = orgDefaults;
+    }
+    // Override anything the client sent
+    listing = { ...(listing || {}), price: (product as any).price || listing?.price, size_pricing: dbSizePricing || listing?.size_pricing };
+
     const existingListingId = product?.ebay_listing_id;
     const { data: designRows } = await sb
       .from("product_images")
