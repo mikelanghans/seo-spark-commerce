@@ -461,7 +461,9 @@ serve(async (req) => {
       const baseSku = knownSku;
       const basePrice = Number.parseFloat(parsePrice(listing.price));
       const sizes = sizesFromListing(listing);
-      const colorMap = groupImagesByColor(Array.isArray(images) ? images as any[] : [], excludedDesignUrls);
+      const imagesArr = Array.isArray(images) ? images as any[] : [];
+      const colorMap = groupImagesByColor(imagesArr, excludedDesignUrls);
+      const fallbackImageUrls = allMockupImageUrls(imagesArr, excludedDesignUrls);
       const colors = colorMap.size > 0
         ? Array.from(colorMap.keys())
         : [String(listing?.color || "Black")];
