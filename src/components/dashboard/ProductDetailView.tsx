@@ -59,7 +59,7 @@ export const ProductDetailView = ({
   uploadImageToStorage,
 }: Props) => {
   const [designPreviewOpen, setDesignPreviewOpen] = useState(false);
-  const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(product.image_url ?? null);
+  const [lightDesignUrl, setLightDesignUrl] = useState<string | null>(null);
   const [darkDesignUrl, setDarkDesignUrl] = useState<string | null>(null);
   const [isPreparingDesignFiles, setIsPreparingDesignFiles] = useState(false);
   const [activeDesignDownload, setActiveDesignDownload] = useState<"light" | "dark" | "both" | null>(null);
@@ -225,7 +225,7 @@ export const ProductDetailView = ({
       } catch (error) {
         console.error("Failed to ensure design files", error);
         if (!isActive) return;
-        setLightDesignUrl(product.image_url ?? null);
+        setLightDesignUrl(null);
         setDarkDesignUrl(null);
       } finally {
         if (isActive) setIsPreparingDesignFiles(false);
