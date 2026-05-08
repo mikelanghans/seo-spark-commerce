@@ -9,6 +9,9 @@ const corsHeaders = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const isEbayTransientInventoryError = (body: string) =>
+  /errorId"\s*:\s*25001|Internal Server Error|Core Inventory Service internal error/i.test(body || "");
+
 const ebayRequest = async (url: string, token: string, method: string, payload?: unknown) => {
   const urlObj = new URL(url);
   const body = payload != null ? JSON.stringify(payload) : undefined;
@@ -53,11 +56,11 @@ const ebayRequest = async (url: string, token: string, method: string, payload?:
 
 const ebayRequestWithRetry = async (url: string, token: string, method: string, payload?: unknown) => {
   let result = { status: 0, body: "" };
-  for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) await sleep(1500 * attempt);
+  for (let attempt = 0; attempt < 7; attempt++) {
+    if (attempt > 0) await sleep(Math.min(1000 * Math.pow(2, attempt - 1), 8000) + Math.floor(Math.random() * 750));
     result = await ebayRequest(url, token, method, payload);
     // Retry on 5xx OR transient eBay internal errors (25001) which can come back as 400/500
-    const isTransient = result.status >= 500 || /errorId"\s*:\s*25001|Internal Server Error|Core Inventory Service internal error/i.test(result.body);
+    const isTransient = result.status >= 500 || isEbayTransientInventoryError(result.body);
     if (!isTransient) return result;
   }
   return result;
