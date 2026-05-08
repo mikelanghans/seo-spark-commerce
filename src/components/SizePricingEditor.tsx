@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
@@ -9,7 +9,7 @@ interface Props {
   enabledTypes: ProductTypeKey[];
   /** Current pricing map: { "t-shirt": { "S": "29.99", ... }, ... } */
   value: Record<string, Record<string, string>>;
-  /** Called when any price changes */
+  /** Called (debounced) when any price changes */
   onChange: (updated: Record<string, Record<string, string>>) => void;
   /** If true, shows "Using defaults" hint and only renders overrides */
   isProductLevel?: boolean;
@@ -21,6 +21,18 @@ export const SizePricingEditor = ({ enabledTypes, value, onChange, isProductLeve
     .map((key) => PRODUCT_TYPES[key]);
 
   const [activeTab, setActiveTab] = useState(typesWithSizes[0]?.key || "");
+  // Local mirror so typing is instant; we only call onChange after the user pauses.
+  const [localValue, setLocalValue] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-sync from parent when the underlying value changes from outside (e.g. switching products),
+  // but ignore parent updates while the user is mid-edit (debounce pending).
+  useEffect(() => {
+    if (debounceRef.current) return;
+    setLocalValue(value);
+  }, [value]);
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   if (typesWithSizes.length === 0) {
     return (
@@ -33,17 +45,22 @@ export const SizePricingEditor = ({ enabledTypes, value, onChange, isProductLeve
   const handlePriceChange = (typeKey: string, size: string, price: string) => {
     const sanitized = price.replace(/[^0-9.]/g, "");
     const updated = {
-      ...value,
+      ...localValue,
       [typeKey]: {
-        ...(value[typeKey] || {}),
+        ...(localValue[typeKey] || {}),
         [size]: sanitized,
       },
     };
-    onChange(updated);
+    setLocalValue(updated);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      onChange(updated);
+    }, 800);
   };
 
   const getPrice = (typeKey: string, size: string): string => {
-    return value[typeKey]?.[size] ?? "";
+    return localValue[typeKey]?.[size] ?? "";
   };
 
   const getPlaceholder = (typeKey: string, size: string): string => {
