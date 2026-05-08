@@ -93,6 +93,42 @@ const FEEDBACK_OPTIONS = [
   "Other",
 ];
 
+const clampPlacement = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const getFeedbackAdjustedPlacement = (basePlacement: DesignPlacement | null | undefined, feedback: string): DesignPlacement | undefined => {
+  const text = feedback.toLowerCase();
+  const hasPlacementIntent = /(placement|position|place|move|shift|raise|lower|up|down|left|right|center|size|scale|bigger|larger|smaller|shrink|too high|too low|too far)/.test(text);
+  if (!hasPlacementIntent) return basePlacement || undefined;
+
+  const next: DesignPlacement = {
+    scale: basePlacement?.scale ?? 0.36,
+    offsetX: basePlacement?.offsetX ?? 0,
+    offsetY: basePlacement?.offsetY ?? 0.2,
+  };
+
+  if (/(too high|too far up|too close to (the )?(neck|collar|top))/.test(text)) next.offsetY += 0.04;
+  else if (/(move|shift|raise|higher|up)/.test(text)) next.offsetY -= 0.04;
+
+  if (/(too low|too far down|too close to (the )?(bottom|hem))/.test(text)) next.offsetY -= 0.04;
+  else if (/(move|shift|lower|down)/.test(text)) next.offsetY += 0.04;
+
+  if (/(too far left|too left)/.test(text)) next.offsetX += 0.03;
+  else if (/(move|shift|left)/.test(text)) next.offsetX -= 0.03;
+
+  if (/(too far right|too right)/.test(text)) next.offsetX -= 0.03;
+  else if (/(move|shift|right)/.test(text)) next.offsetX += 0.03;
+
+  if (/(center|centered|centre|centred)/.test(text)) next.offsetX = 0;
+  if (/(bigger|larger|increase|too small)/.test(text)) next.scale += 0.04;
+  if (/(smaller|shrink|reduce|decrease|too big|too large)/.test(text)) next.scale -= 0.04;
+
+  return {
+    scale: clampPlacement(next.scale, 0.18, 0.62),
+    offsetX: clampPlacement(next.offsetX, -0.2, 0.2),
+    offsetY: clampPlacement(next.offsetY, 0.08, 0.42),
+  };
+};
+
 export const ProductMockups = ({ productId, userId, productTitle, organizationId, sourceImageUrl, designImageUrl, brandName, brandNiche, brandAudience, brandTone, productCategory, aiUsage }: Props) => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
