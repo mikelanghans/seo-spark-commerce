@@ -308,7 +308,7 @@ serve(async (req) => {
             flatPricing = (body.sizePricing as Record<string, Record<string, string>>)[category] || Object.values(body.sizePricing)[0] || {};
           }
           for (const [size, p] of Object.entries(flatPricing as Record<string, string>)) {
-            const parsed = parseFloat(((p as string) || "0").replace(/[^0-9.]/g, ""));
+            const parsed = parseFloat(String(p ?? "0").replace(/[^0-9.]/g, ""));
             if (parsed > 0) sizePriceCents[size] = Math.round(parsed * 100);
           }
         }
