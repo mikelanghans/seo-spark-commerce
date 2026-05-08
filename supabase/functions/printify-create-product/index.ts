@@ -315,14 +315,25 @@ serve(async (req) => {
 
         console.log(`Pricing update: fallback=${fallbackPriceCents}, sizePrices=${JSON.stringify(sizePriceCents)}, variants=${printifyProduct.variants.length}`);
 
+        const norm = (s: any) => String(s || "").trim().toUpperCase().replace(/\s+/g, "");
+        const sizePriceMap: Record<string, number> = {};
+        for (const [k, v] of Object.entries(sizePriceCents)) sizePriceMap[norm(k)] = v;
+        const SIZE_PATTERN = /\b(XXS|XS|S|M|L|XL|2XL|3XL|4XL|5XL|XXL|XXXL)\b/i;
+
         updatePayload.variants = printifyProduct.variants
           .filter((v: any) => v.is_enabled)
           .map((v: any) => {
-            const vSize = (v.options?.size || v.title || "").trim();
-            const priceVal = sizePriceCents[vSize] || fallbackPriceCents;
+            let sizeLabel = "";
+            const optSize = v.options?.size;
+            if (typeof optSize === "string") sizeLabel = optSize;
+            if (!sizeLabel && typeof v.title === "string") {
+              const m = v.title.match(SIZE_PATTERN);
+              if (m) sizeLabel = m[1];
+            }
+            const priceVal = sizePriceMap[norm(sizeLabel)] || fallbackPriceCents;
             return { id: v.id, price: priceVal, is_enabled: true };
           });
-        console.log(`Pricing update: sending ${updatePayload.variants.length} enabled variants`);
+        console.log(`Pricing update: sending ${updatePayload.variants.length} enabled variants, sample=${JSON.stringify(updatePayload.variants.slice(0,3))}`);
       }
 
       if (Object.keys(updatePayload).length === 0) {
