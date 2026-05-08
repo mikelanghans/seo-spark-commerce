@@ -54,9 +54,10 @@ export const ListingOutput = ({ marketplace, listing, onSave, suggestionContext 
   // Re-sync draft whenever the underlying listing prop changes (e.g. after regeneration
   // or switching products). Prevents stale tags / SEO from leaking into edit mode.
   useEffect(() => {
+    // Don't clobber in-progress edits when the parent re-renders / refetches.
+    if (editing) return;
     setDraft(listing);
-    setEditing(false);
-  }, [listing]);
+  }, [listing, editing]);
 
   const startEdit = () => {
     setDraft({ ...listing });
