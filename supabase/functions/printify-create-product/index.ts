@@ -344,14 +344,31 @@ serve(async (req) => {
 
       console.log(`Updating Printify product ${pPrintifyProductId}: fields=${fields.join(",")}`);
 
-      const updateRes = await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
+      const doUpdate = () => fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}.json`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
         body: JSON.stringify(updatePayload),
       });
+      let updateRes = await doUpdate();
       if (!updateRes.ok) {
         const errText = await updateRes.text();
-        throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
+        // 8252 = "Product is disabled for editing" — product is locked by a pending publish.
+        // Unlock by marking publishing as succeeded, then retry once.
+        if (errText.includes("8252") || errText.includes("disabled for editing")) {
+          console.log("Printify product locked (8252) — attempting to unlock via publishing_succeeded");
+          await fetch(`https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}/publishing_succeeded.json`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ external: { id: String(body.productId || pPrintifyProductId), handle: `https://printify.com` } }),
+          }).catch(() => {});
+          updateRes = await doUpdate();
+          if (!updateRes.ok) {
+            const retryErr = await updateRes.text();
+            throw new Error(`Printify update failed after unlock: ${updateRes.status} ${retryErr}`);
+          }
+        } else {
+          throw new Error(`Printify update failed: ${updateRes.status} ${errText}`);
+        }
       }
 
       const resolvedShopifyProductId = await getPrintifyExternalShopifyId(printifyToken, pShopId, pPrintifyProductId);
