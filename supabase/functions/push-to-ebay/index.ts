@@ -78,7 +78,13 @@ const cleanText = (value: unknown, fallback: string, maxLength: number) => {
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return (cleaned || fallback).slice(0, maxLength);
+  const text = cleaned || fallback;
+  if (text.length <= maxLength) return text;
+  // Truncate at word boundary, trim trailing separators
+  const sliced = text.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(" ");
+  const cut = lastSpace > maxLength * 0.6 ? sliced.slice(0, lastSpace) : sliced;
+  return cut.replace(/[\s,\-|·•:;]+$/g, "").trim();
 };
 
 // Convert plain-text description into HTML preserving paragraph breaks.
