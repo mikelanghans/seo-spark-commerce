@@ -487,6 +487,12 @@ export const ProductDetailView = ({
           targetSize: 4500,
           suffix: "dark",
         });
+        const { lightUrl } = await createAndUploadDesignVariants({
+          sourceDataUrl,
+          userId,
+          targetSize: 4500,
+        });
+        derivedOtherUrl = lightUrl;
       } else {
         const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
           sourceDataUrl,
