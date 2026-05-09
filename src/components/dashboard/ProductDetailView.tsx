@@ -462,6 +462,7 @@ export const ProductDetailView = ({
 
     designRefreshVersionRef.current += 1;
     let newUrl: string | null = null;
+    let derivedOtherUrl: string | null = null;
 
     try {
       const sourceDataUrl = await fileToDataUrl(file);
@@ -471,6 +472,7 @@ export const ProductDetailView = ({
         targetSize: 4500,
       });
       newUrl = variant === "light" ? lightUrl : (darkUrl || lightUrl);
+      derivedOtherUrl = variant === "light" ? darkUrl : lightUrl;
     } catch (error) {
       console.error("Failed to prepare uploaded design file", error);
       newUrl = await uploadImageToStorage(file);
@@ -480,7 +482,6 @@ export const ProductDetailView = ({
 
     const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
     const position = variant === "light" ? 0 : 1;
-    const derivedOtherUrl = variant === "light" ? darkUrl : lightUrl;
 
     // Always ensure the product row has an image_url so downstream features
     // (placement editor, mockup generation, push) work after a clear+replace.
