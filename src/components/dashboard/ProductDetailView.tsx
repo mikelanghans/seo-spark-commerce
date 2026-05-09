@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ export const ProductDetailView = ({
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
+  const designRefreshVersionRef = useRef(0);
 
   const categoryOptions = useMemo(() => {
     const enabled = (organization?.enabled_product_types || []) as ProductTypeKey[];
@@ -172,6 +173,7 @@ export const ProductDetailView = ({
     let isActive = true;
 
     const ensureDesignFiles = async () => {
+      const refreshVersion = designRefreshVersionRef.current;
       if (!userId) {
         setLightDesignUrl(null);
         setDarkDesignUrl(null);
@@ -235,6 +237,7 @@ export const ProductDetailView = ({
             userId,
             targetSize: 4500,
           });
+          if (!isActive || refreshVersion !== designRefreshVersionRef.current) return;
           nextLightUrl = lightUrl;
           nextDarkUrl = darkUrl;
         }
@@ -251,6 +254,8 @@ export const ProductDetailView = ({
           nextLightUrl ? { product_id: product.id, user_id: userId, image_url: nextLightUrl, image_type: "design", color_name: "light-on-dark", position: 0 } : null,
           nextDarkUrl ? { product_id: product.id, user_id: userId, image_url: nextDarkUrl, image_type: "design", color_name: "dark-on-light", position: 1 } : null,
         ].filter(Boolean) as Array<{ product_id: string; user_id: string; image_url: string; image_type: string; color_name: string; position: number }>;
+
+        if (!isActive || refreshVersion !== designRefreshVersionRef.current) return;
 
         if (rowsToSave.length > 0) {
           await insertProductImagesDeduped(rowsToSave);
