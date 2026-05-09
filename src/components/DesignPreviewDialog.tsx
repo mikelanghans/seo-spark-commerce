@@ -11,7 +11,7 @@ import {
 import { Download, Loader2, ImagePlus, X, RefreshCw, History, ThumbsDown, ArrowRight, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { darkenBrightPixels, hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, removeBackground } from "@/lib/removeBackground";
+import { darkenBrightPixels, hasMeaningfulAccentColors, isMultiColorDesign, recolorOpaquePixels, smartRemoveBackground } from "@/lib/removeBackground";
 
 interface HistoryEntry {
   id: string;
@@ -132,7 +132,7 @@ export const DesignPreviewDialog = ({
           }),
       );
 
-    const cleanedBase64 = await removeBackground(lightDesignBase64, "black");
+    const cleanedBase64 = await smartRemoveBackground(lightDesignBase64);
     const preserveAccentColors = await hasMeaningfulAccentColors(cleanedBase64) || await isMultiColorDesign(cleanedBase64);
     const darkContents = preserveAccentColors
       ? await darkenBrightPixels(cleanedBase64)
