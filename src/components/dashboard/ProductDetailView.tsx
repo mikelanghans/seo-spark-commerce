@@ -234,14 +234,15 @@ export const ProductDetailView = ({
           (nextDarkUrl && !hasPersistedDark) ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(true),
         ]);
 
+        const hasAnyPersistedDesign = hasPersistedLight || hasPersistedDark;
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
         // Only re-derive when a variant URL is genuinely missing, or when the only
         // file we have is shared between light/dark and didn't come from a trusted
         // persisted upload.
-        const needsLightUpload = !nextLightUrl || (!hasPersistedLight && !storedLightHasTransparency);
-        const needsDarkUpload = !nextDarkUrl
+        const needsLightUpload = !hasAnyPersistedDesign && (!nextLightUrl || (!hasPersistedLight && !storedLightHasTransparency));
+        const needsDarkUpload = !hasAnyPersistedDesign && (!nextDarkUrl
           || (!hasPersistedDark && !storedDarkHasTransparency)
-          || (variantsShareSameFile && !hasPersistedDark);
+          || (variantsShareSameFile && !hasPersistedDark));
         const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
@@ -487,20 +488,13 @@ export const ProductDetailView = ({
           targetSize: 4500,
           suffix: "dark",
         });
-        const { lightUrl } = await createAndUploadDesignVariants({
-          sourceDataUrl,
-          userId,
-          targetSize: 4500,
-        });
-        derivedOtherUrl = lightUrl;
       } else {
-        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+        newUrl = await normalizeAndUploadDesignVariant({
           sourceDataUrl,
           userId,
           targetSize: 4500,
+          suffix: "light",
         });
-        newUrl = lightUrl;
-        derivedOtherUrl = darkUrl;
       }
     } catch (error) {
       console.error("Failed to prepare uploaded design file", error);
@@ -551,7 +545,7 @@ export const ProductDetailView = ({
       rowsToInsert.push({
         product_id: product.id,
         user_id: userId,
-        image_url: derivedOtherUrl || newUrl,
+          image_url: derivedOtherUrl || newUrl,
         image_type: "design",
         color_name: otherColor,
         position: otherPosition,

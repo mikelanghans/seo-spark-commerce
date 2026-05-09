@@ -86,6 +86,8 @@ export function resolveSingleDesignVariant<T extends { image_url: string; color_
 
   const light = normalized.find((image) => image.normalizedColorName === "light-on-dark")?.image_url || fallbackUrl || null;
   const dark = normalized.find((image) => image.normalizedColorName === "dark-on-light")?.image_url || null;
+  const hasExplicitLight = normalized.some((image) => image.normalizedColorName === "light-on-dark");
+  const hasExplicitDark = normalized.some((image) => image.normalizedColorName === "dark-on-light");
   const normalizedUrls = new Set(
     [
       ...normalized.map((image) => normalizeDesignUrl(image.image_url)),
@@ -97,18 +99,18 @@ export function resolveSingleDesignVariant<T extends { image_url: string; color_
   if (
     sharedUrl &&
     (
-      normalizedUrls.size === 1 ||
-      (!!light && !!dark && normalizeDesignUrl(light) === normalizeDesignUrl(dark))
+      (normalizedUrls.size === 1 && hasExplicitLight && hasExplicitDark) ||
+      (hasExplicitLight && hasExplicitDark && !!light && !!dark && normalizeDesignUrl(light) === normalizeDesignUrl(dark))
     )
   ) {
     return { lightUrl: sharedUrl, darkUrl: sharedUrl, hasSingleSharedFile: true };
   }
 
-  if (light && !dark) {
+  if (light && !dark && !hasExplicitLight) {
     return { lightUrl: light, darkUrl: light, hasSingleSharedFile: true };
   }
 
-  if (!light && dark) {
+  if (!light && dark && !hasExplicitDark) {
     return { lightUrl: dark, darkUrl: dark, hasSingleSharedFile: true };
   }
 
