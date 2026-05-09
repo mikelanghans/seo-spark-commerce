@@ -217,17 +217,31 @@ export const ProductDetailView = ({
         let nextLightUrl = isUsableDesignUrl(lightRow?.image_url) ? lightRow!.image_url : null;
         let nextDarkUrl = isUsableDesignUrl(darkRow?.image_url) ? darkRow!.image_url : null;
 
+        // Trust persisted product_images rows: they already came from the validated
+        // upload pipeline (createAndUploadDesignVariants or handleReplaceDesign).
+        // Re-running heuristic transparency checks here can false-negative on valid
+        // user-uploaded files and trigger an overwrite that destroys their work.
+        const hasPersistedLight = !!nextLightUrl && isUsableDesignUrl(lightRow?.image_url);
+        const hasPersistedDark = !!nextDarkUrl && isUsableDesignUrl(darkRow?.image_url);
+
         if (!nextLightUrl && isUsableDesignUrl(messageDesign?.design_url)) nextLightUrl = messageDesign!.design_url;
         if (!nextDarkUrl && isUsableDesignUrl(messageDesign?.dark_design_url)) nextDarkUrl = messageDesign!.dark_design_url;
 
+        // Only run the transparency heuristic on URLs that came from generated_messages
+        // (legacy, may be raw uploads), not on persisted product_images rows.
         const [storedLightHasTransparency, storedDarkHasTransparency] = await Promise.all([
-          nextLightUrl ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(false),
-          nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
+          (nextLightUrl && !hasPersistedLight) ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(true),
+          (nextDarkUrl && !hasPersistedDark) ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(true),
         ]);
 
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
-        const needsLightUpload = !nextLightUrl || !storedLightHasTransparency;
-        const needsDarkUpload = !nextDarkUrl || !storedDarkHasTransparency || variantsShareSameFile;
+        // Only re-derive when a variant URL is genuinely missing, or when the only
+        // file we have is shared between light/dark and didn't come from a trusted
+        // persisted upload.
+        const needsLightUpload = !nextLightUrl || (!hasPersistedLight && !storedLightHasTransparency);
+        const needsDarkUpload = !nextDarkUrl
+          || (!hasPersistedDark && !storedDarkHasTransparency)
+          || (variantsShareSameFile && !hasPersistedDark);
         const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
