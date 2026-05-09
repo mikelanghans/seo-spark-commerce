@@ -454,6 +454,36 @@ serve(async (req) => {
       console.log(`Updated ${allVariants.length} variants (inventory tracking disabled, shipping, pricing)`);
     }
 
+    // Attach product variants to the brand's chosen Shopify shipping/delivery profile (if any)
+    const shippingProfileId = (connection as any).shipping_profile_id as string | null | undefined;
+    if (shippingProfileId && createdProduct?.id && allVariants.length) {
+      try {
+        const variantGids = allVariants.map((v: any) => `gid://shopify/ProductVariant/${v.id}`);
+        const mutation = `mutation profileUpdate($id: ID!, $profile: DeliveryProfileInput!) {
+          deliveryProfileUpdate(id: $id, profile: $profile) {
+            userErrors { field message }
+          }
+        }`;
+        const gqlRes = await fetch(`https://${domain}/admin/api/2024-01/graphql.json`, {
+          method: "POST",
+          headers: { "X-Shopify-Access-Token": connection.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: mutation,
+            variables: { id: shippingProfileId, profile: { variantsToAssociate: variantGids } },
+          }),
+        });
+        const gqlJson = await gqlRes.json().catch(() => ({}));
+        const userErrors = gqlJson?.data?.deliveryProfileUpdate?.userErrors;
+        if (!gqlRes.ok || (userErrors && userErrors.length)) {
+          console.warn("deliveryProfileUpdate warning:", gqlRes.status, JSON.stringify(userErrors || gqlJson));
+        } else {
+          console.log(`Attached ${variantGids.length} variants to delivery profile ${shippingProfileId}`);
+        }
+      } catch (err) {
+        console.warn("Failed to attach variants to delivery profile:", err);
+      }
+    }
+
     // Update SEO metafields (title_tag, description_tag) via metafields API
     const shouldUpdateSeo = !updateFields || updateFields.includes("seo");
     if (createdProduct?.id && shouldUpdateSeo) {
