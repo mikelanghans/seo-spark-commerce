@@ -53,7 +53,7 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
 
-  const handleConfirm = async (selectedMockups: MockupImage[], updateFields?: string[]) => {
+  const handleConfirm = async (selectedMockups: MockupImage[], updateFields?: string[], replaceAllImages?: boolean) => {
     setPushing(true);
     setResult(null);
     try {
