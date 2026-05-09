@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -21,8 +22,12 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     has_token: boolean;
     has_credentials: boolean;
     client_id: string | null;
+    shipping_profile_id: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shippingProfiles, setShippingProfiles] = useState<{ id: string; name: string; default: boolean }[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
@@ -138,6 +143,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           has_token: conn.has_token,
           has_credentials: conn.has_credentials,
           client_id: conn.client_id,
+          shipping_profile_id: conn.shipping_profile_id ?? null,
         });
         setStoreDomain(conn.store_domain);
         setClientId(conn.client_id || "");
@@ -358,6 +364,74 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-600">
           <Check className="h-4 w-4" />
           Connected to <span className="font-medium">{existing.store_domain}</span>
+        </div>
+      )}
+
+      {existing?.has_token && (
+        <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+          <div className="flex items-center gap-2">
+            <Truck className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Default Shipping Profile</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Pushed products will be added to this shipping/delivery profile. Leave on "General profile (default)" to use Shopify's default.
+          </p>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select
+              value={existing.shipping_profile_id || "__default__"}
+              onValueChange={async (val) => {
+                setSavingProfile(true);
+                try {
+                  const newId = val === "__default__" ? null : val;
+                  const { error } = await supabase.functions.invoke("save-shopify-credentials", {
+                    body: { action: "set_shipping_profile", organizationId: organizationId || null, shippingProfileId: newId },
+                  });
+                  if (error) throw error;
+                  setExisting((prev) => prev ? { ...prev, shipping_profile_id: newId } : prev);
+                  toast.success("Shipping profile updated");
+                } catch (err: any) {
+                  toast.error(err.message || "Failed to save shipping profile");
+                } finally { setSavingProfile(false); }
+              }}
+              disabled={savingProfile || loadingProfiles}
+            >
+              <SelectTrigger className="min-w-[260px] flex-1">
+                <SelectValue placeholder="General profile (default)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__default__">General profile (default)</SelectItem>
+                {shippingProfiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}{p.default ? " (default)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={loadingProfiles}
+              onClick={async () => {
+                setLoadingProfiles(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("fetch-shopify-shipping-profiles", {
+                    body: { organizationId: organizationId || null },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  setShippingProfiles(data?.profiles || []);
+                  toast.success(`Loaded ${(data?.profiles || []).length} profiles`);
+                } catch (err: any) {
+                  toast.error(err.message || "Failed to load profiles");
+                } finally { setLoadingProfiles(false); }
+              }}
+            >
+              {loadingProfiles ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Load profiles
+            </Button>
+          </div>
         </div>
       )}
 

@@ -68,7 +68,7 @@ serve(async (req) => {
     if (inferredCheck) {
       let query = adminClient
         .from("shopify_connections")
-        .select("id, store_domain, access_token, client_id, client_secret")
+        .select("id, store_domain, access_token, client_id, client_secret, shipping_profile_id")
         .eq("user_id", user.id);
       if (organizationId) query = query.eq("organization_id", organizationId);
       const { data: conn } = await query.maybeSingle();
@@ -86,8 +86,26 @@ serve(async (req) => {
           has_token: !!(conn.access_token && conn.access_token.length > 0),
           has_credentials: !!(conn.client_id && conn.client_secret),
           client_id: conn.client_id,
+          shipping_profile_id: conn.shipping_profile_id || null,
         },
       }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === SET_SHIPPING_PROFILE action: update only shipping_profile_id ===
+    if (action === "set_shipping_profile") {
+      const shippingProfileId = typeof body.shippingProfileId === "string" ? body.shippingProfileId : null;
+      let q = adminClient.from("shopify_connections").select("id").eq("user_id", user.id);
+      if (organizationId) q = q.eq("organization_id", organizationId);
+      const { data: existingConn } = await q.maybeSingle();
+      if (!existingConn) throw new Error("No Shopify connection found");
+      const { error } = await adminClient
+        .from("shopify_connections")
+        .update({ shipping_profile_id: shippingProfileId })
+        .eq("id", existingConn.id);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
