@@ -460,6 +460,7 @@ export const ProductDetailView = ({
       return;
     }
 
+    designRefreshVersionRef.current += 1;
     let newUrl: string | null = null;
 
     try {
@@ -479,6 +480,7 @@ export const ProductDetailView = ({
 
     const colorName = variant === "light" ? "light-on-dark" : "dark-on-light";
     const position = variant === "light" ? 0 : 1;
+    const derivedOtherUrl = variant === "light" ? darkUrl : lightUrl;
 
     // Always ensure the product row has an image_url so downstream features
     // (placement editor, mockup generation, push) work after a clear+replace.
@@ -519,7 +521,7 @@ export const ProductDetailView = ({
       rowsToInsert.push({
         product_id: product.id,
         user_id: userId,
-        image_url: newUrl,
+        image_url: derivedOtherUrl || newUrl,
         image_type: "design",
         color_name: otherColor,
         position: otherPosition,
@@ -530,10 +532,10 @@ export const ProductDetailView = ({
 
     if (variant === "light") {
       setLightDesignUrl(newUrl);
-      if (!otherIsValid) setDarkDesignUrl(newUrl);
+      if (!otherIsValid) setDarkDesignUrl(derivedOtherUrl || newUrl);
     } else {
       setDarkDesignUrl(newUrl);
-      if (!otherIsValid) setLightDesignUrl(newUrl);
+      if (!otherIsValid) setLightDesignUrl(derivedOtherUrl || newUrl);
     }
 
     if (shouldSetProductImage) {
