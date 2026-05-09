@@ -62,6 +62,7 @@ export const ShopifyPushPreview = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loadingMockups, setLoadingMockups] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [replaceAllImages, setReplaceAllImages] = useState(false);
 
   const isExisting = !!product.shopify_product_id;
 
