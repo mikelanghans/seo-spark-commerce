@@ -143,6 +143,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           has_token: conn.has_token,
           has_credentials: conn.has_credentials,
           client_id: conn.client_id,
+          shipping_profile_id: conn.shipping_profile_id ?? null,
         });
         setStoreDomain(conn.store_domain);
         setClientId(conn.client_id || "");
