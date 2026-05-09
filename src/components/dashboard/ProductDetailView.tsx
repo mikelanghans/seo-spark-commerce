@@ -234,14 +234,15 @@ export const ProductDetailView = ({
           (nextDarkUrl && !hasPersistedDark) ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(true),
         ]);
 
+        const hasAnyPersistedDesign = hasPersistedLight || hasPersistedDark;
         const variantsShareSameFile = !!(nextLightUrl && nextDarkUrl && normalizeDesignAssetUrl(nextLightUrl) === normalizeDesignAssetUrl(nextDarkUrl));
         // Only re-derive when a variant URL is genuinely missing, or when the only
         // file we have is shared between light/dark and didn't come from a trusted
         // persisted upload.
-        const needsLightUpload = !nextLightUrl || (!hasPersistedLight && !storedLightHasTransparency);
-        const needsDarkUpload = !nextDarkUrl
+        const needsLightUpload = !hasAnyPersistedDesign && (!nextLightUrl || (!hasPersistedLight && !storedLightHasTransparency));
+        const needsDarkUpload = !hasAnyPersistedDesign && (!nextDarkUrl
           || (!hasPersistedDark && !storedDarkHasTransparency)
-          || (variantsShareSameFile && !hasPersistedDark);
+          || (variantsShareSameFile && !hasPersistedDark));
         const sourceUrl = nextLightUrl ?? nextDarkUrl;
 
         if ((needsLightUpload || needsDarkUpload) && sourceUrl) {
