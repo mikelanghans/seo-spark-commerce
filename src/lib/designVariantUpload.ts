@@ -99,3 +99,19 @@ export async function createAndUploadDesignVariants({
     hasDistinctDarkVariant,
   };
 }
+
+export async function normalizeAndUploadDesignVariant({
+  sourceDataUrl,
+  userId,
+  targetSize = 4500,
+  suffix,
+}: {
+  sourceDataUrl: string;
+  userId: string;
+  targetSize?: number;
+  suffix: "light" | "dark";
+}) {
+  const cleanedBase64 = await smartRemoveBackground(sourceDataUrl).catch(() => sourceDataUrl.replace(DATA_URL_BASE64_PREFIX, ""));
+  const normalizedBase64 = await upscaleBase64Png(cleanedBase64.replace(DATA_URL_BASE64_PREFIX, ""), targetSize);
+  return uploadVariantBase64(userId, normalizedBase64, suffix);
+}
