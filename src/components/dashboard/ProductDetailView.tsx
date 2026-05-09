@@ -18,7 +18,7 @@ import { SmartPricing } from "@/components/SmartPricing";
 import { SizePricingEditor } from "@/components/SizePricingEditor";
 import type { ProductTypeKey } from "@/lib/productTypes";
 import { insertProductImagesDeduped, normalizeDesignColorName } from "@/lib/productImageUtils";
-import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
+import { createAndUploadDesignVariants, normalizeAndUploadDesignVariant } from "@/lib/designVariantUpload";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { canAccess } from "@/lib/featureGates";
 import { getProductType, PRODUCT_TYPES } from "@/lib/productTypes";
@@ -480,13 +480,22 @@ export const ProductDetailView = ({
 
     try {
       const sourceDataUrl = await fileToDataUrl(file);
-      const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
-        sourceDataUrl,
-        userId,
-        targetSize: 4500,
-      });
-      newUrl = variant === "light" ? lightUrl : (darkUrl || lightUrl);
-      derivedOtherUrl = variant === "light" ? darkUrl : lightUrl;
+      if (variant === "dark") {
+        newUrl = await normalizeAndUploadDesignVariant({
+          sourceDataUrl,
+          userId,
+          targetSize: 4500,
+          suffix: "dark",
+        });
+      } else {
+        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+          sourceDataUrl,
+          userId,
+          targetSize: 4500,
+        });
+        newUrl = lightUrl;
+        derivedOtherUrl = darkUrl;
+      }
     } catch (error) {
       console.error("Failed to prepare uploaded design file", error);
       newUrl = await uploadImageToStorage(file);
