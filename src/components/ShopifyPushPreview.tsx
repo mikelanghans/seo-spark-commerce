@@ -288,6 +288,26 @@ export const ShopifyPushPreview = ({
                 })}
               </div>
             )}
+
+            {/* Add vs Replace toggle (only meaningful for existing products) */}
+            {isExisting && mockups.length > 0 && (
+              <div className="mt-3 flex items-start gap-2 rounded-md border border-border bg-secondary/30 p-2.5">
+                <Checkbox
+                  id="replace-all-images"
+                  checked={replaceAllImages}
+                  onCheckedChange={(v) => setReplaceAllImages(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="replace-all-images" className="cursor-pointer text-xs leading-relaxed">
+                  <span className="font-medium">Replace all images on Shopify</span>
+                  <span className="block text-muted-foreground">
+                    {replaceAllImages
+                      ? "Every image on Shopify will be wiped and replaced with the selection above."
+                      : "Default: keep existing Shopify images and only add/update the colors selected above."}
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
           {/* Update field selector for existing products */}
           {isExisting && (
@@ -299,7 +319,7 @@ export const ShopifyPushPreview = ({
                 onToggleField={toggleUpdateField}
                 onSelectAll={() => setSelectedUpdateFields(SHOPIFY_UPDATE_FIELDS.map(f => f.key))}
                 onDeselectAll={() => setSelectedUpdateFields([])}
-                onUpdate={() => onConfirm(selectedMockups, selectedUpdateFields)}
+                onUpdate={() => onConfirm(selectedMockups, selectedUpdateFields, replaceAllImages)}
                 updating={pushing}
                 platformName="Shopify"
               />
