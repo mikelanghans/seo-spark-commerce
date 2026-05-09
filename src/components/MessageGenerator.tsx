@@ -1024,18 +1024,38 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             });
           }
 
-          // Upload file to storage
-          const ext = file.name.split(".").pop() || "png";
-          const path = `${userId}/designs/${Date.now()}-${variant}.${ext}`;
-          const { error: uploadErr } = await supabase.storage
-            .from("product-images")
-            .upload(path, file, { contentType: file.type });
-          if (uploadErr) {
-            toast.error("Failed to upload design file");
-            return;
+          // Process the uploaded file through the standard variant pipeline so
+          // white/solid backgrounds get stripped before storage. Without this,
+          // an uploaded PNG with a white bg would render with halos/distortion
+          // when the dark-ink variant is generated on demand.
+          let newDesignUrl: string;
+          try {
+            const reader = new FileReader();
+            const sourceDataUrl: string = await new Promise((resolve, reject) => {
+              reader.onloadend = () => resolve(String(reader.result || ""));
+              reader.onerror = () => reject(new Error("Failed to read design file"));
+              reader.readAsDataURL(file);
+            });
+            const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+              sourceDataUrl,
+              userId,
+              targetSize: 4500,
+            });
+            newDesignUrl = isDark ? (darkUrl || lightUrl) : lightUrl;
+          } catch (err) {
+            console.error("Design variant prep failed, falling back to raw upload", err);
+            const ext = file.name.split(".").pop() || "png";
+            const path = `${userId}/designs/${Date.now()}-${variant}.${ext}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("product-images")
+              .upload(path, file, { contentType: file.type });
+            if (uploadErr) {
+              toast.error("Failed to upload design file");
+              return;
+            }
+            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+            newDesignUrl = urlData.publicUrl;
           }
-          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-          const newDesignUrl = urlData.publicUrl;
 
           // Update only the targeted variant column
           const updatePayload: Record<string, string> = isDark
