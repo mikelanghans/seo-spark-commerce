@@ -110,8 +110,8 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
           imageUrl: product.image_url,
           variants: optimizedVariants,
           forceVariants: false,
-          // Mirror local mockups exactly: removed mockups should disappear from Shopify too
-          replaceAllImages: true,
+          // Default: additive (preserve existing Shopify images). Caller can opt into full wipe.
+          replaceAllImages: replaceAllImages === true,
           ...(updateFields ? { updateFields } : {}),
         },
       });
