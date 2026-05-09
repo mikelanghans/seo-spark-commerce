@@ -582,7 +582,9 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
 
     try {
       for (const msg of ready) {
-        const { lightUrl, darkUrl } = await prepareDesignVariantsForProduct(msg.design_url!);
+        const preparedVariants = await prepareDesignVariantsForProduct(msg.design_url!);
+        const lightUrl = preparedVariants.lightUrl;
+        const darkUrl = msg.dark_design_url || preparedVariants.darkUrl;
         const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
         const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
         const autoKeywords = msg.message_text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).join(", ") + ", t-shirt, print on demand, minimalist, typography";
@@ -962,7 +964,9 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           if (!msg || !msg.design_url) return;
 
           const variantMode = (organization as any).design_variant_mode || "both";
-          const { lightUrl, darkUrl } = await prepareDesignVariantsForProduct(msg.design_url);
+          const preparedVariants = await prepareDesignVariantsForProduct(msg.design_url);
+          const lightUrl = preparedVariants.lightUrl;
+          const darkUrl = msg.dark_design_url || preparedVariants.darkUrl;
 
           const autoDescription = `${msg.message_text} — A premium print-on-demand ${organization.niche ? organization.niche + " " : ""}t-shirt featuring bold minimalist typography. Designed for ${organization.audience || "everyday wear"}. Part of the ${organization.name} collection.`;
           const autoFeatures = "Premium cotton blend\nComfortable unisex fit\nDurable print quality\nPre-shrunk fabric\nDouble-stitched hems";
