@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
