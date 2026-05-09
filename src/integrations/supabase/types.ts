@@ -1313,6 +1313,7 @@ export type Database = {
           created_at: string
           id: string
           organization_id: string | null
+          shipping_profile_id: string | null
           store_domain: string
           updated_at: string
           user_id: string
@@ -1324,6 +1325,7 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id?: string | null
+          shipping_profile_id?: string | null
           store_domain: string
           updated_at?: string
           user_id: string
@@ -1335,6 +1337,7 @@ export type Database = {
           created_at?: string
           id?: string
           organization_id?: string | null
+          shipping_profile_id?: string | null
           store_domain?: string
           updated_at?: string
           user_id?: string
