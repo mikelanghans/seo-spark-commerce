@@ -130,10 +130,11 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
       setPreviewOpen(false);
       toast.success("Product pushed to Shopify!");
 
-      // Update local state with the new Shopify product ID
+      // Update local state with the new Shopify product ID, then refresh products list
       if (data?.shopifyProduct?.id) {
-        onProductUpdate?.({ shopify_product_id: data.shopifyProduct.id });
+        onProductUpdate?.({ shopify_product_id: data.shopifyProduct.id, shopify_synced_at: new Date().toISOString() } as Partial<Product>);
       }
+      onPushed?.();
     } catch (err: any) {
       const msg = err.message || "Failed to push to Shopify";
       if (msg.includes("No Shopify connection") || msg.includes("credentials")) {
