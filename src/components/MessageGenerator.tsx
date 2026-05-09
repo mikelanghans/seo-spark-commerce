@@ -12,7 +12,7 @@ import { handleAiError } from "@/lib/aiErrors";
 import { ensureValidSession } from "@/lib/sessionRefresh";
 import { getStyleLabel } from "@/lib/designStyles";
 import { resolveSingleDesignVariant } from "@/lib/productImageUtils";
-import { createAndUploadDesignVariants } from "@/lib/designVariantUpload";
+import { createAndUploadDesignVariants, normalizeAndUploadDesignVariant } from "@/lib/designVariantUpload";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   Promise.race([
@@ -1036,12 +1036,21 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
               reader.onerror = () => reject(new Error("Failed to read design file"));
               reader.readAsDataURL(file);
             });
-            const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
-              sourceDataUrl,
-              userId,
-              targetSize: 4500,
-            });
-            newDesignUrl = isDark ? (darkUrl || lightUrl) : lightUrl;
+            if (isDark) {
+              newDesignUrl = await normalizeAndUploadDesignVariant({
+                sourceDataUrl,
+                userId,
+                targetSize: 4500,
+                suffix: "dark",
+              });
+            } else {
+              const { lightUrl } = await createAndUploadDesignVariants({
+                sourceDataUrl,
+                userId,
+                targetSize: 4500,
+              });
+              newDesignUrl = lightUrl;
+            }
           } catch (err) {
             console.error("Design variant prep failed, falling back to raw upload", err);
             const ext = file.name.split(".").pop() || "png";
