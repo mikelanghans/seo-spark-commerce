@@ -488,13 +488,6 @@ export const ProductDetailView = ({
           targetSize: 4500,
           suffix: "dark",
         });
-        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
-          sourceDataUrl,
-          userId,
-          targetSize: 4500,
-        });
-        const generatedDarkMatchesUpload = darkUrl && normalizeDesignAssetUrl(darkUrl) === normalizeDesignAssetUrl(newUrl);
-        derivedOtherUrl = generatedDarkMatchesUpload ? lightUrl : null;
       } else {
         newUrl = await normalizeAndUploadDesignVariant({
           sourceDataUrl,
@@ -502,13 +495,6 @@ export const ProductDetailView = ({
           targetSize: 4500,
           suffix: "light",
         });
-        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
-          sourceDataUrl,
-          userId,
-          targetSize: 4500,
-        });
-        const generatedLightMatchesUpload = normalizeDesignAssetUrl(lightUrl) === normalizeDesignAssetUrl(newUrl);
-        derivedOtherUrl = generatedLightMatchesUpload ? darkUrl : null;
       }
     } catch (error) {
       console.error("Failed to prepare uploaded design file", error);
