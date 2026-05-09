@@ -356,7 +356,9 @@ serve(async (req) => {
       await adminClient.from("products").update({ shopify_product_id: createdProduct.id, shopify_synced_at: new Date().toISOString() }).eq("id", product.id);
     }
 
-    if (!isUpdate && createdProduct?.id && existingPrintifyId) {
+    // Always notify Printify that publishing succeeded so the linked product
+    // doesn't get stuck in "Publishing failed" state — for both create and update flows.
+    if (createdProduct?.id && existingPrintifyId) {
       if (organizationId) {
         const { data: org } = await adminClient
           .from("organizations")
