@@ -22,8 +22,12 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     has_token: boolean;
     has_credentials: boolean;
     client_id: string | null;
+    shipping_profile_id: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shippingProfiles, setShippingProfiles] = useState<{ id: string; name: string; default: boolean }[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [pendingAuthUrl, setPendingAuthUrl] = useState<string | null>(null);
