@@ -45,9 +45,10 @@ interface Props {
   userId: string;
   organizationId?: string;
   onProductUpdate?: (updates: Partial<Product>) => void;
+  onPushed?: () => void;
 }
 
-export const PushToShopify = ({ product, listings, userId, organizationId, onProductUpdate }: Props) => {
+export const PushToShopify = ({ product, listings, userId, organizationId, onProductUpdate, onPushed }: Props) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState<{ success: boolean } | null>(null);
