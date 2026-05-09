@@ -157,11 +157,11 @@ serve(async (req) => {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const res = await adminClient.from("shopify_connections").select("store_domain, access_token").eq("organization_id", organizationId).maybeSingle();
+      const res = await adminClient.from("shopify_connections").select("store_domain, access_token, shipping_profile_id").eq("organization_id", organizationId).maybeSingle();
       connection = res.data;
     }
     if (!connection) {
-      const res = await adminClient.from("shopify_connections").select("store_domain, access_token").eq("user_id", user.id).maybeSingle();
+      const res = await adminClient.from("shopify_connections").select("store_domain, access_token, shipping_profile_id").eq("user_id", user.id).maybeSingle();
       connection = res.data;
     }
     if (!connection) {
