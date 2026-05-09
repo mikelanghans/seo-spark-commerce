@@ -344,7 +344,7 @@ export const ShopifyPushPreview = ({
             Cancel
           </Button>
           <Button
-            onClick={() => onConfirm(selectedMockups)}
+            onClick={() => onConfirm(selectedMockups, undefined, replaceAllImages)}
             disabled={pushing}
             className="gap-2"
           >
