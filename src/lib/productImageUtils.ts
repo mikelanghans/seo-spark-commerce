@@ -100,7 +100,7 @@ export function resolveSingleDesignVariant<T extends { image_url: string; color_
     sharedUrl &&
     (
       (normalizedUrls.size === 1 && hasExplicitLight && hasExplicitDark) ||
-      (!!light && !!dark && normalizeDesignUrl(light) === normalizeDesignUrl(dark))
+      (hasExplicitLight && hasExplicitDark && !!light && !!dark && normalizeDesignUrl(light) === normalizeDesignUrl(dark))
     )
   ) {
     return { lightUrl: sharedUrl, darkUrl: sharedUrl, hasSingleSharedFile: true };
