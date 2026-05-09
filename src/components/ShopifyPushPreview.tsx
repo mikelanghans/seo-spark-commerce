@@ -45,7 +45,7 @@ interface Props {
   product: Product;
   listings: Listing[];
   userId: string;
-  onConfirm: (selectedMockups: MockupImage[], updateFields?: string[]) => void;
+  onConfirm: (selectedMockups: MockupImage[], updateFields?: string[], replaceAllImages?: boolean) => void;
   pushing: boolean;
 }
 
