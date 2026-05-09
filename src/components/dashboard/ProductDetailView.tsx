@@ -488,20 +488,27 @@ export const ProductDetailView = ({
           targetSize: 4500,
           suffix: "dark",
         });
-        const { lightUrl } = await createAndUploadDesignVariants({
-          sourceDataUrl,
-          userId,
-          targetSize: 4500,
-        });
-        derivedOtherUrl = lightUrl;
-      } else {
         const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
           sourceDataUrl,
           userId,
           targetSize: 4500,
         });
-        newUrl = lightUrl;
-        derivedOtherUrl = darkUrl;
+        const generatedDarkMatchesUpload = darkUrl && normalizeDesignAssetUrl(darkUrl) === normalizeDesignAssetUrl(newUrl);
+        derivedOtherUrl = generatedDarkMatchesUpload ? lightUrl : null;
+      } else {
+        newUrl = await normalizeAndUploadDesignVariant({
+          sourceDataUrl,
+          userId,
+          targetSize: 4500,
+          suffix: "light",
+        });
+        const { lightUrl, darkUrl } = await createAndUploadDesignVariants({
+          sourceDataUrl,
+          userId,
+          targetSize: 4500,
+        });
+        const generatedLightMatchesUpload = normalizeDesignAssetUrl(lightUrl) === normalizeDesignAssetUrl(newUrl);
+        derivedOtherUrl = generatedLightMatchesUpload ? darkUrl : null;
       }
     } catch (error) {
       console.error("Failed to prepare uploaded design file", error);
@@ -552,7 +559,7 @@ export const ProductDetailView = ({
       rowsToInsert.push({
         product_id: product.id,
         user_id: userId,
-        image_url: derivedOtherUrl || newUrl,
+          image_url: derivedOtherUrl || newUrl,
         image_type: "design",
         color_name: otherColor,
         position: otherPosition,
