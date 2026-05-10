@@ -422,6 +422,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                   if (error) throw error;
                   if (data?.error) throw new Error(data.error);
                   setShippingProfiles(data?.profiles || []);
+                  if (data?.scopeMissing) {
+                    toast.warning(data.message || "Shopify did not grant shipping profile access. General profile is still available.");
+                    return;
+                  }
                   toast.success(`Loaded ${(data?.profiles || []).length} profiles`);
                 } catch (err: any) {
                   toast.error(err.message || "Failed to load profiles");
