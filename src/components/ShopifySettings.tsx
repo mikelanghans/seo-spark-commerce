@@ -158,7 +158,7 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   const buildInstallUrl = (domain: string, appClientId: string) => {
-    const scopes = "read_products,write_products,read_files,write_files";
+    const scopes = "read_products,write_products,read_files,write_files,read_shipping,write_shipping";
     const statePayload = JSON.stringify({
       origin: window.location.origin,
       organizationId: organizationId || null,

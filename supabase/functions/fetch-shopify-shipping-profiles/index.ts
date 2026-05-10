@@ -66,8 +66,12 @@ serve(async (req) => {
 
     const json = await res.json();
     if (!res.ok || json.errors) {
-      console.error("Shopify GraphQL error:", json);
-      throw new Error(json.errors?.[0]?.message || `Shopify error ${res.status}`);
+      console.error("Shopify GraphQL error:", JSON.stringify(json));
+      const msg = json.errors?.[0]?.message || `Shopify error ${res.status}`;
+      const isScopeIssue = /access denied|deliveryProfiles/i.test(msg);
+      throw new Error(isScopeIssue
+        ? "Shopify is missing the 'read_shipping' permission. Please disconnect and reconnect your Shopify store in Settings to grant the new scope."
+        : msg);
     }
 
     const profiles = (json?.data?.deliveryProfiles?.edges || []).map((e: any) => ({
