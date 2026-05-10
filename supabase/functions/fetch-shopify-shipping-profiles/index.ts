@@ -69,9 +69,19 @@ serve(async (req) => {
       console.error("Shopify GraphQL error:", JSON.stringify(json));
       const msg = json.errors?.[0]?.message || `Shopify error ${res.status}`;
       const isScopeIssue = /access denied|deliveryProfiles/i.test(msg);
-      throw new Error(isScopeIssue
-        ? "Shopify is missing the 'read_shipping' permission. Please disconnect and reconnect your Shopify store in Settings to grant the new scope."
-        : msg);
+      if (isScopeIssue) {
+        return new Response(JSON.stringify({
+          profiles: [],
+          scopeMissing: true,
+          message: "Shopify did not grant access to delivery profiles. You can still push products using the General profile, or paste a profile ID manually.",
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: msg }), {
+        status: res.ok ? 400 : res.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const profiles = (json?.data?.deliveryProfiles?.edges || []).map((e: any) => ({
