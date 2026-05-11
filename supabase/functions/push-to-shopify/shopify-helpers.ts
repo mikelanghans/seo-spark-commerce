@@ -68,10 +68,26 @@ export function buildShopifyProduct(
   if (include("tags")) {
     shopifyProduct.tags = (() => {
       let tagList: string[] = [];
-      if (Array.isArray(shopifyListing?.tags)) tagList = shopifyListing.tags;
+      if (Array.isArray(shopifyListing?.tags)) tagList = [...shopifyListing.tags];
       else if (typeof shopifyListing?.tags === "string") tagList = shopifyListing.tags.split(",").map((t: string) => t.trim());
       if (!tagList.length && product.keywords) tagList = product.keywords.split(",").map((t: string) => t.trim());
+      // Append product-level tags (added on the product tile) to listing tags
+      const productTags: string[] = Array.isArray(product.tags)
+        ? product.tags
+        : (typeof product.tags === "string" ? product.tags.split(",") : []);
+      for (const t of productTags) {
+        const trimmed = String(t || "").trim();
+        if (trimmed) tagList.push(trimmed);
+      }
       if (!tagList.includes("T-shirts")) tagList.push("T-shirts");
+      // Dedupe (case-insensitive) preserving first occurrence
+      const seen = new Set<string>();
+      tagList = tagList.filter((t) => {
+        const k = t.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
       return tagList.join(", ");
     })();
   }

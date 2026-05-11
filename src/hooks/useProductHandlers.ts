@@ -480,7 +480,17 @@ export function useProductHandlers(
             updateFields: ["title", "description", "tags", "pricing"],
             title: shopifyListing?.title || product.title,
             description: shopifyListing?.description || product.description,
-            tags: shopifyListing?.tags || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
+            tags: (() => {
+              const listingTags: string[] = Array.isArray(shopifyListing?.tags)
+                ? (shopifyListing.tags as any[]).map((t) => String(t))
+                : (typeof shopifyListing?.tags === "string"
+                    ? (shopifyListing.tags as string).split(",").map((t: string) => t.trim())
+                    : (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean));
+              const productTags: string[] = Array.isArray(product.tags) ? product.tags : [];
+              const merged = [...listingTags, ...productTags].map((t) => String(t || "").trim()).filter(Boolean);
+              const seen = new Set<string>();
+              return merged.filter((t) => { const k = t.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+            })(),
             price: product.price,
             sizePricing: product.size_pricing || (selectedOrg as any).default_size_pricing || {},
             category: product.category,
