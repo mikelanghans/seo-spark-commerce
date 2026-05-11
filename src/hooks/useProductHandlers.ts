@@ -463,7 +463,7 @@ export function useProductHandlers(
             description: shopifyListing?.description || product.description,
             tags: shopifyListing?.tags || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
             price: product.price,
-            sizePricing: product.size_pricing,
+            sizePricing: product.size_pricing || (selectedOrg as any).default_size_pricing || {},
             category: product.category,
             publish: true,
           },
