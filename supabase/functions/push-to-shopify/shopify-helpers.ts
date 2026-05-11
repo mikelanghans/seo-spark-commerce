@@ -340,37 +340,66 @@ export async function uploadAndAssociateImages(
 ) {
   const uploadedImages: Array<{ id: number; alt: string; colorName?: string } | null> = [];
 
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  // Shopify locks a product briefly after each modification. If we POST images
+  // too fast we get 409 "This product is currently being modified". Retry with
+  // increasing backoff to wait out the lock.
+  const conflictRetryDelays = [1500, 3000, 6000, 10000, 15000];
+
   for (let i = 0; i < imageEntries.length; i++) {
     const entry = imageEntries[i];
-    try {
-      const uploadRes = await fetch(
-        `https://${domain}/admin/api/2024-01/products/${productId}/images.json`,
-        {
-          method: "POST",
-          headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            image: {
-              src: entry.url,
-              alt: entry.alt,
-              position: i + 1,
-              filename: `${(productTitle || "product").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-${(entry.colorName || "mockup").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}.jpg`,
-            },
-          }),
-        },
-      );
+    const filename = `${(productTitle || "product").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-${(entry.colorName || "mockup").replace(/[^a-z0-9]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase()}.jpg`;
+    const body = JSON.stringify({
+      image: { src: entry.url, alt: entry.alt, position: i + 1, filename },
+    });
 
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json();
-        uploadedImages[i] = { id: uploadData.image.id, alt: entry.alt, colorName: entry.colorName };
-        console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
-      } else {
+    let attempt = 0;
+    let succeeded = false;
+    while (true) {
+      try {
+        const uploadRes = await fetch(
+          `https://${domain}/admin/api/2024-01/products/${productId}/images.json`,
+          {
+            method: "POST",
+            headers: { "X-Shopify-Access-Token": accessToken, "Content-Type": "application/json" },
+            body,
+          },
+        );
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          uploadedImages[i] = { id: uploadData.image.id, alt: entry.alt, colorName: entry.colorName };
+          console.log(`Uploaded image ${i + 1}/${imageEntries.length}: ${entry.colorName || "fallback"}`);
+          succeeded = true;
+          break;
+        }
+
         const errText = await uploadRes.text();
+
+        // 409 = product locked by previous mutation, 429 = rate limited. Both are retryable.
+        const retryable = (uploadRes.status === 409 || uploadRes.status === 429) && attempt < conflictRetryDelays.length;
+        if (retryable) {
+          const delay = conflictRetryDelays[attempt];
+          console.warn(`Image upload ${i + 1} got ${uploadRes.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${conflictRetryDelays.length})`);
+          await wait(delay);
+          attempt++;
+          continue;
+        }
+
         console.error(`Image upload ${i} failed (${uploadRes.status}): ${errText}`);
         uploadedImages[i] = null;
+        break;
+      } catch (imgErr) {
+        console.error(`Image ${i} error:`, imgErr);
+        uploadedImages[i] = null;
+        break;
       }
-    } catch (imgErr) {
-      console.error(`Image ${i} error:`, imgErr);
-      uploadedImages[i] = null;
+    }
+
+    // Small inter-upload delay so Shopify's per-product lock can clear before
+    // the next POST. Cheap insurance against the 409 storm.
+    if (succeeded && i < imageEntries.length - 1) {
+      await wait(600);
     }
   }
 
