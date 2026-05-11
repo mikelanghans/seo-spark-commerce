@@ -311,14 +311,17 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       if (hasLightColors) {
         toast.info(`Creating dark ink variant for ${lightColorsSelected.length} light colors...`);
 
-        const hasAccents = await hasMeaningfulAccentColors(base64Contents);
-        const darkBase64Contents = hasAccents
-          ? await darkenBrightPixels(base64Contents)
-          : await recolorOpaquePixels(base64Contents, {
-              r: 24,
-              g: 24,
-              b: 24,
-            });
+        // Reuse stored dark-on-light variant if it already exists.
+        const stored = await fetchStoredPrintifyDesignVariants(product.id);
+        let darkBase64Contents: string;
+        if (stored.darkUrl) {
+          darkBase64Contents = await preparePrintifyDesignBase64(stored.darkUrl, 4500, { productId: product.id, variant: "dark" });
+        } else {
+          const hasAccents = await hasMeaningfulAccentColors(base64Contents);
+          darkBase64Contents = hasAccents
+            ? await darkenBrightPixels(base64Contents)
+            : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+        }
 
         const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
           "printify-upload-image",
