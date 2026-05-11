@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
+import { preparePrintifyDesignBase64, fetchStoredPrintifyDesignVariants } from "@/lib/printifyDesignPreparation";
 import { recolorOpaquePixels } from "@/lib/removeBackground";
 import { withRetry } from "@/lib/pipelineUtils";
 import { buildShopifyGallery, type ShopifyGalleryVariant } from "@/lib/shopifyGallery";
