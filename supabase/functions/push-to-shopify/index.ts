@@ -493,6 +493,16 @@ serve(async (req) => {
       );
     }
 
+    // Stamp synced_at AGAIN at the very end so client-side polling (which watches
+    // shopify_synced_at to recover from dropped connections during long pushes)
+    // only sees success once the full push (images + variants + metafields) finished.
+    if (createdProduct?.id && product.id) {
+      await adminClient
+        .from("products")
+        .update({ shopify_synced_at: new Date().toISOString() })
+        .eq("id", product.id);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       shopifyProduct: createdProduct,

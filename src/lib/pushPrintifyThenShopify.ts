@@ -464,6 +464,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }));
 
   onProgress("shopify-push", "Pushing mockups & SEO to Shopify");
+  const shopifyPushStartedAt = Date.now();
   const { data: shopifyData, error: shopifyError } = await invoke<ShopifyPushResponse>(
     "push-to-shopify",
     {
@@ -490,8 +491,44 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     retry,
     `shopify-${retryLabel}`,
   );
-  if (shopifyError) throw new Error(`Shopify push failed: ${shopifyError.message}`);
+
+  // The push-to-shopify edge function can take 60-120s. The client-side fetch can drop
+  // the connection before the success response arrives, even though the server
+  // completes the work successfully and writes `shopify_synced_at` on the products row.
+  // If we get a transport error, poll the row to confirm the push actually finished.
+  if (shopifyError) {
+    onProgress("shopify-push", "Connection dropped — verifying push completed in background");
+    const POLL_TIMEOUT_MS = 120_000;
+    const POLL_INTERVAL_MS = 4_000;
+    const pollStart = Date.now();
+    let confirmedShopifyId: number | null = null;
+    while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      const { data: row } = await supabase
+        .from("products")
+        .select("shopify_product_id, shopify_synced_at")
+        .eq("id", product.id)
+        .maybeSingle();
+      const syncedAtMs = row?.shopify_synced_at ? new Date(row.shopify_synced_at as string).getTime() : 0;
+      if (row?.shopify_product_id && syncedAtMs >= shopifyPushStartedAt) {
+        confirmedShopifyId = row.shopify_product_id as number;
+        break;
+      }
+    }
+    if (confirmedShopifyId) {
+      onProductUpdate({ shopify_product_id: confirmedShopifyId });
+      onProgress("shopify-push", `Shopify push confirmed (${confirmedShopifyId})`);
+      return {
+        printifyProductId,
+        shopifyProductId: confirmedShopifyId,
+        shopifySkipped: false,
+        variantCount,
+      };
+    }
+    throw new Error(`Shopify push failed: ${shopifyError.message}`);
+  }
   if (shopifyData?.error) throw new Error(`Shopify push failed: ${shopifyData.error}`);
+
 
   if (shopifyData?.staleShopifyIdCleared) {
     onProductUpdate({ shopify_product_id: null });
