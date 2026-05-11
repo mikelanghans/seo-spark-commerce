@@ -22,6 +22,19 @@ interface Props {
   organizationId?: string;
 }
 
+const getFunctionErrorMessage = async (error: any, fallback: string) => {
+  const response = error?.context;
+  if (response && typeof response.json === "function") {
+    try {
+      const body = await response.json();
+      if (typeof body?.error === "string") return body.error;
+    } catch {
+      // Fall through to the SDK message below.
+    }
+  }
+  return error?.message || fallback;
+};
+
 export const PrintifySettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [printifyToken, setPrintifyToken] = useState("");
@@ -71,7 +84,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       const { data, error } = await supabase.functions.invoke("printify-get-shops", {
         body: { organizationId },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Failed to load Printify shops"));
       if (data?.error) throw new Error(data.error);
       setShops(data?.shops || []);
     } catch (err: any) {
