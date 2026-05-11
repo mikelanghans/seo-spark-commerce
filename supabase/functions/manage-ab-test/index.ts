@@ -214,7 +214,9 @@ Deno.serve(async (req) => {
     throw new Error("Invalid action. Use: evaluate, swap, or end");
   } catch (err: any) {
     console.error("manage-ab-test error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('[edge-error] manage-ab-test/index.ts:', err?.message, err?.stack);
+    const clientMsg = (status === 401) ? 'Not authenticated' : (status === 403) ? 'Forbidden' : (status === 429) ? 'Rate limit exceeded' : 'An internal error occurred. Please try again.';
+    return new Response(JSON.stringify({ error: clientMsg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

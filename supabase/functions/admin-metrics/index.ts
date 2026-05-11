@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     const status = err.message.includes("Forbidden") ? 403 : err.message.includes("authenticated") ? 401 : 500;
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('[edge-error] admin-metrics/index.ts:', err?.message, err?.stack);
+    const clientMsg = (status === 401) ? 'Not authenticated' : (status === 403) ? 'Forbidden' : (status === 429) ? 'Rate limit exceeded' : 'An internal error occurred. Please try again.';
+    return new Response(JSON.stringify({ error: clientMsg }), {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
