@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifySyncFailure } from "@/lib/notificationHelpers";
@@ -43,6 +43,18 @@ export function useProductHandlers(
   const [pushingAllPrintify, setPushingAllPrintify] = useState(false);
   const [pushAllPrintifyProgress, setPushAllPrintifyProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllPrintifyRef = useRef(false);
+
+  // Warn before navigating away while a long-running bulk operation is in progress.
+  const bulkInProgress = generatingAll || pushingAllShopify || pushingAllEbay || pushingAllEtsy || pushingAllPrintify || importingShopify;
+  useEffect(() => {
+    if (!bulkInProgress) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [bulkInProgress]);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
