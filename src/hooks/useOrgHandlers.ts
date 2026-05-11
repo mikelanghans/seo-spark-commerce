@@ -94,12 +94,18 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
     setPrintifyShops([]);
     setLoadingPrintifyShops(true);
     try {
-      const { data } = await supabase.functions.invoke("printify-get-shops", {
+      const { data, error } = await supabase.functions.invoke("printify-get-shops", {
         body: { organizationId: orgId || editingOrg?.id || selectedOrg?.id },
       });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       setPrintifyShops(data?.shops || []);
-    } catch { /* silent */ }
-    setLoadingPrintifyShops(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load Printify shops");
+      setPrintifyShops([]);
+    } finally {
+      setLoadingPrintifyShops(false);
+    }
   };
 
   const handleEditOrg = (org: Organization) => {
