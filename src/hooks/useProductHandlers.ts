@@ -484,10 +484,19 @@ export function useProductHandlers(
             await new Promise((r) => setTimeout(r, 2500));
             await supabase.functions.invoke("push-to-shopify", {
               body: {
-                action: "update",
                 organizationId: selectedOrg.id,
+                userId: userId!,
                 productId: product.id,
-                shopifyProductId: product.shopify_product_id,
+                listing: {
+                  title: shopifyListing?.title || product.title,
+                  description: shopifyListing?.description || product.description,
+                  tags: shopifyListing?.tags || [],
+                  seo_title: shopifyListing?.seo_title,
+                  seo_description: shopifyListing?.seo_description,
+                  url_handle: shopifyListing?.url_handle,
+                  alt_text: shopifyListing?.alt_text,
+                  price: product.price,
+                },
                 updateFields: ["shipping_profile"],
               },
             });
