@@ -216,7 +216,9 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("check-listing-health error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('[edge-error] check-listing-health/index.ts:', err?.message, err?.stack);
+    const clientMsg = (status === 401) ? 'Not authenticated' : (status === 403) ? 'Forbidden' : (status === 429) ? 'Rate limit exceeded' : 'An internal error occurred. Please try again.';
+    return new Response(JSON.stringify({ error: clientMsg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
