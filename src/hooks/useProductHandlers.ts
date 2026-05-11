@@ -476,6 +476,34 @@ export function useProductHandlers(
           console.warn(`Printify publish warning for ${product.title}:`, data.publishError);
         }
         successCount++;
+
+        // Re-assign Shopify shipping profile (Printify sync can reset it)
+        if (product.shopify_product_id) {
+          try {
+            // brief delay so Printify→Shopify sync can run
+            await new Promise((r) => setTimeout(r, 2500));
+            await supabase.functions.invoke("push-to-shopify", {
+              body: {
+                organizationId: selectedOrg.id,
+                userId: userId!,
+                productId: product.id,
+                listing: {
+                  title: shopifyListing?.title || product.title,
+                  description: shopifyListing?.description || product.description,
+                  tags: shopifyListing?.tags || [],
+                  seo_title: shopifyListing?.seo_title,
+                  seo_description: shopifyListing?.seo_description,
+                  url_handle: shopifyListing?.url_handle,
+                  alt_text: shopifyListing?.alt_text,
+                  price: product.price,
+                },
+                updateFields: ["shipping_profile"],
+              },
+            });
+          } catch (shipErr: any) {
+            console.warn(`Shipping profile reassign failed for ${product.title}:`, shipErr?.message || shipErr);
+          }
+        }
       } catch (err: any) {
         console.error(`Failed to push ${product.title} to Printify:`, err);
         if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Printify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
