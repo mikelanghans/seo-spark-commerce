@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY, type ProductTypeKey } from "@/lib/productTypes";
 import { recolorOpaquePixels, hasMeaningfulAccentColors, darkenBrightPixels } from "@/lib/removeBackground";
-import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
+import { preparePrintifyDesignBase64, fetchStoredPrintifyDesignVariants } from "@/lib/printifyDesignPreparation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -294,7 +294,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       toast.info("Removing background & uploading design to Printify...");
 
       // Step 1: Use the same tightly prepared artwork as the mockup pipeline
-      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
+      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500, { productId: product.id, variant: "light" });
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
         { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
@@ -311,14 +311,17 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       if (hasLightColors) {
         toast.info(`Creating dark ink variant for ${lightColorsSelected.length} light colors...`);
 
-        const hasAccents = await hasMeaningfulAccentColors(base64Contents);
-        const darkBase64Contents = hasAccents
-          ? await darkenBrightPixels(base64Contents)
-          : await recolorOpaquePixels(base64Contents, {
-              r: 24,
-              g: 24,
-              b: 24,
-            });
+        // Reuse stored dark-on-light variant if it already exists.
+        const stored = await fetchStoredPrintifyDesignVariants(product.id);
+        let darkBase64Contents: string;
+        if (stored.darkUrl) {
+          darkBase64Contents = await preparePrintifyDesignBase64(stored.darkUrl, 4500, { productId: product.id, variant: "dark" });
+        } else {
+          const hasAccents = await hasMeaningfulAccentColors(base64Contents);
+          darkBase64Contents = hasAccents
+            ? await darkenBrightPixels(base64Contents)
+            : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+        }
 
         const { data: darkUpload, error: darkUploadError } = await supabase.functions.invoke(
           "printify-upload-image",

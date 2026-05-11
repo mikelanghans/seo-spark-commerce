@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { preparePrintifyDesignBase64 } from "@/lib/printifyDesignPreparation";
+import { preparePrintifyDesignBase64, fetchStoredPrintifyDesignVariants } from "@/lib/printifyDesignPreparation";
 import { recolorOpaquePixels } from "@/lib/removeBackground";
 import { withRetry } from "@/lib/pipelineUtils";
 import { buildShopifyGallery, type ShopifyGalleryVariant } from "@/lib/shopifyGallery";
@@ -321,7 +321,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     const hasLightColors = lightColorsSelected.length > 0;
 
     onProgress("printify-design", "Preparing & uploading design to Printify");
-    const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500);
+    const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500, { productId: product.id, variant: "light" });
     const { data: uploadData, error: uploadErr } = await invoke<PrintifyUploadResponse>(
       "printify-upload-image",
       {
@@ -340,7 +340,10 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     let darkPrintifyImageId: string | null = null;
     if (hasLightColors) {
       onProgress("printify-dark", "Creating dark-ink variant for light garments");
-      const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+      const stored = await fetchStoredPrintifyDesignVariants(product.id);
+      const darkBase64 = stored.darkUrl
+        ? await preparePrintifyDesignBase64(stored.darkUrl, 4500, { productId: product.id, variant: "dark" })
+        : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
       const { data: dUp, error: dErr } = await invoke<PrintifyUploadResponse>(
         "printify-upload-image",
         {

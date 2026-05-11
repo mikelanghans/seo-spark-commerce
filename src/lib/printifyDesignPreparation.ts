@@ -1,5 +1,6 @@
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { hasMeaningfulAccentColors, isMultiColorDesign, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { supabase } from "@/integrations/supabase/client";
 
 const DATA_URL_BASE64_PREFIX = /^data:image\/[a-zA-Z0-9.+-]+;base64,/;
 
@@ -30,7 +31,37 @@ async function toBase64Png(value: string): Promise<string> {
   });
 }
 
-export async function preparePrintifyDesignBase64(designUrl: string, targetSize = 4500): Promise<string> {
+/**
+ * Fetch already-prepared design variants from product_images (uploaded by the
+ * design pipeline). These are transparent + upscaled to 4500px and safe to send
+ * straight to Printify with no further processing.
+ */
+export async function fetchStoredPrintifyDesignVariants(productId: string): Promise<{ lightUrl: string | null; darkUrl: string | null }> {
+  const { data } = await supabase
+    .from("product_images")
+    .select("image_url, color_name")
+    .eq("product_id", productId)
+    .eq("image_type", "design");
+  const lightUrl = data?.find((r: any) => r.color_name === "light-on-dark")?.image_url ?? null;
+  const darkUrl = data?.find((r: any) => r.color_name === "dark-on-light")?.image_url ?? null;
+  return { lightUrl, darkUrl };
+}
+
+export async function preparePrintifyDesignBase64(
+  designUrl: string,
+  targetSize = 4500,
+  options?: { productId?: string; variant?: "light" | "dark" },
+): Promise<string> {
+  // Reuse existing pre-processed variant when available — avoids re-running
+  // background removal / upscaling on every push.
+  if (options?.productId) {
+    const { lightUrl, darkUrl } = await fetchStoredPrintifyDesignVariants(options.productId);
+    const reuseUrl = options.variant === "dark" ? darkUrl : lightUrl;
+    if (reuseUrl) {
+      return await toBase64Png(reuseUrl);
+    }
+  }
+
   let preparedDesignUrl: string;
 
   const usesSharedDesign = await isMultiColorDesign(designUrl) || await hasMeaningfulAccentColors(designUrl);
