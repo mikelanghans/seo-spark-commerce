@@ -294,7 +294,7 @@ export const PushToPrintify = ({ product, listings, userId, organizationId, onPr
       toast.info("Removing background & uploading design to Printify...");
 
       // Step 1: Use the same tightly prepared artwork as the mockup pipeline
-      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500);
+      const base64Contents = await preparePrintifyDesignBase64(product.image_url!, 4500, { productId: product.id, variant: "light" });
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         "printify-upload-image",
         { body: { base64Contents, fileName: `${product.title}-design.png`, organizationId } }
