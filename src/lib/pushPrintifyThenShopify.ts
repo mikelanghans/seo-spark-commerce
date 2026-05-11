@@ -321,7 +321,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     const hasLightColors = lightColorsSelected.length > 0;
 
     onProgress("printify-design", "Preparing & uploading design to Printify");
-    const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500);
+    const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500, { productId: product.id, variant: "light" });
     const { data: uploadData, error: uploadErr } = await invoke<PrintifyUploadResponse>(
       "printify-upload-image",
       {
