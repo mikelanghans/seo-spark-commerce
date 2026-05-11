@@ -457,29 +457,42 @@ export const ProductGrid = ({
       )}
 
       {/* Selection bar */}
-      {onToggleSelect && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onSelectAll}
-            className="text-xs text-primary hover:underline"
-          >
-            Select all ({activeProducts.length})
-          </button>
-          {selectedProductIds && selectedProductIds.size > 0 && (
+      {onToggleSelect && (() => {
+        const visibleIds = new Set(activeProducts.map((p) => p.id));
+        const visibleSelectedCount = selectedProductIds
+          ? activeProducts.reduce((n, p) => n + (selectedProductIds.has(p.id) ? 1 : 0), 0)
+          : 0;
+        const totalSelected = selectedProductIds?.size ?? 0;
+        const hiddenSelected = totalSelected - visibleSelectedCount;
+        return (
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={onDeselectAll}
-              className="text-xs text-muted-foreground hover:underline"
+              onClick={onSelectAll}
+              className="text-xs text-primary hover:underline"
             >
-              Deselect all
+              Select all ({activeProducts.length})
             </button>
-          )}
-          {selectedProductIds && selectedProductIds.size > 0 && (
-            <span className="text-xs font-medium text-primary">
-              {selectedProductIds.size} selected
-            </span>
-          )}
-        </div>
-      )}
+            {totalSelected > 0 && (
+              <button
+                onClick={onDeselectAll}
+                className="text-xs text-muted-foreground hover:underline"
+              >
+                Deselect all
+              </button>
+            )}
+            {totalSelected > 0 && (
+              <span className="text-xs font-medium text-primary">
+                {visibleSelectedCount} selected in view
+                {hiddenSelected > 0 && (
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    (+{hiddenSelected} from other filters)
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
