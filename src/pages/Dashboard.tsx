@@ -146,6 +146,20 @@ const Dashboard = () => {
 
   // Product selection state
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+
+  // Prune selection to currently-active (non-archived) products whenever the list changes.
+  // Otherwise selecting items, archiving them (or switching to the Archived view and back)
+  // leaves stale IDs in the set — leading to "87 selected" when only 69 active exist.
+  useEffect(() => {
+    setSelectedProductIds((prev) => {
+      if (prev.size === 0) return prev;
+      const activeIds = new Set(products.filter((p) => !p.archived_at).map((p) => p.id));
+      const next = new Set<string>();
+      for (const id of prev) if (activeIds.has(id)) next.add(id);
+      return next.size === prev.size ? prev : next;
+    });
+  }, [products]);
+
   const toggleProductSelect = (id: string) => {
     setSelectedProductIds((prev) => {
       const next = new Set(prev);
