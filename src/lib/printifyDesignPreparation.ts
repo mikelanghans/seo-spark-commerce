@@ -1,5 +1,6 @@
 import { ensureImageDataUrl, getPreparedDesignDataUrl } from "@/lib/mockupComposition";
 import { hasMeaningfulAccentColors, isMultiColorDesign, smartRemoveBackground, upscaleBase64Png } from "@/lib/removeBackground";
+import { supabase } from "@/integrations/supabase/client";
 
 const DATA_URL_BASE64_PREFIX = /^data:image\/[a-zA-Z0-9.+-]+;base64,/;
 
