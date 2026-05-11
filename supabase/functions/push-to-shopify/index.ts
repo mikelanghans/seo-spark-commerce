@@ -268,57 +268,54 @@ serve(async (req) => {
       : await createShopifyProduct(domain, connection.access_token, shopifyProduct);
 
     if (existingShopifyId && shopifyResponse.status === 404) {
-      console.log("Existing Shopify product not found (404)");
+      console.log("Existing Shopify product not found (404) — checking DB for a fresher linked product before retrying");
+      await shopifyResponse.text().catch(() => "");
 
-      for (const delayMs of missingProductRetryDelays) {
-        await shopifyResponse.text().catch(() => "");
-        console.log(`Retrying Shopify product update in ${delayMs}ms...`);
-        await wait(delayMs);
+      // Step 1: Re-resolve from DB IMMEDIATELY (cheap) — the cached id may be stale.
+      let dbResolvedNewerId = false;
+      if (product.id) {
+        const { data: latestProductLink } = await adminClient
+          .from("products")
+          .select("shopify_product_id")
+          .eq("id", product.id)
+          .maybeSingle();
 
-        shopifyResponse = await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct);
+        const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
 
-        if (shopifyResponse.status !== 404) {
-          console.log("Shopify product became available after retry");
-          break;
+        if (latestShopifyId && latestShopifyId !== existingShopifyId) {
+          console.log(`Switching Shopify update target from ${existingShopifyId} to refreshed linked product ${latestShopifyId}`);
+          existingShopifyId = latestShopifyId;
+          shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
+          dbResolvedNewerId = true;
+
+          if (shouldUpdateImages && imageEntries.length > 0) {
+            await deleteExistingImages(domain, connection.access_token, latestShopifyId, deleteColorFilter);
+          }
+
+          shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
         }
+      }
 
-        console.log("Shopify product still not found after retry");
+      // Step 2: If DB didn't have a newer id (so the same id genuinely just propagated), do the timed retry loop.
+      if (!dbResolvedNewerId && shopifyResponse.status === 404) {
+        for (const delayMs of missingProductRetryDelays) {
+          await shopifyResponse.text().catch(() => "");
+          console.log(`Retrying Shopify product update in ${delayMs}ms...`);
+          await wait(delayMs);
+
+          shopifyResponse = await updateShopifyProduct(domain, connection.access_token, existingShopifyId, shopifyProduct);
+
+          if (shopifyResponse.status !== 404) {
+            console.log("Shopify product became available after retry");
+            break;
+          }
+
+          console.log("Shopify product still not found after retry");
+        }
       }
 
       if (shopifyResponse.status === 404) {
         await shopifyResponse.text().catch(() => "");
-
-        if (product.id) {
-          const { data: latestProductLink } = await adminClient
-            .from("products")
-            .select("shopify_product_id")
-            .eq("id", product.id)
-            .maybeSingle();
-
-          const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
-
-          if (latestShopifyId && latestShopifyId !== existingShopifyId) {
-            console.log(`Switching Shopify update target from ${existingShopifyId} to refreshed linked product ${latestShopifyId}`);
-            existingShopifyId = latestShopifyId;
-            shopifyProduct = { ...shopifyProduct, id: latestShopifyId };
-
-            if (shouldUpdateImages && imageEntries.length > 0) {
-              await deleteExistingImages(domain, connection.access_token, latestShopifyId, deleteColorFilter);
-            }
-
-            shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
-
-            if (shopifyResponse.status === 404) {
-              for (const delayMs of missingProductRetryDelays) {
-                await shopifyResponse.text().catch(() => "");
-                console.log(`Retrying refreshed Shopify product update in ${delayMs}ms...`);
-                await wait(delayMs);
-                shopifyResponse = await updateShopifyProduct(domain, connection.access_token, latestShopifyId, shopifyProduct);
-                if (shopifyResponse.status !== 404) break;
-              }
-            }
-          }
-        }
 
         if (shopifyResponse.status === 404) {
           await shopifyResponse.text().catch(() => "");
