@@ -496,6 +496,12 @@ export function useProductHandlers(
             // Wait for Printify→Shopify image sync to complete before we replace them.
             // Printify typically pushes images within 10–15s of publish.
             await new Promise((r) => setTimeout(r, 15000));
+            const { buildShopifyGallery } = await import("@/lib/shopifyGallery");
+            const variants = await buildShopifyGallery({
+              productId: product.id,
+              userId: userId!,
+              appendSizeChart: true,
+            });
             await supabase.functions.invoke("push-to-shopify", {
               body: {
                 organizationId: selectedOrg.id,
@@ -510,6 +516,8 @@ export function useProductHandlers(
                   category: product.category,
                 },
                 listings: productListings || [],
+                imageUrl: product.image_url,
+                variants,
                 updateFields: ["shipping_profile", "images"],
                 replaceAllImages: true,
               },
