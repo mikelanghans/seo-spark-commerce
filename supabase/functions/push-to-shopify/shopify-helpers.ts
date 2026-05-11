@@ -58,9 +58,11 @@ export function buildShopifyProduct(
   if (include("description")) {
     shopifyProduct.body_html = bodyHtml || `<p>${product.description || ""}</p>`;
   }
+  // Always set product_type (from product.category) and template_suffix so
+  // they're applied on every push (create + update, including image-only republish).
+  shopifyProduct.product_type = (product.category && String(product.category).trim()) || "T-Shirt";
+  shopifyProduct.template_suffix = "t-shirts";
   if (include("title") || !effectiveUpdateFields) {
-    shopifyProduct.product_type = "T-Shirt";
-    shopifyProduct.template_suffix = "punch-the-monkey";
     shopifyProduct.status = shopifyStatus === "draft" ? "draft" : "active";
   }
   if (include("tags")) {
