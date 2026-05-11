@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const missingProductRetryDelays = [3000, 5000, 8000];
+const missingProductRetryDelays = [3000, 5000, 8000, 10000, 15000, 20000, 20000];
 
 const updateShopifyProduct = (
   domain: string,

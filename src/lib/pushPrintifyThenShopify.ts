@@ -155,9 +155,9 @@ const pollForLinkedShopifyId = async ({
   onProgress: (stage: ChainStage, message: string) => void;
   onProductUpdate: (updates: Partial<PushChainProduct>) => void;
 }) => {
-  onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 90s)");
+  onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 3 min)");
   const pollStart = Date.now();
-  const POLL_TIMEOUT_MS = 90_000;
+  const POLL_TIMEOUT_MS = 180_000;
   const POLL_INTERVAL_MS = 5_000;
   let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
   while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
