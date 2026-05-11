@@ -59,7 +59,8 @@ export function buildShopifyProduct(
     shopifyProduct.body_html = bodyHtml || `<p>${product.description || ""}</p>`;
   }
   if (include("title") || !effectiveUpdateFields) {
-    shopifyProduct.product_type = product.category;
+    shopifyProduct.product_type = "T-Shirt";
+    shopifyProduct.template_suffix = "punch-the-monkey";
     shopifyProduct.status = shopifyStatus === "draft" ? "draft" : "active";
   }
   if (include("tags")) {
