@@ -381,10 +381,34 @@ serve(async (req) => {
         console.log(`Recovered Printify-linked Shopify product ID on update: ${resolvedShopifyProductId}`);
       }
 
+      // Optionally (re)publish the product on Printify after the update
+      let publishError: string | null = null;
+      let published = false;
+      if (body.publish || body.republish) {
+        console.log(`Publishing Printify product ${pPrintifyProductId} after update...`);
+        const publishRes = await fetch(
+          `https://api.printify.com/v1/shops/${pShopId}/products/${pPrintifyProductId}/publish.json`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${printifyToken}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ title: true, description: true, images: true, variants: true, tags: true }),
+          }
+        );
+        if (!publishRes.ok) {
+          const errText = await publishRes.text();
+          publishError = `Printify publish returned ${publishRes.status}: ${errText.slice(0, 400)}`;
+          console.error(publishError);
+        } else {
+          published = true;
+        }
+      }
+
       return new Response(JSON.stringify({
         success: true,
         updatedFields: fields,
         shopifyProductId: resolvedShopifyProductId,
+        published,
+        publishError,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

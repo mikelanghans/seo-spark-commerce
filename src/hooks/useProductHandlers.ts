@@ -40,6 +40,9 @@ export function useProductHandlers(
   const [pushingAllEtsy, setPushingAllEtsy] = useState(false);
   const [pushAllEtsyProgress, setPushAllEtsyProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllEtsyRef = useRef(false);
+  const [pushingAllPrintify, setPushingAllPrintify] = useState(false);
+  const [pushAllPrintifyProgress, setPushAllPrintifyProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllPrintifyRef = useRef(false);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
@@ -420,6 +423,74 @@ export function useProductHandlers(
     }
   };
 
+  const handlePushAllToPrintify = async (productSubset?: Product[]) => {
+    const targetProducts = productSubset || products;
+    if (!selectedOrg || !userId || targetProducts.length === 0) return;
+
+    const queue = targetProducts.filter((p) => !!p.printify_product_id);
+    const skipped = targetProducts.length - queue.length;
+    if (queue.length === 0) {
+      toast.error("None of the selected products are linked to Printify yet. Use 'Push to Shopify' (which goes via Printify) to create them first.");
+      return;
+    }
+    if (skipped > 0) toast.info(`Skipping ${skipped} product(s) not yet on Printify`);
+
+    cancelPushAllPrintifyRef.current = false;
+    setPushingAllPrintify(true);
+    setPushAllPrintifyProgress({ done: 0, total: queue.length });
+    let successCount = 0;
+    let publishFailures = 0;
+
+    const printifyShopId = (selectedOrg as any).printify_shop_id;
+
+    for (let i = 0; i < queue.length; i++) {
+      if (cancelPushAllPrintifyRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
+      const product = queue[i];
+      setPushAllPrintifyProgress({ done: i, total: queue.length });
+      try {
+        const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
+        const shopifyListing = productListings?.find((l) => l.marketplace === "shopify") || productListings?.[0];
+
+        const { data, error } = await supabase.functions.invoke("printify-create-product", {
+          body: {
+            action: "update",
+            organizationId: selectedOrg.id,
+            shopId: printifyShopId,
+            productId: product.id,
+            printifyProductId: product.printify_product_id,
+            updateFields: ["title", "description", "tags", "pricing"],
+            title: shopifyListing?.title || product.title,
+            description: shopifyListing?.description || product.description,
+            tags: shopifyListing?.tags || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
+            price: product.price,
+            sizePricing: product.size_pricing,
+            category: product.category,
+            publish: true,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data?.staleIdCleared) throw new Error("Product no longer exists on Printify (link cleared)");
+        if (data?.publishError) {
+          publishFailures++;
+          console.warn(`Printify publish warning for ${product.title}:`, data.publishError);
+        }
+        successCount++;
+      } catch (err: any) {
+        console.error(`Failed to push ${product.title} to Printify:`, err);
+        if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Printify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+      }
+      if (i < queue.length - 1) await new Promise((r) => setTimeout(r, 1200));
+    }
+    setPushAllPrintifyProgress({ done: queue.length, total: queue.length });
+    setPushingAllPrintify(false);
+    if (!cancelPushAllPrintifyRef.current) {
+      const note = publishFailures > 0 ? ` (${publishFailures} publish warnings — check notifications)` : "";
+      toast.success(`Updated & published ${successCount}/${queue.length} on Printify${note}`);
+      if (selectedOrg) loadProducts(selectedOrg.id);
+    }
+  };
+
   return {
     products, setProducts, selectedProduct, setSelectedProduct,
     listings, setListings, loading, generating,
@@ -429,6 +500,7 @@ export function useProductHandlers(
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
     pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
+    pushingAllPrintify, pushAllPrintifyProgress, cancelPushAllPrintifyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
@@ -436,5 +508,6 @@ export function useProductHandlers(
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
     handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
+    handlePushAllToPrintify,
   };
 }
