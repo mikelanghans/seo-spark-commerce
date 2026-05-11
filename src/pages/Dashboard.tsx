@@ -553,20 +553,21 @@ const Dashboard = () => {
                   onDeselectAll={deselectAllProducts}
                 >
                   <div className="flex items-center gap-2 flex-wrap">
-                    {generatingAll || pushingAllShopify || pushingAllEbay || pushingAllEtsy ? (
+                    {generatingAll || pushingAllShopify || pushingAllEbay || pushingAllEtsy || pushingAllPrintify ? (
                       <Button
                         onClick={() => {
                           if (generatingAll) cancelGenAllRef.current = true;
                           if (pushingAllShopify) cancelPushAllRef.current = true;
                           if (pushingAllEbay) cancelPushAllEbayRef.current = true;
                           if (pushingAllEtsy) cancelPushAllEtsyRef.current = true;
+                          if (pushingAllPrintify) cancelPushAllPrintifyRef.current = true;
                         }}
                         size="sm"
                         variant="destructive"
                         className="gap-1.5 text-xs sm:text-sm"
                       >
                         <X className="h-3.5 w-3.5" />
-                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : pushingAllEbay ? `eBay (${pushAllEbayProgress.done}/${pushAllEbayProgress.total})` : pushingAllEtsy ? `Etsy (${pushAllEtsyProgress.done}/${pushAllEtsyProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
+                        Cancel {generatingAll ? `SEO (${genAllProgress.done}/${genAllProgress.total})` : pushingAllEbay ? `eBay (${pushAllEbayProgress.done}/${pushAllEbayProgress.total})` : pushingAllEtsy ? `Etsy (${pushAllEtsyProgress.done}/${pushAllEtsyProgress.total})` : pushingAllPrintify ? `Printify (${pushAllPrintifyProgress.done}/${pushAllPrintifyProgress.total})` : `Push (${pushAllProgress.done}/${pushAllProgress.total})`}
                       </Button>
                     ) : (
                       <DropdownMenu>
