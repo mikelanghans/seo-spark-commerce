@@ -131,6 +131,7 @@ const Dashboard = () => {
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
     pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
+    pushingAllPrintify, pushAllPrintifyProgress, cancelPushAllPrintifyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
@@ -138,6 +139,7 @@ const Dashboard = () => {
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
     handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
+    handlePushAllToPrintify,
   } = productHandlers;
 
   const designProcessing = useDesignProcessing(user?.id);
