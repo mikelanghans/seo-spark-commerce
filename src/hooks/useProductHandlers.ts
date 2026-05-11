@@ -482,9 +482,9 @@ export function useProductHandlers(
             description: shopifyListing?.description || product.description,
             tags: (() => {
               const listingTags: string[] = Array.isArray(shopifyListing?.tags)
-                ? shopifyListing.tags
+                ? (shopifyListing.tags as any[]).map((t) => String(t))
                 : (typeof shopifyListing?.tags === "string"
-                    ? shopifyListing.tags.split(",").map((t: string) => t.trim())
+                    ? (shopifyListing.tags as string).split(",").map((t: string) => t.trim())
                     : (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean));
               const productTags: string[] = Array.isArray(product.tags) ? product.tags : [];
               const merged = [...listingTags, ...productTags].map((t) => String(t || "").trim()).filter(Boolean);
