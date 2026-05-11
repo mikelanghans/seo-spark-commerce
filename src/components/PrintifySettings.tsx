@@ -22,10 +22,24 @@ interface Props {
   organizationId?: string;
 }
 
+const getFunctionErrorMessage = async (error: any, fallback: string) => {
+  const response = error?.context;
+  if (response && typeof response.json === "function") {
+    try {
+      const body = await response.json();
+      if (typeof body?.error === "string") return body.error;
+    } catch {
+      // Fall through to the SDK message below.
+    }
+  }
+  return error?.message || fallback;
+};
+
 export const PrintifySettings = ({ userId, organizationId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [printifyToken, setPrintifyToken] = useState("");
   const [printifyHasToken, setPrintifyHasToken] = useState(false);
+  const [shopLoadError, setShopLoadError] = useState<string | null>(null);
   const [savingPrintify, setSavingPrintify] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -64,14 +78,26 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
 
   const loadShops = async () => {
     if (!organizationId) return;
+    setShopLoadError(null);
     setLoadingShops(true);
     try {
-      const { data } = await supabase.functions.invoke("printify-get-shops", {
+      const { data, error } = await supabase.functions.invoke("printify-get-shops", {
         body: { organizationId },
       });
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Failed to load Printify shops"));
+      if (data?.error) throw new Error(data.error);
       setShops(data?.shops || []);
-    } catch { /* silent */ }
-    setLoadingShops(false);
+    } catch (err: any) {
+      const message = err?.message || "Failed to load Printify shops";
+      setShopLoadError(message);
+      setShops([]);
+      if (message.includes("invalid") || message.includes("expired")) {
+        setEditing(true);
+      }
+      toast.error(message);
+    } finally {
+      setLoadingShops(false);
+    }
   };
 
   const saveShopSelection = async (shopId: number | null) => {
@@ -108,6 +134,7 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
       setPrintifyHasToken(true);
       setPrintifyToken("");
       setEditing(false);
+      setShopLoadError(null);
       toast.success("Printify token saved!");
       loadShops();
     } catch (e: any) {
@@ -175,9 +202,12 @@ export const PrintifySettings = ({ userId, organizationId }: Props) => {
                 {shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.title}</option>)}
               </select>
             ) : (
-              <Button type="button" variant="outline" size="sm" onClick={loadShops} className="gap-2">
-                <RefreshCw className="h-3.5 w-3.5" /> Load Shops
-              </Button>
+              <div className="space-y-2">
+                {shopLoadError && <p className="text-xs text-destructive">{shopLoadError}</p>}
+                <Button type="button" variant="outline" size="sm" onClick={loadShops} className="gap-2">
+                  <RefreshCw className="h-3.5 w-3.5" /> Retry Load Shops
+                </Button>
+              </div>
             )}
           </div>
 

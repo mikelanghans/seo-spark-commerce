@@ -6,6 +6,19 @@ import { EMPTY_ORG_FORM } from "@/types/dashboard";
 import type { OrgFormState } from "@/types/dashboard";
 import { PRODUCT_TYPES, type ProductTypeKey } from "@/lib/productTypes";
 
+const getFunctionErrorMessage = async (error: any, fallback: string) => {
+  const response = error?.context;
+  if (response && typeof response.json === "function") {
+    try {
+      const body = await response.json();
+      if (typeof body?.error === "string") return body.error;
+    } catch {
+      // Fall through to the SDK message below.
+    }
+  }
+  return error?.message || fallback;
+};
+
 export function useOrgHandlers(userId: string | undefined, setView: (v: View) => void) {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [orgsLoaded, setOrgsLoaded] = useState(false);
@@ -94,12 +107,18 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
     setPrintifyShops([]);
     setLoadingPrintifyShops(true);
     try {
-      const { data } = await supabase.functions.invoke("printify-get-shops", {
+      const { data, error } = await supabase.functions.invoke("printify-get-shops", {
         body: { organizationId: orgId || editingOrg?.id || selectedOrg?.id },
       });
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Failed to load Printify shops"));
+      if (data?.error) throw new Error(data.error);
       setPrintifyShops(data?.shops || []);
-    } catch { /* silent */ }
-    setLoadingPrintifyShops(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load Printify shops");
+      setPrintifyShops([]);
+    } finally {
+      setLoadingPrintifyShops(false);
+    }
   };
 
   const handleEditOrg = (org: Organization) => {
