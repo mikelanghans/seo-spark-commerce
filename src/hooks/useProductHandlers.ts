@@ -485,18 +485,17 @@ export function useProductHandlers(
             await supabase.functions.invoke("push-to-shopify", {
               body: {
                 organizationId: selectedOrg.id,
-                userId: userId!,
-                productId: product.id,
-                listing: {
-                  title: shopifyListing?.title || product.title,
-                  description: shopifyListing?.description || product.description,
-                  tags: shopifyListing?.tags || [],
-                  seo_title: shopifyListing?.seo_title,
-                  seo_description: shopifyListing?.seo_description,
-                  url_handle: shopifyListing?.url_handle,
-                  alt_text: shopifyListing?.alt_text,
+                product: {
+                  id: product.id,
+                  title: product.title,
+                  description: product.description,
                   price: product.price,
+                  shopify_product_id: product.shopify_product_id,
+                  printify_product_id: product.printify_product_id,
+                  size_pricing: product.size_pricing,
+                  category: product.category,
                 },
+                listings: productListings || [],
                 updateFields: ["shipping_profile"],
               },
             });
