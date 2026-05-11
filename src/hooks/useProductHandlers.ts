@@ -40,6 +40,9 @@ export function useProductHandlers(
   const [pushingAllEtsy, setPushingAllEtsy] = useState(false);
   const [pushAllEtsyProgress, setPushAllEtsyProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllEtsyRef = useRef(false);
+  const [pushingAllPrintify, setPushingAllPrintify] = useState(false);
+  const [pushAllPrintifyProgress, setPushAllPrintifyProgress] = useState({ done: 0, total: 0 });
+  const cancelPushAllPrintifyRef = useRef(false);
 
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
