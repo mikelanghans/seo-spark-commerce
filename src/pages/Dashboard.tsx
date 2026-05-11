@@ -598,6 +598,15 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handlePushAllToPrintify(getSelectedProducts())} className="gap-2">
+                            <Rocket className="h-4 w-4" />
+                            <div>
+                              <p className="font-medium">Push to Printify</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Update title, description, pricing & republish
+                              </p>
+                            </div>
+                          </DropdownMenuItem>
                           {selectedOrg?.enabled_marketplaces?.includes("ebay") && (
                             <DropdownMenuItem onClick={openEbayConfirm} className="gap-2">
                               <Tag className="h-4 w-4" />
