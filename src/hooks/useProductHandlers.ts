@@ -500,6 +500,7 @@ export function useProductHandlers(
     pushingAllShopify, pushAllProgress, cancelPushAllRef,
     pushingAllEbay, pushAllEbayProgress, cancelPushAllEbayRef,
     pushingAllEtsy, pushAllEtsyProgress, cancelPushAllEtsyRef,
+    pushingAllPrintify, pushAllPrintifyProgress, cancelPushAllPrintifyRef,
     showPrintifyMatch, setShowPrintifyMatch,
     loadProducts, loadListings,
     generateListingsForProduct, handleViewProduct, handleDeleteProduct,
@@ -507,5 +508,6 @@ export function useProductHandlers(
     toggleMarketplace,
     handleImportFromShopify, handleCancelImport,
     handleGenerateAllListings, handlePushAllToShopify, handlePushAllToEbay, handlePushAllToEtsy,
+    handlePushAllToPrintify,
   };
 }
