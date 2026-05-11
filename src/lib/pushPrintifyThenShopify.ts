@@ -340,7 +340,10 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     let darkPrintifyImageId: string | null = null;
     if (hasLightColors) {
       onProgress("printify-dark", "Creating dark-ink variant for light garments");
-      const darkBase64 = await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+      const stored = await fetchStoredPrintifyDesignVariants(product.id);
+      const darkBase64 = stored.darkUrl
+        ? await preparePrintifyDesignBase64(stored.darkUrl, 4500, { productId: product.id, variant: "dark" })
+        : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
       const { data: dUp, error: dErr } = await invoke<PrintifyUploadResponse>(
         "printify-upload-image",
         {
