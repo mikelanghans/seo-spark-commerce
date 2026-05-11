@@ -44,6 +44,18 @@ export function useProductHandlers(
   const [pushAllPrintifyProgress, setPushAllPrintifyProgress] = useState({ done: 0, total: 0 });
   const cancelPushAllPrintifyRef = useRef(false);
 
+  // Warn before navigating away while a long-running bulk operation is in progress.
+  const bulkInProgress = generatingAll || pushingAllShopify || pushingAllEbay || pushingAllEtsy || pushingAllPrintify || importingShopify;
+  useEffect(() => {
+    if (!bulkInProgress) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [bulkInProgress]);
+
   const loadProducts = async (orgId: string): Promise<Product[]> => {
     setLoading(true);
     const { data } = await supabase.from("products").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
