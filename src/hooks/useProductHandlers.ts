@@ -449,16 +449,23 @@ export function useProductHandlers(
 
     cancelPushAllPrintifyRef.current = false;
     setPushingAllPrintify(true);
-    setPushAllPrintifyProgress({ done: 0, total: queue.length });
+    // Total work units = printify push + shopify image republish (for products with shopify_product_id)
+    const shopifyCount = queue.filter((p) => !!p.shopify_product_id).length;
+    const totalUnits = queue.length + shopifyCount;
+    setPushAllPrintifyProgress({ done: 0, total: totalUnits });
+    let doneUnits = 0;
     let successCount = 0;
     let publishFailures = 0;
+    let shopifySuccess = 0;
 
     const printifyShopId = (selectedOrg as any).printify_shop_id;
+    const CONCURRENCY = 3;
 
-    for (let i = 0; i < queue.length; i++) {
-      if (cancelPushAllPrintifyRef.current) { toast.info(`Cancelled after ${successCount} products`); break; }
-      const product = queue[i];
-      setPushAllPrintifyProgress({ done: i, total: queue.length });
+    // ============ PHASE 1: Push all to Printify in parallel ============
+    const printifySuccessProducts: Product[] = [];
+
+    const runPrintify = async (product: Product) => {
+      if (cancelPushAllPrintifyRef.current) return;
       try {
         const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
         const shopifyListing = productListings?.find((l) => l.marketplace === "shopify") || productListings?.[0];
@@ -488,56 +495,88 @@ export function useProductHandlers(
           console.warn(`Printify publish warning for ${product.title}:`, data.publishError);
         }
         successCount++;
-
-        // After Printify finishes syncing to Shopify, overwrite Printify's auto-uploaded
-        // mockups with our own and re-assign the shipping profile.
-        if (product.shopify_product_id) {
-          try {
-            // Wait for Printify→Shopify image sync to complete before we replace them.
-            // Printify typically pushes images within 10–15s of publish.
-            await new Promise((r) => setTimeout(r, 15000));
-            const { buildShopifyGallery } = await import("@/lib/shopifyGallery");
-            const variants = await buildShopifyGallery({
-              productId: product.id,
-              userId: userId!,
-              appendSizeChart: true,
-            });
-            await supabase.functions.invoke("push-to-shopify", {
-              body: {
-                organizationId: selectedOrg.id,
-                product: {
-                  id: product.id,
-                  title: product.title,
-                  description: product.description,
-                  price: product.price,
-                  shopify_product_id: product.shopify_product_id,
-                  printify_product_id: product.printify_product_id,
-                  size_pricing: product.size_pricing,
-                  category: product.category,
-                },
-                listings: productListings || [],
-                imageUrl: product.image_url,
-                variants,
-                updateFields: ["shipping_profile", "images"],
-                replaceAllImages: true,
-              },
-            });
-          } catch (shipErr: any) {
-            console.warn(`Post-Printify Shopify image/shipping update failed for ${product.title}:`, shipErr?.message || shipErr);
-          }
-        }
+        if (product.shopify_product_id) printifySuccessProducts.push(product);
       } catch (err: any) {
         console.error(`Failed to push ${product.title} to Printify:`, err);
         if (userId && selectedOrg) notifySyncFailure(userId, selectedOrg.id, "Printify", `Failed to push "${product.title}": ${err.message || "Unknown error"}`);
+      } finally {
+        doneUnits++;
+        setPushAllPrintifyProgress({ done: doneUnits, total: totalUnits });
       }
-      if (i < queue.length - 1) await new Promise((r) => setTimeout(r, 1200));
+    };
+
+    // Concurrency-limited runner
+    const runWithConcurrency = async <T,>(items: T[], worker: (item: T) => Promise<void>, limit: number) => {
+      let idx = 0;
+      const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (idx < items.length) {
+          if (cancelPushAllPrintifyRef.current) return;
+          const myIdx = idx++;
+          await worker(items[myIdx]);
+        }
+      });
+      await Promise.all(workers);
+    };
+
+    await runWithConcurrency(queue, runPrintify, CONCURRENCY);
+
+    // ============ PHASE 2: Republish Shopify mockups + shipping ============
+    if (!cancelPushAllPrintifyRef.current && printifySuccessProducts.length > 0) {
+      // Wait once for Printify→Shopify image sync to finish (typically 10–15s)
+      toast.info(`Waiting 20s for Printify→Shopify image sync, then republishing ${printifySuccessProducts.length} mockups…`);
+      await new Promise((r) => setTimeout(r, 20000));
+
+      const runShopify = async (product: Product) => {
+        if (cancelPushAllPrintifyRef.current) return;
+        try {
+          const { data: productListings } = await supabase.from("listings").select("*").eq("product_id", product.id);
+          const { buildShopifyGallery } = await import("@/lib/shopifyGallery");
+          const variants = await buildShopifyGallery({
+            productId: product.id,
+            userId: userId!,
+            appendSizeChart: true,
+          });
+          await supabase.functions.invoke("push-to-shopify", {
+            body: {
+              organizationId: selectedOrg.id,
+              product: {
+                id: product.id,
+                title: product.title,
+                description: product.description,
+                price: product.price,
+                shopify_product_id: product.shopify_product_id,
+                printify_product_id: product.printify_product_id,
+                size_pricing: product.size_pricing,
+                category: product.category,
+              },
+              listings: productListings || [],
+              imageUrl: product.image_url,
+              variants,
+              updateFields: ["shipping_profile", "images"],
+              replaceAllImages: true,
+            },
+          });
+          shopifySuccess++;
+        } catch (shipErr: any) {
+          console.warn(`Post-Printify Shopify image/shipping update failed for ${product.title}:`, shipErr?.message || shipErr);
+        } finally {
+          doneUnits++;
+          setPushAllPrintifyProgress({ done: doneUnits, total: totalUnits });
+        }
+      };
+
+      await runWithConcurrency(printifySuccessProducts, runShopify, CONCURRENCY);
     }
-    setPushAllPrintifyProgress({ done: queue.length, total: queue.length });
+
+    setPushAllPrintifyProgress({ done: totalUnits, total: totalUnits });
     setPushingAllPrintify(false);
     if (!cancelPushAllPrintifyRef.current) {
       const note = publishFailures > 0 ? ` (${publishFailures} publish warnings — check notifications)` : "";
-      toast.success(`Updated & published ${successCount}/${queue.length} on Printify${note}`);
+      const shopNote = shopifyCount > 0 ? ` · Shopify mockups: ${shopifySuccess}/${shopifyCount}` : "";
+      toast.success(`Printify: ${successCount}/${queue.length}${note}${shopNote}`);
       if (selectedOrg) loadProducts(selectedOrg.id);
+    } else {
+      toast.info(`Cancelled after Printify ${successCount} · Shopify ${shopifySuccess}`);
     }
   };
 
