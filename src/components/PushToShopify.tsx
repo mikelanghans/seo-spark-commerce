@@ -75,7 +75,12 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
         }
       }
 
-      if (!linkedShopifyId && !linkedPrintifyId) {
+      if (!linkedPrintifyId) {
+        toast.warning("No linked Printify product found. Use 'Printify → Shopify' first so Shopify updates the matching product.");
+        return;
+      }
+
+      if (!linkedShopifyId) {
         toast.warning("No linked Shopify product found. Use 'Printify → Shopify' first so it stays connected.");
         return;
       }
