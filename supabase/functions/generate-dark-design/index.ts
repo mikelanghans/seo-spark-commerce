@@ -43,14 +43,14 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3-pro-image-preview",
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "This is a t-shirt design with white/light colored text and graphics on a transparent background. Create an IDENTICAL version of this exact design, but recolor the white/light NEUTRAL text and graphics to a SOLID, CLEAN dark charcoal/black (#1a1a1a). CRITICAL QUALITY RULES: (1) Fills must be perfectly SOLID and uniform — NO grain, NO noise, NO distressing, NO speckles, NO halftone, NO vintage texture, NO faded/washed-out look. Every letter and shape must have crisp, clean, fully-opaque edges as if vector art. (2) Preserve ALL original colored/metallic/golden/gradient decorative elements EXACTLY as-is — do not recolor them. Only the neutral white/light-gray elements get darkened. (3) Keep the exact same layout, fonts, letterforms, kerning, sizing, positioning, and proportions. (4) Background must remain fully transparent. Output ONLY the modified design image at high resolution with razor-sharp, smooth, solid fills.",
+                text: "TASK: Recolor this transparent-background t-shirt design so every white/light-neutral element becomes pure solid dark charcoal #1a1a1a. This is a COLOR SWAP ONLY — not a stylization.\n\nABSOLUTE REQUIREMENTS:\n1. SOLID FILLS ONLY. The recolored elements must be 100% opaque flat #1a1a1a, like clean vector art. ZERO grain, ZERO noise, ZERO speckles, ZERO halftone dots, ZERO distressing, ZERO vintage/worn/faded/cracked/textured look, ZERO sketchy edges, ZERO gradient inside fills. If you see any speckle pattern in your output, you have failed.\n2. CRISP EDGES. Every letter, shape, and line must have razor-sharp, smooth, anti-aliased edges — not jagged, not fuzzy, not stippled.\n3. PRESERVE COLORED ELEMENTS EXACTLY. Any element that is already pink, rose, gold, metallic, gradient, or any non-neutral color must remain pixel-identical — same color, same position, same shape. Do NOT recolor them. Only pure white / off-white / light-gray elements get swapped to #1a1a1a.\n4. PRESERVE LAYOUT EXACTLY. Same fonts, same letterforms, same kerning, same sizes, same positions, same proportions, same composition.\n5. TRANSPARENT BACKGROUND. Output PNG with full alpha transparency around the artwork.\n6. HIGH RESOLUTION, clean print-ready output.\n\nThink: 'flat vector recolor in Illustrator', NOT 'distressed screenprint effect'.",
               },
               {
                 type: "image_url",
