@@ -163,18 +163,6 @@ const pollForLinkedShopifyId = async ({
   while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
-    const { data: row } = await supabase
-      .from("products")
-      .select("shopify_product_id")
-      .eq("id", productId)
-      .maybeSingle();
-    if (row?.shopify_product_id) {
-      const linkedId = row.shopify_product_id as number;
-      onProductUpdate({ shopify_product_id: linkedId });
-      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
-      return linkedId;
-    }
-
     const { data: recoveryData } = await invoke<ShopifyIdRecoveryResponse>(
       "printify-create-product",
       {
@@ -402,7 +390,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       const recovered = await recoverPersistedPrintifyLinks(product.id);
       if (!recovered?.printify_product_id) throw new Error(`Printify create failed: ${pErr.message}`);
       printifyProductId = recovered.printify_product_id;
-      currentShopifyId = (recovered.shopify_product_id as number | null) ?? currentShopifyId;
+      currentShopifyId = hadPrintifyLinkAtStart ? ((recovered.shopify_product_id as number | null) ?? currentShopifyId) : null;
       onProductUpdate({ printify_product_id: printifyProductId, shopify_product_id: currentShopifyId });
     }
     if (pData?.error) throw new Error(`Printify create failed: ${pData.error}`);
