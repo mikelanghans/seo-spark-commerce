@@ -58,6 +58,16 @@ const CC1717_COLORS: ProductTypeColor[] = [
   { name: "Midnight", hex: "#4a5568" },
   { name: "Sage", hex: "#a3b09e" },
   { name: "Chambray", hex: "#8ba3c4" },
+  { name: "Butter", hex: "#f5e6a3" },
+  { name: "Blossom", hex: "#f4c2c2" },
+  { name: "Chalky Mint", hex: "#b8e0d2" },
+  { name: "Flo Blue", hex: "#4da8da" },
+  { name: "Watermelon", hex: "#e86b6b" },
+  { name: "Yam", hex: "#c2622d" },
+  { name: "Orchid", hex: "#c4a5c9" },
+  { name: "Terracotta", hex: "#c66b3d" },
+  { name: "Sandstone", hex: "#d4c4a8" },
+  { name: "Crunchberry", hex: "#e85d75" },
 ];
 
 const CC1717_LIGHT = new Set([
