@@ -98,6 +98,8 @@ export interface PushChainResult {
   printifyStaleCleared?: boolean;
   /** True when the linked Shopify product was missing and the stale id was cleared. */
   shopifyStaleCleared?: boolean;
+  /** True when Printify finished publishing but no external.id was produced (publish failed). */
+  printifyPublishFailed?: boolean;
 }
 
 type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
@@ -113,10 +115,12 @@ type PrintifyChainResponse = FunctionErrorResponse & {
 type ShopifyIdRecoveryResponse = {
   shopifyProductId?: number | null;
   publishStatus?: {
-    external?: unknown;
+    fetchStatus?: number;
+    external?: { id?: string | number } | null;
     visible?: boolean | null;
     isLocked?: boolean | null;
     salesChannel?: unknown;
+    publishingSucceeded?: boolean;
   } | null;
 };
 type ShopifyPushResponse = FunctionErrorResponse & {
@@ -155,12 +159,19 @@ const pollForLinkedShopifyId = async ({
   retryLabel: string;
   onProgress: (stage: ChainStage, message: string) => void;
   onProductUpdate: (updates: Partial<PushChainProduct>) => void;
-}) => {
-  onProgress("shopify-wait", "Waiting for Printify → Shopify sync (up to 3 min)");
+}): Promise<{ shopifyProductId: number | null; publishFailed: boolean }> => {
+  onProgress("shopify-wait", "Waiting for Printify to finish publishing (up to 3 min)");
   const pollStart = Date.now();
   const POLL_TIMEOUT_MS = 180_000;
   const POLL_INTERVAL_MS = 5_000;
+  // We require evidence that Printify actually attempted publishing before we
+  // can interpret "is_locked === false + no external.id" as a failure.
+  // Either: we observed isLocked === true at some point, OR enough time has
+  // passed (grace) that we can assume publish should have engaged.
+  const UNLOCKED_GRACE_MS = 30_000;
+  let observedLocked = false;
   let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
+
   while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 
@@ -176,20 +187,43 @@ const pollForLinkedShopifyId = async ({
       retry,
       `shopify-id-recovery-${retryLabel}`,
     );
+
     if (recoveryData?.shopifyProductId) {
       const linkedId = recoveryData.shopifyProductId as number;
       onProductUpdate({ shopify_product_id: linkedId });
-      onProgress("shopify-wait", `Shopify product linked (${linkedId})`);
-      return linkedId;
+      onProgress("shopify-wait", `Printify publish succeeded — Shopify product linked (${linkedId})`);
+      return { shopifyProductId: linkedId, publishFailed: false };
     }
-    lastPublishStatus = recoveryData?.publishStatus ?? lastPublishStatus;
+
+    const status = recoveryData?.publishStatus ?? null;
+    lastPublishStatus = status ?? lastPublishStatus;
+
+    const isLocked = status?.isLocked === true;
+    const hasExternalId = Boolean(status?.external?.id);
+
+    if (isLocked) {
+      observedLocked = true;
+      onProgress("shopify-wait", "Printify is publishing… (locked)");
+      continue;
+    }
+
+    // Unlocked + no external id. If we previously saw locked, publishing finished without success.
+    if (!hasExternalId && (observedLocked || Date.now() - pollStart >= UNLOCKED_GRACE_MS)) {
+      console.warn("Printify publish finished without producing an external Shopify ID", {
+        printifyProductId,
+        observedLocked,
+        lastPublishStatus,
+      });
+      return { shopifyProductId: null, publishFailed: true };
+    }
   }
 
-  console.warn("Printify published product did not expose a Shopify external.id within polling window", {
+  console.warn("Printify publish did not complete within polling window", {
     printifyProductId,
+    observedLocked,
     lastPublishStatus,
   });
-  return null;
+  return { shopifyProductId: null, publishFailed: false };
 };
 
 const recoverPersistedPrintifyLinks = async (productId: string) => {
@@ -418,8 +452,9 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // The create-product edge function continues polling in the background and
   // persists `shopify_product_id` on the products row when it arrives.
   // Poll the row here so autopilot can complete the SEO push in the same run.
+  let printifyPublishFailed = false;
   if (!currentShopifyId && printifyProductId) {
-    currentShopifyId = await pollForLinkedShopifyId({
+    const pollResult = await pollForLinkedShopifyId({
       productId: product.id,
       printifyProductId,
       printifyShopId,
@@ -429,10 +464,18 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       onProgress,
       onProductUpdate,
     });
+    currentShopifyId = pollResult.shopifyProductId;
+    printifyPublishFailed = pollResult.publishFailed;
   }
 
   if (!currentShopifyId) {
-    onProgress("skipped", "Printify has not provided a linked Shopify product yet");
+    if (printifyPublishFailed) {
+      onProgress("skipped", "Printify publishing failed — Shopify push skipped to avoid duplicates");
+      throw new Error(
+        "Printify finished publishing without linking a Shopify product. Open the product in Printify, fix the publish error, then retry the sync.",
+      );
+    }
+    onProgress("skipped", "Printify is still publishing — Shopify push skipped to avoid duplicates");
     return {
       printifyProductId,
       shopifyProductId: null,
