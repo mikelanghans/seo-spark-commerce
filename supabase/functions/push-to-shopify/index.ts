@@ -217,6 +217,16 @@ serve(async (req) => {
             .update({ shopify_product_id: recoveredShopifyId })
             .eq("id", product.id);
         }
+      } else if (existingShopifyId && allowCreateOnMissingProduct) {
+        console.warn(`Ignoring unverified Shopify product ID ${existingShopifyId}; Printify ${existingPrintifyId} has no external mapping yet.`);
+        existingShopifyId = null;
+
+        if (product.id) {
+          await adminClient
+            .from("products")
+            .update({ shopify_product_id: null })
+            .eq("id", product.id);
+        }
       } else if (existingShopifyId) {
         return new Response(JSON.stringify({
           success: false,
