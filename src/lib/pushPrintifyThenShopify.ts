@@ -452,8 +452,9 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // The create-product edge function continues polling in the background and
   // persists `shopify_product_id` on the products row when it arrives.
   // Poll the row here so autopilot can complete the SEO push in the same run.
+  let printifyPublishFailed = false;
   if (!currentShopifyId && printifyProductId) {
-    currentShopifyId = await pollForLinkedShopifyId({
+    const pollResult = await pollForLinkedShopifyId({
       productId: product.id,
       printifyProductId,
       printifyShopId,
@@ -463,10 +464,18 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       onProgress,
       onProductUpdate,
     });
+    currentShopifyId = pollResult.shopifyProductId;
+    printifyPublishFailed = pollResult.publishFailed;
   }
 
   if (!currentShopifyId) {
-    onProgress("skipped", "Printify has not provided a linked Shopify product yet");
+    if (printifyPublishFailed) {
+      onProgress("skipped", "Printify publishing failed — Shopify push skipped to avoid duplicates");
+      throw new Error(
+        "Printify finished publishing without linking a Shopify product. Open the product in Printify, fix the publish error, then retry the sync.",
+      );
+    }
+    onProgress("skipped", "Printify is still publishing — Shopify push skipped to avoid duplicates");
     return {
       printifyProductId,
       shopifyProductId: null,
