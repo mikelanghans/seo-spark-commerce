@@ -172,13 +172,21 @@ export const PushPrintifyThenShopify = ({
 
   useEffect(() => {
     if (open) {
+      // Clear any stale state from a previous product before loading the new one
+      setMockups([]);
+      setSizePricing({});
+      setShops([]);
+      setSelectedShop(null);
+      setPrintProviderId(null);
+      setSelectedProductType(PRODUCT_TYPES[0]);
+      setSelectedSizes([...PRODUCT_TYPES[0].sizes]);
+      setStep("idle");
+      setResult(null);
       loadShops();
       loadMockups();
       loadSizePricing();
-      setStep("idle");
-      setResult(null);
     }
-  }, [open]);
+  }, [open, product.id]);
 
   useEffect(() => {
     if (open && selectedShop) {
