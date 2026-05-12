@@ -21,7 +21,7 @@ serve(async (req) => {
 
     const { productTitle, productCategory, brandName, brandNiche, brandAudience, brandTone, existingColors, designImageBase64, availablePalette, productTypeLabel } = await req.json();
 
-    const paletteStr = availablePalette || "Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Chili, Brick, Espresso, Midnight, Sage, Chambray";
+    const paletteStr = availablePalette || "Black, White, True Navy, Red, Moss, Grey, Blue Jean, Pepper, Island Green, Ivory, Chili, Brick, Espresso, Midnight, Sage, Chambray, Butter, Blossom, Chalky Mint, Flo Blue, Watermelon, Yam, Orchid, Terracotta, Sandstone, Crunchberry";
     const typeLabel = productTypeLabel || productCategory || "T-Shirt";
 
     const prompt = `You are a fashion merchandising expert specializing in print-on-demand ${typeLabel.toLowerCase()} color strategy.

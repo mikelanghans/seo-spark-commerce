@@ -58,13 +58,23 @@ const CC1717_COLORS: ProductTypeColor[] = [
   { name: "Midnight", hex: "#4a5568" },
   { name: "Sage", hex: "#a3b09e" },
   { name: "Chambray", hex: "#8ba3c4" },
+  { name: "Butter", hex: "#f5e6a3" },
+  { name: "Blossom", hex: "#f4c2c2" },
+  { name: "Chalky Mint", hex: "#b8e0d2" },
+  { name: "Flo Blue", hex: "#4da8da" },
+  { name: "Watermelon", hex: "#e86b6b" },
+  { name: "Yam", hex: "#c2622d" },
+  { name: "Orchid", hex: "#c4a5c9" },
+  { name: "Terracotta", hex: "#c66b3d" },
+  { name: "Sandstone", hex: "#d4c4a8" },
+  { name: "Crunchberry", hex: "#e85d75" },
 ];
 
 const CC1717_LIGHT = new Set([
   "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
   "island reef", "chambray", "white", "flo blue", "watermelon",
   "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-  "light green", "bay", "sage",
+  "light green", "bay", "sage", "sandstone", "crunchberry",
 ]);
 
 const CC1717_SWATCH_HINTS: Record<string, string> = {
@@ -84,6 +94,16 @@ const CC1717_SWATCH_HINTS: Record<string, string> = {
   midnight: "medium-dark slate blue-gray — NOT dark navy and NOT black. A muted cool steel tone with subtle blue undertone (near #4A5568)",
   sage: "muted light sage green (near #9BAC95)",
   chambray: "light muted blue-gray (near #8EA3B6)",
+  butter: "soft warm pastel yellow (near #F5E6A3)",
+  blossom: "soft pastel pink — light blush rose (near #F4C2C2)",
+  "chalky mint": "soft pastel mint green — light cool seafoam (near #B8E0D2)",
+  "flo blue": "bright vivid sky blue — eye-catching pastel blue (near #4DA8DA)",
+  watermelon: "bright coral-pink — warm pastel red-pink (near #E86B6B)",
+  yam: "warm burnt orange — earthy pastel orange (near #C2622D)",
+  orchid: "light muted lavender-purple — soft pastel purple (near #C4A5C9)",
+  terracotta: "warm earthy red-brown — muted pastel clay (near #C66B3D)",
+  sandstone: "warm light tan — soft sandy beige (near #D4C4A8)",
+  crunchberry: "vibrant hot pink — bright pastel berry (near #E85D75)",
 };
 
 // ─── Comfort Colors 1566 (Hoodie) ─────────────────────────────────
