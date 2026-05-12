@@ -172,13 +172,21 @@ export const PushPrintifyThenShopify = ({
 
   useEffect(() => {
     if (open) {
+      // Clear any stale state from a previous product before loading the new one
+      setMockups([]);
+      setSizePricing({});
+      setShops([]);
+      setSelectedShop(null);
+      setPrintProviderId(null);
+      setSelectedProductType(PRODUCT_TYPES[0]);
+      setSelectedSizes([...PRODUCT_TYPES[0].sizes]);
+      setStep("idle");
+      setResult(null);
       loadShops();
       loadMockups();
       loadSizePricing();
-      setStep("idle");
-      setResult(null);
     }
-  }, [open]);
+  }, [open, product.id]);
 
   useEffect(() => {
     if (open && selectedShop) {
@@ -206,6 +214,7 @@ export const PushPrintifyThenShopify = ({
   };
 
   const handlePushBoth = async () => {
+    if (loadingMockups || loadingShops) { toast.error("Still loading product data, please wait..."); return; }
     if (!selectedShop) { toast.error("Please select a Printify shop"); return; }
     if (!selectedSizes.length) { toast.error("Please select at least one size"); return; }
     if (!product.image_url) { toast.error("Product needs a design image"); return; }
