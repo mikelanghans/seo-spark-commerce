@@ -178,8 +178,8 @@ serve(async (req) => {
     const price = product.price?.replace(/[^0-9.]/g, "") || "0.00";
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    let existingShopifyId: number | null = product.shopify_product_id ?? null;
     let existingPrintifyId: string | null = product.printify_product_id ?? null;
+    let existingShopifyId: number | null = existingPrintifyId ? (product.shopify_product_id ?? null) : null;
     let printifyShopIdForLink: number | null = null;
 
     if (!existingShopifyId && product.id) {
@@ -191,7 +191,7 @@ serve(async (req) => {
 
       const latestShopifyId = latestProductLink?.shopify_product_id ?? null;
       const latestPrintifyId = latestProductLink?.printify_product_id ?? null;
-      if (latestShopifyId) {
+      if (latestPrintifyId && latestShopifyId) {
         existingShopifyId = latestShopifyId;
         console.log(`Recovered linked Shopify product ID ${latestShopifyId} from product row`);
       }
