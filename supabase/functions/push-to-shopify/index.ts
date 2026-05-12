@@ -200,7 +200,7 @@ serve(async (req) => {
       }
     }
 
-    if (!existingShopifyId && existingPrintifyId) {
+    if (existingPrintifyId) {
       const recoveredShopifyId = await recoverShopifyIdFromPrintify(
         adminClient,
         organizationId,
@@ -217,6 +217,15 @@ serve(async (req) => {
             .update({ shopify_product_id: recoveredShopifyId })
             .eq("id", product.id);
         }
+      } else if (existingShopifyId) {
+        return new Response(JSON.stringify({
+          success: false,
+          missingShopifyLink: true,
+          message: "The linked Printify product has not exposed its Shopify product yet. Wait for Printify sync, then retry Shopify.",
+        }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
