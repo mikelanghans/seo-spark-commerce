@@ -74,7 +74,7 @@ const CC1717_LIGHT = new Set([
   "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
   "island reef", "chambray", "white", "flo blue", "watermelon",
   "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
-  "light green", "bay", "sage",
+  "light green", "bay", "sage", "sandstone", "crunchberry",
 ]);
 
 const CC1717_SWATCH_HINTS: Record<string, string> = {
