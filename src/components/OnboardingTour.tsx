@@ -4,6 +4,7 @@ import {
   Building2, Package, Sparkles, ImageIcon, Store, Share2,
   CalendarDays, GitCompare, Rocket, Upload, Users, Settings,
   ArrowRight, ArrowLeft, X, BookOpen, Zap, Bell, FlaskConical,
+  Music2, Search, Move, RefreshCw,
 } from "lucide-react";
 
 interface TourStep {
@@ -43,23 +44,41 @@ const TOUR_STEPS: TourStep[] = [
     tip: "Name your uploaded files with the color name (e.g. 'Ocean Blue.png') and it'll auto-set the variant name.",
   },
   {
+    icon: <Move className="h-6 w-6" />,
+    title: "Design Placement Editor",
+    description:
+      "Fine-tune the size and position of your design on each mockup before pushing to Printify. Your placement settings persist across pushes for consistent results.",
+  },
+  {
     icon: <Store className="h-6 w-6" />,
     title: "AI Listings & Push to Marketplaces",
     description:
-      "Generate SEO-optimized listings for Etsy, eBay, and Shopify with one click. Then push your products directly to Shopify, Printify, eBay, Etsy, or Meta.",
+      "Generate SEO-optimized listings for Etsy, eBay, and Shopify with one click. Push to Shopify, Printify, eBay, Etsy, or Meta — or use the chained Printify → Shopify flow to keep products fulfillment-connected.",
     tip: "Connect your marketplace accounts in Settings to enable direct product pushing.",
   },
   {
-    icon: <Upload className="h-6 w-6" />,
-    title: "Bulk Upload & Shopify Enrich",
+    icon: <Music2 className="h-6 w-6" />,
+    title: "TikTok Shop Export",
     description:
-      "Upload a CSV of products to add them all at once. Or import your existing Shopify catalog and enrich each product with AI-generated descriptions, keywords, and listings.",
+      "TikTok Shop has no public listing API for new sellers, so Brand Aura generates a category-specific bulk .xlsx with your listing pre-filled — ready to upload via Seller Center → Bulk Action → Add Products.",
+  },
+  {
+    icon: <Upload className="h-6 w-6" />,
+    title: "Bulk Upload",
+    description:
+      "Upload a CSV of products or a folder of design images to add many products at once. The pipeline processes them in parallel.",
+  },
+  {
+    icon: <RefreshCw className="h-6 w-6" />,
+    title: "Shopify Enrich",
+    description:
+      "Import your existing Shopify catalog and let AI rewrite titles, descriptions, keywords, and SEO metadata — then push the improvements back to your store.",
   },
   {
     icon: <Rocket className="h-6 w-6" />,
     title: "Autopilot Pipeline",
     description:
-      "Drop a folder of design images and let the autopilot pipeline handle everything: create products, generate mockups, build listings, and optionally push to Shopify — all automatically.",
+      "Drop a folder of design images and let the autopilot pipeline handle everything: create products, generate mockups, build listings, and optionally push to Printify and Shopify — all automatically.",
     tip: "Great for launching a new collection fast.",
   },
   {
@@ -79,6 +98,13 @@ const TOUR_STEPS: TourStep[] = [
     title: "Sync Dashboard & Listing Health",
     description:
       "See which products are synced to which marketplaces at a glance. Listing Health flags underperforming products for AI-powered content refreshes with a review queue.",
+  },
+  {
+    icon: <Search className="h-6 w-6" />,
+    title: "SEO Site Scans",
+    description:
+      "Run AI-powered SEO audits against any storefront URL. Get per-page reports with title, meta, alt-text, and structured-data grading — plus a Fix Sheet with ready-to-paste replacements.",
+    tip: "Find SEO Scans in the sidebar — works with any public site, not just Shopify.",
   },
   {
     icon: <Users className="h-6 w-6" />,
