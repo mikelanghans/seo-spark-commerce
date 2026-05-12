@@ -217,21 +217,18 @@ serve(async (req) => {
             .update({ shopify_product_id: recoveredShopifyId })
             .eq("id", product.id);
         }
-      } else if (existingShopifyId && allowCreateOnMissingProduct) {
-        console.warn(`Ignoring unverified Shopify product ID ${existingShopifyId}; Printify ${existingPrintifyId} has no external mapping yet.`);
-        existingShopifyId = null;
-
-        if (product.id) {
+      } else {
+        if (existingShopifyId && product.id) {
           await adminClient
             .from("products")
             .update({ shopify_product_id: null })
             .eq("id", product.id);
         }
-      } else if (existingShopifyId) {
+
         return new Response(JSON.stringify({
           success: false,
           missingShopifyLink: true,
-          message: "The linked Printify product has not exposed its Shopify product yet. Wait for Printify sync, then retry Shopify.",
+          message: "The linked Printify product has not exposed its Shopify product yet. Wait for Printify sync to finish successfully, then retry Shopify.",
         }), {
           status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -240,7 +237,7 @@ serve(async (req) => {
     }
 
     if (!existingShopifyId) {
-      if (allowCreateOnMissingProduct) {
+      if (allowCreateOnMissingProduct && !existingPrintifyId) {
         console.log("No linked Shopify product found — creating Shopify product directly and linking it to Printify");
       } else {
       return new Response(JSON.stringify({
