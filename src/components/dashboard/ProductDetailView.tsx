@@ -71,6 +71,27 @@ export const ProductDetailView = ({
   const [printifyConnected, setPrintifyConnected] = useState<boolean | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState<boolean | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(product.title);
+  const [savingTitle, setSavingTitle] = useState(false);
+
+  const handleTitleSave = async () => {
+    const next = titleDraft.trim();
+    if (!next || next === product.title) { setEditingTitle(false); setTitleDraft(product.title); return; }
+    setSavingTitle(true);
+    try {
+      const { error } = await supabase.from("products").update({ title: next }).eq("id", product.id);
+      if (error) throw error;
+      setSelectedProduct({ ...product, title: next });
+      if (organization?.id) await loadProducts(organization.id);
+      toast.success("Title updated");
+      setEditingTitle(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update title");
+    } finally {
+      setSavingTitle(false);
+    }
+  };
   const designRefreshVersionRef = useRef(0);
 
   const categoryOptions = useMemo(() => {
