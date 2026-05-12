@@ -98,6 +98,8 @@ export interface PushChainResult {
   printifyStaleCleared?: boolean;
   /** True when the linked Shopify product was missing and the stale id was cleared. */
   shopifyStaleCleared?: boolean;
+  /** True when Printify finished publishing but no external.id was produced (publish failed). */
+  printifyPublishFailed?: boolean;
 }
 
 type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
