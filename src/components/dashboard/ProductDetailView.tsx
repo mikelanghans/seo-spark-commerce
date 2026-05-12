@@ -239,6 +239,14 @@ export const ProductDetailView = ({
         let nextLightUrl = isUsableDesignUrl(lightRow?.image_url) ? lightRow!.image_url : null;
         let nextDarkUrl = isUsableDesignUrl(darkRow?.image_url) ? darkRow!.image_url : null;
 
+        // Optimistic fast-path: show persisted design URLs immediately so the
+        // preview doesn't sit blank while we run transparency probes & dedupe.
+        if (isActive && refreshVersion === designRefreshVersionRef.current) {
+          if (nextLightUrl) setLightDesignUrl(nextLightUrl);
+          if (nextDarkUrl) setDarkDesignUrl(nextDarkUrl);
+          if (nextLightUrl || nextDarkUrl) setIsPreparingDesignFiles(false);
+        }
+
         // Trust persisted product_images rows: they already came from the validated
         // upload pipeline (createAndUploadDesignVariants or handleReplaceDesign).
         // Re-running heuristic transparency checks here can false-negative on valid
