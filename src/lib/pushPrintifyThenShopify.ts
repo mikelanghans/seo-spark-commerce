@@ -272,8 +272,13 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     organizationId,
   };
 
+  const hadPrintifyLinkAtStart = !!product.printify_product_id;
   let printifyProductId: string | null = product.printify_product_id ?? null;
-  let currentShopifyId: number | null = product.shopify_product_id ?? null;
+  // A Shopify ID is only safe to reuse when it was already tied to this product's
+  // Printify link. If we're creating a fresh Printify product, ignore any stale
+  // Shopify ID that may have been copied/reused from a sibling product and wait
+  // for the new Printify external mapping instead.
+  let currentShopifyId: number | null = hadPrintifyLinkAtStart ? (product.shopify_product_id ?? null) : null;
   let variantCount: number | undefined;
   let printifyStaleCleared = false;
 
