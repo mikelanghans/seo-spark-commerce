@@ -57,21 +57,29 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
     setPushing(true);
     setResult(null);
     try {
-      let linkedPrintifyId = product.printify_product_id ?? null;
-      let linkedShopifyId = linkedPrintifyId ? (product.shopify_product_id ?? null) : null;
+      // ALWAYS re-read the latest IDs from DB by product.id to avoid pushing
+      // to a stale Shopify product (cross-contamination between products).
+      let linkedPrintifyId: string | null = product.printify_product_id ?? null;
+      let linkedShopifyId: number | null = null;
 
-      if ((!linkedShopifyId || !linkedPrintifyId) && product.id) {
+      if (product.id) {
         const { data: latestProductLink } = await supabase
           .from("products")
           .select("shopify_product_id, printify_product_id")
           .eq("id", product.id)
           .maybeSingle();
 
-        linkedPrintifyId = latestProductLink?.printify_product_id ?? linkedPrintifyId;
-        linkedShopifyId = linkedPrintifyId ? (latestProductLink?.shopify_product_id ?? linkedShopifyId) : null;
+        linkedPrintifyId = latestProductLink?.printify_product_id ?? null;
+        linkedShopifyId = linkedPrintifyId ? (latestProductLink?.shopify_product_id ?? null) : null;
 
-        if (linkedShopifyId && linkedShopifyId !== product.shopify_product_id) {
-          onProductUpdate?.({ shopify_product_id: linkedShopifyId });
+        if (
+          (linkedShopifyId ?? null) !== (product.shopify_product_id ?? null) ||
+          (linkedPrintifyId ?? null) !== (product.printify_product_id ?? null)
+        ) {
+          onProductUpdate?.({
+            shopify_product_id: linkedShopifyId,
+            printify_product_id: linkedPrintifyId,
+          } as Partial<Product>);
         }
       }
 
