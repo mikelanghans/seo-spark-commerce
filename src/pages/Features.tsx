@@ -174,6 +174,9 @@ const Features = () => {
           <Sub title="Shopify">
             <p>Push products with SEO metadata, images, and color variants. Supports creating new and updating existing products. Auto-adds "T-shirts" tag. Status toggle for active/draft.</p>
           </Sub>
+          <Sub title="Printify → Shopify (Chained)">
+            <p>Push to Printify first to keep products fulfillment-connected, then automatically continue to Shopify. The system polls for the new Shopify product ID so subsequent updates target the right listing.</p>
+          </Sub>
           <Sub title="Printify">
             <p>Push designs for print-on-demand fulfillment. Automatic color name matching, dynamic variant fetching, and Printify Choice provider prioritization.</p>
           </Sub>
@@ -183,9 +186,38 @@ const Features = () => {
           <Sub title="Meta / Facebook">
             <p>Push products to your Meta Commerce catalog with images and product data.</p>
           </Sub>
+          <Sub title="TikTok Shop">
+            <p>TikTok Shop has no public listing API for new sellers — Brand Aura generates a category-specific bulk <strong>.xlsx</strong> with your listing pre-filled (TikTok-tuned title, Gen Z–toned 3–5 bullet description), ready to upload via Seller Center → Bulk Action → Add Products.</p>
+          </Sub>
+          <Sub title="Shopify Enrich">
+            <p>Import your existing Shopify catalog and let AI enrich each product with optimized titles, descriptions, keywords, and SEO metadata — then push the improvements back to your store.</p>
+          </Sub>
+          <Sub title="Design Placement Editor">
+            <p>Fine-tune the size and position of your design on each mockup before pushing to Printify. Settings persist across pushes for consistent placement.</p>
+          </Sub>
           <Sub title="Multi-Store Sync Dashboard">
             <p>Unified view of listing status across all marketplaces with indicators: Total, Not Listed, Partial, Fully Synced.</p>
           </Sub>
+        </Section>
+
+        {/* 6.5 SEO Site Scans */}
+        <Section title="7. SEO Site Scans">
+          <Sub title="Site-Wide Audits">
+            <p>Run AI-powered SEO audits against any storefront URL. The scanner crawls pages and grades title, meta description, URL handle, image alt text, and structured data against a shared rules engine.</p>
+          </Sub>
+          <Sub title="Scan Reports & Fix Sheets">
+            <p>Each scan produces a detailed report with per-page issues, severity grading, and a Fix Sheet that proposes ready-to-paste replacement copy aligned to the same SEO rules used in listing generation.</p>
+          </Sub>
+          <Sub title="Recent Scans & Retry">
+            <p>All scans are saved per brand. Resume incomplete scans, extend a scan to crawl more pages, or retry failed runs without losing prior results.</p>
+          </Sub>
+        </Section>
+
+        {/* Analytics */}
+        <Section title="8. Analytics Dashboard">
+          <p className="text-sm text-secondary-foreground print:text-gray-700">
+            View Shopify-connected sales and traffic metrics per product and per brand to see what's converting and where to focus next.
+          </p>
         </Section>
 
         {/* 7. Autopilot */}
