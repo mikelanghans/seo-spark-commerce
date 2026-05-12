@@ -27,8 +27,9 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import type { Organization, Product, Listing, View } from "@/types/dashboard";
 import { ALL_MARKETPLACES, ALL_PUSH_CHANNELS } from "@/types/dashboard";
 import {
-  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign, X,
+  ArrowLeft, Eye, Upload, Download, ImageIcon, Package, Store, Lock, Loader2, RefreshCw, AlertTriangle, DollarSign, X, Pencil, Check,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { hasMeaningfulTransparency } from "@/lib/removeBackground";
 
 interface Props {
