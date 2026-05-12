@@ -115,10 +115,12 @@ type PrintifyChainResponse = FunctionErrorResponse & {
 type ShopifyIdRecoveryResponse = {
   shopifyProductId?: number | null;
   publishStatus?: {
-    external?: unknown;
+    fetchStatus?: number;
+    external?: { id?: string | number } | null;
     visible?: boolean | null;
     isLocked?: boolean | null;
     salesChannel?: unknown;
+    publishingSucceeded?: boolean;
   } | null;
 };
 type ShopifyPushResponse = FunctionErrorResponse & {
