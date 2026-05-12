@@ -108,6 +108,7 @@ type PrintifyChainResponse = FunctionErrorResponse & {
   printifyProductId?: string;
   shopifyProductId?: number;
   variantCount?: number;
+  publishError?: string | null;
 };
 type ShopifyIdRecoveryResponse = {
   shopifyProductId?: number | null;
@@ -406,6 +407,10 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       await supabase.from("products").update({ shopify_product_id: currentShopifyId }).eq("id", product.id);
       onProductUpdate({ shopify_product_id: currentShopifyId });
     }
+
+    if (publishOnPrintify && pData?.publishError) {
+      throw new Error(`Printify publish failed: ${pData.publishError}`);
+    }
   }
 
   // ---------- STEP 2: Shopify (update with mockups + SEO) ----------
@@ -427,7 +432,13 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   }
 
   if (!currentShopifyId) {
-    onProgress("shopify-push", "Printify did not provide a Shopify link — creating and linking Shopify product directly");
+    onProgress("skipped", "Printify has not provided a linked Shopify product yet");
+    return {
+      printifyProductId,
+      shopifyProductId: null,
+      shopifySkipped: true,
+      variantCount,
+    };
   }
 
   onProgress("shopify-gallery", "Building Shopify image gallery");
@@ -476,8 +487,8 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
       imageUrl: product.image_url,
       variants: variantsForShopify,
       sizes: selectedSizes,
-      forceVariants: !currentShopifyId,
-      allowCreateOnMissingProduct: !currentShopifyId,
+      forceVariants: false,
+      allowCreateOnMissingProduct: false,
       replaceAllImages: true,
       ...(shopifyStatus ? { shopifyStatus } : {}),
     },
