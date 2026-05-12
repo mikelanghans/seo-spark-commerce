@@ -13,6 +13,7 @@ import { parsePrintPlacement } from "@/lib/printPlacement";
 import { PRODUCT_TYPES as PRODUCT_TYPE_REGISTRY } from "@/lib/productTypes";
 import { pushPrintifyThenShopify } from "@/lib/pushPrintifyThenShopify";
 import { PipelineItemRow } from "./autopilot/PipelineItemRow";
+import { insertProductImagesDeduped } from "@/lib/productImageUtils";
 
 // Mirrors PushPrintifyThenShopify: Comfort Colors 1717 default for Autopilot
 const AUTOPILOT_PRINTIFY_BLUEPRINT = { blueprintId: 706, sizes: ["S", "M", "L", "XL", "2XL", "3XL"] };
@@ -302,6 +303,28 @@ export const AutopilotPipeline = ({ organization, userId, onComplete, onBack }: 
 
         productId = product.id;
         await persistUpdate(i, { productId: product.id });
+
+        // Directory imports should preserve the exact user-provided design.
+        // Save the uploaded design as a shared light/dark design asset so later
+        // preview, mockup, and Printify flows do not auto-generate altered variants.
+        await insertProductImagesDeduped([
+          {
+            product_id: product.id,
+            user_id: userId,
+            image_url: designUrl,
+            image_type: "design",
+            color_name: "light-on-dark",
+            position: 0,
+          },
+          {
+            product_id: product.id,
+            user_id: userId,
+            image_url: designUrl,
+            image_type: "design",
+            color_name: "dark-on-light",
+            position: 1,
+          },
+        ]);
 
         if (mockupUploads.length > 0) {
           const imageRows = mockupUploads.map((m, idx) => ({
