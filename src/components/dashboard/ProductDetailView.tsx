@@ -628,7 +628,34 @@ export const ProductDetailView = ({
       <div className="flex items-start gap-3">
         <Button variant="ghost" size="icon" className="mt-1" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
+          {editingTitle ? (
+            <div className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTitleSave();
+                  if (e.key === "Escape") { setEditingTitle(false); setTitleDraft(product.title); }
+                }}
+                disabled={savingTitle}
+                className="text-xl sm:text-2xl font-bold h-auto py-1"
+              />
+              <Button size="icon" variant="ghost" onClick={handleTitleSave} disabled={savingTitle}>
+                {savingTitle ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => { setEditingTitle(false); setTitleDraft(product.title); }} disabled={savingTitle}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h2 className="text-xl sm:text-2xl font-bold truncate">{product.title}</h2>
+              <Button size="icon" variant="ghost" className="h-7 w-7 opacity-60 hover:opacity-100" onClick={() => { setTitleDraft(product.title); setEditingTitle(true); }}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-1">
             <Select value={product.category || ""} onValueChange={handleCategoryChange} disabled={savingCategory}>
               <SelectTrigger className="h-7 w-auto min-w-[180px] gap-2 rounded-md bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-inset ring-primary/25 border-0 hover:bg-primary/20">
