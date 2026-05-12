@@ -24,7 +24,9 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   sage: "muted light sage green (near #9BAC95)",
   chambray: "light muted blue-gray (near #8EA3B6)",
   "blue spruce": "deep teal-blue forest tone (near #3A5F5F)",
-  butter: "soft warm yellow (near #F5E6A3)",
+  butter: "soft warm pastel yellow (near #F5E6A3)",
+  blossom: "soft pastel pink — light blush rose (near #F4C2C2)",
+  "chalky mint": "soft pastel mint green — light cool seafoam (near #B8E0D2)",
   yam: "warm burnt orange (near #C2622D)",
   "flo blue": "bright fluorescent blue (near #4DA8DA)",
   "island reef": "light aqua-teal (near #7EC8C8)",
@@ -34,6 +36,8 @@ const COLOR_SWATCH_HINTS: Record<string, string> = {
   lagoon: "bright teal-blue (near #2E9E9E)",
   bay: "deep forest green (near #3A6B4F)",
   vineyard: "deep wine purple (near #5B3256)",
+  sandstone: "warm light tan — soft sandy beige (near #D4C4A8)",
+  crunchberry: "vibrant hot pink — bright pastel berry (near #E85D75)",
 };
 
 serve(async (req) => {
