@@ -35,7 +35,7 @@ const Features = () => {
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <img src={brandAuraIcon} alt="Brand Aura" className="h-8 w-8 object-contain" />
