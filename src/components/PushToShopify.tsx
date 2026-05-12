@@ -57,8 +57,8 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
     setPushing(true);
     setResult(null);
     try {
-      let linkedShopifyId = product.shopify_product_id ?? null;
       let linkedPrintifyId = product.printify_product_id ?? null;
+      let linkedShopifyId = linkedPrintifyId ? (product.shopify_product_id ?? null) : null;
 
       if ((!linkedShopifyId || !linkedPrintifyId) && product.id) {
         const { data: latestProductLink } = await supabase
@@ -67,15 +67,20 @@ export const PushToShopify = ({ product, listings, userId, organizationId, onPro
           .eq("id", product.id)
           .maybeSingle();
 
-        linkedShopifyId = latestProductLink?.shopify_product_id ?? linkedShopifyId;
         linkedPrintifyId = latestProductLink?.printify_product_id ?? linkedPrintifyId;
+        linkedShopifyId = linkedPrintifyId ? (latestProductLink?.shopify_product_id ?? linkedShopifyId) : null;
 
         if (linkedShopifyId && linkedShopifyId !== product.shopify_product_id) {
           onProductUpdate?.({ shopify_product_id: linkedShopifyId });
         }
       }
 
-      if (!linkedShopifyId && !linkedPrintifyId) {
+      if (!linkedPrintifyId) {
+        toast.warning("No linked Printify product found. Use 'Printify → Shopify' first so Shopify updates the matching product.");
+        return;
+      }
+
+      if (!linkedShopifyId) {
         toast.warning("No linked Shopify product found. Use 'Printify → Shopify' first so it stays connected.");
         return;
       }
