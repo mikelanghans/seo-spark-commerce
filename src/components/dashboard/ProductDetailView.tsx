@@ -287,13 +287,17 @@ export const ProductDetailView = ({
           nextDarkUrl = darkUrl;
         }
 
+        // Only enforce transparency on URLs that did NOT come from a trusted
+        // persisted upload. Persisted rows include "Use as single shared file"
+        // uploads (JPG / opaque PNG) which legitimately have no transparency —
+        // nulling them here would force the system to fabricate variants.
         const [lightHasTransparency, darkHasTransparency] = await Promise.all([
-          nextLightUrl ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(false),
-          nextDarkUrl ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(false),
+          (nextLightUrl && !hasPersistedLight) ? hasMeaningfulTransparency(nextLightUrl).catch(() => true) : Promise.resolve(true),
+          (nextDarkUrl && !hasPersistedDark) ? hasMeaningfulTransparency(nextDarkUrl).catch(() => true) : Promise.resolve(true),
         ]);
 
-        if (nextLightUrl && !lightHasTransparency) nextLightUrl = null;
-        if (nextDarkUrl && !darkHasTransparency) nextDarkUrl = null;
+        if (nextLightUrl && !hasPersistedLight && !lightHasTransparency) nextLightUrl = null;
+        if (nextDarkUrl && !hasPersistedDark && !darkHasTransparency) nextDarkUrl = null;
 
         const rowsToSave = [
           nextLightUrl ? { product_id: product.id, user_id: userId, image_url: nextLightUrl, image_type: "design", color_name: "light-on-dark", position: 0 } : null,
