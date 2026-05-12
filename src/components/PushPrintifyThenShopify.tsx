@@ -214,6 +214,7 @@ export const PushPrintifyThenShopify = ({
   };
 
   const handlePushBoth = async () => {
+    if (loadingMockups || loadingShops) { toast.error("Still loading product data, please wait..."); return; }
     if (!selectedShop) { toast.error("Please select a Printify shop"); return; }
     if (!selectedSizes.length) { toast.error("Please select at least one size"); return; }
     if (!product.image_url) { toast.error("Product needs a design image"); return; }
