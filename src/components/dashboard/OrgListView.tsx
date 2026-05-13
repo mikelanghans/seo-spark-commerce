@@ -41,7 +41,7 @@ export const OrgListView = ({
         <h2 className="text-xl sm:text-2xl font-bold">Your Brands</h2>
         <p className="text-xs sm:text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
       </div>
-      <Button onClick={() => setView("org-form")} className="gap-2 self-start sm:self-auto">
+      <Button data-tour="create-brand" onClick={() => setView("org-form")} className="gap-2 self-start sm:self-auto">
         <Plus className="h-4 w-4" /> New Brand
       </Button>
     </div>
@@ -56,8 +56,8 @@ export const OrgListView = ({
       </div>
     ) : (
       <div className="grid gap-4 sm:grid-cols-2">
-        {orgs.map((org) => (
-          <div key={org.id} className="group relative cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5" onClick={() => onSelectOrg(org)}>
+        {orgs.map((org, idx) => (
+          <div key={org.id} data-tour={idx === 0 ? "org-card" : undefined} className="group relative cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5" onClick={() => onSelectOrg(org)}>
             <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button onClick={(e) => { e.stopPropagation(); onEditOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Edit2 className="h-4 w-4" /></button>
               <button onClick={(e) => { e.stopPropagation(); onDeleteOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>

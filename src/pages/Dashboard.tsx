@@ -417,7 +417,7 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild><Button data-tour="add-product" variant="outline" className="gap-2"><Plus className="h-4 w-4" /> Add Products <ChevronDown className="h-3 w-3 ml-1" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56" sideOffset={4} collisionPadding={8}>
                       <DropdownMenuItem onClick={() => setView("product-form")} className="gap-2"><Plus className="h-4 w-4" /> Add Manually</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => { if (canAccess(effectiveTier, "bulk-upload")) setView("bulk-upload"); else toast.error("Bulk Upload requires Starter plan or above", { action: { label: "Upgrade", onClick: () => setView("settings") } }); }} className="gap-2">
@@ -458,9 +458,9 @@ const Dashboard = () => {
 
             <Tabs value={productsTab} onValueChange={(v) => { setProductsTab(v); if (v === "messages") setMsgRefreshKey(k => k + 1); if (v === "products" && selectedOrg) loadProducts(selectedOrg.id); }} className="w-full">
               <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden scrollbar-none">
-                <TabsTrigger value="messages" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Message</span> Ideas</TabsTrigger>
-                <TabsTrigger value="products" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Products {products.length > 0 && `(${products.length})`}</TabsTrigger>
-                <TabsTrigger value="autopilot" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Autopilot{!canAccess(effectiveTier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
+                <TabsTrigger data-tour="tab-messages" value="messages" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Message</span> Ideas</TabsTrigger>
+                <TabsTrigger data-tour="tab-products" value="products" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Products {products.length > 0 && `(${products.length})`}</TabsTrigger>
+                <TabsTrigger data-tour="tab-autopilot" value="autopilot" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Autopilot{!canAccess(effectiveTier, "autopilot") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
                 <TabsTrigger value="social" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Social{!canAccess(effectiveTier, "social-posts") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
                 <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Calendar{!canAccess(effectiveTier, "content-calendar") && <Lock className="h-3 w-3 text-muted-foreground" />}</TabsTrigger>
                 <TabsTrigger value="sync" className="gap-1.5 text-xs sm:text-sm sm:gap-2"><GitCompare className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Sync</TabsTrigger>
