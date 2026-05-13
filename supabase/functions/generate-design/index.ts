@@ -489,7 +489,7 @@ async function generateImage(
           messages: [
             {
               role: "system",
-              content: "You are a graphic designer that outputs ONLY standalone artwork images. NEVER render t-shirts, garments, mockups, or product previews. NEVER create side-by-side comparisons or composite images. Output exactly ONE clean design on a solid background.",
+              content: "You are a graphic designer that outputs EXACTLY ONE standalone artwork image per response — never two, never a diptych, never a side-by-side comparison, never a grid, never multiple variations in one canvas. The output is a SINGLE design panel on a uniform solid background. NEVER render t-shirts, garments, mockups, or product previews. If you feel like showing alternatives or variations, DO NOT — pick one and commit. One image. One design. One panel.",
             },
             {
             role: "user",
