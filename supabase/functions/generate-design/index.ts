@@ -736,7 +736,7 @@ serve(async (req) => {
     if (generateLight) {
       console.log("Generating light-on-dark design...");
       const lightPrompt = buildPrompt(messageText, "light-on-dark", promptOpts);
-      const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl, quality);
       lightDesignUrl = await uploadImage(lightBase64, userId, serviceClient);
       console.log("Light design:", lightDesignUrl);
 
@@ -757,7 +757,7 @@ CRITICAL RULES:
 - Think of this as a simple color inversion / negative of the original
 - Output ONLY the modified design image`;
 
-        const darkBase64 = await generateImage(invertPrompt, LOVABLE_API_KEY, lightBase64);
+        const darkBase64 = await generateImage(invertPrompt, LOVABLE_API_KEY, lightBase64, undefined, quality);
         darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
         console.log("Dark design:", darkDesignUrl);
       }
@@ -765,7 +765,7 @@ CRITICAL RULES:
       // Dark-only mode: generate dark-on-light directly
       console.log("Generating dark-on-light design...");
       const darkPrompt = buildPrompt(messageText, "dark-on-light", promptOpts);
-      const darkBase64 = await generateImage(darkPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      const darkBase64 = await generateImage(darkPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl, quality);
       darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
       console.log("Dark design:", darkDesignUrl);
     }
