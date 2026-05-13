@@ -111,12 +111,49 @@ export function useProductHandlers(
         features: trim(src.features),
       };
 
+      // Pull latest completed SEO scan findings (if any) so the AI can avoid
+      // the same issues that hurt the storefront's existing score.
+      let seoFindings: { overallScore?: number; topRecommendations?: string[]; topIssues?: { code: string; message: string; pageCount: number }[] } | undefined;
+      try {
+        const { data: scan } = await supabase
+          .from("seo_scans")
+          .select("report")
+          .eq("organization_id", selectedOrg.id)
+          .eq("status", "complete")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const report = (scan?.report ?? null) as any;
+        if (report) {
+          const grouped = Array.isArray(report.groupedIssues) ? report.groupedIssues : [];
+          // Keep only issues that listing copy can actually influence
+          const COPY_RELEVANT = new Set([
+            "missing_title", "short_title", "long_title",
+            "missing_meta_desc", "short_desc", "long_desc",
+            "missing_alt", "thin_content", "no_question_content",
+            "weak_heading_hierarchy", "aeo_no_subheadings",
+          ]);
+          const topIssues = grouped
+            .filter((g: any) => COPY_RELEVANT.has(g.code))
+            .slice(0, 6)
+            .map((g: any) => ({ code: g.code, message: g.message, pageCount: (g.pages || []).length }));
+          seoFindings = {
+            overallScore: typeof report.overallScore === "number" ? report.overallScore : undefined,
+            topRecommendations: Array.isArray(report.topRecommendations) ? report.topRecommendations.slice(0, 5) : [],
+            topIssues,
+          };
+        }
+      } catch (err) {
+        console.warn("Could not load SEO findings for listing generator:", err);
+      }
+
       const { data: result, error } = await supabase.functions.invoke("generate-listings", {
         body: {
           business: { name: selectedOrg.name, niche: selectedOrg.niche, tone: selectedOrg.tone, audience: selectedOrg.audience },
           product: productPayload,
           marketplaces: targets,
           excludedSections: selectedOrg.listing_excluded_sections || [],
+          seoFindings,
         },
       });
       if (error) throw error;
