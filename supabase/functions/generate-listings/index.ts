@@ -126,7 +126,7 @@ IMPORTANT FORMATTING RULES:
 ${excludedSections?.length ? `
 CONTENT EXCLUSIONS — DO NOT include any of the following topics in the description or bullet points:
 ${(excludedSections as string[]).includes("materials") ? "- Materials, fabric composition, garment specs, fit details, sizing info (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("care") ? "- Care instructions, washing/drying/ironing guidance (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("shipping") ? "- Shipping times, delivery info, return policy, refund details (the storefront displays these separately)\n" : ""}Focus ONLY on the product story, lifestyle benefits, and brand voice.
-` : ""}
+` : ""}${buildSeoFindingsBlock(seoFindings)}
 For EACH marketplace listing, also generate (these are STRICT SEO requirements — your output will be auto-rejected if it violates them):
 - title: REWRITE the title so it clearly names the "${normalizedProduct.category}" (e.g. "Cosmic Earth Graphic T-Shirt" — not "The Universe Jar")
 - seoTitle: SEO meta title — MUST be ${SEO_RULES.title.min}–${SEO_RULES.title.max} characters, includes primary keyword + the category word, no trailing punctuation
