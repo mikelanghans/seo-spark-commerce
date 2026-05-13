@@ -812,7 +812,7 @@ CRITICAL RULES:
     });
   } catch (e) {
     console.error("generate-design error:", e);
-    const msg = e instanceof Error ? e.message : "Unknown error";
+    const msg = "An internal error occurred. Please try again.";
     const status = msg.includes("Rate limit") ? 429 : msg.includes("credits") ? 402 : 500;
     return new Response(JSON.stringify({ error: msg }), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },

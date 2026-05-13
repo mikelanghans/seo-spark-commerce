@@ -409,7 +409,7 @@ export async function runAudit(scan: ScanRow): Promise<void> {
     });
   } catch (e) {
     console.error("runAudit error:", e);
-    const msg = e instanceof Error ? e.message : "Unknown error";
+    const msg = "An internal error occurred. Please try again.";
     await patchScan(adminClient, scan.id, { status: "error", phase: "error", error_message: msg });
   }
 }
@@ -512,7 +512,7 @@ export async function extendAudit(scanId: string, opts?: { url?: string }): Prom
     });
   } catch (e) {
     console.error("extendAudit error:", e);
-    const msg = e instanceof Error ? e.message : "Unknown error";
+    const msg = "An internal error occurred. Please try again.";
     await patchScan(adminClient, scanId, { status: "error", phase: "error", error_message: msg });
   }
 }

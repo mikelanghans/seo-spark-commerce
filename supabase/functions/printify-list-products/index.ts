@@ -116,7 +116,7 @@ serve(async (req) => {
     console.error("printify-list-products error:", e);
     return new Response(
       JSON.stringify({
-        error: e instanceof Error ? e.message : "Unknown error",
+        error: "An internal error occurred. Please try again.",
       }),
       {
         status: 500,
