@@ -844,6 +844,9 @@ const Dashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    <GuidedTourSpotlight />
+    <GuidedTourWidget />
+    </GuidedTourProvider>
   );
 };
 
