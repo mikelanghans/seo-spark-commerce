@@ -83,6 +83,9 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [designStyle, setDesignStyle] = useState<string>(
     availableStyles.includes("text-only") ? "text-only" : availableStyles[0] || "text-only"
   );
+  const orgQuality: "standard" | "pro" = ((organization as any).design_quality as "standard" | "pro") || "standard";
+  const [qualityOverride, setQualityOverride] = useState<"standard" | "pro" | null>(null);
+  const effectiveQuality: "standard" | "pro" = qualityOverride ?? orgQuality;
 
   useEffect(() => {
     loadMessages();
@@ -357,6 +360,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             designVariant: v,
             designStyle: styleToUse,
             designVariantMode: (organization as any).design_variant_mode || "both",
+            quality: effectiveQuality,
           },
         });
 
@@ -409,6 +413,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           designVariant: "light-on-dark",
           designStyle,
           designVariantMode: (organization as any).design_variant_mode || "both",
+          quality: effectiveQuality,
           regenerateFeedback: feedback,
           referenceImageUrl,
           baseDesignUrl,
@@ -524,6 +529,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           designVariant: "light-on-dark",
           designStyle,
           designVariantMode: (organization as any).design_variant_mode || "both",
+          quality: effectiveQuality,
         },
       });
 
@@ -879,6 +885,20 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           )}
 
           <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setQualityOverride("standard")}
+                className={`px-2 py-1 rounded ${effectiveQuality === "standard" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                title="Faster · 4 credits (2 dark)"
+              >Standard</button>
+              <button
+                type="button"
+                onClick={() => setQualityOverride("pro")}
+                className={`px-2 py-1 rounded ${effectiveQuality === "pro" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                title="Sharper · 8 credits (5 dark)"
+              >Pro</button>
+            </div>
             {needsDesignCount > 0 && (
               generatingDesignId ? (
                 <div className="flex items-center gap-3">

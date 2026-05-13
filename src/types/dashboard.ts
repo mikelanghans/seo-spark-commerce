@@ -20,6 +20,7 @@ export interface Organization {
   default_size_pricing?: Record<string, Record<string, string>>;
   mockup_templates?: Record<string, string>;
   design_variant_mode?: "both" | "light-only" | "dark-only";
+  design_quality?: "standard" | "pro";
   listing_excluded_sections?: string[];
 }
 
@@ -80,6 +81,7 @@ export const EMPTY_ORG_FORM = {
   enabled_social_platforms: [] as string[],
   default_size_pricing: {} as Record<string, Record<string, string>>,
   design_variant_mode: "both" as "both" | "light-only" | "dark-only",
+  design_quality: "standard" as "standard" | "pro",
 };
 
 export type OrgFormState = typeof EMPTY_ORG_FORM;

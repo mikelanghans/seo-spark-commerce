@@ -134,6 +134,7 @@ export function useOrgHandlers(userId: string | undefined, setView: (v: View) =>
       enabled_social_platforms: (org.enabled_social_platforms as string[]) || [],
       default_size_pricing: (org.default_size_pricing as Record<string, Record<string, string>>) || {},
       design_variant_mode: (org.design_variant_mode as "both" | "light-only" | "dark-only") || "both",
+      design_quality: (org.design_quality as "standard" | "pro") || "standard",
     });
     setOrgLogoPreview(org.logo_url || null);
     setOrgLogoFile(null);

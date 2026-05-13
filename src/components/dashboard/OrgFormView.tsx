@@ -128,6 +128,31 @@ export const OrgFormView = ({
       </div>
     </div>
 
+    {/* Design Quality */}
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-lg font-semibold">Design Quality</h3>
+        <p className="text-xs text-muted-foreground">Default model used when generating designs. You can override per-generation.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {([
+          { value: "standard", label: "Standard", description: "Faster · 4 credits / 2 dark" },
+          { value: "pro", label: "Pro", description: "Sharper · 8 credits / 5 dark" },
+        ] as const).map((option) => {
+          const isSelected = ((orgForm as any).design_quality || "standard") === option.value;
+          return (
+            <label key={option.value} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"}`}>
+              <input type="radio" name="design_quality" checked={isSelected} onChange={() => setOrgForm({ ...orgForm, design_quality: option.value } as any)} className="rounded" />
+              <div>
+                <span className="text-sm font-medium">{option.label}</span>
+                <span className="text-xs text-muted-foreground ml-1.5">({option.description})</span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+
     {/* Design Styles */}
     <div className="space-y-3">
       <div><h3 className="text-lg font-semibold">Design Styles</h3><p className="text-xs text-muted-foreground">Select which styles AI should use when generating designs</p></div>

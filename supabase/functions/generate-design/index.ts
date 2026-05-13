@@ -459,13 +459,13 @@ async function generateImage(
   apiKey: string,
   baseDesignUrl?: string,
   referenceImageUrl?: string,
+  quality: "standard" | "pro" = "pro",
 ): Promise<string> {
-  // Pro model first for higher fidelity (sharper type, cleaner composition).
-  // Falls back to flash if pro is unavailable.
-  const models = [
-    "google/gemini-3-pro-image-preview",
-    "google/gemini-3.1-flash-image-preview",
-  ];
+  // Pro quality leads with the Pro model and falls back to Flash.
+  // Standard quality uses Flash only (faster + cheaper).
+  const models = quality === "pro"
+    ? ["google/gemini-3-pro-image-preview", "google/gemini-3.1-flash-image-preview"]
+    : ["google/gemini-3.1-flash-image-preview"];
 
   let response: Response | null = null;
   let lastError = "";
@@ -639,12 +639,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Credit pre-check
-    const creditOk = await deductCredits(userId, "generate-design");
-    if (!creditOk) return insufficientCreditsResponse("generate-design");
-
-    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, designVariantMode, generateBothNow, regenerateFeedback, referenceImageUrl, baseDesignUrl } = await req.json();
+    const reqBody = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, designVariantMode, generateBothNow, regenerateFeedback, referenceImageUrl, baseDesignUrl } = reqBody;
+    const quality: "standard" | "pro" = reqBody.quality === "pro" ? "pro" : "standard";
     if (!messageText) throw new Error("messageText is required");
+
+    // Credit pre-check (cost depends on chosen quality tier)
+    const costKey = quality === "pro" ? "generate-design" : "generate-design-standard";
+    const creditOk = await deductCredits(userId, costKey);
+    if (!creditOk) return insufficientCreditsResponse(costKey);
 
     // Fetch recent design feedback to guide the AI
     let feedbackContext = "";
@@ -733,7 +736,7 @@ serve(async (req) => {
     if (generateLight) {
       console.log("Generating light-on-dark design...");
       const lightPrompt = buildPrompt(messageText, "light-on-dark", promptOpts);
-      const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      const lightBase64 = await generateImage(lightPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl, quality);
       lightDesignUrl = await uploadImage(lightBase64, userId, serviceClient);
       console.log("Light design:", lightDesignUrl);
 
@@ -754,7 +757,7 @@ CRITICAL RULES:
 - Think of this as a simple color inversion / negative of the original
 - Output ONLY the modified design image`;
 
-        const darkBase64 = await generateImage(invertPrompt, LOVABLE_API_KEY, lightBase64);
+        const darkBase64 = await generateImage(invertPrompt, LOVABLE_API_KEY, lightBase64, undefined, quality);
         darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
         console.log("Dark design:", darkDesignUrl);
       }
@@ -762,7 +765,7 @@ CRITICAL RULES:
       // Dark-only mode: generate dark-on-light directly
       console.log("Generating dark-on-light design...");
       const darkPrompt = buildPrompt(messageText, "dark-on-light", promptOpts);
-      const darkBase64 = await generateImage(darkPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl);
+      const darkBase64 = await generateImage(darkPrompt, LOVABLE_API_KEY, baseDesignUrl, referenceImageUrl, quality);
       darkDesignUrl = await uploadImage(darkBase64, userId, serviceClient);
       console.log("Dark design:", darkDesignUrl);
     }

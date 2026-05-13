@@ -23,17 +23,24 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Credit pre-check
-    const creditOk = await deductCredits(user.id, "generate-dark-design");
-    if (!creditOk) return insufficientCreditsResponse("generate-dark-design");
-
-    const { designUrl, messageId, organizationId } = await req.json();
+    const body = await req.json();
+    const { designUrl, messageId, organizationId } = body;
+    const quality: "standard" | "pro" = body.quality === "pro" ? "pro" : "standard";
     if (!designUrl) throw new Error("designUrl is required");
+
+    // Credit pre-check (cost depends on chosen quality tier)
+    const costKey = quality === "pro" ? "generate-dark-design" : "generate-dark-design-standard";
+    const creditOk = await deductCredits(user.id, costKey);
+    if (!creditOk) return insufficientCreditsResponse(costKey);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    console.log("Generating dark variant of design...");
+    console.log(`Generating dark variant of design (quality=${quality})...`);
+
+    const model = quality === "pro"
+      ? "google/gemini-3-pro-image-preview"
+      : "google/gemini-3.1-flash-image-preview";
 
     // Use AI to create a dark/black version of the design for light-colored shirts
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -43,7 +50,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model,
         messages: [
           {
             role: "user",
