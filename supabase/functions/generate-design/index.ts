@@ -88,6 +88,8 @@ EXECUTION:
 - Every shape must look intentional. If it doesn't earn its place, remove it.
 - This must look like work from a senior streetwear/apparel designer — NOT a generic AI t-shirt generator.`;
 
+  const regenSuffix = qualityBar + regenSuffixBase;
+
   const style = opts.designStyle || "text-only";
 
   // ─── RETRO / VINTAGE ───
