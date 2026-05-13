@@ -357,6 +357,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
             designVariant: v,
             designStyle: styleToUse,
             designVariantMode: (organization as any).design_variant_mode || "both",
+            quality: (organization as any).design_quality || "standard",
           },
         });
 
@@ -409,6 +410,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           designVariant: "light-on-dark",
           designStyle,
           designVariantMode: (organization as any).design_variant_mode || "both",
+          quality: (organization as any).design_quality || "standard",
           regenerateFeedback: feedback,
           referenceImageUrl,
           baseDesignUrl,
@@ -524,6 +526,7 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
           designVariant: "light-on-dark",
           designStyle,
           designVariantMode: (organization as any).design_variant_mode || "both",
+          quality: (organization as any).design_quality || "standard",
         },
       });
 
