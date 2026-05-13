@@ -83,6 +83,9 @@ export const MessageGenerator = ({ organization, userId, onProductsCreated, refr
   const [designStyle, setDesignStyle] = useState<string>(
     availableStyles.includes("text-only") ? "text-only" : availableStyles[0] || "text-only"
   );
+  const orgQuality: "standard" | "pro" = ((organization as any).design_quality as "standard" | "pro") || "standard";
+  const [qualityOverride, setQualityOverride] = useState<"standard" | "pro" | null>(null);
+  const effectiveQuality: "standard" | "pro" = qualityOverride ?? orgQuality;
 
   useEffect(() => {
     loadMessages();
