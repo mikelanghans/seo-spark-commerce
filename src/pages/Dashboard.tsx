@@ -82,7 +82,7 @@ const Dashboard = () => {
   const [msgRefreshKey, setMsgRefreshKey] = useState(0);
   const [productsTab, setProductsTab] = useState("messages");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showTour, setShowTour] = useState(() => !localStorage.getItem("brand_aura_tour_seen"));
+  const [showTour, setShowTour] = useState(false);
   const [showImportWarning, setShowImportWarning] = useState(false);
 
   const subscription = useSubscription(user?.id ?? null);
