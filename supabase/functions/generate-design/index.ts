@@ -63,9 +63,10 @@ function buildPrompt(
 
   const outputRule = `OUTPUT FORMAT — CRITICAL:
 🚫 DO NOT render a t-shirt, garment, clothing item, or product mockup. DO NOT show the design "on" anything.
-🚫 DO NOT create a split/composite image showing multiple versions side-by-side.
-✅ Output ONLY the standalone graphic artwork centered on a ${bgColor} background.
-✅ The output must be a SINGLE design — one cohesive artwork, not a collage or comparison.
+🚫 DO NOT output two images, a diptych, a side-by-side comparison, a before/after, a grid, a sheet of variations, or any composite that contains more than one design panel.
+🚫 DO NOT split the canvas in half (vertically or horizontally) to show two versions of the artwork.
+✅ Output ONE single design — a single cohesive artwork filling ONE single canvas, centered on a ${bgColor} background.
+✅ One panel. One composition. One version of the artwork. If you are tempted to show an alternate version, DO NOT — pick one and commit.
 ✅ The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
 
   const qualityBar = `\n\n🏆 DESIGN QUALITY BAR (apply to every output):
@@ -489,7 +490,7 @@ async function generateImage(
           messages: [
             {
               role: "system",
-              content: "You are a graphic designer that outputs ONLY standalone artwork images. NEVER render t-shirts, garments, mockups, or product previews. NEVER create side-by-side comparisons or composite images. Output exactly ONE clean design on a solid background.",
+              content: "You are a graphic designer that outputs EXACTLY ONE standalone artwork image per response — never two, never a diptych, never a side-by-side comparison, never a grid, never multiple variations in one canvas. The output is a SINGLE design panel on a uniform solid background. NEVER render t-shirts, garments, mockups, or product previews. If you feel like showing alternatives or variations, DO NOT — pick one and commit. One image. One design. One panel.",
             },
             {
             role: "user",
