@@ -357,6 +357,14 @@ const Dashboard = () => {
   if (!user) return <Navigate to="/auth" replace />;
 
   return (
+    <GuidedTourProvider
+      userId={user.id}
+      selectedOrgId={selectedOrg?.id ?? null}
+      onNavigate={({ view: v, productsTab: pt }) => {
+        if (v) setView(v);
+        if (pt) setProductsTab(pt);
+      }}
+    >
     <div className="min-h-screen bg-background">
       <DashboardHeader
         selectedOrg={selectedOrg}
@@ -366,7 +374,7 @@ const Dashboard = () => {
         toggleTheme={toggleTheme}
         isAdmin={isAdmin}
         onSettings={() => setView("settings")}
-        onShowTour={() => setShowTour(true)}
+        onShowTour={() => window.dispatchEvent(new Event("brand-aura:start-tour"))}
         signOut={signOut}
       />
 
