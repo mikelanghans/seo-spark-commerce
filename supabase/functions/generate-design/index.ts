@@ -68,6 +68,26 @@ function buildPrompt(
 ✅ The output must be a SINGLE design — one cohesive artwork, not a collage or comparison.
 ✅ The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
 
+  const qualityBar = `\n\n🏆 DESIGN QUALITY BAR (apply to every output):
+TYPOGRAPHY:
+- Choose ONE typeface that genuinely fits the style — never default to a chunky generic slab serif unless the style explicitly calls for it. Vary letterforms across designs (condensed gothic, refined slab, geometric sans, humanist sans, display script — pick what serves the message).
+- Optical kerning must be tight and even. No awkward gaps between letters. No letters touching or overlapping unintentionally.
+- Hierarchy through scale + weight + spacing — not through stacking 4 different fonts.
+- Avoid extra-heavy/black weights that look like a college mascot logo. Aim for confident medium-to-semibold with refined proportions.
+- All caps is fine but use intentional letter-spacing (tracking) for breathing room.
+
+COMPOSITION:
+- ONE clear focal subject. If you include an illustration, it must be the hero — not a busy collage of orbits, planets, constellations, particles, and props all competing.
+- Strict element budget: text block + AT MOST one primary illustration + AT MOST 2 small supporting accents. Stop there.
+- Strong negative space. The design should breathe. Reject "sticker-pack" maximalism where every corner is filled with tiny doodads.
+- Asymmetry, intentional alignment, and clear visual rhythm beat symmetric "centered everything" layouts.
+- If text and illustration both appear, give each its own clear zone with real breathing room between them.
+
+EXECUTION:
+- Print-ready vector quality: razor-sharp edges, smooth curves, no fuzzy AI-soft rendering, no muddy gradients, no over-detailed micro-noise.
+- Every shape must look intentional. If it doesn't earn its place, remove it.
+- This must look like work from a senior streetwear/apparel designer — NOT a generic AI t-shirt generator.`;
+
   const style = opts.designStyle || "text-only";
 
   // ─── RETRO / VINTAGE ───
