@@ -128,7 +128,7 @@ Consider: print-on-demand base costs (typically $8-15 for t-shirts, $10-20 for h
     });
   } catch (e) {
     console.error("suggest-pricing error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

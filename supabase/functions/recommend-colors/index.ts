@@ -146,7 +146,7 @@ For each color, provide a brief reason specific to THIS design (reference its co
     });
   } catch (e) {
     console.error("recommend-colors error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

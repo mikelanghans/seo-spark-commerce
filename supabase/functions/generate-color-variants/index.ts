@@ -214,7 +214,7 @@ The output must look like the exact same photo with only the shirt fabric recolo
     });
   } catch (e) {
     console.error("generate-color-variants error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

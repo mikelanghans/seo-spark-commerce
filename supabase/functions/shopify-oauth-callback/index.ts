@@ -329,7 +329,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
-    const errorMsg = e instanceof Error ? e.message : "Unknown error";
+    const errorMsg = "An internal error occurred. Please try again.";
     // HTML-encode for body interpolation; JSON.stringify for JS string contexts.
     const safeErrorHtml = htmlEncode(errorMsg);
     const jsErrorMsg = JSON.stringify(errorMsg);
