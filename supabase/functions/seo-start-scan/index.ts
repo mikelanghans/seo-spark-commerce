@@ -81,7 +81,7 @@ serve(async (req) => {
 
     if (insErr || !inserted) {
       console.error("Insert seo_scan failed:", insErr);
-      return new Response(JSON.stringify({ error: insErr?.message || "Failed to create scan" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Failed to create scan" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Background audit
