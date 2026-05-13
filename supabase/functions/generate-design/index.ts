@@ -639,12 +639,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Credit pre-check
-    const creditOk = await deductCredits(userId, "generate-design");
-    if (!creditOk) return insufficientCreditsResponse("generate-design");
-
-    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, designVariantMode, generateBothNow, regenerateFeedback, referenceImageUrl, baseDesignUrl } = await req.json();
+    const reqBody = await req.json();
+    const { messageText, brandName, brandTone, brandNiche, brandAudience, brandFont, brandColor, brandFontSize, brandStyleNotes, messageId, organizationId, designVariant, designStyle, designVariantMode, generateBothNow, regenerateFeedback, referenceImageUrl, baseDesignUrl } = reqBody;
+    const quality: "standard" | "pro" = reqBody.quality === "pro" ? "pro" : "standard";
     if (!messageText) throw new Error("messageText is required");
+
+    // Credit pre-check (cost depends on chosen quality tier)
+    const costKey = quality === "pro" ? "generate-design" : "generate-design-standard";
+    const creditOk = await deductCredits(userId, costKey);
+    if (!creditOk) return insufficientCreditsResponse(costKey);
 
     // Fetch recent design feedback to guide the AI
     let feedbackContext = "";
