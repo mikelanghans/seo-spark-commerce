@@ -17,6 +17,30 @@ const cleanText = (value: unknown, fallback = ""): string =>
 const clampText = (value: unknown, max: number, fallback = ""): string =>
   cleanText(value, fallback).slice(0, max);
 
+interface SeoFindings {
+  overallScore?: number;
+  topRecommendations?: string[];
+  topIssues?: { code: string; message: string; pageCount: number }[];
+}
+
+function buildSeoFindingsBlock(findings: SeoFindings | undefined): string {
+  if (!findings) return "";
+  const recs = (findings.topRecommendations || []).filter((s) => typeof s === "string" && s.trim().length > 0);
+  const issues = (findings.topIssues || []).filter((i) => i && typeof i.message === "string");
+  if (recs.length === 0 && issues.length === 0) return "";
+  const scoreLine = typeof findings.overallScore === "number"
+    ? `Current storefront SEO score: ${findings.overallScore}/100. Lift it.\n`
+    : "";
+  const issueLines = issues.length
+    ? `Recurring issues detected on the live store (fix them in this listing):\n${issues.map((i) => `- ${i.message}${i.pageCount ? ` (seen on ${i.pageCount} page${i.pageCount === 1 ? "" : "s"})`: ""}`).join("\n")}\n`
+    : "";
+  const recLines = recs.length
+    ? `Top SEO recommendations from the latest audit (apply directly):\n${recs.map((r) => `- ${r}`).join("\n")}\n`
+    : "";
+  return `\nPRIOR SEO AUDIT — apply these learnings so this listing improves the storefront's score:\n${scoreLine}${issueLines}${recLines}\n`;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -33,6 +57,7 @@ serve(async (req) => {
       marketplaces: requestedMarketplaces,
       excludedSections,
       enhanceOnly = false,
+      seoFindings,
     } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -125,7 +150,7 @@ IMPORTANT FORMATTING RULES:
 ${excludedSections?.length ? `
 CONTENT EXCLUSIONS — DO NOT include any of the following topics in the description or bullet points:
 ${(excludedSections as string[]).includes("materials") ? "- Materials, fabric composition, garment specs, fit details, sizing info (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("care") ? "- Care instructions, washing/drying/ironing guidance (the storefront displays these separately)\n" : ""}${(excludedSections as string[]).includes("shipping") ? "- Shipping times, delivery info, return policy, refund details (the storefront displays these separately)\n" : ""}Focus ONLY on the product story, lifestyle benefits, and brand voice.
-` : ""}
+` : ""}${buildSeoFindingsBlock(seoFindings)}
 For EACH marketplace listing, also generate (these are STRICT SEO requirements — your output will be auto-rejected if it violates them):
 - title: REWRITE the title so it clearly names the "${normalizedProduct.category}" (e.g. "Cosmic Earth Graphic T-Shirt" — not "The Universe Jar")
 - seoTitle: SEO meta title — MUST be ${SEO_RULES.title.min}–${SEO_RULES.title.max} characters, includes primary keyword + the category word, no trailing punctuation
