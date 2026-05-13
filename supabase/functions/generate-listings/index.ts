@@ -17,6 +17,30 @@ const cleanText = (value: unknown, fallback = ""): string =>
 const clampText = (value: unknown, max: number, fallback = ""): string =>
   cleanText(value, fallback).slice(0, max);
 
+interface SeoFindings {
+  overallScore?: number;
+  topRecommendations?: string[];
+  topIssues?: { code: string; message: string; pageCount: number }[];
+}
+
+function buildSeoFindingsBlock(findings: SeoFindings | undefined): string {
+  if (!findings) return "";
+  const recs = (findings.topRecommendations || []).filter((s) => typeof s === "string" && s.trim().length > 0);
+  const issues = (findings.topIssues || []).filter((i) => i && typeof i.message === "string");
+  if (recs.length === 0 && issues.length === 0) return "";
+  const scoreLine = typeof findings.overallScore === "number"
+    ? `Current storefront SEO score: ${findings.overallScore}/100. Lift it.\n`
+    : "";
+  const issueLines = issues.length
+    ? `Recurring issues detected on the live store (fix them in this listing):\n${issues.map((i) => `- ${i.message}${i.pageCount ? ` (seen on ${i.pageCount} page${i.pageCount === 1 ? "" : "s"})`: ""}`).join("\n")}\n`
+    : "";
+  const recLines = recs.length
+    ? `Top SEO recommendations from the latest audit (apply directly):\n${recs.map((r) => `- ${r}`).join("\n")}\n`
+    : "";
+  return `\nPRIOR SEO AUDIT — apply these learnings so this listing improves the storefront's score:\n${scoreLine}${issueLines}${recLines}\n`;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
