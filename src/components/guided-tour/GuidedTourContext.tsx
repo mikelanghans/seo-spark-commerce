@@ -87,7 +87,7 @@ export function GuidedTourProvider({ userId, selectedOrgId, onNavigate, children
         supabase.from("products").select("id").limit(1),
         supabase.from("listings").select("id").limit(1),
         supabase.from("shopify_connections").select("id").eq("user_id", userId).limit(1),
-        supabase.from("organization_secrets").select("id").not("printify_token_encrypted", "is", null).limit(1),
+        supabase.from("organization_secrets").select("id").limit(1),
         supabase.from("etsy_connections").select("id").eq("user_id", userId).limit(1),
         supabase.from("ebay_connections").select("id").eq("user_id", userId).limit(1),
       ]);
