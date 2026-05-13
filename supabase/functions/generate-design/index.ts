@@ -48,7 +48,7 @@ function buildPrompt(
 
   const noExtraTextRule = `\n\n🚫 ABSOLUTELY NO EXTRA TEXT: The design must contain ONLY the exact text provided above in "TEXT TO FEATURE". Do NOT add any additional words, taglines, slogans, brand names, dates, or decorative text. If the message already includes an attribution (like "— the universe"), that is part of the provided text. Do NOT invent or add anything else.\n\n🚫 NO DUPLICATED OR DOUBLED TEXT: Render each phrase EXACTLY ONCE. Do NOT lay the same words down twice in different fonts, sizes, weights, or positions. Do NOT stack a block-caps version on top of a script version of the same phrase. Do NOT create overlapping, ghosted, doubled, mirrored, or echoed copies of any text. Each word and letter must appear a single time, with crisp non-overlapping glyphs. If you want stylistic emphasis, choose ONE treatment per phrase and commit to it.\n\n🎨 FIGURE GUIDELINES: Use celestial/cosmic figures SPARINGLY — only when the message theme strongly calls for it. Most designs should rely on typography, geometric shapes, subtle textures, or minimal abstract accents instead. When a cosmic element IS used, keep it very subtle — a faint star, a thin crescent, a small dot pattern — NOT a dominant celestial figure. Do NOT include realistic human figures, astronauts in spacesuits, detailed faces, or anatomically specific body parts.`;
 
-  const regenSuffix = `${noExtraTextRule}${opts.regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${opts.regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${opts.baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${opts.referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`;
+  const regenSuffixBase = `${noExtraTextRule}${opts.regenerateFeedback ? `\n\n⚠️ REGENERATION REQUEST: The user saw a previous version of this design and wants changes. Their feedback: "${opts.regenerateFeedback}". Apply this feedback while keeping the same message text and brand style.` : ""}${opts.baseDesignUrl ? `\n\n🖼️ BASE DESIGN: The first attached image is the previous version of this design. Use it as the starting point and apply the requested changes to it. Modify it according to the feedback while preserving its core style and layout.` : ""}${opts.referenceImageUrl ? `\n\n📎 REFERENCE IMAGE: The user has attached a reference image. Use it as visual inspiration for the style, layout, imagery, or mood of the design. Incorporate elements from the reference while keeping the brand identity and message text.` : ""}`;
 
   const randomLayout = pickRandom(LAYOUT_OPTIONS);
 
@@ -67,6 +67,28 @@ function buildPrompt(
 ✅ Output ONLY the standalone graphic artwork centered on a ${bgColor} background.
 ✅ The output must be a SINGLE design — one cohesive artwork, not a collage or comparison.
 ✅ The background MUST be a perfectly uniform solid color — absolutely NO checkerboard or transparency grid patterns.`;
+
+  const qualityBar = `\n\n🏆 DESIGN QUALITY BAR (apply to every output):
+TYPOGRAPHY:
+- Choose ONE typeface that genuinely fits the style — never default to a chunky generic slab serif unless the style explicitly calls for it. Vary letterforms across designs (condensed gothic, refined slab, geometric sans, humanist sans, display script — pick what serves the message).
+- Optical kerning must be tight and even. No awkward gaps between letters. No letters touching or overlapping unintentionally.
+- Hierarchy through scale + weight + spacing — not through stacking 4 different fonts.
+- Avoid extra-heavy/black weights that look like a college mascot logo. Aim for confident medium-to-semibold with refined proportions.
+- All caps is fine but use intentional letter-spacing (tracking) for breathing room.
+
+COMPOSITION:
+- ONE clear focal subject. If you include an illustration, it must be the hero — not a busy collage of orbits, planets, constellations, particles, and props all competing.
+- Strict element budget: text block + AT MOST one primary illustration + AT MOST 2 small supporting accents. Stop there.
+- Strong negative space. The design should breathe. Reject "sticker-pack" maximalism where every corner is filled with tiny doodads.
+- Asymmetry, intentional alignment, and clear visual rhythm beat symmetric "centered everything" layouts.
+- If text and illustration both appear, give each its own clear zone with real breathing room between them.
+
+EXECUTION:
+- Print-ready vector quality: razor-sharp edges, smooth curves, no fuzzy AI-soft rendering, no muddy gradients, no over-detailed micro-noise.
+- Every shape must look intentional. If it doesn't earn its place, remove it.
+- This must look like work from a senior streetwear/apparel designer — NOT a generic AI t-shirt generator.`;
+
+  const regenSuffix = qualityBar + regenSuffixBase;
 
   const style = opts.designStyle || "text-only";
 
@@ -438,9 +460,11 @@ async function generateImage(
   baseDesignUrl?: string,
   referenceImageUrl?: string,
 ): Promise<string> {
+  // Pro model first for higher fidelity (sharper type, cleaner composition).
+  // Falls back to flash if pro is unavailable.
   const models = [
-    "google/gemini-3.1-flash-image-preview",
     "google/gemini-3-pro-image-preview",
+    "google/gemini-3.1-flash-image-preview",
   ];
 
   let response: Response | null = null;
