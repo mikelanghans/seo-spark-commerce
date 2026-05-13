@@ -16,7 +16,7 @@ const COST_GROUPS = [
   {
     label: "Image Generation",
     icon: Image,
-    items: ["generate-design", "generate-dark-design", "generate-color-variants", "generate-mockup", "generate-social-image"],
+    items: ["generate-design-standard", "generate-design", "generate-dark-design-standard", "generate-dark-design", "generate-color-variants", "generate-mockup", "generate-social-image"],
   },
 ];
 

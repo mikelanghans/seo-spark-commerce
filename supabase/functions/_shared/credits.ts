@@ -14,8 +14,10 @@ export const CREDIT_COSTS: Record<string, number> = {
   "generate-messages": 2,
   "generate-listings": 2,
   "generate-color-variants": 2,   // per color
-  "generate-design": 8,
-  "generate-dark-design": 5,
+  "generate-design": 8,            // Pro quality (Gemini 3 Pro Image)
+  "generate-design-standard": 4,   // Standard quality (Flash)
+  "generate-dark-design": 5,       // Pro quality
+  "generate-dark-design-standard": 2, // Standard quality
   "generate-mockup": 3,
   "generate-social-image": 3,
 };
