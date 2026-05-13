@@ -151,6 +151,13 @@ export function GuidedTourProvider({ userId, selectedOrgId, onNavigate, children
     navigateForStep(TOUR_STEPS[idx]);
   }, [completion, navigateForStep, refresh]);
 
+  // Allow external triggers (e.g. header Tour button) to start without context
+  useEffect(() => {
+    const handler = () => start();
+    window.addEventListener("brand-aura:start-tour", handler);
+    return () => window.removeEventListener("brand-aura:start-tour", handler);
+  }, [start]);
+
   const stop = useCallback(() => setActive(false), []);
 
   const next = useCallback(() => {
