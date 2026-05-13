@@ -14,8 +14,8 @@ export const CREDIT_COSTS: Record<string, number> = {
   "generate-messages": 2,
   "generate-listings": 2,
   "generate-color-variants": 2,   // per color
-  "generate-design": 5,
-  "generate-dark-design": 3,
+  "generate-design": 8,
+  "generate-dark-design": 5,
   "generate-mockup": 3,
   "generate-social-image": 3,
 };
