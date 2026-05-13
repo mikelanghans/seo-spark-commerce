@@ -438,9 +438,11 @@ async function generateImage(
   baseDesignUrl?: string,
   referenceImageUrl?: string,
 ): Promise<string> {
+  // Pro model first for higher fidelity (sharper type, cleaner composition).
+  // Falls back to flash if pro is unavailable.
   const models = [
-    "google/gemini-3.1-flash-image-preview",
     "google/gemini-3-pro-image-preview",
+    "google/gemini-3.1-flash-image-preview",
   ];
 
   let response: Response | null = null;
