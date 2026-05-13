@@ -915,6 +915,7 @@ export type Database = {
           created_at: string
           default_size_pricing: Json
           deleted_at: string | null
+          design_quality: string
           design_styles: Json
           design_variant_mode: string
           enabled_marketplaces: string[]
@@ -941,6 +942,7 @@ export type Database = {
           created_at?: string
           default_size_pricing?: Json
           deleted_at?: string | null
+          design_quality?: string
           design_styles?: Json
           design_variant_mode?: string
           enabled_marketplaces?: string[]
@@ -967,6 +969,7 @@ export type Database = {
           created_at?: string
           default_size_pricing?: Json
           deleted_at?: string | null
+          design_quality?: string
           design_styles?: Json
           design_variant_mode?: string
           enabled_marketplaces?: string[]
