@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { PageSeo } from "@/components/PageSeo";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -31,15 +32,20 @@ const Features = () => {
 
   return (
     <div className="min-h-screen bg-background print:bg-white">
+      <PageSeo
+        title="Brand Aura Feature Guide — Complete Reference"
+        description="Full reference for every Brand Aura feature: brand management, AI listings, designs, mockups, autopilot, marketplace integrations, SEO audit, and more."
+        path="/features"
+      />
       {/* Header — hidden in print */}
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur print:hidden">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="icon" aria-label="Back to dashboard" onClick={() => navigate('/')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <img src={brandAuraIcon} alt="Brand Aura" className="h-8 w-8 object-contain" />
-            <h1 className="text-lg font-bold">Feature Guide</h1>
+            <img src={brandAuraIcon} alt="Brand Aura logo" className="h-8 w-8 object-contain" />
+            <h1 className="text-lg font-bold">Brand Aura — Complete Feature Guide</h1>
           </div>
           <Button onClick={handlePrint} className="gap-2">
             <Download className="h-4 w-4" />
@@ -50,7 +56,7 @@ const Features = () => {
 
       {/* Print-only header */}
       <div className="hidden print:block print:mb-8 print:text-center">
-        <h1 className="text-3xl font-bold text-black">Brand Aura — Complete Feature Guide</h1>
+        <p className="text-3xl font-bold text-black">Brand Aura — Complete Feature Guide</p>
         <p className="mt-1 text-sm text-gray-500">Generated {new Date().toLocaleDateString()}</p>
       </div>
 
