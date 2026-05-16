@@ -695,7 +695,7 @@ export const ProductDetailView = ({
               {thumbSrc ? (
                 <img
                   src={thumbSrc}
-                  alt="Design file"
+                  alt={`Print-ready design file for ${product.title || "product"}`}
                   className="h-full w-full object-contain"
                 />
               ) : (

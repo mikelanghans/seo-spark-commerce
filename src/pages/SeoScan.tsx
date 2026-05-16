@@ -177,7 +177,7 @@ const SeoScan = () => {
             pathname={window.location.pathname}
             timestamp={new Date().toISOString()}
           />
-        </div>
+        </main>
       </div>
     </GlobalErrorBoundary>
   );
