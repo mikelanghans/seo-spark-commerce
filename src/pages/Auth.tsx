@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { PageSeo } from "@/components/PageSeo";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 
 const Auth = () => {
@@ -52,7 +53,12 @@ const Auth = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+    <main className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+      <PageSeo
+        title="Sign in to Brand Aura — AI-Powered Brand Studio"
+        description="Sign in or create your Brand Aura account to generate AI-powered product listings, designs, and mockups for Etsy, eBay, Shopify, and Printify."
+        path="/auth"
+      />
       {/* Ambient glow effects */}
       <div className="pointer-events-none absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-[hsl(var(--primary)/0.08)] blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-[hsl(var(--accent)/0.06)] blur-[120px]" />
@@ -62,11 +68,11 @@ const Auth = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="relative">
             <div className="absolute inset-0 rounded-full bg-[hsl(var(--primary)/0.2)] blur-xl scale-150" />
-            <img src={brandAuraIcon} alt="Brand Aura" className="relative h-20 w-20 object-contain drop-shadow-lg" />
+            <img src={brandAuraIcon} alt="Brand Aura logo" className="relative h-20 w-20 object-contain drop-shadow-lg" />
           </div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-3xl font-bold tracking-tight text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
-              Brand Aura
+              Brand Aura <span className="sr-only">— AI-Powered Brand Studio</span>
             </h1>
             <span className="rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary uppercase tracking-wider">
               Beta
@@ -156,6 +162,8 @@ const Auth = () => {
             <p className="text-sm text-muted-foreground">
               {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
               <button
+                type="button"
+                aria-label={isLogin ? "Switch to sign up" : "Switch to sign in"}
                 onClick={() => setIsLogin(!isLogin)}
                 className="font-medium text-primary hover:text-primary/80 transition-colors"
               >
@@ -172,7 +180,7 @@ const Auth = () => {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 
