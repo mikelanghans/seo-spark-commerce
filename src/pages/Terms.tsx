@@ -101,7 +101,7 @@ const Terms = () => (
         </section>
       </div>
     </div>
-  </div>
+  </main>
 );
 
 export default Terms;
