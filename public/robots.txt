@@ -12,3 +12,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /seo
+Disallow: /invite/
+Disallow: /oauth/
+
+Sitemap: https://brandaura.syncopateddynamics.com/sitemap.xml

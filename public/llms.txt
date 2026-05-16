@@ -1,0 +1,16 @@
+# Brand Aura
+
+> AI-powered brand studio that generates SEO-optimized product listings, designs, and mockups for Etsy, eBay, Shopify, Printify, and TikTok Shop from a single dashboard.
+
+Brand Aura helps print-on-demand and e-commerce sellers create, optimize, and publish product listings across multiple marketplaces. It includes AI listing generation, design and mockup creation, color-variant generation, a multi-marketplace push pipeline (Printify → Shopify, eBay, Etsy, TikTok), and an SEO site audit.
+
+## Pages
+
+- [Home / Dashboard](/): Manage brands, products, listings, mockups, and the autopilot pipeline (requires sign-in).
+- [Sign in / Sign up](/auth): Authenticate or create a beta account with an invite code.
+- [Feature Guide](/features): Complete reference for every feature in Brand Aura.
+- [Terms of Service](/terms): Beta disclaimer, AI content responsibility, and liability terms.
+
+## Optional
+
+- [SEO Site Audit](/seo): Scan your storefront for on-page, structured data, and AEO issues (requires sign-in).
