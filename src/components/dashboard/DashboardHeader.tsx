@@ -43,20 +43,20 @@ export const DashboardHeader = ({ selectedOrg, aiUsage, notifications, theme, to
             onDismiss={notifications.dismiss}
           />
           <OnboardingTrigger onClick={onShowTour} />
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button data-tour="open-settings" variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={onSettings} title="Account & Subscription">
+          <Button data-tour="open-settings" variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={onSettings} aria-label="Account and subscription settings" title="Account & Subscription">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/seo")} title="SEO Site Audit">
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/seo")} aria-label="Open SEO site audit" title="SEO Site Audit">
             <Gauge className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} title="Feature Guide">
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/features")} aria-label="Open feature guide" title="Feature Guide">
             <BookOpen className="h-4 w-4" />
           </Button>
           {isAdmin && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/admin")} title="Admin Console">
+            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" onClick={() => navigate("/admin")} aria-label="Open admin console" title="Admin Console">
               <Shield className="h-4 w-4" />
             </Button>
           )}

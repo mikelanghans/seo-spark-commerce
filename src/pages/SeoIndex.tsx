@@ -12,6 +12,7 @@ import { GlobalErrorBoundary } from "@/components/seo/GlobalErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
 import { SCAN_SCOPE_LABELS, type ScanScope } from "@/integrations/seo-backend/types";
 import { supabase } from "@/integrations/supabase/client";
+import { PageSeo } from "@/components/PageSeo";
 
 const SeoIndex = () => {
   const navigate = useNavigate();
@@ -60,9 +61,15 @@ const SeoIndex = () => {
   return (
     <GlobalErrorBoundary>
       <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+        <PageSeo
+          title="SEO Site Audit — Brand Aura"
+          description="Scan your storefront for on-page SEO, structured data, accessibility, and AEO issues. Get prioritized fixes for your brand."
+          path="/seo"
+          noindex
+        />
+        <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label="Back to dashboard" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>
             <div>
               <h1 className="text-2xl font-bold">SEO Site Audit</h1>
               <p className="text-sm text-muted-foreground">{orgName ? `Brand: ${orgName}` : "Brand-scoped scans"}</p>
@@ -94,7 +101,7 @@ const SeoIndex = () => {
             <h2 className="text-lg font-semibold">Recent scans</h2>
             <RecentScans organizationId={orgId} />
           </div>
-        </div>
+        </main>
       </div>
     </GlobalErrorBoundary>
   );

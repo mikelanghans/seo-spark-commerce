@@ -1,19 +1,25 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageSeo } from "@/components/PageSeo";
 import brandAuraIcon from "@/assets/brand-aura-icon-new.png";
 
 const Terms = () => (
-  <div className="min-h-screen bg-background px-4 py-12">
+  <main className="min-h-screen bg-background px-4 py-12">
+    <PageSeo
+      title="Terms of Service — Brand Aura"
+      description="Brand Aura Terms of Service: beta disclaimer, AI-generated content responsibility, third-party platform terms, limitation of liability, and data & privacy."
+      path="/terms"
+    />
     <div className="mx-auto max-w-2xl space-y-8">
       <div className="flex items-center gap-3">
-        <Link to="/auth">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Link to="/auth" aria-label="Back to sign in">
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Back to sign in">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div className="flex items-center gap-2">
-          <img src={brandAuraIcon} alt="Brand Aura" className="h-8 w-8 object-contain" />
+          <img src={brandAuraIcon} alt="Brand Aura logo" className="h-8 w-8 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">Terms of Service</h1>
           <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary uppercase tracking-wider">
             Beta
@@ -95,7 +101,7 @@ const Terms = () => (
         </section>
       </div>
     </div>
-  </div>
+  </main>
 );
 
 export default Terms;

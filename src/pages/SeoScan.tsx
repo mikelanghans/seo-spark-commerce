@@ -11,6 +11,7 @@ import { ScanReport } from "@/components/seo/ScanReport";
 import { ScanErrorDrawer } from "@/components/seo/ScanErrorDrawer";
 import { GlobalErrorBoundary } from "@/components/seo/GlobalErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
+import { PageSeo } from "@/components/PageSeo";
 
 const SeoScan = () => {
   const { id } = useParams<{ id: string }>();
@@ -89,9 +90,15 @@ const SeoScan = () => {
   return (
     <GlobalErrorBoundary>
       <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+        <PageSeo
+          title={`SEO Scan${scan?.root_url ? ` — ${scan.root_url}` : ""} | Brand Aura`}
+          description="View SEO scan results: on-page issues, structured data coverage, AEO findings, and prioritized recommendations."
+          path={`/seo/scan/${id ?? ""}`}
+          noindex
+        />
+        <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/seo")}><ArrowLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" aria-label="Back to SEO audit" onClick={() => navigate("/seo")}><ArrowLeft className="h-4 w-4" /></Button>
             <div className="min-w-0">
               <h1 className="truncate text-2xl font-bold">SEO Scan</h1>
               {scan && <p className="truncate text-sm text-muted-foreground">{scan.root_url}</p>}
@@ -170,7 +177,7 @@ const SeoScan = () => {
             pathname={window.location.pathname}
             timestamp={new Date().toISOString()}
           />
-        </div>
+        </main>
       </div>
     </GlobalErrorBoundary>
   );

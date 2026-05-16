@@ -38,7 +38,7 @@ export const OrgListView = ({
     />
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold">Your Brands</h2>
+        <h1 className="text-xl sm:text-2xl font-bold">Brand Dashboard — Your Brands</h1>
         <p className="text-xs sm:text-sm text-muted-foreground">Each brand has its own products, tone, and audience context for AI-generated content</p>
       </div>
       <Button data-tour="create-brand" onClick={() => setView("org-form")} className="gap-2 self-start sm:self-auto">
@@ -59,8 +59,8 @@ export const OrgListView = ({
         {orgs.map((org, idx) => (
           <div key={org.id} data-tour={idx === 0 ? "org-card" : undefined} className="group relative cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5" onClick={() => onSelectOrg(org)}>
             <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-              <button onClick={(e) => { e.stopPropagation(); onEditOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Edit2 className="h-4 w-4" /></button>
-              <button onClick={(e) => { e.stopPropagation(); onDeleteOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+              <button aria-label={`Edit brand ${org.name}`} onClick={(e) => { e.stopPropagation(); onEditOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Edit2 className="h-4 w-4" /></button>
+              <button aria-label={`Delete brand ${org.name}`} onClick={(e) => { e.stopPropagation(); onDeleteOrg(org); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
             </div>
             <div className="flex gap-4">
               {org.logo_url ? (
