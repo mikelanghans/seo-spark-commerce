@@ -461,6 +461,7 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
   // persists `shopify_product_id` on the products row when it arrives.
   // Poll the row here so autopilot can complete the SEO push in the same run.
   let printifyPublishFailed = false;
+  let noPrintifySalesChannel = false;
   if (!currentShopifyId && printifyProductId) {
     const pollResult = await pollForLinkedShopifyId({
       productId: product.id,
@@ -474,23 +475,29 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
     });
     currentShopifyId = pollResult.shopifyProductId;
     printifyPublishFailed = pollResult.publishFailed;
+    noPrintifySalesChannel = pollResult.noSalesChannel;
   }
 
   if (!currentShopifyId) {
-    if (printifyPublishFailed) {
+    if (printifyPublishFailed && !noPrintifySalesChannel) {
       onProgress("skipped", "Printify publishing failed — Shopify push skipped to avoid duplicates");
       throw new Error(
         "Printify finished publishing without linking a Shopify product. Open the product in Printify, fix the publish error, then retry the sync.",
       );
     }
-    onProgress("skipped", "Printify is still publishing — Shopify push skipped to avoid duplicates");
-    return {
-      printifyProductId,
-      shopifyProductId: null,
-      shopifySkipped: true,
-      variantCount,
-    };
+    if (!noPrintifySalesChannel) {
+      onProgress("skipped", "Printify is still publishing — Shopify push skipped to avoid duplicates");
+      return {
+        printifyProductId,
+        shopifyProductId: null,
+        shopifySkipped: true,
+        variantCount,
+      };
+    }
+    // noPrintifySalesChannel: fall through to direct Shopify create below.
+    onProgress("shopify-push", "Creating Shopify product directly (Printify ↔ Shopify not linked)");
   }
+
 
   onProgress("shopify-gallery", "Building Shopify image gallery");
   const variants: ShopifyGalleryVariant[] = await buildShopifyGallery({
