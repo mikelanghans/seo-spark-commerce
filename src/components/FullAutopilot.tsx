@@ -375,7 +375,12 @@ export const FullAutopilot = ({ organization, userId, onProductsCreated }: Props
             }
 
             if (preserveOriginalDesignAlpha && lightDesignBase64) {
-              sharedLightGarmentDesignBase64 = lightDesignBase64;
+              // Match manual flow: darken bright pixels so the design stays legible on light garments.
+              try {
+                sharedLightGarmentDesignBase64 = ensureImageDataUrl(await darkenBrightPixels(lightDesignBase64));
+              } catch {
+                sharedLightGarmentDesignBase64 = lightDesignBase64;
+              }
             }
 
             let targetSize: { width: number; height: number } | null = null;
