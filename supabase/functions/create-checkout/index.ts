@@ -68,16 +68,20 @@ serve(async (req) => {
     }
 
     let session;
+    const origin = safeOrigin(req);
 
     if (mode === "subscription" && priceId) {
+      if (!ALLOWED_SUBSCRIPTION_PRICE_IDS.has(priceId)) {
+        throw new Error("Invalid subscription price");
+      }
       // Subscription checkout
       session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
-        success_url: `${req.headers.get("origin")}/?subscription_activated=true`,
-        cancel_url: `${req.headers.get("origin")}/`,
+        success_url: `${origin}/?subscription_activated=true`,
+        cancel_url: `${origin}/`,
         metadata: { user_id: user.id },
       });
     } else if (pack) {
@@ -90,8 +94,8 @@ serve(async (req) => {
         customer_email: customerId ? undefined : user.email,
         line_items: [{ price: packInfo.priceId, quantity: 1 }],
         mode: "payment",
-        success_url: `${req.headers.get("origin")}/?credits_purchased=${packInfo.credits}`,
-        cancel_url: `${req.headers.get("origin")}/`,
+        success_url: `${origin}/?credits_purchased=${packInfo.credits}`,
+        cancel_url: `${origin}/`,
         metadata: {
           user_id: user.id,
           credits: String(packInfo.credits),
