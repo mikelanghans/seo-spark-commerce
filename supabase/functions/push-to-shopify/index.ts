@@ -217,6 +217,18 @@ serve(async (req) => {
             .update({ shopify_product_id: recoveredShopifyId })
             .eq("id", product.id);
         }
+      } else if (allowCreateOnMissingProduct) {
+        // Printify has no Shopify link (e.g. no sales channel configured).
+        // Caller has opted in to creating the Shopify product directly.
+        console.log("Printify has no Shopify link — creating Shopify product directly (allowCreateOnMissingProduct=true)");
+        existingPrintifyId = null;
+        if (existingShopifyId && product.id) {
+          await adminClient
+            .from("products")
+            .update({ shopify_product_id: null })
+            .eq("id", product.id);
+        }
+        existingShopifyId = null;
       } else {
         if (existingShopifyId && product.id) {
           await adminClient
@@ -237,8 +249,8 @@ serve(async (req) => {
     }
 
     if (!existingShopifyId) {
-      if (allowCreateOnMissingProduct && !existingPrintifyId) {
-        console.log("No linked Shopify product found — creating Shopify product directly and linking it to Printify");
+      if (allowCreateOnMissingProduct) {
+        console.log("No linked Shopify product found — creating Shopify product directly");
       } else {
       return new Response(JSON.stringify({
         success: false,
@@ -250,6 +262,7 @@ serve(async (req) => {
       });
       }
     }
+
 
     const isUpdate = !!existingShopifyId;
     const effectiveUpdateFields = Array.isArray(updateFields) ? updateFields : undefined;
