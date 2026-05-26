@@ -539,14 +539,17 @@ export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<P
         price: product.price,
         keywords: product.keywords,
         shopify_product_id: currentShopifyId,
-        printify_product_id: printifyProductId,
+        // When Printify has no Shopify sales channel, we omit the printify link
+        // so push-to-shopify will create the product directly instead of
+        // refusing because the Printify→Shopify mapping is missing.
+        printify_product_id: noPrintifySalesChannel ? null : printifyProductId,
       },
       listings: listingsMapped,
       imageUrl: product.image_url,
       variants: variantsForShopify,
       sizes: selectedSizes,
       forceVariants: false,
-      allowCreateOnMissingProduct: false,
+      allowCreateOnMissingProduct: noPrintifySalesChannel,
       replaceAllImages: true,
       ...(shopifyStatus ? { shopifyStatus } : {}),
     },
