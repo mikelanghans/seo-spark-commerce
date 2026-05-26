@@ -14,6 +14,29 @@ const CREDIT_PACKS: Record<string, { priceId: string; credits: number }> = {
   "200": { priceId: "price_1TEYhRJJmvlin3UXX6hBTSx3", credits: 200 },
 };
 
+// Server-side allowlist of valid subscription price IDs. Must match TIER_CONFIG on the client.
+const ALLOWED_SUBSCRIPTION_PRICE_IDS = new Set<string>([
+  "price_1TEdLUJJmvlin3UXUBU44XE8", // starter
+  "price_1TEdLrJJmvlin3UX00I7FbQX", // pro
+]);
+
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://brandaura.syncopateddynamics.com",
+  "https://seo-spark-commerce.lovable.app",
+  "https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app",
+]);
+const DEFAULT_ORIGIN = "https://brandaura.syncopateddynamics.com";
+
+function safeOrigin(req: Request): string {
+  const origin = req.headers.get("origin") || "";
+  if (ALLOWED_ORIGINS.has(origin)) return origin;
+  try {
+    const host = new URL(origin).hostname;
+    if (host.endsWith(".lovableproject.com") || host.endsWith(".lovable.app")) return origin;
+  } catch (_) {}
+  return DEFAULT_ORIGIN;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,16 +68,20 @@ serve(async (req) => {
     }
 
     let session;
+    const origin = safeOrigin(req);
 
     if (mode === "subscription" && priceId) {
+      if (!ALLOWED_SUBSCRIPTION_PRICE_IDS.has(priceId)) {
+        throw new Error("Invalid subscription price");
+      }
       // Subscription checkout
       session = await stripe.checkout.sessions.create({
         customer: customerId,
         customer_email: customerId ? undefined : user.email,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: "subscription",
-        success_url: `${req.headers.get("origin")}/?subscription_activated=true`,
-        cancel_url: `${req.headers.get("origin")}/`,
+        success_url: `${origin}/?subscription_activated=true`,
+        cancel_url: `${origin}/`,
         metadata: { user_id: user.id },
       });
     } else if (pack) {
@@ -67,8 +94,8 @@ serve(async (req) => {
         customer_email: customerId ? undefined : user.email,
         line_items: [{ price: packInfo.priceId, quantity: 1 }],
         mode: "payment",
-        success_url: `${req.headers.get("origin")}/?credits_purchased=${packInfo.credits}`,
-        cancel_url: `${req.headers.get("origin")}/`,
+        success_url: `${origin}/?credits_purchased=${packInfo.credits}`,
+        cancel_url: `${origin}/`,
         metadata: {
           user_id: user.id,
           credits: String(packInfo.credits),

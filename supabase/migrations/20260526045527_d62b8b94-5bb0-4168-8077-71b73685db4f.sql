@@ -1,0 +1,1 @@
+REVOKE SELECT (printify_api_token) ON public.organization_secrets FROM authenticated, anon;

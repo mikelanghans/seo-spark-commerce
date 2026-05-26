@@ -8,6 +8,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://brandaura.syncopateddynamics.com",
+  "https://seo-spark-commerce.lovable.app",
+  "https://id-preview--eb06a1c3-53d9-4b7e-8736-6817bf737974.lovable.app",
+]);
+const DEFAULT_ORIGIN = "https://brandaura.syncopateddynamics.com";
+
+function safeOrigin(req: Request): string {
+  const origin = req.headers.get("origin") || "";
+  if (ALLOWED_ORIGINS.has(origin)) return origin;
+  try {
+    const host = new URL(origin).hostname;
+    if (host.endsWith(".lovableproject.com") || host.endsWith(".lovable.app")) return origin;
+  } catch (_) {}
+  return DEFAULT_ORIGIN;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -34,7 +51,7 @@ serve(async (req) => {
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customers.data[0].id,
-      return_url: `${req.headers.get("origin")}/`,
+      return_url: `${safeOrigin(req)}/`,
     });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {
