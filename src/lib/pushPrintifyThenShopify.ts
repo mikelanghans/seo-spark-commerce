@@ -159,15 +159,11 @@ const pollForLinkedShopifyId = async ({
   retryLabel: string;
   onProgress: (stage: ChainStage, message: string) => void;
   onProductUpdate: (updates: Partial<PushChainProduct>) => void;
-}): Promise<{ shopifyProductId: number | null; publishFailed: boolean }> => {
+}): Promise<{ shopifyProductId: number | null; publishFailed: boolean; noSalesChannel: boolean }> => {
   onProgress("shopify-wait", "Waiting for Printify to finish publishing (up to 3 min)");
   const pollStart = Date.now();
   const POLL_TIMEOUT_MS = 180_000;
   const POLL_INTERVAL_MS = 5_000;
-  // We require evidence that Printify actually attempted publishing before we
-  // can interpret "is_locked === false + no external.id" as a failure.
-  // Either: we observed isLocked === true at some point, OR enough time has
-  // passed (grace) that we can assume publish should have engaged.
   const UNLOCKED_GRACE_MS = 30_000;
   let observedLocked = false;
   let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
@@ -192,7 +188,7 @@ const pollForLinkedShopifyId = async ({
       const linkedId = recoveryData.shopifyProductId as number;
       onProductUpdate({ shopify_product_id: linkedId });
       onProgress("shopify-wait", `Printify publish succeeded — Shopify product linked (${linkedId})`);
-      return { shopifyProductId: linkedId, publishFailed: false };
+      return { shopifyProductId: linkedId, publishFailed: false, noSalesChannel: false };
     }
 
     const status = recoveryData?.publishStatus ?? null;
@@ -200,6 +196,8 @@ const pollForLinkedShopifyId = async ({
 
     const isLocked = status?.isLocked === true;
     const hasExternalId = Boolean(status?.external?.id);
+    const salesChannel = (status as { salesChannel?: unknown } | null)?.salesChannel;
+    const hasNoSalesChannel = Array.isArray(salesChannel) && salesChannel.length === 0;
 
     if (isLocked) {
       observedLocked = true;
@@ -207,14 +205,24 @@ const pollForLinkedShopifyId = async ({
       continue;
     }
 
-    // Unlocked + no external id. If we previously saw locked, publishing finished without success.
+    // Printify shop has no Shopify sales channel — publishing will never produce
+    // an external id. Bail out fast so we can create the Shopify product directly.
+    if (!hasExternalId && hasNoSalesChannel && Date.now() - pollStart >= 10_000) {
+      console.warn("Printify shop has no Shopify sales channel — will create Shopify product directly", {
+        printifyProductId,
+        lastPublishStatus,
+      });
+      onProgress("shopify-wait", "Printify has no Shopify sales channel — creating Shopify product directly");
+      return { shopifyProductId: null, publishFailed: false, noSalesChannel: true };
+    }
+
     if (!hasExternalId && (observedLocked || Date.now() - pollStart >= UNLOCKED_GRACE_MS)) {
       console.warn("Printify publish finished without producing an external Shopify ID", {
         printifyProductId,
         observedLocked,
         lastPublishStatus,
       });
-      return { shopifyProductId: null, publishFailed: true };
+      return { shopifyProductId: null, publishFailed: true, noSalesChannel: hasNoSalesChannel };
     }
   }
 
@@ -223,7 +231,7 @@ const pollForLinkedShopifyId = async ({
     observedLocked,
     lastPublishStatus,
   });
-  return { shopifyProductId: null, publishFailed: false };
+  return { shopifyProductId: null, publishFailed: false, noSalesChannel: false };
 };
 
 const recoverPersistedPrintifyLinks = async (productId: string) => {
