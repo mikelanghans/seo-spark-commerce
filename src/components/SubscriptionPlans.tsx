@@ -116,7 +116,7 @@ export function SubscriptionPlans({ currentTier, isFf, onRefresh }: Subscription
               )}
               {isCurrent && (
                 <span className="absolute -top-2.5 left-3 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-medium text-primary-foreground">
-                  {isFf ? "F&F" : "Current"}
+                  {isFf ? "F&F (buy credits)" : "Current"}
                 </span>
               )}
               <div className="flex items-center gap-2 mb-3">
