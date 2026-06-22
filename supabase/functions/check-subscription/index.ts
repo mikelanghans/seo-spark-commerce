@@ -73,7 +73,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         subscribed: true,
         tier: ffRedemption.tier === "pro" ? "pro" : "starter",
-        credits_limit: 25,
+        credits_limit: 700,
         subscription_end: null,
         is_ff: true,
       }), {
