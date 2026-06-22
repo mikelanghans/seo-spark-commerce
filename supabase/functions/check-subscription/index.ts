@@ -68,13 +68,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (ffRedemption) {
-      const tierInfo = ffRedemption.tier === "pro"
-        ? { name: "pro", credits: 700 }
-        : { name: "starter", credits: 175 };
+      // F&F: Pro feature unlock, but they keep the free 25 credit baseline
+      // and must purchase credit packs for more.
       return new Response(JSON.stringify({
         subscribed: true,
-        tier: tierInfo.name,
-        credits_limit: tierInfo.credits,
+        tier: ffRedemption.tier === "pro" ? "pro" : "starter",
+        credits_limit: 25,
         subscription_end: null,
         is_ff: true,
       }), {
