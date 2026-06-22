@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN printify_shop_id bigint DEFAULT NULL;

@@ -1,0 +1,620 @@
+import { supabase } from "@/integrations/supabase/client";
+import { preparePrintifyDesignBase64, fetchStoredPrintifyDesignVariants } from "@/lib/printifyDesignPreparation";
+import { recolorOpaquePixels } from "@/lib/removeBackground";
+import { withRetry } from "@/lib/pipelineUtils";
+import { buildShopifyGallery, type ShopifyGalleryVariant } from "@/lib/shopifyGallery";
+
+/**
+ * Comfort Colors 1717 light-color names. The dark-ink design variant is uploaded
+ * for these so the artwork stays legible on light garments.
+ */
+export const CC1717_LIGHT_COLORS = new Set([
+  "ivory", "butter", "banana", "blossom", "orchid", "chalky mint",
+  "island reef", "chambray", "white", "flo blue", "watermelon",
+  "neon pink", "neon green", "lagoon blue", "yam", "terracotta",
+  "light green", "bay", "sage",
+]);
+
+export interface PushChainProduct {
+  id: string;
+  title: string;
+  description: string;
+  category?: string;
+  price: string;
+  keywords?: string;
+  image_url: string | null;
+  printify_product_id?: string | null;
+  shopify_product_id?: number | null;
+}
+
+export interface PushChainListing {
+  marketplace: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  bullet_points?: string[];
+  seo_title?: string;
+  seo_description?: string;
+  url_handle?: string;
+  alt_text?: string;
+}
+
+export interface PushChainOptions {
+  organizationId: string;
+  userId: string;
+  product: PushChainProduct;
+  /** All marketplace listings for the product (Shopify will be used for the Shopify push). */
+  listings: PushChainListing[];
+  /** Printify shop ID to publish to. */
+  printifyShopId: number;
+  /** Printify blueprint id (e.g. 706 for Comfort Colors 1717). */
+  blueprintId: number;
+  /** Print provider id (resolve via printify-get-variants if not passed). */
+  printProviderId?: number | null;
+  /** Sizes to enable on the Printify product. */
+  selectedSizes: string[];
+  /** Colors to enable on the Printify product (defaults to ["Black"] when no mockups exist). */
+  selectedColors?: string[];
+  /** Per-size pricing overrides. */
+  sizePricing?: Record<string, string>;
+  /** Pre-fetched mockup rows (skips DB query in buildShopifyGallery). */
+  mockupImages?: { color_name: string; image_url: string; position?: number }[];
+  /** Saved print placement (scale/offset). */
+  placement?: unknown;
+  /** Whether to publish on Printify (auto-syncs to Shopify). Defaults to true. */
+  publishOnPrintify?: boolean;
+  /** Append the CC1717 size chart image to the Shopify gallery. Defaults to true. */
+  appendSizeChart?: boolean;
+  /** Optional Shopify status passed to push-to-shopify (e.g. "active" | "draft"). */
+  shopifyStatus?: "active" | "draft";
+  /** Extra tags to merge into the Shopify listing tags (de-duped). */
+  extraShopifyTags?: string[];
+  /** Optional progress callback for UIs that want fine-grained step messages. */
+  onProgress?: (stage: ChainStage, message: string) => void;
+  /** Optional callback used by UIs to update local product state after each persist. */
+  onProductUpdate?: (updates: Partial<PushChainProduct>) => void;
+  /** Use withRetry around all edge function invocations. Defaults to true. */
+  retry?: boolean;
+  /** Tag prefix for retry labels (helps logs distinguish parallel calls). */
+  retryLabel?: string;
+}
+
+export type ChainStage =
+  | "printify-design"
+  | "printify-dark"
+  | "printify-create"
+  | "printify-update"
+  | "shopify-gallery"
+  | "shopify-push"
+  | "shopify-wait"
+  | "skipped";
+
+export interface PushChainResult {
+  printifyProductId: string | null;
+  shopifyProductId: number | null;
+  shopifySkipped: boolean;
+  variantCount?: number;
+  /** True when the linked Printify product was missing on Printify and the stale id was cleared. */
+  printifyStaleCleared?: boolean;
+  /** True when the linked Shopify product was missing and the stale id was cleared. */
+  shopifyStaleCleared?: boolean;
+  /** True when Printify finished publishing but no external.id was produced (publish failed). */
+  printifyPublishFailed?: boolean;
+}
+
+type EdgeInvokeResult<T> = { data: T | null; error: { message: string } | null };
+type FunctionErrorResponse = { error?: string };
+type PrintifyUploadResponse = FunctionErrorResponse & { image?: { id?: string } };
+type PrintifyChainResponse = FunctionErrorResponse & {
+  staleIdCleared?: boolean;
+  printifyProductId?: string;
+  shopifyProductId?: number;
+  variantCount?: number;
+  publishError?: string | null;
+};
+type ShopifyIdRecoveryResponse = {
+  shopifyProductId?: number | null;
+  publishStatus?: {
+    fetchStatus?: number;
+    external?: { id?: string | number } | null;
+    visible?: boolean | null;
+    isLocked?: boolean | null;
+    salesChannel?: unknown;
+    publishingSucceeded?: boolean;
+  } | null;
+};
+type ShopifyPushResponse = FunctionErrorResponse & {
+  staleShopifyIdCleared?: boolean;
+  shopifyProduct?: { id?: number };
+};
+
+const invoke = async <T = Record<string, unknown>>(
+  name: string,
+  body: Record<string, unknown>,
+  retry: boolean,
+  label: string,
+): Promise<EdgeInvokeResult<T>> => {
+  const call = () => supabase.functions.invoke<T>(name, { body }) as Promise<EdgeInvokeResult<T>>;
+  if (retry) {
+    return await withRetry(call, { label });
+  }
+  return await call();
+};
+
+const pollForLinkedShopifyId = async ({
+  productId,
+  printifyProductId,
+  printifyShopId,
+  organizationId,
+  retry,
+  retryLabel,
+  onProgress,
+  onProductUpdate,
+}: {
+  productId: string;
+  printifyProductId: string;
+  printifyShopId: number;
+  organizationId: string;
+  retry: boolean;
+  retryLabel: string;
+  onProgress: (stage: ChainStage, message: string) => void;
+  onProductUpdate: (updates: Partial<PushChainProduct>) => void;
+}): Promise<{ shopifyProductId: number | null; publishFailed: boolean; noSalesChannel: boolean }> => {
+  onProgress("shopify-wait", "Waiting for Printify to finish publishing (up to 3 min)");
+  const pollStart = Date.now();
+  const POLL_TIMEOUT_MS = 180_000;
+  const POLL_INTERVAL_MS = 5_000;
+  const UNLOCKED_GRACE_MS = 30_000;
+  let observedLocked = false;
+  let lastPublishStatus: ShopifyIdRecoveryResponse["publishStatus"] | null = null;
+
+  while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+    const { data: recoveryData } = await invoke<ShopifyIdRecoveryResponse>(
+      "printify-create-product",
+      {
+        action: "recover-shopify-id",
+        shopId: printifyShopId,
+        printifyProductId,
+        productId,
+        organizationId,
+      },
+      retry,
+      `shopify-id-recovery-${retryLabel}`,
+    );
+
+    if (recoveryData?.shopifyProductId) {
+      const linkedId = recoveryData.shopifyProductId as number;
+      onProductUpdate({ shopify_product_id: linkedId });
+      onProgress("shopify-wait", `Printify publish succeeded — Shopify product linked (${linkedId})`);
+      return { shopifyProductId: linkedId, publishFailed: false, noSalesChannel: false };
+    }
+
+    const status = recoveryData?.publishStatus ?? null;
+    lastPublishStatus = status ?? lastPublishStatus;
+
+    const isLocked = status?.isLocked === true;
+    const hasExternalId = Boolean(status?.external?.id);
+    const salesChannel = (status as { salesChannel?: unknown } | null)?.salesChannel;
+    const hasNoSalesChannel = Array.isArray(salesChannel) && salesChannel.length === 0;
+
+    if (isLocked) {
+      observedLocked = true;
+      onProgress("shopify-wait", "Printify is publishing… (locked)");
+      continue;
+    }
+
+    // Printify shop has no Shopify sales channel — publishing will never produce
+    // an external id. Bail out fast so we can create the Shopify product directly.
+    if (!hasExternalId && hasNoSalesChannel && Date.now() - pollStart >= 10_000) {
+      console.warn("Printify shop has no Shopify sales channel — will create Shopify product directly", {
+        printifyProductId,
+        lastPublishStatus,
+      });
+      onProgress("shopify-wait", "Printify has no Shopify sales channel — creating Shopify product directly");
+      return { shopifyProductId: null, publishFailed: false, noSalesChannel: true };
+    }
+
+    if (!hasExternalId && (observedLocked || Date.now() - pollStart >= UNLOCKED_GRACE_MS)) {
+      console.warn("Printify publish finished without producing an external Shopify ID", {
+        printifyProductId,
+        observedLocked,
+        lastPublishStatus,
+      });
+      return { shopifyProductId: null, publishFailed: true, noSalesChannel: hasNoSalesChannel };
+    }
+  }
+
+  console.warn("Printify publish did not complete within polling window", {
+    printifyProductId,
+    observedLocked,
+    lastPublishStatus,
+  });
+  return { shopifyProductId: null, publishFailed: false, noSalesChannel: false };
+};
+
+const recoverPersistedPrintifyLinks = async (productId: string) => {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data: row } = await supabase
+      .from("products")
+      .select("printify_product_id, shopify_product_id")
+      .eq("id", productId)
+      .maybeSingle();
+    if (row?.printify_product_id) return row;
+    await new Promise((r) => setTimeout(r, 2_500));
+  }
+  return null;
+};
+
+/**
+ * End-to-end Printify → Shopify chain.
+ *   • If the product already has a `printify_product_id` → updates Printify (title/desc/tags/pricing).
+ *   • Otherwise → uploads design (and dark variant for light garments), creates the Printify
+ *     product with `publish: true` so Printify auto-syncs to Shopify, then captures the
+ *     `shopify_product_id` returned by the edge function.
+ *   • Then pushes custom mockup gallery + SEO to the linked Shopify product
+ *     via `push-to-shopify` (update-only — no create).
+ *   • Skips the Shopify step gracefully (with a console warning) if no link exists.
+ *
+ * Persists `printify_product_id` and `shopify_product_id` on the products row as soon as they're known.
+ */
+export async function pushPrintifyThenShopify(opts: PushChainOptions): Promise<PushChainResult> {
+  const {
+    organizationId,
+    userId,
+    product,
+    listings,
+    printifyShopId,
+    blueprintId,
+    selectedSizes,
+    selectedColors,
+    sizePricing,
+    mockupImages = [],
+    placement,
+    publishOnPrintify = true,
+    appendSizeChart = true,
+    shopifyStatus,
+    extraShopifyTags = [],
+    onProgress = () => {},
+    onProductUpdate = () => {},
+    retry = true,
+    retryLabel = "chain",
+  } = opts;
+
+  if (!product.image_url) throw new Error("Product needs a design image (image_url) before pushing to Printify");
+
+  const shopifyListing = listings.find((l) => l.marketplace === "shopify");
+
+  const baseTags = shopifyListing?.tags
+    || (product.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean);
+  const mergedTags = extraShopifyTags.length > 0
+    ? Array.from(new Set([...(baseTags || []), ...extraShopifyTags]))
+    : baseTags;
+
+  const printifyPayloadBase = {
+    shopId: printifyShopId,
+    title: shopifyListing?.title || product.title,
+    description: shopifyListing?.description || product.description,
+    tags: mergedTags,
+    price: product.price,
+    sizePricing,
+    productId: product.id,
+    organizationId,
+  };
+
+  const hadPrintifyLinkAtStart = !!product.printify_product_id;
+  let printifyProductId: string | null = product.printify_product_id ?? null;
+  // A Shopify ID is only safe to reuse when it was already tied to this product's
+  // Printify link. If we're creating a fresh Printify product, ignore any stale
+  // Shopify ID that may have been copied/reused from a sibling product and wait
+  // for the new Printify external mapping instead.
+  let currentShopifyId: number | null = hadPrintifyLinkAtStart ? (product.shopify_product_id ?? null) : null;
+  let variantCount: number | undefined;
+  let printifyStaleCleared = false;
+
+  // ---------- STEP 1: Printify (update or create) ----------
+  if (printifyProductId) {
+    onProgress("printify-update", "Updating existing Printify product");
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
+      "printify-create-product",
+      {
+        action: "update",
+        printifyProductId,
+        updateFields: ["title", "description", "tags", "pricing"],
+        ...printifyPayloadBase,
+      },
+      retry,
+      `printify-update-${retryLabel}`,
+    );
+    if (pErr) throw new Error(`Printify update failed: ${pErr.message}`);
+    if (pData?.error) throw new Error(`Printify update failed: ${pData.error}`);
+
+    if (pData?.staleIdCleared) {
+      printifyStaleCleared = true;
+      printifyProductId = null;
+      onProductUpdate({ printify_product_id: null });
+      return {
+        printifyProductId: null,
+        shopifyProductId: currentShopifyId,
+        shopifySkipped: true,
+        printifyStaleCleared: true,
+      };
+    }
+
+    if (pData?.shopifyProductId) {
+      currentShopifyId = pData.shopifyProductId;
+      onProductUpdate({ shopify_product_id: currentShopifyId });
+    }
+  } else {
+    // ----- Create new Printify product -----
+    const colorsToUse = selectedColors && selectedColors.length > 0
+      ? selectedColors
+      : (mockupImages.length > 0
+        ? Array.from(new Set(mockupImages.map((m) => m.color_name)))
+        : ["Black"]);
+    const lightColorsSelected = colorsToUse.filter((c) => CC1717_LIGHT_COLORS.has(c.toLowerCase()));
+    const hasLightColors = lightColorsSelected.length > 0;
+
+    onProgress("printify-design", "Preparing & uploading design to Printify");
+    const base64Contents = await preparePrintifyDesignBase64(product.image_url, 4500, { productId: product.id, variant: "light" });
+    const { data: uploadData, error: uploadErr } = await invoke<PrintifyUploadResponse>(
+      "printify-upload-image",
+      {
+        base64Contents,
+        fileName: `${product.title}-design.png`,
+        organizationId,
+      },
+      retry,
+      `printify-upload-${retryLabel}`,
+    );
+    if (uploadErr) throw new Error(`Printify upload failed: ${uploadErr.message}`);
+    if (uploadData?.error) throw new Error(`Printify upload failed: ${uploadData.error}`);
+    const printifyImageId = uploadData?.image?.id;
+    if (!printifyImageId) throw new Error("Printify did not return an image id");
+
+    let darkPrintifyImageId: string | null = null;
+    if (hasLightColors) {
+      onProgress("printify-dark", "Creating dark-ink variant for light garments");
+      const stored = await fetchStoredPrintifyDesignVariants(product.id);
+      const darkBase64 = stored.darkUrl
+        ? await preparePrintifyDesignBase64(stored.darkUrl, 4500, { productId: product.id, variant: "dark" })
+        : await recolorOpaquePixels(base64Contents, { r: 24, g: 24, b: 24 });
+      const { data: dUp, error: dErr } = await invoke<PrintifyUploadResponse>(
+        "printify-upload-image",
+        {
+          base64Contents: darkBase64,
+          fileName: `${product.title}-dark-design.png`,
+          organizationId,
+        },
+        retry,
+        `printify-dark-upload-${retryLabel}`,
+      );
+      if (dErr) throw new Error(`Printify dark upload failed: ${dErr.message}`);
+      if (dUp?.error) throw new Error(`Printify dark upload failed: ${dUp.error}`);
+      darkPrintifyImageId = dUp?.image?.id || null;
+    }
+
+    let resolvedPrintProviderId = opts.printProviderId ?? null;
+    if (!resolvedPrintProviderId) {
+      const { data: variantsInfo } = await supabase.functions.invoke("printify-get-variants", {
+        body: { blueprintId, organizationId, shopId: printifyShopId },
+      });
+      resolvedPrintProviderId = variantsInfo?.printProviderId ?? null;
+    }
+    if (!resolvedPrintProviderId) {
+      throw new Error(`Could not resolve Printify print provider for blueprint ${blueprintId}`);
+    }
+
+    const mockupImagesForPrintify = mockupImages
+      .filter((m) => colorsToUse.includes(m.color_name))
+      .map((m) => ({ printifyColorName: m.color_name, imageUrl: m.image_url }));
+
+    onProgress("printify-create", "Creating Printify product (auto-syncs to Shopify)");
+    const { data: pData, error: pErr } = await invoke<PrintifyChainResponse>(
+      "printify-create-product",
+      {
+        ...printifyPayloadBase,
+        printifyImageId,
+        darkPrintifyImageId,
+        lightColors: hasLightColors ? [...CC1717_LIGHT_COLORS] : [],
+        selectedColors: colorsToUse,
+        selectedSizes,
+        mockupImages: mockupImagesForPrintify,
+        placement,
+        printProviderId: resolvedPrintProviderId,
+        blueprintId,
+        publish: publishOnPrintify,
+      },
+      retry,
+      `printify-create-${retryLabel}`,
+    );
+    if (pErr) {
+      const recovered = await recoverPersistedPrintifyLinks(product.id);
+      if (!recovered?.printify_product_id) throw new Error(`Printify create failed: ${pErr.message}`);
+      printifyProductId = recovered.printify_product_id;
+      currentShopifyId = hadPrintifyLinkAtStart ? ((recovered.shopify_product_id as number | null) ?? currentShopifyId) : null;
+      onProductUpdate({ printify_product_id: printifyProductId, shopify_product_id: currentShopifyId });
+    }
+    if (pData?.error) throw new Error(`Printify create failed: ${pData.error}`);
+
+    printifyProductId = pData?.printifyProductId ?? printifyProductId;
+    variantCount = pData?.variantCount;
+    if (printifyProductId) {
+      await supabase.from("products").update({ printify_product_id: printifyProductId }).eq("id", product.id);
+      onProductUpdate({ printify_product_id: printifyProductId });
+    }
+    if (pData?.shopifyProductId) {
+      currentShopifyId = pData.shopifyProductId;
+      await supabase.from("products").update({ shopify_product_id: currentShopifyId }).eq("id", product.id);
+      onProductUpdate({ shopify_product_id: currentShopifyId });
+    }
+
+    if (publishOnPrintify && pData?.publishError) {
+      throw new Error(`Printify publish failed: ${pData.publishError}`);
+    }
+  }
+
+  // ---------- STEP 2: Shopify (update with mockups + SEO) ----------
+  // Printify syncs to Shopify asynchronously after publish (typically 15-90s).
+  // The create-product edge function continues polling in the background and
+  // persists `shopify_product_id` on the products row when it arrives.
+  // Poll the row here so autopilot can complete the SEO push in the same run.
+  let printifyPublishFailed = false;
+  let noPrintifySalesChannel = false;
+  if (!currentShopifyId && printifyProductId) {
+    const pollResult = await pollForLinkedShopifyId({
+      productId: product.id,
+      printifyProductId,
+      printifyShopId,
+      organizationId,
+      retry,
+      retryLabel,
+      onProgress,
+      onProductUpdate,
+    });
+    currentShopifyId = pollResult.shopifyProductId;
+    printifyPublishFailed = pollResult.publishFailed;
+    noPrintifySalesChannel = pollResult.noSalesChannel;
+  }
+
+  if (!currentShopifyId) {
+    if (printifyPublishFailed && !noPrintifySalesChannel) {
+      onProgress("skipped", "Printify publishing failed — Shopify push skipped to avoid duplicates");
+      throw new Error(
+        "Printify finished publishing without linking a Shopify product. Open the product in Printify, fix the publish error, then retry the sync.",
+      );
+    }
+    if (!noPrintifySalesChannel) {
+      onProgress("skipped", "Printify is still publishing — Shopify push skipped to avoid duplicates");
+      return {
+        printifyProductId,
+        shopifyProductId: null,
+        shopifySkipped: true,
+        variantCount,
+      };
+    }
+    // noPrintifySalesChannel: fall through to direct Shopify create below.
+    onProgress("shopify-push", "Creating Shopify product directly (Printify ↔ Shopify not linked)");
+  }
+
+
+  onProgress("shopify-gallery", "Building Shopify image gallery");
+  const variants: ShopifyGalleryVariant[] = await buildShopifyGallery({
+    productId: product.id,
+    userId,
+    appendSizeChart,
+    mockups: mockupImages,
+  });
+  const variantsForShopify = !currentShopifyId && variants.every((v) => v.colorName === "Size Chart") && selectedColors?.length
+    ? [
+      ...selectedColors.map((colorName) => ({ colorName, imageUrl: product.image_url! })),
+      ...variants,
+    ]
+    : variants;
+
+  const listingsMapped = listings.map((l) => ({
+    marketplace: l.marketplace,
+    title: l.title,
+    description: l.description,
+    bullet_points: l.bullet_points,
+    tags: l.tags,
+    seo_title: l.seo_title,
+    seo_description: l.seo_description,
+    url_handle: l.url_handle,
+    alt_text: l.alt_text,
+  }));
+
+  onProgress("shopify-push", "Pushing mockups & SEO to Shopify");
+  const shopifyPushStartedAt = Date.now();
+  const { data: shopifyData, error: shopifyError } = await invoke<ShopifyPushResponse>(
+    "push-to-shopify",
+    {
+      organizationId,
+      product: {
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        category: product.category,
+        price: product.price,
+        keywords: product.keywords,
+        shopify_product_id: currentShopifyId,
+        // When Printify has no Shopify sales channel, we omit the printify link
+        // so push-to-shopify will create the product directly instead of
+        // refusing because the Printify→Shopify mapping is missing.
+        printify_product_id: noPrintifySalesChannel ? null : printifyProductId,
+      },
+      listings: listingsMapped,
+      imageUrl: product.image_url,
+      variants: variantsForShopify,
+      sizes: selectedSizes,
+      forceVariants: false,
+      allowCreateOnMissingProduct: noPrintifySalesChannel,
+      replaceAllImages: true,
+      ...(shopifyStatus ? { shopifyStatus } : {}),
+    },
+    retry,
+    `shopify-${retryLabel}`,
+  );
+
+  // The push-to-shopify edge function can take 60-120s. The client-side fetch can drop
+  // the connection before the success response arrives, even though the server
+  // completes the work successfully and writes `shopify_synced_at` on the products row.
+  // If we get a transport error, poll the row to confirm the push actually finished.
+  if (shopifyError) {
+    onProgress("shopify-push", "Connection dropped — verifying push completed in background");
+    const POLL_TIMEOUT_MS = 120_000;
+    const POLL_INTERVAL_MS = 4_000;
+    const pollStart = Date.now();
+    let confirmedShopifyId: number | null = null;
+    while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      const { data: row } = await supabase
+        .from("products")
+        .select("shopify_product_id, shopify_synced_at")
+        .eq("id", product.id)
+        .maybeSingle();
+      const syncedAtMs = row?.shopify_synced_at ? new Date(row.shopify_synced_at as string).getTime() : 0;
+      if (row?.shopify_product_id && syncedAtMs >= shopifyPushStartedAt) {
+        confirmedShopifyId = row.shopify_product_id as number;
+        break;
+      }
+    }
+    if (confirmedShopifyId) {
+      onProductUpdate({ shopify_product_id: confirmedShopifyId });
+      onProgress("shopify-push", `Shopify push confirmed (${confirmedShopifyId})`);
+      return {
+        printifyProductId,
+        shopifyProductId: confirmedShopifyId,
+        shopifySkipped: false,
+        variantCount,
+      };
+    }
+    throw new Error(`Shopify push failed: ${shopifyError.message}`);
+  }
+  if (shopifyData?.error) throw new Error(`Shopify push failed: ${shopifyData.error}`);
+
+
+  if (shopifyData?.staleShopifyIdCleared) {
+    onProductUpdate({ shopify_product_id: null });
+    return {
+      printifyProductId,
+      shopifyProductId: null,
+      shopifySkipped: true,
+      shopifyStaleCleared: true,
+      variantCount,
+    };
+  }
+
+  if (shopifyData?.shopifyProduct?.id) {
+    currentShopifyId = shopifyData.shopifyProduct.id;
+    onProductUpdate({ shopify_product_id: currentShopifyId });
+  }
+
+  return {
+    printifyProductId,
+    shopifyProductId: currentShopifyId,
+    shopifySkipped: false,
+    variantCount,
+  };
+}

@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN archived_at timestamptz DEFAULT NULL;

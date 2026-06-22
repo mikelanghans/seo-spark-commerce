@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN enabled_product_types text[] NOT NULL DEFAULT ARRAY['t-shirt', 'hoodie', 'mug'];

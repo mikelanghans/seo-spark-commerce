@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN enabled_marketplaces text[] NOT NULL DEFAULT '{}'::text[];

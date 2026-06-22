@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { encrypt, decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,10 +39,7 @@ serve(async (req) => {
       .maybeSingle();
 
     const clientId = String(conn?.client_id || "").trim();
-    const encryptionKey = Deno.env.get("ENCRYPTION_KEY")!;
-    const clientSecret = conn?.client_secret
-      ? String(await decryptOrPassthrough(conn.client_secret, encryptionKey)).trim()
-      : "";
+    const clientSecret = String(conn?.client_secret || "").trim();
     const savedRedirectUri = String(conn?.ru_name || "").trim();
     const tokenRedirectUri = String(redirectUri || savedRedirectUri).trim();
 
@@ -112,8 +108,8 @@ serve(async (req) => {
     await adminClient
       .from("ebay_connections")
       .update({
-        access_token: await encrypt(accessToken, encryptionKey),
-        refresh_token: refreshToken ? await encrypt(refreshToken, encryptionKey) : refreshToken,
+        access_token: accessToken,
+        refresh_token: refreshToken,
         token_expires_at: tokenExpiresAt,
         environment: activeEnvironment,
         updated_at: new Date().toISOString(),

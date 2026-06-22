@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN printify_api_token text DEFAULT '';

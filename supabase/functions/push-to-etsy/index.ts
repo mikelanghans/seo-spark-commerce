@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,10 +67,6 @@ serve(async (req) => {
 
     const apiKey = conn.api_key;
     const shopId = conn.shop_id;
-
-    if (conn.access_token) {
-      conn.access_token = await decryptOrPassthrough(conn.access_token, Deno.env.get("ENCRYPTION_KEY")!);
-    }
 
     if (!apiKey || !shopId) {
       return new Response(JSON.stringify({ error: "Etsy API key or Shop ID missing." }), {

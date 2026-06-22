@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encrypt, decryptOrPassthrough } from "../_shared/encryption.ts";
 
 function isAllowedOrigin(origin: string): boolean {
   try {
@@ -199,11 +198,8 @@ serve(async (req) => {
     }
 
     // Use per-org credentials from the connection row, fall back to env vars for legacy
-    const encryptionKey = Deno.env.get("ENCRYPTION_KEY")!;
     const clientId = connection.client_id || Deno.env.get("SHOPIFY_CLIENT_ID")!;
-    const clientSecret = connection.client_secret
-      ? await decryptOrPassthrough(connection.client_secret, encryptionKey)
-      : Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
+    const clientSecret = connection.client_secret || Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
 
     if (!clientId || !clientSecret) {
       throw new Error("No Shopify app credentials configured for this brand. Please add your Client ID and Client Secret in Shopify settings.");
@@ -234,10 +230,9 @@ serve(async (req) => {
     }
 
     // Update the connection with the access token
-    const encryptedAccessToken = await encrypt(accessToken, encryptionKey);
     const { error: updateError } = await adminClient
       .from("shopify_connections")
-      .update({ access_token: encryptedAccessToken })
+      .update({ access_token: accessToken })
       .eq("id", connection.id);
 
     if (updateError) throw updateError;

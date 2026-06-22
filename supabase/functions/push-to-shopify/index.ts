@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildBodyHtml, buildShopifyProduct, categorizeImages, deleteExistingImages, addMissingColorVariants, uploadAndAssociateImages, updateSeoMetafields } from "./shopify-helpers.ts";
-import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,7 +76,7 @@ const getPrintifyToken = async (
       .maybeSingle();
 
     if (secrets?.printify_api_token) {
-      printifyToken = await decryptOrPassthrough(secrets.printify_api_token, Deno.env.get("ENCRYPTION_KEY")!);
+      printifyToken = secrets.printify_api_token;
     }
   }
 
@@ -169,10 +168,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "No Shopify connection found. Please add your Shopify credentials in Settings." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    if (connection.access_token) {
-      connection.access_token = await decryptOrPassthrough(connection.access_token, Deno.env.get("ENCRYPTION_KEY")!);
     }
 
     const shopifyListing = listings?.find((l: { marketplace: string }) => l.marketplace === "shopify");

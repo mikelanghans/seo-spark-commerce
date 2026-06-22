@@ -1,0 +1,1 @@
+ALTER TABLE public.organizations ADD COLUMN deleted_at timestamptz DEFAULT NULL;

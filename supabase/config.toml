@@ -1,0 +1,88 @@
+project_id = "qhlrjoytvowzsxulfnku"
+
+[functions.shopify-oauth-callback]
+verify_jwt = false
+
+[functions.shopify-exchange-token]
+verify_jwt = false
+
+[functions.printify-get-shops]
+verify_jwt = false
+
+[functions.printify-upload-image]
+verify_jwt = false
+
+[functions.printify-create-product]
+verify_jwt = false
+
+[functions.generate-messages]
+verify_jwt = false
+
+[functions.generate-design]
+verify_jwt = false
+
+[functions.generate-social-posts]
+verify_jwt = false
+
+[functions.generate-social-image]
+verify_jwt = false
+
+[functions.push-to-etsy]
+verify_jwt = false
+
+[functions.push-to-ebay]
+verify_jwt = false
+
+[functions.push-to-meta]
+verify_jwt = false
+
+[functions.push-to-shopify]
+verify_jwt = false
+
+[functions.fetch-shopify-products]
+verify_jwt = false
+
+[functions.import-shopify-catalog]
+verify_jwt = false
+
+[functions.generate-color-variants]
+verify_jwt = false
+
+[functions.generate-mockup]
+verify_jwt = false
+
+[functions.generate-listings]
+verify_jwt = false
+
+[functions.analyze-product]
+verify_jwt = false
+
+[functions.recommend-colors]
+verify_jwt = false
+
+[functions.generate-dark-design]
+verify_jwt = false
+
+[functions.printify-get-variants]
+verify_jwt = false
+
+[functions.update-shopify-product]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.admin-metrics]
+verify_jwt = false
+
+[functions.save-printify-credentials]
+verify_jwt = false
+
+[functions.ebay-account-deletion]
+verify_jwt = false

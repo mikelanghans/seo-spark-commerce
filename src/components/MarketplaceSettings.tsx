@@ -162,12 +162,23 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
     setSavingEtsy(true);
     try {
-      const { error } = await supabase.functions.invoke("save-etsy-credentials", {
-        body: {
-          clientId: etsyClientId.trim(),
-          clientSecret: etsyClientSecret.trim(),
-        },
-      });
+      const payload: any = {
+        user_id: userId,
+        client_id: etsyClientId.trim(),
+        updated_at: new Date().toISOString(),
+      };
+      if (etsyClientSecret.trim()) payload.client_secret = etsyClientSecret.trim();
+
+      // Ensure NOT NULL columns get values on insert
+      if (!etsyConn) {
+        payload.shop_id = "pending";
+        payload.shop_name = "";
+        payload.api_key = etsyClientId.trim();
+      }
+
+      const { error } = etsyConn
+        ? await supabase.from("etsy_connections").update(payload).eq("id", etsyConn.id)
+        : await supabase.from("etsy_connections").upsert(payload, { onConflict: "user_id" });
       if (error) throw error;
 
       setEtsyCredsSaved(true);
@@ -229,14 +240,23 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
     }
     setSavingEbay(true);
     try {
-      const { error } = await supabase.functions.invoke("save-ebay-credentials", {
-        body: {
-          clientId: ebayClientId.trim(),
-          clientSecret: ebayClientSecret.trim(),
-          ruName: ebayRuName.trim(),
-          environment: ebayEnv,
-        },
-      });
+      // Upsert credentials into ebay_connections (no token yet)
+      const payload = {
+        user_id: userId,
+        client_id: ebayClientId,
+        ru_name: ebayRuName,
+        environment: ebayEnv,
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      // Only include client_secret if user entered a new value
+      if (ebayClientSecret.trim()) {
+        payload.client_secret = ebayClientSecret;
+      }
+
+      const { error } = ebayConn
+        ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id)
+        : await supabase.from("ebay_connections").upsert(payload, { onConflict: "user_id" });
       if (error) throw error;
 
       setEbayCredsSaved(true);
@@ -263,26 +283,32 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const { data: invokeData, error: saveError } = await supabase.functions.invoke("save-ebay-credentials", {
-        body: {
-          clientId: ebayClientId.trim(),
-          clientSecret: ebayClientSecret.trim(),
-          ruName: ebayRuName.trim(),
-          environment: ebayEnv,
-        },
-      });
+      const payload = {
+        user_id: userId,
+        client_id: ebayClientId.trim(),
+        ru_name: ebayRuName.trim(),
+        environment: ebayEnv,
+        updated_at: new Date().toISOString(),
+      } as any;
+
+      if (ebayClientSecret.trim()) {
+        payload.client_secret = ebayClientSecret.trim();
+      }
+
+      const { data: savedConn, error: saveError } = ebayConn
+        ? await supabase.from("ebay_connections").update(payload).eq("id", ebayConn.id).select("id, client_id, ru_name, environment").single()
+        : await supabase.from("ebay_connections").upsert(payload, { onConflict: "user_id" }).select("id, client_id, ru_name, environment").single();
       if (saveError) throw saveError;
-      const savedConn = invokeData?.connection;
       setEbayConn({
-        id: savedConn?.id,
-        client_id: savedConn?.client_id,
-        environment: savedConn?.environment,
+        id: (savedConn as any).id,
+        client_id: (savedConn as any).client_id,
+        environment: (savedConn as any).environment,
         has_token: false,
       });
       setEbayCredsSaved(true);
 
       // Use the user's own Client ID for the OAuth consent screen
-      const savedClientId = savedConn?.client_id || ebayClientId || ebayConn?.client_id;
+      const savedClientId = (savedConn as any)?.client_id || ebayClientId || ebayConn?.client_id;
       if (!savedClientId) {
         toast.error("Save your eBay credentials first");
         setSavingEbay(false);
@@ -290,9 +316,9 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
       }
 
       // Fetch the saved RuName from the connection
-      let ruName = savedConn?.ru_name || ebayRuName;
+      let ruName = (savedConn as any)?.ru_name || ebayRuName;
       if (!ruName && (savedConn || ebayConn)) {
-        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", savedConn?.id || ebayConn?.id).maybeSingle();
+        const { data: connData } = await supabase.from("ebay_connections").select("ru_name").eq("id", (savedConn as any)?.id || ebayConn?.id).maybeSingle();
         ruName = (connData as any)?.ru_name || "";
       }
       if (!ruName) {
@@ -301,7 +327,7 @@ export const MarketplaceSettings = ({ userId, organizationId }: Props) => {
         return;
       }
 
-      const activeEnv = savedConn?.environment || ebayEnv;
+      const activeEnv = (savedConn as any)?.environment || ebayEnv;
       const isSandbox = activeEnv === "sandbox";
       const authBase = isSandbox
         ? "https://auth.sandbox.ebay.com/oauth2/authorize"

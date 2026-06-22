@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { encrypt } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,9 +130,6 @@ serve(async (req) => {
     );
 
     const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
-    const encryptionKey = Deno.env.get("ENCRYPTION_KEY")!;
-    const encryptedAccessToken = await encrypt(accessToken, encryptionKey);
-    const encryptedRefreshToken = refreshToken ? await encrypt(refreshToken, encryptionKey) : refreshToken;
 
     // Upsert: update if exists, insert if not
     const { data: existing } = await adminClient
@@ -146,8 +142,8 @@ serve(async (req) => {
       await adminClient
         .from("etsy_connections")
         .update({
-          access_token: encryptedAccessToken,
-          refresh_token: encryptedRefreshToken,
+          access_token: accessToken,
+          refresh_token: refreshToken,
           token_expires_at: tokenExpiresAt,
           api_key: clientId,
           shop_id: shopId,
@@ -160,8 +156,8 @@ serve(async (req) => {
         .from("etsy_connections")
         .insert({
           user_id: userId,
-          access_token: encryptedAccessToken,
-          refresh_token: encryptedRefreshToken,
+          access_token: accessToken,
+          refresh_token: refreshToken,
           token_expires_at: tokenExpiresAt,
           api_key: clientId,
           shop_id: shopId || "pending",

@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,8 +69,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    connection.access_token = await decryptOrPassthrough(connection.access_token, Deno.env.get("ENCRYPTION_KEY")!);
 
     // Fetch recent orders from Shopify (last 90 days)
     const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();

@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encrypt } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,14 +65,11 @@ serve(async (req) => {
     // Save token
     if (!printifyToken?.trim()) throw new Error("printifyToken is required");
 
-    const encryptionKey = Deno.env.get("ENCRYPTION_KEY")!;
-    const encryptedToken = await encrypt(printifyToken.trim(), encryptionKey);
-
     const { error } = await adminClient
       .from("organization_secrets")
       .upsert({
         organization_id: organizationId,
-        printify_api_token: encryptedToken,
+        printify_api_token: printifyToken.trim(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "organization_id" });
     if (error) throw error;

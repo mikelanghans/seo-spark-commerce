@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN tags text[] NOT NULL DEFAULT '{}'::text[];

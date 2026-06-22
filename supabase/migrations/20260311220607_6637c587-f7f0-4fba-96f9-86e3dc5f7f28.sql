@@ -1,0 +1,1 @@
+ALTER TABLE public.generated_messages ADD COLUMN dark_design_url TEXT;

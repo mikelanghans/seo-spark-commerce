@@ -1,0 +1,2 @@
+ALTER TABLE public.products DROP CONSTRAINT IF EXISTS products_shopify_product_id_key;
+ALTER TABLE public.products ADD CONSTRAINT products_org_shopify_product_id_key UNIQUE (organization_id, shopify_product_id);

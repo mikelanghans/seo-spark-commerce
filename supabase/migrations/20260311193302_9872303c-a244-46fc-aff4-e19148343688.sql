@@ -1,0 +1,1 @@
+ALTER TABLE public.design_feedback ADD COLUMN reference_image_url TEXT DEFAULT NULL;

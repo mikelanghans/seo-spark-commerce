@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromAuth, deductCredits, insufficientCreditsResponse } from "../_shared/credits.ts";
-import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,8 +168,7 @@ Deno.serve(async (req) => {
       for (const conn of connections || []) {
         if (!conn.organization_id || !conn.access_token) continue;
         try {
-          const accessToken = await decryptOrPassthrough(conn.access_token, Deno.env.get("ENCRYPTION_KEY")!);
-          totalFlagged += await scanOrganization(adminClient, conn.organization_id, conn.user_id, conn.store_domain, accessToken);
+          totalFlagged += await scanOrganization(adminClient, conn.organization_id, conn.user_id, conn.store_domain, conn.access_token);
         } catch (e) {
           console.error(`Scan failed for org ${conn.organization_id}:`, e);
         }
@@ -211,8 +209,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const decryptedAccessToken = await decryptOrPassthrough(conn.access_token, Deno.env.get("ENCRYPTION_KEY")!);
-    const flagged = await scanOrganization(adminClient, organizationId, userId, conn.store_domain, decryptedAccessToken);
+    const flagged = await scanOrganization(adminClient, organizationId, userId, conn.store_domain, conn.access_token);
 
     return new Response(JSON.stringify({ flagged, message: `${flagged} product(s) flagged for listing refresh` }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,11 +80,10 @@ Deno.serve(async (req) => {
 
       // If Shopify connected, try to pull real sales data
       if (conn?.access_token && test.product?.shopify_product_id) {
-        const decryptedAccessToken = await decryptOrPassthrough(conn.access_token, Deno.env.get("ENCRYPTION_KEY")!);
         const sinceDate = new Date(test.started_at).toISOString();
         const url = `https://${conn.store_domain}/admin/api/2024-01/orders.json?status=any&created_at_min=${sinceDate}&limit=250&fields=line_items,financial_status,created_at`;
         const res = await fetch(url, {
-          headers: { "X-Shopify-Access-Token": decryptedAccessToken, "Content-Type": "application/json" },
+          headers: { "X-Shopify-Access-Token": conn.access_token, "Content-Type": "application/json" },
         });
 
         if (res.ok) {
