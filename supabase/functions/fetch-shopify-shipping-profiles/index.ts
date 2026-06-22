@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +47,8 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    connection.access_token = await decryptOrPassthrough(connection.access_token, Deno.env.get("ENCRYPTION_KEY")!);
 
     const domain = connection.store_domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
