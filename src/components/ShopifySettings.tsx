@@ -3,8 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Store, Loader2, Check, Trash2, RefreshCw, KeyRound, Copy, Truck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Store,
+  Loader2,
+  Check,
+  Trash2,
+  RefreshCw,
+  KeyRound,
+  Copy,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -25,7 +40,9 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     shipping_profile_id: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [shippingProfiles, setShippingProfiles] = useState<{ id: string; name: string; default: boolean }[]>([]);
+  const [shippingProfiles, setShippingProfiles] = useState<
+    { id: string; name: string; default: boolean }[]
+  >([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -108,18 +125,20 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     } else if (code) {
       window.history.replaceState({}, "", window.location.pathname);
       toast.info("Exchanging authorization code...");
-      supabase.functions.invoke("shopify-exchange-token", {
-        body: { code, organizationId },
-      }).then(({ data, error }) => {
-        if (error) {
-          toast.error("Failed to exchange token: " + error.message);
-        } else if (data?.error) {
-          toast.error(data.error);
-        } else {
-          toast.success("Shopify connected successfully!");
-          loadConnection();
-        }
-      });
+      supabase.functions
+        .invoke("shopify-exchange-token", {
+          body: { code, organizationId },
+        })
+        .then(({ data, error }) => {
+          if (error) {
+            toast.error("Failed to exchange token: " + error.message);
+          } else if (data?.error) {
+            toast.error(data.error);
+          } else {
+            toast.success("Shopify connected successfully!");
+            loadConnection();
+          }
+        });
     }
   }, []);
 
@@ -127,9 +146,12 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     setLoading(true);
     try {
       // Use edge function to read connection status (avoids column-level permission issues)
-      const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
-        body: { action: "check", organizationId: organizationId || null },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "save-shopify-credentials",
+        {
+          body: { action: "check", organizationId: organizationId || null },
+        },
+      );
       if (error) {
         console.error("Failed to check Shopify connection:", error);
         setLoading(false);
@@ -158,7 +180,8 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
   };
 
   const buildInstallUrl = (domain: string, appClientId: string) => {
-    const scopes = "read_products,write_products,read_files,write_files,read_shipping,write_shipping";
+    const scopes =
+      "read_products,write_products,read_files,write_files,read_shipping,write_shipping";
     const statePayload = JSON.stringify({
       origin: window.location.origin,
       organizationId: organizationId || null,
@@ -167,15 +190,22 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     return `https://${domain}/admin/oauth/authorize?client_id=${appClientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(SHOPIFY_REDIRECT_URI)}&state=${state}`;
   };
 
-  const saveCredentialsViaEdgeFunction = async (domain: string, appClientId: string, appClientSecret: string) => {
-    const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
-      body: {
-        storeDomain: domain,
-        clientId: appClientId,
-        clientSecret: appClientSecret,
-        organizationId: organizationId || null,
+  const saveCredentialsViaEdgeFunction = async (
+    domain: string,
+    appClientId: string,
+    appClientSecret: string,
+  ) => {
+    const { data, error } = await supabase.functions.invoke(
+      "save-shopify-credentials",
+      {
+        body: {
+          storeDomain: domain,
+          clientId: appClientId,
+          clientSecret: appClientSecret,
+          organizationId: organizationId || null,
+        },
       },
-    });
+    );
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
   };
@@ -206,18 +236,28 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       if (attempts > maxAttempts) {
         clearOauthUiState();
-        toast.error("Authorization timed out. Verify your Shopify app allows this redirect URL: " + SHOPIFY_REDIRECT_URI);
+        toast.error(
+          "Authorization timed out. Verify your Shopify app allows this redirect URL: " +
+            SHOPIFY_REDIRECT_URI,
+        );
         return;
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke("save-shopify-credentials", {
-          body: { action: "check", organizationId: organizationId || null },
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "save-shopify-credentials",
+          {
+            body: { action: "check", organizationId: organizationId || null },
+          },
+        );
 
         if (error || data?.error) {
           clearOauthUiState();
-          toast.error(data?.error || error?.message || "Failed to verify Shopify authorization status");
+          toast.error(
+            data?.error ||
+              error?.message ||
+              "Failed to verify Shopify authorization status",
+          );
           return;
         }
 
@@ -227,7 +267,6 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           loadConnection();
           return;
         }
-
       } catch (err) {
         console.warn("Shopify OAuth polling check failed:", err);
       }
@@ -241,7 +280,9 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const launchShopifyOauth = (installUrl: string) => {
     setPendingAuthUrl(installUrl);
-    toast.info("Credentials ready. Click 'Open Shopify Authorization' to continue.");
+    toast.info(
+      "Credentials ready. Click 'Open Shopify Authorization' to continue.",
+    );
   };
 
   const handleCopyAuthUrl = async () => {
@@ -252,19 +293,40 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       toast.success("Authorization URL copied. Paste it in a new Safari tab.");
       setTimeout(() => setCopiedAuthUrl(false), 2000);
     } catch {
-      toast.error("Could not copy automatically. Please copy the URL manually.");
+      toast.error(
+        "Could not copy automatically. Please copy the URL manually.",
+      );
     }
   };
 
   const handleAuthorizationLinkClick = () => {
+    if (!pendingAuthUrl) return;
     if (waitingToastRef.current !== null) {
       toast.dismiss(waitingToastRef.current);
     }
     waitingToastRef.current = toast.info(
       "Waiting for Shopify authorization — complete the process in the new tab...",
-      { duration: 120000 }
+      { duration: 120000 },
     );
     startPolling();
+
+    // Open as a real scripted popup (not a plain <a target="_blank"> link) so the
+    // callback page retains a window.opener reference. That lets it postMessage
+    // back to this tab and call window.close() on itself once Shopify redirects
+    // back — without this, browsers block script-initiated close() on tabs that
+    // weren't opened by script, and the success page stays open indefinitely.
+    const popup = window.open(
+      pendingAuthUrl,
+      "shopify-oauth",
+      "popup,width=600,height=720",
+    );
+    if (!popup) {
+      // Popup blocked — fall back to the manual copy-URL flow. Polling above
+      // still works to detect success even without the popup/postMessage path.
+      toast.error(
+        "Popup blocked. Use 'Copy URL' below and open it in a new tab manually.",
+      );
+    }
   };
 
   const handleConnect = async (e: React.FormEvent) => {
@@ -278,16 +340,25 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
       return;
     }
 
-    const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const domain = storeDomain
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/$/, "");
     const installUrl = buildInstallUrl(domain, clientId.trim());
 
     setSaving(true);
     try {
-      await saveCredentialsViaEdgeFunction(domain, clientId.trim(), clientSecret.trim());
+      await saveCredentialsViaEdgeFunction(
+        domain,
+        clientId.trim(),
+        clientSecret.trim(),
+      );
       setStoreDomain(domain);
       setPendingAuthUrl(installUrl);
       await loadConnection();
-      toast.success("Credentials saved. Click 'Open Shopify Authorization' to continue.");
+      toast.success(
+        "Credentials saved. Click 'Open Shopify Authorization' to continue.",
+      );
     } catch (err: any) {
       clearOauthUiState();
       toast.error(err.message || "Failed to save");
@@ -298,13 +369,19 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
   const handleReauthorize = () => {
     if (!existing || !existing.client_id) return;
-    const installUrl = buildInstallUrl(existing.store_domain, existing.client_id);
+    const installUrl = buildInstallUrl(
+      existing.store_domain,
+      existing.client_id,
+    );
     launchShopifyOauth(installUrl);
   };
 
   const handleDisconnect = async () => {
     if (!existing) return;
-    const { error } = await supabase.from("shopify_connections").delete().eq("id", existing.id);
+    const { error } = await supabase
+      .from("shopify_connections")
+      .delete()
+      .eq("id", existing.id);
     if (error) {
       toast.error(error.message);
       return;
@@ -323,7 +400,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
     }
     setSaving(true);
     try {
-      await saveCredentialsViaEdgeFunction(existing.store_domain, clientId.trim(), clientSecret.trim());
+      await saveCredentialsViaEdgeFunction(
+        existing.store_domain,
+        clientId.trim(),
+        clientSecret.trim(),
+      );
       toast.success("App credentials updated");
       setShowCredentials(false);
       setClientSecret("");
@@ -356,14 +437,17 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
 
       {isPreviewEnvironment && !existing?.has_token && (
         <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          Safari may block Shopify auth from preview. If it fails, use the <span className="font-medium text-foreground">published app URL</span> to complete authorization.
+          Safari may block Shopify auth from preview. If it fails, use the{" "}
+          <span className="font-medium text-foreground">published app URL</span>{" "}
+          to complete authorization.
         </div>
       )}
 
       {existing?.has_token && (
         <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-600">
           <Check className="h-4 w-4" />
-          Connected to <span className="font-medium">{existing.store_domain}</span>
+          Connected to{" "}
+          <span className="font-medium">{existing.store_domain}</span>
         </div>
       )}
 
@@ -371,10 +455,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
         <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
           <div className="flex items-center gap-2">
             <Truck className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium">Default Shipping Profile</Label>
+            <Label className="text-sm font-medium">
+              Default Shipping Profile
+            </Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            Pushed products will be added to this shipping/delivery profile. Leave on "General profile (default)" to use Shopify's default.
+            Pushed products will be added to this shipping/delivery profile.
+            Leave on "General profile (default)" to use Shopify's default.
           </p>
           <div className="flex flex-wrap gap-2 items-center">
             <Select
@@ -383,15 +470,26 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                 setSavingProfile(true);
                 try {
                   const newId = val === "__default__" ? null : val;
-                  const { error } = await supabase.functions.invoke("save-shopify-credentials", {
-                    body: { action: "set_shipping_profile", organizationId: organizationId || null, shippingProfileId: newId },
-                  });
+                  const { error } = await supabase.functions.invoke(
+                    "save-shopify-credentials",
+                    {
+                      body: {
+                        action: "set_shipping_profile",
+                        organizationId: organizationId || null,
+                        shippingProfileId: newId,
+                      },
+                    },
+                  );
                   if (error) throw error;
-                  setExisting((prev) => prev ? { ...prev, shipping_profile_id: newId } : prev);
+                  setExisting((prev) =>
+                    prev ? { ...prev, shipping_profile_id: newId } : prev,
+                  );
                   toast.success("Shipping profile updated");
                 } catch (err: any) {
                   toast.error(err.message || "Failed to save shipping profile");
-                } finally { setSavingProfile(false); }
+                } finally {
+                  setSavingProfile(false);
+                }
               }}
               disabled={savingProfile || loadingProfiles}
             >
@@ -399,10 +497,13 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                 <SelectValue placeholder="General profile (default)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__default__">General profile (default)</SelectItem>
+                <SelectItem value="__default__">
+                  General profile (default)
+                </SelectItem>
                 {shippingProfiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name}{p.default ? " (default)" : ""}
+                    {p.name}
+                    {p.default ? " (default)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -416,23 +517,37 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
               onClick={async () => {
                 setLoadingProfiles(true);
                 try {
-                  const { data, error } = await supabase.functions.invoke("fetch-shopify-shipping-profiles", {
-                    body: { organizationId: organizationId || null },
-                  });
+                  const { data, error } = await supabase.functions.invoke(
+                    "fetch-shopify-shipping-profiles",
+                    {
+                      body: { organizationId: organizationId || null },
+                    },
+                  );
                   if (error) throw error;
                   if (data?.error) throw new Error(data.error);
                   setShippingProfiles(data?.profiles || []);
                   if (data?.scopeMissing) {
-                    toast.warning(data.message || "Shopify did not grant shipping profile access. General profile is still available.");
+                    toast.warning(
+                      data.message ||
+                        "Shopify did not grant shipping profile access. General profile is still available.",
+                    );
                     return;
                   }
-                  toast.success(`Loaded ${(data?.profiles || []).length} profiles`);
+                  toast.success(
+                    `Loaded ${(data?.profiles || []).length} profiles`,
+                  );
                 } catch (err: any) {
                   toast.error(err.message || "Failed to load profiles");
-                } finally { setLoadingProfiles(false); }
+                } finally {
+                  setLoadingProfiles(false);
+                }
               }}
             >
-              {loadingProfiles ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {loadingProfiles ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
               Load profiles
             </Button>
           </div>
@@ -445,10 +560,15 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
             <div className="space-y-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-4 w-4" />
-                Credentials saved for <span className="font-medium">{existing.store_domain}</span> but authorization is incomplete. Re-enter your Client Secret and click Install &amp; Connect to finish.
+                Credentials saved for{" "}
+                <span className="font-medium">{existing.store_domain}</span> but
+                authorization is incomplete. Re-enter your Client Secret and
+                click Install &amp; Connect to finish.
               </div>
               <p className="text-xs text-amber-700/90">
-                If this keeps repeating, verify your app redirect URL is exactly: <span className="font-mono">{SHOPIFY_REDIRECT_URI}</span>
+                If this keeps repeating, verify your app redirect URL is
+                exactly:{" "}
+                <span className="font-mono">{SHOPIFY_REDIRECT_URI}</span>
               </p>
             </div>
           )}
@@ -465,7 +585,9 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <KeyRound className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">App Credentials</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                App Credentials
+              </span>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Client ID</Label>
@@ -489,36 +611,48 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Find these in your <span className="text-foreground font-medium">Shopify Partners</span> dashboard → Apps → your app → Client credentials.
+              Find these in your{" "}
+              <span className="text-foreground font-medium">
+                Shopify Partners
+              </span>{" "}
+              dashboard → Apps → your app → Client credentials.
             </p>
           </div>
 
           <Button type="submit" disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Store className="h-4 w-4" />
+            )}
             Install & Connect
           </Button>
 
           {pendingAuthUrl && (
             <div className="space-y-2">
               <div className="flex gap-2 flex-wrap">
-                <Button type="button" variant="outline" className="gap-2" asChild>
-                  <a
-                    href={pendingAuthUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={handleAuthorizationLinkClick}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Open Shopify Authorization
-                  </a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleAuthorizationLinkClick}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Open Shopify Authorization
                 </Button>
-                <Button type="button" variant="outline" className="gap-2" onClick={handleCopyAuthUrl}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleCopyAuthUrl}
+                >
                   <Copy className="h-4 w-4" />
                   {copiedAuthUrl ? "Copied" : "Copy URL"}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                If Safari shows the COOP error, paste the copied URL directly into a brand-new tab and continue there.
+                If Safari shows the COOP error, paste the copied URL directly
+                into a brand-new tab and continue there.
               </p>
             </div>
           )}
@@ -543,7 +677,10 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => { setShowCredentials(!showCredentials); setClientSecret(""); }}
+              onClick={() => {
+                setShowCredentials(!showCredentials);
+                setClientSecret("");
+              }}
               className="gap-2"
             >
               <KeyRound className="h-4 w-4" />
@@ -576,12 +713,25 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                   type="password"
                   value={clientSecret}
                   onChange={(e) => setClientSecret(e.target.value)}
-                  placeholder={existing.has_credentials ? "••••••••  (enter new value to change)" : "Your Shopify app Client Secret"}
+                  placeholder={
+                    existing.has_credentials
+                      ? "••••••••  (enter new value to change)"
+                      : "Your Shopify app Client Secret"
+                  }
                   className="text-sm"
                 />
               </div>
-              <Button size="sm" onClick={handleUpdateCredentials} disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              <Button
+                size="sm"
+                onClick={handleUpdateCredentials}
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
                 Save Credentials
               </Button>
             </div>
