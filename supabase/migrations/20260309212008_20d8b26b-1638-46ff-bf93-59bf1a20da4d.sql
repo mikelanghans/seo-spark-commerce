@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN template_image_url text DEFAULT null;

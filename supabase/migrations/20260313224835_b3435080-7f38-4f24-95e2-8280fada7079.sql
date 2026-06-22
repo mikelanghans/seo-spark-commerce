@@ -1,1 +1,0 @@
-DELETE FROM ai_usage_log WHERE user_id = 'bbbba495-5c31-4c0d-9fd4-09e60f97f537';

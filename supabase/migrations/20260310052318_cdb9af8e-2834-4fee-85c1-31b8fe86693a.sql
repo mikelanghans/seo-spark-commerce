@@ -1,1 +1,0 @@
-ALTER TABLE public.products ADD COLUMN printify_product_id text DEFAULT NULL;

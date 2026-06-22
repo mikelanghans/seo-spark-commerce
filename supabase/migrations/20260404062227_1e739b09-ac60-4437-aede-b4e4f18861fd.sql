@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN listing_excluded_sections text[] NOT NULL DEFAULT '{}'::text[];

@@ -1,1 +1,0 @@
-ALTER TABLE public.shopify_connections ADD COLUMN IF NOT EXISTS shipping_profile_id text;

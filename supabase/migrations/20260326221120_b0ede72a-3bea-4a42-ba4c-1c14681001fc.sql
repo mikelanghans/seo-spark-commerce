@@ -1,1 +1,0 @@
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.organizations TO authenticated;

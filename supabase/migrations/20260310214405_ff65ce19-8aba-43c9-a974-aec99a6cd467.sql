@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN logo_url text DEFAULT null;

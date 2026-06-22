@@ -1,1 +1,0 @@
-ALTER TABLE public.ebay_connections ADD CONSTRAINT ebay_connections_user_id_unique UNIQUE (user_id);

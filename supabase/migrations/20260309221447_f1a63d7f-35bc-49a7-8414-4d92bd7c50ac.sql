@@ -1,1 +1,0 @@
-ALTER TABLE public.generated_messages ADD COLUMN design_url TEXT DEFAULT NULL;

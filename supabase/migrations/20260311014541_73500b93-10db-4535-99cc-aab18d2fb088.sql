@@ -1,1 +1,0 @@
-ALTER TABLE public.organizations ADD COLUMN design_styles jsonb NOT NULL DEFAULT '["text-only"]'::jsonb;

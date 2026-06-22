@@ -1,1 +1,0 @@
-ALTER TABLE public.ebay_connections ADD COLUMN ru_name text DEFAULT '';

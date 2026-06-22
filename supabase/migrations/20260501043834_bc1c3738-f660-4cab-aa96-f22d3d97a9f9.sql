@@ -1,1 +1,0 @@
-DELETE FROM public.etsy_connections WHERE shop_id IS NULL OR shop_id = '';

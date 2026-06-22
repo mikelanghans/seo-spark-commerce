@@ -1,1 +1,0 @@
-DELETE FROM public.product_images WHERE id = '49624604-f31c-410a-a4a5-fda8ab945ae9';

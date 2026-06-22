@@ -1,1 +1,0 @@
-ALTER TABLE public.products ADD COLUMN shopify_product_id bigint UNIQUE;
