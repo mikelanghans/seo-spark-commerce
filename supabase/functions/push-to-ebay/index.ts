@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import https from "node:https";
+import { encrypt, decryptOrPassthrough } from "../_shared/encryption.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -322,7 +323,13 @@ serve(async (req) => {
       });
     }
 
-    const { client_id, client_secret, environment, access_token, refresh_token, token_expires_at } = conn;
+    const encryptionKey = Deno.env.get("ENCRYPTION_KEY")!;
+    const client_id = conn.client_id;
+    const client_secret = conn.client_secret ? await decryptOrPassthrough(conn.client_secret, encryptionKey) : conn.client_secret;
+    const environment = conn.environment;
+    const access_token = conn.access_token ? await decryptOrPassthrough(conn.access_token, encryptionKey) : conn.access_token;
+    const refresh_token = conn.refresh_token ? await decryptOrPassthrough(conn.refresh_token, encryptionKey) : conn.refresh_token;
+    const token_expires_at = conn.token_expires_at;
 
     // Determine API base URL
     const isSandbox = environment === "sandbox";
@@ -366,9 +373,10 @@ serve(async (req) => {
       token = tokenData.access_token;
 
       // Save token
+      const newRefreshToken = tokenData.refresh_token || refresh_token;
       await sb.from("ebay_connections").update({
-        access_token: token,
-        refresh_token: tokenData.refresh_token || refresh_token,
+        access_token: await encrypt(token, encryptionKey),
+        refresh_token: newRefreshToken ? await encrypt(newRefreshToken, encryptionKey) : newRefreshToken,
         token_expires_at: new Date(Date.now() + (tokenData.expires_in || 7200) * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       } as any).eq("id", conn.id);
