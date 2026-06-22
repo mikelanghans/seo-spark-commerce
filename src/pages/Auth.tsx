@@ -30,9 +30,13 @@ const Auth = () => {
         const { data: isValid, error: rpcError } = await supabase.rpc("validate_beta_code", {
           _code: inviteCode.trim(),
         });
-        if (rpcError) throw rpcError;
+        if (rpcError) {
+          toast.error("Hmm, we couldn't check your invite code right now. Please try again in a moment, or reach out to support if it keeps happening.");
+          setLoading(false);
+          return;
+        }
         if (!isValid) {
-          toast.error("Invalid or expired invite code");
+          toast.error("That invite code doesn't look right. Double-check it for typos — or contact us if you think it should work.");
           setLoading(false);
           return;
         }
