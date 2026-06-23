@@ -86,7 +86,7 @@ serve(async (req) => {
           id: conn.id,
           store_domain: conn.store_domain,
           has_token: !!(conn.access_token && conn.access_token.length > 0),
-          has_credentials: !!(conn.client_id && conn.client_secret),
+          has_credentials: !!conn.store_domain,
           client_id: conn.client_id,
           shipping_profile_id: conn.shipping_profile_id || null,
         },
@@ -113,32 +113,54 @@ serve(async (req) => {
     }
 
     // === SAVE action (default): upsert credentials ===
-    if (!clientId.trim() || !clientSecret.trim()) {
-      throw new Error("Client ID and Client Secret are required");
-    }
+    // Client ID/Secret are now optional here: if the app is running in "single
+    // global Shopify app" mode (VITE_SHOPIFY_CLIENT_ID set on the frontend,
+    // SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET set as edge function secrets),
+    // the frontend won't send these at all and the OAuth functions fall back
+    // to the env vars. Per-user custom-app credentials still work exactly as
+    // before when provided — this just stops requiring them unconditionally.
     if (!storeDomain.trim()) {
       throw new Error("Store domain is required");
     }
 
     const domain = storeDomain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
-    const encryptedSecret = await encrypt(clientSecret, encryptionKey);
 
     // Check for existing connection
     let query = adminClient
       .from("shopify_connections")
-      .select("id")
+      .select("id, client_secret")
       .eq("user_id", user.id);
     if (organizationId) query = query.eq("organization_id", organizationId);
     const { data: existing } = await query.maybeSingle();
 
+    // A blank Client Secret is fine when resubmitting an already-connected
+    // account (e.g. just changing the store domain) — the existing one stays
+    // untouched below. It's only a problem on a true first-time save.
+    const hasExistingSecret = !!existing?.client_secret;
+    if (clientId.trim() && !clientSecret.trim() && !hasExistingSecret) {
+      throw new Error("Client Secret is required the first time you connect this app");
+    }
+    if (!clientId.trim() && clientSecret.trim()) {
+      throw new Error("Client ID is required when providing a Client Secret");
+    }
+
+    const encryptedSecret = clientSecret.trim() ? await encrypt(clientSecret, encryptionKey) : "";
+
     if (existing) {
+      const updatePayload: Record<string, unknown> = {
+        store_domain: domain,
+        client_id: clientId.trim() || null,
+      };
+      // Only touch client_secret if a new value was actually provided —
+      // an intentionally blank field (resubmitting to change just the
+      // domain, say) should leave the already-saved secret untouched,
+      // not wipe it out.
+      if (encryptedSecret) {
+        updatePayload.client_secret = encryptedSecret;
+      }
       const { error } = await adminClient
         .from("shopify_connections")
-        .update({
-          store_domain: domain,
-          client_id: clientId,
-          client_secret: encryptedSecret,
-        })
+        .update(updatePayload)
         .eq("id", existing.id);
       if (error) throw error;
     } else {
@@ -148,8 +170,8 @@ serve(async (req) => {
           user_id: user.id,
           store_domain: domain,
           organization_id: organizationId || null,
-          client_id: clientId,
-          client_secret: encryptedSecret,
+          client_id: clientId.trim() || null,
+          client_secret: encryptedSecret || null,
         });
       if (error) throw error;
     }
