@@ -313,6 +313,20 @@ serve(async (req) => {
       window.__closeTab = function () {
         window.close();
       };
+
+      // If we're still here after a beat, window.close() didn't work (common
+      // in Safari once the popup has navigated cross-origin). Don't leave the
+      // user stuck looking at this page — automatically take them back to the
+      // app the same way the "Return to app" button would. This is a plain
+      // navigation, not dependent on window.opener/postMessage, so it works
+      // even when those are blocked.
+      setTimeout(function () {
+        try {
+          window.__returnToApp();
+        } catch (err) {
+          // no-op — the manual buttons below still work either way
+        }
+      }, 1500);
     })();
   </script>
 </head>
