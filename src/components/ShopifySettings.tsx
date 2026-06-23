@@ -517,7 +517,11 @@ export const ShopifySettings = ({ userId, organizationId }: Props) => {
                   type="password"
                   value={clientSecret}
                   onChange={(e) => setClientSecret(e.target.value)}
-                  placeholder="e.g. shpss_abc123..."
+                  placeholder={
+                    existing?.has_credentials
+                      ? "••••••••  (saved — enter new value to change)"
+                      : "e.g. shpss_abc123..."
+                  }
                   className="font-mono text-sm"
                   required
                 />
