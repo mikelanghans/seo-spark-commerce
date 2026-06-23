@@ -314,19 +314,17 @@ serve(async (req) => {
         window.close();
       };
 
-      // If we're still here after a beat, window.close() didn't work (common
-      // in Safari once the popup has navigated cross-origin). Don't leave the
-      // user stuck looking at this page — automatically take them back to the
-      // app the same way the "Return to app" button would. This is a plain
-      // navigation, not dependent on window.opener/postMessage, so it works
-      // even when those are blocked.
+      // This used to be a fallback for when a popup's window.close() failed.
+      // Now that the frontend does a plain full-page redirect to get here
+      // (no popup at all), window.opener is always null and this timeout is
+      // the normal way back — kept short so it doesn't feel sluggish.
       setTimeout(function () {
         try {
           window.__returnToApp();
         } catch (err) {
           // no-op — the manual buttons below still work either way
         }
-      }, 1500);
+      }, 700);
     })();
   </script>
 </head>
