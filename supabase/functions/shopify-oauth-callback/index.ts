@@ -65,8 +65,12 @@ const parseOauthState = (stateRaw: string | null) => {
     try {
       const parsed = JSON.parse(candidate);
       origin = typeof parsed.origin === "string" ? parsed.origin : origin;
-      returnTo = typeof parsed.returnTo === "string" ? parsed.returnTo : returnTo;
-      organizationId = typeof parsed.organizationId === "string" ? parsed.organizationId : organizationId;
+      returnTo =
+        typeof parsed.returnTo === "string" ? parsed.returnTo : returnTo;
+      organizationId =
+        typeof parsed.organizationId === "string"
+          ? parsed.organizationId
+          : organizationId;
       break;
     } catch {
       if (!origin && /^https?:\/\//i.test(candidate)) {
@@ -86,7 +90,11 @@ const parseOauthState = (stateRaw: string | null) => {
   return { origin, returnTo, organizationId };
 };
 
-const buildAppRedirectUrl = (base: string, status: "success" | "error", errorMessage?: string) => {
+const buildAppRedirectUrl = (
+  base: string,
+  status: "success" | "error",
+  errorMessage?: string,
+) => {
   const fallbackBase = base || "/";
 
   try {
@@ -100,9 +108,10 @@ const buildAppRedirectUrl = (base: string, status: "success" | "error", errorMes
     return url.toString();
   } catch {
     const sep = fallbackBase.includes("?") ? "&" : "?";
-    const errorPart = status === "error" && errorMessage
-      ? `&error=${encodeURIComponent(errorMessage)}`
-      : "";
+    const errorPart =
+      status === "error" && errorMessage
+        ? `&error=${encodeURIComponent(errorMessage)}`
+        : "";
     return `${fallbackBase}${sep}shopify_oauth=${status}${errorPart}`;
   }
 };
@@ -114,7 +123,11 @@ serve(async (req) => {
     const shop = url.searchParams.get("shop");
     const stateRaw = url.searchParams.get("state") || "";
 
-    const { origin: rawOrigin, returnTo: rawReturnTo, organizationId } = parseOauthState(stateRaw);
+    const {
+      origin: rawOrigin,
+      returnTo: rawReturnTo,
+      organizationId,
+    } = parseOauthState(stateRaw);
     // Allowlist origin/returnTo to prevent open-redirect & XSS via attacker-controlled state.
     const origin = sanitizeOrigin(rawOrigin);
     const returnTo = sanitizeReturnTo(rawReturnTo);
@@ -131,7 +144,11 @@ serve(async (req) => {
     }
 
     // Validate shop domain matches Shopify's expected pattern (myshop.myshopify.com).
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(shop.replace(/^https?:\/\//, "").replace(/\/$/, ""))) {
+    if (
+      !/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/.test(
+        shop.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+      )
+    ) {
       throw new Error("Invalid shop domain");
     }
 
@@ -165,20 +182,30 @@ serve(async (req) => {
         .maybeSingle();
 
       if (expectedError || !expected) {
-        throw new Error("No Shopify connection found for this brand. Please save your store domain and credentials first.");
+        throw new Error(
+          "No Shopify connection found for this brand. Please save your store domain and credentials first.",
+        );
       }
 
-      const expectedDomain = (expected.store_domain || "").replace(/^https?:\/\//, "").replace(/\/$/, "").toLowerCase();
+      const expectedDomain = (expected.store_domain || "")
+        .replace(/^https?:\/\//, "")
+        .replace(/\/$/, "")
+        .toLowerCase();
       if (expectedDomain && expectedDomain !== domain.toLowerCase()) {
         throw new Error(
           `Store mismatch: this brand is configured for "${expectedDomain}", but Shopify authorized "${domain}". ` +
-          `This usually means a different Shopify store is logged in to your browser. ` +
-          `Please log out of all Shopify admin sessions (or use a private/incognito window), then try connecting again.`
+            `This usually means a different Shopify store is logged in to your browser. ` +
+            `Please log out of all Shopify admin sessions (or use a private/incognito window), then try connecting again.`,
         );
       }
 
       // Use the brand's connection row directly — no risk of matching the wrong row.
-      var connection: { id: string; user_id: string; client_id: string | null; client_secret: string | null } = {
+      var connection: {
+        id: string;
+        user_id: string;
+        client_id: string | null;
+        client_secret: string | null;
+      } = {
         id: expected.id,
         user_id: expected.user_id,
         client_id: expected.client_id,
@@ -193,9 +220,16 @@ serve(async (req) => {
         .maybeSingle();
 
       if (connError || !connectionRow) {
-        throw new Error("No matching Shopify connection found for this store domain.");
+        throw new Error(
+          "No matching Shopify connection found for this store domain.",
+        );
       }
-      var connection: { id: string; user_id: string; client_id: string | null; client_secret: string | null } = connectionRow;
+      var connection: {
+        id: string;
+        user_id: string;
+        client_id: string | null;
+        client_secret: string | null;
+      } = connectionRow;
     }
 
     // Use per-org credentials from the connection row, fall back to env vars for legacy
@@ -206,41 +240,71 @@ serve(async (req) => {
       : Deno.env.get("SHOPIFY_CLIENT_SECRET")!;
 
     if (!clientId || !clientSecret) {
-      throw new Error("No Shopify app credentials configured for this brand. Please add your Client ID and Client Secret in Shopify settings.");
+      throw new Error(
+        "No Shopify app credentials configured for this brand. Please add your Client ID and Client Secret in Shopify settings.",
+      );
     }
 
     // Exchange the authorization code for an access token
-    const tokenResponse = await fetch(`https://${domain}/admin/oauth/access_token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-      }),
-    });
+    const tokenResponse = await fetch(
+      `https://${domain}/admin/oauth/access_token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+        }),
+      },
+    );
+
+    let skipSaving = false;
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("Shopify OAuth error:", tokenResponse.status, errorText);
-      throw new Error(`Shopify OAuth error (${tokenResponse.status}): ${errorText}`);
+
+      // OAuth codes are single-use. If a parallel request (e.g. a browser's
+      // speculative prefetch firing this same callback URL twice) already
+      // redeemed this exact code and saved a token, don't show an error —
+      // confirm the connection actually succeeded and treat this as success
+      // too, instead of failing a request that did nothing wrong.
+      if (/already used|not found/i.test(errorText)) {
+        const { data: recheck } = await adminClient
+          .from("shopify_connections")
+          .select("access_token")
+          .eq("id", connection.id)
+          .maybeSingle();
+        if (recheck?.access_token) {
+          skipSaving = true;
+        }
+      }
+
+      if (!skipSaving) {
+        throw new Error(
+          `Shopify OAuth error (${tokenResponse.status}): ${errorText}`,
+        );
+      }
     }
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    if (!skipSaving) {
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
 
-    if (!accessToken) {
-      throw new Error("No access token received from Shopify");
+      if (!accessToken) {
+        throw new Error("No access token received from Shopify");
+      }
+
+      // Update the connection with the access token
+      const encryptedAccessToken = await encrypt(accessToken, encryptionKey);
+      const { error: updateError } = await adminClient
+        .from("shopify_connections")
+        .update({ access_token: encryptedAccessToken })
+        .eq("id", connection.id);
+
+      if (updateError) throw updateError;
     }
-
-    // Update the connection with the access token
-    const encryptedAccessToken = await encrypt(accessToken, encryptionKey);
-    const { error: updateError } = await adminClient
-      .from("shopify_connections")
-      .update({ access_token: encryptedAccessToken })
-      .eq("id", connection.id);
-
-    if (updateError) throw updateError;
 
     // Return an HTML page that posts to opener if available.
     // Do not auto-redirect when opener is unavailable (common with Safari/COOP).
@@ -354,11 +418,14 @@ serve(async (req) => {
     // Best-effort parse of state, so fallback redirect lands back in app.
     const fallbackUrl = new URL(req.url);
     const stateRaw = fallbackUrl.searchParams.get("state");
-    const { origin: rawOrigin, returnTo: rawReturnTo } = parseOauthState(stateRaw);
+    const { origin: rawOrigin, returnTo: rawReturnTo } =
+      parseOauthState(stateRaw);
     const origin = sanitizeOrigin(rawOrigin);
     const returnTo = sanitizeReturnTo(rawReturnTo);
     const redirectBase = returnTo || origin || "/";
-    const jsRedirectTarget = JSON.stringify(buildAppRedirectUrl(redirectBase, "error", errorMsg));
+    const jsRedirectTarget = JSON.stringify(
+      buildAppRedirectUrl(redirectBase, "error", errorMsg),
+    );
 
     const html = `<!DOCTYPE html>
 <html>
