@@ -38,15 +38,6 @@ function sanitizeReturnTo(value: string): string {
   }
 }
 
-function htmlEncode(value: string): string {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 const parseOauthState = (stateRaw: string | null) => {
   let origin = "";
   let returnTo = "";
@@ -156,14 +147,6 @@ serve(async (req) => {
 
     const redirectBase = returnTo || origin || "/";
     const successRedirect = buildAppRedirectUrl(redirectBase, "success");
-    const targetOrigin = (() => {
-      if (origin) return origin;
-      try {
-        return new URL(redirectBase).origin;
-      } catch {
-        return "*";
-      }
-    })();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -306,114 +289,20 @@ serve(async (req) => {
       if (updateError) throw updateError;
     }
 
-    // Return an HTML page that posts to opener if available.
-    // Do not auto-redirect when opener is unavailable (common with Safari/COOP).
-    // JSON.stringify safely escapes for JS string contexts (handles </script>, quotes, newlines).
-    const jsTargetOrigin = JSON.stringify(targetOrigin);
-    const jsSuccessRedirect = JSON.stringify(successRedirect);
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Shopify Connected</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #1f2937;
-      background: #fff;
-      line-height: 1.5;
-    }
-    .card {
-      max-width: 560px;
-      margin: 0 auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-    }
-    h1 { margin: 0 0 8px; font-size: 18px; }
-    p { margin: 0 0 10px; }
-    .actions {
-      margin-top: 14px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    button {
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-      color: #111827;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button.primary {
-      background: #111827;
-      color: #fff;
-      border-color: #111827;
-    }
-  </style>
-  <script>
-    (function () {
-      if (window.opener) {
-        try {
-          window.opener.postMessage({ type: "shopify-oauth-success" }, ${jsTargetOrigin});
-        } catch (err) {
-          // no-op
-        }
-        try {
-          window.close();
-        } catch (err) {
-          // no-op
-        }
-      }
-
-      window.__returnToApp = function () {
-        window.location.replace(${jsSuccessRedirect});
-      };
-
-      window.__closeTab = function () {
-        window.close();
-      };
-
-      // This used to be a fallback for when a popup's window.close() failed.
-      // Now that the frontend does a plain full-page redirect to get here
-      // (no popup at all), window.opener is always null and this timeout is
-      // the normal way back — kept short so it doesn't feel sluggish.
-      setTimeout(function () {
-        try {
-          window.__returnToApp();
-        } catch (err) {
-          // no-op — the manual buttons below still work either way
-        }
-      }, 700);
-    })();
-  </script>
-</head>
-<body>
-  <div class="card">
-    <h1>Shopify authorization completed</h1>
-    <p>You can now return to the app tab. The connection status should update automatically.</p>
-    <div class="actions">
-      <button class="primary" onclick="window.__returnToApp()">Return to app</button>
-      <button onclick="window.__closeTab()">Close tab</button>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    return new Response(html, {
-      status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+    // Supabase Edge Functions rewrite text/html responses on GET requests to
+    // text/plain — documented platform behavior, not something we can opt
+    // out of. That means any inline <script> in an HTML body (the popup
+    // close/postMessage/auto-redirect logic this used to have) never
+    // actually executes; the browser just shows raw markup as plain text.
+    // A real HTTP redirect sidesteps this completely — no HTML body, no
+    // JavaScript needed, the browser navigates immediately and natively.
+    return new Response(null, {
+      status: 302,
+      headers: { Location: successRedirect },
     });
   } catch (e) {
     console.error("shopify-oauth-callback error:", e);
     const errorMsg = "An internal error occurred. Please try again.";
-    // HTML-encode for body interpolation; JSON.stringify for JS string contexts.
-    const safeErrorHtml = htmlEncode(errorMsg);
-    const jsErrorMsg = JSON.stringify(errorMsg);
 
     // Best-effort parse of state, so fallback redirect lands back in app.
     const fallbackUrl = new URL(req.url);
@@ -423,103 +312,11 @@ serve(async (req) => {
     const origin = sanitizeOrigin(rawOrigin);
     const returnTo = sanitizeReturnTo(rawReturnTo);
     const redirectBase = returnTo || origin || "/";
-    const jsRedirectTarget = JSON.stringify(
-      buildAppRedirectUrl(redirectBase, "error", errorMsg),
-    );
+    const errorRedirect = buildAppRedirectUrl(redirectBase, "error", errorMsg);
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Connection Error</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #1f2937;
-      background: #fff;
-      line-height: 1.5;
-    }
-    .card {
-      max-width: 560px;
-      margin: 0 auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-    }
-    h1 { margin: 0 0 8px; font-size: 18px; }
-    p { margin: 0 0 10px; }
-    code {
-      display: block;
-      white-space: pre-wrap;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 8px;
-      font-size: 12px;
-    }
-    .actions {
-      margin-top: 14px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    button {
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: #fff;
-      color: #111827;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button.primary {
-      background: #111827;
-      color: #fff;
-      border-color: #111827;
-    }
-  </style>
-  <script>
-    (function () {
-      var hadOpener = !!window.opener;
-      if (hadOpener) {
-        try {
-          window.opener.postMessage({ type: "shopify-oauth-error", error: ${jsErrorMsg} }, "*");
-        } catch (err) {
-          // no-op: opener messaging can be blocked by browser COOP policies
-        }
-      }
-
-      window.__redirectToApp = function () {
-        window.location.replace(${jsRedirectTarget});
-      };
-
-      window.__closePopup = function () {
-        window.close();
-      };
-
-      // No automatic redirect: in Safari/COOP contexts this can fail or lead to blank pages.
-    })();
-  </script>
-</head>
-<body>
-  <div class="card">
-    <h1>Shopify authorization failed</h1>
-    <p>We couldn't complete the connection. Please return to the app and try again.</p>
-    <code>${safeErrorHtml}</code>
-    <div class="actions">
-      <button class="primary" onclick="window.__redirectToApp()">Return to app</button>
-      <button onclick="window.__closePopup()">Close window</button>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    return new Response(html, {
-      status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+    return new Response(null, {
+      status: 302,
+      headers: { Location: errorRedirect },
     });
   }
 });
